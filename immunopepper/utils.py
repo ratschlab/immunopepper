@@ -1,10 +1,12 @@
 import itertools
-
 import scipy as sp
 import numpy as np
 
-# Converts a binary adjacency matrix to a list of directed edges
+
 def to_adj_list(adj_matrix):
+    """
+    Converts a binary adjacency matrix to a list of directed edges
+    """
     adj_list = []
     assert (adj_matrix.shape[0] == adj_matrix.shape[1])
     for idx in range(adj_matrix.shape[0]):
@@ -13,8 +15,11 @@ def to_adj_list(adj_matrix):
                 adj_list.append([idx, jdx])
     return adj_list
 
-# Returns a list of successors by vertex, sensitive to the read strand
+
 def to_adj_succ_list(adj_matrix, vertex_map, read_strand):
+    """
+    Returns a list of successors by vertex, sensitive to the read strand
+    """
     succ_list = []
     assert (adj_matrix.shape[0] == adj_matrix.shape[1])
     for idx in range(adj_matrix.shape[0]):
@@ -27,8 +32,10 @@ def to_adj_succ_list(adj_matrix, vertex_map, read_strand):
     return succ_list
 
 
-# Find overlapping CDS given a list of CDS starts
 def find_overlapping_cds_simple(v_start, v_stop, cds_begins, strand):
+    """
+    Find overlapping CDS within an exon given a list of CDS starts
+    """
     if strand == "+":
         return filter(lambda cds_begin: cds_begin[0] >= v_start and cds_begin[1] <= v_stop, cds_begins)
     else:
@@ -43,43 +50,34 @@ def attribute_list_to_dict(a_list):
     return a_dict
 
 
-# Returns strand-sensitive order between two genomic coordinates
-def leq_strand(coord1, coord2, strand_mode):
-    if strand_mode == "+":
+def leq_strand(coord1, coord2, strand):
+    if strand == "+":
         return coord1 <= coord2
-    else:  # strand_mode == "-"
+    else:
         return coord1 >= coord2
 
-# Yields the complementary DNA sequence
-# dna_seq: Input nucleotide sequence
+
 def complementary_seq(dna_seq):
+    """
+    Yields the complementary DNA sequence
+    """
     comp_dict = {"A": "T", "T": "A", "C": "G", "G": "C"}
     comp_dict_keys = comp_dict.keys()
     return "".join(map(lambda nuc: comp_dict[nuc] if nuc in comp_dict_keys else nuc, dna_seq))
 
 
-# Returns header labels corresponding to donor_id and mutation_mode
-def header_labels(donor_id, mutation_mode):
-    if mutation_mode is None:
-        mutation_type = "REFERENCE"
-    elif mutation_mode == "both":
-        mutation_type = "GERM_SOMATIC"
-    elif mutation_mode == "somatic_only":
-        mutation_type = "SOMATIC"
-    elif mutation_mode == "germline_only":
-        mutation_type = "GERM"
-
-    peptide_type = "REFERENCE" if donor_id == "ref" else donor_id
-
-    return (peptide_type, mutation_type)
-
-# Encodes chromosome to same cn
 def encode_chromosome(in_num):
+    """
+    Encodes chromosome to same cn
+    """
     convert_dict = {23: "X", 24: "Y", 25: "MT"}
     return convert_dict[in_num] if in_num in convert_dict.keys() else str(in_num)
 
-# Translate a DNA sequence encoding a peptide to amino-acid sequence via RNA
+
 def translate_dna_to_peptide(dna_str):
+    """
+    Translate a DNA sequence encoding a peptide to amino-acid sequence via RNA
+    """
     codontable = {
         'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
         'ACA': 'T', 'ACC': 'T', 'ACG': 'T', 'ACT': 'T',
@@ -118,6 +116,9 @@ def translate_dna_to_peptide(dna_str):
 
 
 def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand):
+    """
+    Get the mutated dna sub-sequence according to mutation specified by the variant_comb.
+    """
     if start_v2 != '.':
         if strand == '-':
             sub_dna_list = list(background_seq[start_v1:stop_v1][::-1] + background_seq[start_v2:stop_v2][::-1])
@@ -128,21 +129,36 @@ def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, varian
             sub_dna_list = list(background_seq[start_v1:stop_v1][::-1])
         else:
             sub_dna_list = list(background_seq[start_v1:stop_v1])
-    if len(variant_comb) == 1: #no mutation exist
+
+    if variant_comb == '.': # no mutation exist
         return ''.join(sub_dna_list)
     for variant_ipos in variant_comb:
-        ref_base = mutation_sub_dic_maf[variant_ipos]['ref_base']
         mut_base = mutation_sub_dic_maf[variant_ipos]['mut_base']
-        strand = mutation_sub_dic_maf[variant_ipos]['strand']
-        variant_Classification = mutation_sub_dic_maf[variant_ipos]['variant_Classification']
-        variant_Type = mutation_sub_dic_maf[variant_ipos]['variant_Type']
-        sub_dna_list[variant_ipos-start_v1] = mut_base
-    return ''.join(sub_dna_list) 
+        ref_base = mutation_sub_dic_maf[variant_ipos]['ref_base']
+        # strand = mutation_sub_dic_maf[variant_ipos]['strand']
+
+        # decide mutation happens in which exon vertice
+        if variant_ipos >= start_v1 and variant_ipos <= stop_v1:
+            assert (sub_dna_list[variant_ipos-start_v1] == ref_base)
+            if strand == '-':
+                sub_dna_list[stop_v1-variant_ipos-1] = mut_base
+            else:
+                sub_dna_list[variant_ipos-start_v1] = mut_base
+
+        else:
+            assert (sub_dna_list[variant_ipos-start_v2+stop_v1-start_v1] == ref_base)
+            if strand == '-':
+                sub_dna_list[stop_v2-variant_ipos+stop_v1-start_v1-1] = mut_base
+            else:
+                sub_dna_list[variant_ipos-start_v2+stop_v1-start_v1] = mut_base
+
+    final_dna = ''.join(sub_dna_list)
+    return final_dna
 
 
-def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf, background_seq, peptide_accept_coord):
+def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, peptide_accept_coord):
     """
-
+    Get translated peptide from the given exon pairs.
     Parameters
     ----------
     read_frame: tuple, (read_start_codon, read_stop_codon, emitting_frame)
@@ -173,21 +189,25 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     # emitting_frame + accepting_frame = 3
     accepting_frame = (3 - emitting_frame) % 3
 
-
+    if mutation_sub_dic_maf is None:
+        ref_seq = ref_mut_seq['ref']
+    else:
+        ref_seq = ref_mut_seq['background']
     # python is 0-based while gene annotation file(.gtf) is one based
     # so we need to do a little modification
     if strand == "+":
         start_v2 = peptide_accept_coord[0]
         stop_v2 = peptide_accept_coord[1] - next_emitting_frame
-        peptide_dna_str_mut = get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand)
-        peptide_dna_str_ref = background_seq[start_v1:stop_v1] + background_seq[start_v2:stop_v2]
+        peptide_dna_str_mut = get_sub_mut_dna(ref_mut_seq['background'], start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand)
+        peptide_dna_str_ref = ref_seq[start_v1:stop_v1] + ref_seq[start_v2:stop_v2]
         next_start_v1 = start_v2 + accepting_frame
         next_stop_v1 = peptide_accept_coord[1]
     else:  # strand == "-"
         start_v2 = peptide_accept_coord[0] + next_emitting_frame
         stop_v2 = peptide_accept_coord[1]
-        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand))
-        peptide_dna_str_ref = complementary_seq(background_seq[start_v1:stop_v1][::-1] + background_seq[start_v2:stop_v2][::-1])
+        mut_seq = get_sub_mut_dna(ref_mut_seq['background'], start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand)
+        peptide_dna_str_mut = complementary_seq(mut_seq)
+        peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1] + ref_seq[start_v2:stop_v2][::-1])
         next_start_v1 = peptide_accept_coord[0]
         next_stop_v1 = stop_v2 - accepting_frame
 
@@ -252,6 +272,7 @@ def get_size_factor(strains,lib_file_path):
     sf = med / libs[:, 1].astype('float')
     return sf
 
+
 def get_all_comb(array,r=None):
     if r is None:
         r = len(array)
@@ -260,27 +281,23 @@ def get_all_comb(array,r=None):
         result.extend(list(itertools.combinations(array,i)))
     return result
 
+
 def is_mutation_within_exon_pair(pos_start,pos_end,mutation_pos):
     variant_pos = [pos for pos in mutation_pos]
     variant_pos_candi = [ipos for ipos in variant_pos if ipos > pos_start and ipos < pos_end]
     return variant_pos_candi
-        
+
+
 def is_isolated_cds(gene, idx):
     """
-    If a vertex has a successor, it is not isolated.
+    Indicate if a peptide is translated by an isolated cds
 
-    Generally if it has read frame, this read frame should be propogated by other
-    vertex. Therefore this vertex should not be isolated, except the very beginning
-    vertex, where the reading frame is assigned by gtf file. We mark all vertices that have
-    no incoming or outgoing edges as isolated.
-
+    Currently, it is a simple version. If the exon where the cds is
+    has no connected exon, it is isolated. (the method is not true in some cases)
     Parameters
     ----------
     gene: gene object
-    idx: the id of vertex
-
-    Returns
-    -------
+    idx: exon id
 
     """
 
@@ -288,40 +305,120 @@ def is_isolated_cds(gene, idx):
         return False
 
     return sp.sum(gene.splicegraph.edges[:, idx]) == 0
-    #sg = gene.splicegraph
-    ## AK TODO: this needs fixing. pop() will remove the reading frame, also it will pick an arbitrary one.
-    #coord_diff = sg.vertices[0, idx] - sg.reading_frames[idx].pop()[0]
-    #print(coord_diff)
-    #if abs(coord_diff) > 10:
-    #    return True
 
-def is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2):
+
+def is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2, read_frame):
     strand = gene.strand
     output_vertex_dict = gene.output_vertex_dict
     if strand == '+':
-        if (stop_v1,start_v2) in output_vertex_dict:
-            all_output_comb = output_vertex_dict[(stop_v1,start_v2)]
+        if (stop_v1, start_v2, read_frame) in output_vertex_dict:
+            all_output_comb = output_vertex_dict[(stop_v1, start_v2, read_frame)]
             for comb in all_output_comb:
                 if start_v1 >= comb[0] and stop_v2 <= comb[1]:
                     return True
-            output_vertex_dict[(stop_v1,start_v2)].append((start_v1,stop_v2))
+            output_vertex_dict[(stop_v1, start_v2)].append((start_v1, stop_v2, read_frame))
         else:
-            output_vertex_dict[(stop_v1,start_v2)] = [(start_v1,stop_v2)]
+            output_vertex_dict[(stop_v1, start_v2)] = [(start_v1, stop_v2, read_frame)]
     else:  # strand == '-'
-        if (start_v1, stop_v2) in output_vertex_dict:
-            all_output_comb = output_vertex_dict[(start_v1, stop_v2)]
+        if (start_v1, stop_v2, read_frame) in output_vertex_dict:
+            all_output_comb = output_vertex_dict[(start_v1, stop_v2, read_frame)]
             for comb in all_output_comb:
                 if stop_v1 <= comb[0] and start_v2 >= comb[1]:
                     return True
-            output_vertex_dict[(start_v1, stop_v2)].append((stop_v1, start_v2))
+            output_vertex_dict[(start_v1, stop_v2)].append((stop_v1, start_v2, read_frame))
         else:
-            output_vertex_dict[(start_v1, stop_v2)] = [(stop_v1, start_v2)]
+            output_vertex_dict[(start_v1, stop_v2)] = [(stop_v1, start_v2, read_frame)]
     return False
 
-def is_in_junction_list(v1,v2,strand,junction_list):
 
+def is_in_junction_list(v1,v2,strand,junction_list):
     return int(':'.join([str(v1[1]),  str(v2[0]), strand]) in junction_list)
 
-   # coordi_match = np.logical_and(junction_list[:,0] == str(v1[1]),junction_list[:,1] == str(v2[0]))
-   # final_match  = sum(np.logical_and(coordi_match,junction_list[:,2]==strand))
-   # return final_match
+# step to create test genome
+# 1. modify test1.gtf file
+# 2. generate the test1.fa with the following function
+# 3. generate groundtruth with 'translate_dna_to_peptide' function and
+# pen & paper
+# 4. go back to step 1
+
+# steps to add new transcript
+# 1. modify test1pos.gtf file
+# 2. modify create_test_genome file to make tailor-made gene
+# 3. delete quick_test_data/spladder and create new splicegraph with command tools
+# 4. run main_immuno.py
+def create_test_genome(L,stop_position,seed=1):
+    np.random.seed(seed)
+    number_list = np.random.randint(0,4,L)
+    map_dict = {0:'A', 1:'G', 2:'C', 3:'T'}
+    dna_list = [map_dict[i] for i in number_list]
+    for pos in stop_position:
+        dna_list[pos:pos+3] = 'TAG'
+
+    # modify
+    dna_list[69] = 'C'  # remove stop codon
+    dna_list[98] = 'G'  # remove stop codon
+    dna_list[44] = 'A'  # create stop codon
+    dna_list[39] = 'T'  # create stop codon in mutation mode
+    dna_list[95] = 'A'  # create stop codon for transcript 4
+    dna_list[96] = 'G'  # create stop codon for transcript 4
+    new_dna_list = dna_list+list(complementary_seq(dna_list[::-1])) # create the same
+    dna = ''.join(new_dna_list)
+    f = open('./quick_test_data/test1.fa','w')
+    f.write('>X dna:chromosome chromosome:GRCh37:X:1:155270560:1'+'\n')
+    f.write(dna)
+    f.close()
+    return dna
+
+
+def create_full_from_pos(posgtf_file, posmaf_file, L):
+    f = open(posgtf_file,'r')
+    lines = f.readlines()
+    new_line_list = []
+    for line in lines:
+        item = line.split('\t')
+        start_pos = 2*L+1-int(item[3])
+        end_pos = 2*L+1-int(item[4])
+        new_detail = item[8].replace('GENE1', 'GENE2')
+        new_detail = new_detail.replace('TRANS1', 'TRANS2')
+        item[3] = str(end_pos)
+        item[4] = str(start_pos)
+        item[8] = new_detail
+        item[6] = '-'
+        new_line = '\t'.join(item)
+        new_line_list.append(new_line)
+    f = open('quick_test_data/test1.gtf','w')
+    f.writelines(lines+new_line_list)
+    f.close()
+
+    f = open(posmaf_file, 'r')
+    lines = f.readlines()
+    new_line_list = []
+    for line in lines[1:]:
+        item = line.split('\t')
+        pos = item[5]
+        pre_base = item[10]
+        new_base = item[12]
+        neg_pre_base = complementary_seq(pre_base)
+        neg_new_base = complementary_seq(new_base)
+        new_pos = 2*L+1-int(pos)
+        item[5] = str(new_pos)
+        item[6] = str(new_pos)
+        item[10] = neg_pre_base
+        item[11] = neg_pre_base
+        item[12] = neg_new_base
+        new_line = '\t'.join(item)
+        new_line_list.append(new_line)
+    f = open('quick_test_data/test1.maf','w')
+    f.writelines(lines+new_line_list)
+    f.close()
+    #f = open(posvcf_file, 'r')
+    #todo complete the pos maf part
+# create_test_genome(150, [73, 102])
+# create_full_from_pos('quick_test_data/test1pos.gtf','quick_test_data/test1pos.maf', 150)
+
+
+
+
+
+
+

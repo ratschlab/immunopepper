@@ -11,12 +11,13 @@ import gzip
 # External libraries
 import Bio.SeqIO as BioIO
 import h5py
-import numpy as np
+
 # immuno module
 from immuno_print import print_memory_diags
-from immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_mutation_from_maf,parse_mutation_from_vcf_h5,parse_junction_meta_info
+from immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_mutation_from_maf,parse_mutation_from_vcf_h5,parse_junction_meta_info,parse_mutation_from_vcf
 from immuno_mutation import get_mutation_mode_from_parser
 from immuno_model import annotate_gene_opt
+from modules.classes import gene
 
 ### Example usage
 # python main_immuno.py --samples TCGA-13-1489 --output_dir t --splice_path quick_test_data/sample_gene.pkl --ann_path quick_test_data/small.gtf --ref_path quick_test_data/smallgene34.fa
@@ -27,9 +28,9 @@ def parse_arguments(argv):
     parser = argparse.ArgumentParser(argv)
     parser.add_argument("--samples", nargs='+', help="the sample names, can specify more than one sample", required=False, default='')
     parser.add_argument("--output_dir", help="specify the output directory [default: test]", required=False, default='test')
-    parser.add_argument("--ann_path", help="specify the absolute path of annotation file", required=True)
-    parser.add_argument("--splice_path", help="specify the absolute path of splicegraph file", required=True)
-    parser.add_argument("--ref_path", help="specify the absolute path of reference gene file to the work_dir", required=True)
+    parser.add_argument("--ann_path", help="specify the absolute path of annotation file", required=False)
+    parser.add_argument("--splice_path", help="specify the absolute path of splicegraph file", required=False)
+    parser.add_argument("--ref_path", help="specify the absolute path of reference gene file to the work_dir", required=False)
     parser.add_argument("--libsize_path", nargs='?', help="specify the absolute path to expression library sizes",required=False, default=None)
     parser.add_argument("--vcf_path", nargs=1, help="specify the absolute path of vcf file", required=False, default='')
     parser.add_argument("--maf_path", nargs=1, help="specify the absolute path of maf file", required=False, default='')
@@ -49,18 +50,19 @@ def parse_arguments(argv):
 
 
 def main():
-
+    print(os.path.abspath(os.curdir))
     arg = parse_arguments(sys.argv)
 
-    ## for debugging in pycharm
+    # ## for debugging in pycharm
     # arg.output_dir = 'test'
-    # arg.ann_path = 'quick_test_data/small.gtf'
-    # arg.ref_path = 'quick_test_data/smallgene34.fa'
-    # arg.splice_path = 'quick_test_data/sample_gene.pkl'
+    # arg.ann_path = 'quick_test_data/test1.gtf'
+    # arg.ref_path = 'quick_test_data/test1.fa'
+    # arg.splice_path = 'quick_test_data/spladder/genes_graph_conf3.merge_graphs.pickle'
     # arg.gtex_junction_path = 'quick_test_data/gtex_junctions.hdf5'
-    # arg.vcf_path = 'quick_test_data/chrx.vcf'
-    # arg.maf_path = 'quick_test_data/chrx.maf'
-    # arg.samples = ['OMM475.T']
+    # arg.vcf_path = ['quick_test_data/test1pos.vcf']
+    # arg.maf_path = ['quick_test_data/test1.maf']
+    # arg.count_path = 'quick_test_data/spladder/genes_graph_conf3.merge_graphs.count.hdf5'
+    # arg.samples = ['test1']
 
     mutation_mode, vcf_file_path, maf_file_path = get_mutation_mode_from_parser(arg)
     print(arg.samples)
@@ -90,10 +92,10 @@ def main():
     # read the variant file
     if mutation_mode == 'somatic_and_germline':
         mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
-        mutation_dic_vcf = parse_mutation_from_vcf_h5(vcf_file_path, arg.samples)
+        mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path)
     elif mutation_mode == 'germline':
         mutation_dic_maf = {} # empty dic
-        mutation_dic_vcf = parse_mutation_from_vcf_h5(vcf_file_path, arg.samples)
+        mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path)
     elif mutation_mode == 'somatic':
         mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
         mutation_dic_vcf = {} # empty dic
@@ -113,7 +115,7 @@ def main():
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
-    
+
     if arg.process_num == 0: # Default process all genes
         num = len(graph_data)
     else:
@@ -154,8 +156,6 @@ def main():
     else:
         print('...computing from annotation')
         genes_preprocess(graph_data, gene_cds_begin_dict)
-        if not os.path.exists(arg.output_dir):
-            os.makedirs(arg.output_dir)
         cPickle.dump((graph_data, gene_cds_begin_dict), open(anno_pickle, 'w'), -1)
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
@@ -169,7 +169,8 @@ def main():
         peptide_file_path = os.path.join(output_path, mutation_mode + '_peptides.fa')
         meta_peptide_file_path = os.path.join(output_path, mutation_mode + '_metadata.tsv.gz')
         log_file_path = os.path.join(output_path, mutation_mode+'_no_output_gene.txt')
-        log_fp = open(log_file_path, 'w')
+        #log_fp = open(log_file_path, 'w')
+        log_fp = None
         peptide_fp = open(peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')
         meta_header_line = "\t".join(['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
@@ -212,19 +213,19 @@ def main():
             annotate_gene_opt(gene=gene,
                               ref_seq=seq_dict[chrm],
                               gene_idx=gene_idx,
-                              seg_lookup_table=seg_lookup_table, 
+                              seg_lookup_table=seg_lookup_table,
                               edge_lookup_table=edge_lookup_table,
                               size_factor=size_factor,
                               junction_list=junction_list,
-                              segment_expr_info=sub_segment_expr_info, 
+                              segment_expr_info=sub_segment_expr_info,
                               edge_expr_info=sub_edge_expr_info,
                               transcript_to_cds_table=transcript_to_cds_table,
                               gene_to_transcript_table=gene_to_transcript_table,
                               mutation_mode=mutation_mode,
                               mutation_sub_dic_vcf=mutation_sub_dict_vcf,
                               mutation_sub_dic_maf=mutation_sub_dict_maf,
-                              peptide_ptr=peptide_fp, 
-                              meta_ptr=meta_peptide_fp, 
+                              peptide_ptr=peptide_fp,
+                              meta_ptr=meta_peptide_fp,
                               log_ptr=log_fp,
                               is_filter=arg.is_filter,
                               debug=arg.debug

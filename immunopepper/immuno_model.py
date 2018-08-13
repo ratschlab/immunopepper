@@ -40,12 +40,8 @@ def annotate_gene_opt(gene=None, ref_seq=None, gene_idx=None,
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
     # otherwise, background_seq = ref_seq
-    if mutation_sub_dic_vcf is not None:
-        ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq, pos_start=gene.start, pos_end=gene.stop,
+    ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq, pos_start=gene.start, pos_end=gene.stop,
                                               mutation_sub_dic_vcf=mutation_sub_dic_vcf)
-        background_seq = ref_mut_seq['germline']
-    else:
-        background_seq = ref_seq
 
     # apply somatic mutation
     # som_exp_dict: (mutation_position) |-> (expression)
@@ -54,30 +50,26 @@ def annotate_gene_opt(gene=None, ref_seq=None, gene_idx=None,
     if mutation_sub_dic_maf is not None:
         exon_som_dict = get_exon_som_dict(gene, mutation_sub_dic_maf.keys())
         if segment_expr_info is not None:
-            som_exp_dict = get_som_expr_dict(gene,mutation_sub_dic_maf.keys(),segment_expr_info,seg_lookup_table)
+            som_exp_dict = get_som_expr_dict(gene, mutation_sub_dic_maf.keys(), segment_expr_info, seg_lookup_table)
 
     # find background peptide
     # if no germline mutation is applies, germline key still exists, equals to reference.
     # return the list of the background peptide for each transcript
-    background_pep_list = find_background_peptides(gene, background_seq, gene_to_transcript_table,
+    background_pep_list = find_background_peptides(gene, ref_mut_seq['background'], gene_to_transcript_table,
                                                    transcript_to_cds_table)
 
     # check whether the junction (specific combination of vertices) also is annotated
     # as a junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_table)
 
-    f_isolated = open('isolated_stop.txt','a')
-
     for idx in gene.vertex_order:
         n_read_frames = len(sg.reading_frames[idx])
-        # no cds start, skip the vertex
-        if n_read_frames == 0: 
+        if n_read_frames == 0:  # no cds start, skip the vertex
             continue  
-        if is_isolated_cds(gene, idx):  # if it is an isolated cds, we add a flag idx -1, translate and output it
+        if is_isolated_cds(gene, idx):  # if it is an isolated cds, we add a flag idx '.', translate and output it
             gene.vertex_succ_list[idx].append('.')
         for prop_vertex in gene.vertex_succ_list[idx]:
-            #mut_seq_dict = get_mut_seq_dict(background_seq, mutation_sub_dic_maf, exon_som_dict, idx, prop_vertex)
-            mut_seq_comb = get_mut_comb(mutation_sub_dic_maf, exon_som_dict, idx, prop_vertex)
+            mut_seq_comb = get_mut_comb(exon_som_dict, idx, prop_vertex)
             for variant_comb in mut_seq_comb:  # go through each variant combination
                 # Skip de-generate exons that contain less than one codon
                 if gene.vertex_len_dict[idx] < 3: 
@@ -89,28 +81,26 @@ def annotate_gene_opt(gene=None, ref_seq=None, gene_idx=None,
                     if prop_vertex != '.':
                         cross_peptide_mut, cross_peptide_ref, \
                         start_v1, stop_v1, start_v2, stop_v2, \
-                        has_stop_codon, is_isolated, next_reading_frame = cross_peptide_result(read_frame, gene.strand, variant_comb, mutation_sub_dic_maf,background_seq, sg.vertices[:, prop_vertex])
+                        has_stop_codon, is_isolated, next_reading_frame = cross_peptide_result(read_frame, gene.strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, sg.vertices[:, prop_vertex])
                         if not has_stop_codon:
                             sg.reading_frames[prop_vertex].add(next_reading_frame)
                     else: 
                         cross_peptide_mut, cross_peptide_ref, \
                         start_v1, stop_v1, start_v2, stop_v2, \
-                        has_stop_codon, is_isolated = isolated_peptide_result(read_frame, gene.strand, variant_comb, mutation_sub_dic_maf,background_seq)
-                        if not has_stop_codon:
-                            f_isolated.write(gene.name + '\t' + str(idx) + '\n')
+                        has_stop_codon, is_isolated = isolated_peptide_result(read_frame, gene.strand, variant_comb, mutation_sub_dic_maf,ref_mut_seq)
 
-                    # If cross junction peptide has a stop-codon in it, we will not output it for simplicity, also the frame
+                    # If cross junction peptide has a stop-codon in it, the frame
                     # will not be propagated because the read is truncated before it reaches the end of the exon.
-                    # also in mutated mode, only output the case where ref is different from mutated
+                    # also in mutation mode, only output the case where ref is different from mutated
                     if cross_peptide_mut != cross_peptide_ref or mutation_mode == 'ref':
                         if is_filter:
-                            is_redundant = is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2)
+                            is_redundant = is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2,read_frame)
                         if not is_filter or not is_redundant:
                             match_ts_list = peptide_match(background_pep_list, cross_peptide_mut)
                             peptide_is_annotated = len(match_ts_list)
                             if not is_isolated:
                                 junction_anno_flag = int(junction_flag[idx, prop_vertex])
-                                if not junction_list is None:
+                                if junction_list is not None:
                                     if gene.strand == '+':
                                         junctionOI_flag = is_in_junction_list(sg.vertices[:, idx], sg.vertices[:, prop_vertex], gene.strand, junction_list)
                                     else:
@@ -138,12 +128,12 @@ def annotate_gene_opt(gene=None, ref_seq=None, gene_idx=None,
 
                             # deal with expression data
                             if edge_lookup_table is not None and not is_isolated:
-                                sorted_pos = sp.sort(np.array([start_v1 - 1, stop_v1, start_v2 - 1,stop_v2]))
+                                sorted_pos = sp.sort(np.array([start_v1, stop_v1, start_v2,stop_v2]))
                                 edge_expr = search_edge_metadata_segmentgraph(gene, sorted_pos, edge_lookup_table, edge_expr_info)
                                 # edge_expr = edge_expr*size_factor
                             else:
                                 edge_expr = '.'
-                            meta_header_line += ("\t" .join(str(edge_expr)))
+                            meta_header_line += ("\t" .join([str(edge_expr)]))
                             meta_ptr.write(meta_header_line + "\n")
                             peptide_str_pretty = '>' + str(gene_idx) + '.' + str(output_id) + '\n' + cross_peptide_mut
                             peptide_ptr.write(peptide_str_pretty + "\n")
@@ -152,6 +142,5 @@ def annotate_gene_opt(gene=None, ref_seq=None, gene_idx=None,
         gene.to_sparse()
 
     gene.processed = True
-    if not is_output:
-        log_ptr.write(str(gene_idx) + '\t' + gene.name + '\n')
-    f_isolated.close()
+    # if not is_output:
+    #     log_ptr.write(str(gene_idx) + '\t' + gene.name + '\n')

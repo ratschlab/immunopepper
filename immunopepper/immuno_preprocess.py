@@ -18,8 +18,8 @@ from utils import to_adj_succ_list,find_overlapping_cds_simple,attribute_list_to
 # get gene.vertex_succ_list
 # sort the vertex
 # get gene.splicegraph.reading_frames
-def genes_preprocess(genes, gene_cds_begin_dict):
 
+def genes_preprocess(genes, gene_cds_begin_dict):
     f_log = open('cds_match_log.txt','w')
     for gene_idx in range(genes.shape[0]):
         if gene_idx > 0 and gene_idx % 100 == 0:
@@ -63,23 +63,14 @@ def genes_preprocess(genes, gene_cds_begin_dict):
                 cds_left = int(line_elems[3])-1
                 cds_right = int(line_elems[4])
 
-                #TODO: need to remove the redundance of (cds_start,cds_stop,item)
+                #TODO: need to remove the redundance of (cds_start, cds_stop, item)
                 # It's ugly and not necessary
                 if gene.strand == "-":
                     cds_right_modi = cds_right - cds_phase
-                    #assert (cds_left == v_start)
-                    #if cds_left != v_start:
-                    #    f_log.write(';'.join([str(gene_idx),str(idx)])+'\n')
-                    #cds_left_modi = cds_left
-                    ### we start at the annotated CDS start, but ignore annotated stops and take the sequence instead
                     cds_left_modi = v_start
                     n_trailing_bases = cds_right_modi - cds_left_modi
-                else:  # gene.strand=="+":
+                else:
                     cds_left_modi = cds_left + cds_phase
-                    #assert (cds_right == v_stop)
-                    #if cds_right != v_stop:
-                    #    f_log.write(';'.join([str(gene_idx),str(idx)])+'\n')
-                    #cds_right_modi = cds_right
                     cds_right_modi = v_stop
                     n_trailing_bases = cds_right_modi - cds_left_modi
 
@@ -216,7 +207,8 @@ def parse_gene_metadata_info(h5f, donor_list):
 
     for strain_idx in np.arange(strain_expr_info.size):
         strain_id = strain_expr_info[strain_idx]
-        strain_id = '-'.join(strain_id.split('.')[0].split('-')[:3])
+        #strain_id = '-'.join(strain_id.split('.')[0].split('-')[:3])
+        strain_id = 'test1'
         if strain_id in donor_list:
             strain_idx_table[strain_id] = strain_idx
 
@@ -228,21 +220,36 @@ def parse_gene_metadata_info(h5f, donor_list):
     seg_lookup_table = {}
     edge_lookup_table = {}
 
+    #print(gene_ids_segs.shape)
     for seg_idx in np.arange(gene_ids_segs.shape[0]):
-        gene_id = gene_names[gene_ids_segs[seg_idx, 0]]
+        gene_id = gene_names[gene_ids_segs[seg_idx, 0]][0]  # no [0] before
         if gene_id not in seg_lookup_table:
             seg_lookup_table[gene_id] = []
         seg_lookup_table[gene_id].append(seg_idx)
 
     for edge_idx in np.arange(gene_ids_edges.shape[0]):
-        gene_id = gene_names[gene_ids_edges[edge_idx, 0]]
+        gene_id = gene_names[gene_ids_edges[edge_idx, 0]][0]  # no [0] before
         if gene_id not in edge_lookup_table:
             edge_lookup_table[gene_id] = []
         edge_lookup_table[gene_id].append((edge_idx, edge_idx_info[edge_idx]))
 
     return (seg_lookup_table, edge_lookup_table, strain_idx_table, segment_expr_info, edge_expr_info)
 
+
 def parse_mutation_from_vcf(vcf_path):
+    """
+    Extract germline mutation information from given vcf file.
+
+    Parameters
+    ----------
+    vcf_path: str, vcf file path
+
+    Returns
+    -------
+    mut_dict: with key (sample, chromo) and values (var_dict)
+
+    """
+    print(vcf_path)
     f = open(vcf_path,'r')
     lines = f.readlines()
     mutation_dic = {}
@@ -269,35 +276,59 @@ def parse_mutation_from_vcf(vcf_path):
                 var_dict['varianttype'] = value
                 break
         if var_dict['varianttype'] == 'SNP':  # only consider snp for now
-            for sample_id in sample_list:  # modify it when figuring out donor-variant in vcf
-                if (sample_id,chr) in mutation_dic.keys(): # use tuple of sample_id&chr as the key
+            for sample_id in sample_list:
+                if (sample_id,chr) in mutation_dic.keys():
                     mutation_dic[(sample_id,chr)][int(pos)] = var_dict
                 else:
                     mutation_dic[(sample_id,chr)] = {}
                     mutation_dic[(sample_id, chr)][int(pos)] = var_dict
     return mutation_dic
 
-def parse_mutation_from_vcf_h5(h5_vcf_path,donor_list):
+def parse_mutation_from_vcf_h5(h5_vcf_path,sample_list):
+    """
+    Extract germline mutation information from given vcf h5py file.
+
+    Parameters
+    ----------
+    h5_vcf_path: str, vcf file path
+    sample_list: list of str, list for sample name
+
+    Returns
+    -------
+    mut_dict: with key (sample, chromo) and values (var_dict)
+
+    """
     a = h5py.File(h5_vcf_path,'r')
     mut_dict = {}
-    for donor in donor_list:
-        col_id = [i for (i, item) in enumerate(a['gtid']) if item.startswith(donor)][0]
+    for sample in sample_list:
+        col_id = [i for (i, item) in enumerate(a['gtid']) if item.startswith(sample)][0]
         row_id = sp.where(a['gt'][:,col_id]==0)[0]
         for irow in row_id:
-            var_dict = {}
             chromo = encode_chromosome(a['pos'][irow,0])
             pos = a['pos'][irow,1]-1
             mut_base = a['allele_alt'][irow]
             ref_base = a['allele_ref'][irow]
             var_dict = {"mut_base":mut_base,"ref_base":ref_base}
-            if (donor,chromo)  in mut_dict:
-                mut_dict[(donor,chromo)][pos] = var_dict
+            if (sample,chromo)  in mut_dict:
+                mut_dict[(sample,chromo)][pos] = var_dict
             else:
-                mut_dict[(donor,chromo)] = {}
-                mut_dict[(donor,chromo)][pos] = var_dict
+                mut_dict[(sample,chromo)] = {}
+                mut_dict[(sample,chromo)][pos] = var_dict
     return mut_dict
 
 def parse_mutation_from_maf(maf_path):
+    '''
+    Extract somatic mutation information from given maf file.
+
+    Parameters
+    ----------
+    maf_path: str, maf file path
+
+    Returns
+    -------
+    mut_dict: with key (sample, chromo) and values (var_dict)
+
+    '''
     f = open(maf_path)
     lines = f.readlines()
     mutation_dic = {}
@@ -305,7 +336,7 @@ def parse_mutation_from_maf(maf_path):
         print(i)
         items = line.strip().split('\t')
         if items[9] == 'SNP':  # only consider snp
-            sample_id = '-'.join(items[15].split('-')[:3])  # or Tumor_Seq_Allele2
+            sample_id = '-'.join(items[15].split('-')[:3])
             chr = items[4]
             pos = int(items[5])-1
             var_dict = {}
@@ -322,7 +353,17 @@ def parse_mutation_from_maf(maf_path):
     return mutation_dic
 
 def parse_junction_meta_info(h5f_path):
-    # jiayu Todo: can use binary search to improve
+    """
+    Extract introns of interest from given h5py file
+    Parameters
+    ----------
+    h5f_path: str, h5py file path
+
+    Returns
+    -------
+    junction_dict: dict, key (chromosome id), value (set of coordinate pairs)
+
+    """
     if h5f_path is None:
         return None
     else:
@@ -337,14 +378,7 @@ def parse_junction_meta_info(h5f_path):
                 junction_dict[ichr].add(':'.join([pos[i, 0], pos[i, 1], strand[i]]))
             except KeyError:
                 junction_dict[ichr] = set([':'.join([pos[i, 0], pos[i, 1], strand[i]])])
-            #if ichr not in junction_dict.keys():
-            #    junction_dict[ichr] = [(pos[i][0], pos[i][1], strand[i])]
-            #else:
-            #    junction_dict[ichr].append((pos[i][0], pos[i][1], strand[i]))
-        #for key in junction_dict.keys():
-        #    junction_dict[key] = np.array(junction_dict[key])
     return junction_dict
-
 
 
 
