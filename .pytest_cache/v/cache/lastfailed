@@ -1,0 +1,6 @@
+{
+  "tests/test_immunopepper.py::test_final_output": true, 
+  "tests/test_immunopepper.py::test_germline_mutation": true, 
+  "tests/test_immunopepper.py::test_get_sub_mut_dna": true, 
+  "tests/test_immunopepper.py::test_preprocess": true
+}
