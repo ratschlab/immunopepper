@@ -1,6 +1,6 @@
 import pytest
 import os
-import cPickle
+import pickle
 import gzip
 
 from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, parse_mutation_from_vcf, parse_mutation_from_maf
@@ -8,14 +8,43 @@ from immunopepper.immuno_mutation import apply_germline_mutation
 import Bio.SeqIO as BioIO
 from immunopepper.utils import get_sub_mut_dna
 
+data_dir = os.path.join(os.path.dirname(__file__), 'data')
+
+
+# TODO: this is a hack to get around module name changes spladder affecting pickle
+# we should regenerate the pickle files ASAP
+def _load_graph_pickle(f):
+    # following https://wiki.python.org/moin/UsingPickle/RenamingModules
+    renametable = {
+        'modules.classes.gene': 'spladder.classes.gene',
+        'modules.classes.splicegraph': 'spladder.classes.splicegraph',
+        'modules.classes.segmentgraph': 'spladder.classes.segmentgraph'
+    }
+
+    def mapname(name):
+        if name in renametable:
+            return renametable[name]
+        return name
+
+    def mapped_load_global(self):
+        module = mapname(self.readline()[:-1])
+        name = mapname(self.readline()[:-1])
+        klass = self.find_class(module, name)
+        self.append(klass)
+
+    unpickler = pickle.Unpickler(f)
+
+    unpickler.dispatch[pickle.GLOBAL] = mapped_load_global
+    return unpickler.load()
+
+
 @pytest.fixture
 def load_gene_data():
-	data_dir = 'quick_test_data'
 	f = open(os.path.join(data_dir, 'spladder', 'genes_graph_conf3.merge_graphs.pickle'), 'r')
 	ann_path = os.path.join(data_dir, 'test1.gtf')
 	ref_path = os.path.join(data_dir, 'test1.fa')
 
-	(graph_data, graph_meta) = cPickle.load(f)
+	(graph_data, graph_meta) = _load_graph_pickle(f) #cPickle.load(f)
 	gene_cds_begin_dict, gene_to_transcript_table, transcript_to_cds_table = preprocess_ann(ann_path)
 	interesting_chr = map(str, range(1, 23)) + ["X", "Y", "MT"]
 	seq_dict = {}
@@ -31,7 +60,6 @@ def load_gene_data():
 
 @pytest.fixture
 def load_mutation_data():
-	data_dir = 'quick_test_data'
 	vcf_path = os.path.join(data_dir, 'test1.vcf')
 	maf_path = os.path.join(data_dir, 'test1.maf')
 	mutation_dic_vcf = parse_mutation_from_vcf(vcf_path)
@@ -84,6 +112,8 @@ def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
 								  mutation_sub_dic_maf, strand[i])
 		assert sub_dna == groundtruth[i]
 
+
+@pytest.mark.skip("TODO: needs to be rewritten")
 def test_final_output():
 	import subprocess
 	# test the reference mode
