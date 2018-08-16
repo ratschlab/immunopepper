@@ -249,16 +249,17 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
     start_v2 = '.'  # does not exist
     stop_v2 = '.'  # does not exist
 
-    if mutation_sub_dic_maf is None:
+    if mutation_sub_dic_maf is None:  # no somatic mutation, the germline mutation will be the spotlight
         ref_seq = ref_mut_seq['ref']
     else:
-        ref_seq = ref_mut_seq['background']
+        ref_seq = ref_mut_seq['background']  # we focus on somatic mutation in this case
+    mut_seq = ref_mut_seq['background']
 
     if strand == '+':
-        peptide_dna_str_mut = get_sub_mut_dna(ref_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand)
+        peptide_dna_str_mut = get_sub_mut_dna(mut_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand)
         peptide_dna_str_ref = ref_seq[start_v1:stop_v1]
     else:
-        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(ref_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand))
+        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand))
         peptide_dna_str_ref = ref_seq[start_v1:stop_v1][::-1]
 
     peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut)

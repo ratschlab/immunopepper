@@ -5,6 +5,12 @@ from utils import get_all_comb
 def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf):
     """
     Apply all the germline mutations to the reference sequence.
+
+
+    Returns
+    -------
+    output_seq: dict, two keys. "ref" to the original reference sequence
+                                "background" to the germline_mutation_applied ref (if there is germline mutation exist)
     """
     output_seq = {}
     output_seq['ref'] = ref_sequence  # copy the reference
