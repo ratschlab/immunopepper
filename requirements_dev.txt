@@ -10,4 +10,7 @@ pytest>=3.4
 pytest-runner>=2.11.1
 prospector==0.12.8
 vulture>=0.6
-
+# TODO: this dependency is at the wrong place, should be in requirements.txt.
+# However, then we get into issues with make install and tox. Will be fixed once
+# spladder is in pypi
+git+https://github.com/ratschlab/spladder.git@feature/simpleDeployment#subdirectory=python&egg=spladder-1.1.0
