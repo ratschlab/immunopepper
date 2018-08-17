@@ -9,35 +9,9 @@ from immunopepper.immuno_mutation import apply_germline_mutation
 from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
     parse_mutation_from_vcf, parse_mutation_from_maf
 from immunopepper.utils import get_sub_mut_dna
+from immunopepper.io_utils import load_pickled_graph
 
 data_dir = os.path.join(os.path.dirname(__file__), 'data')
-
-
-# TODO: this is a hack to get around module name changes spladder affecting pickle
-# we should regenerate the pickle files ASAP
-def _load_graph_pickle(f):
-    # following https://wiki.python.org/moin/UsingPickle/RenamingModules
-    renametable = {
-        'modules.classes.gene': 'spladder.classes.gene',
-        'modules.classes.splicegraph': 'spladder.classes.splicegraph',
-        'modules.classes.segmentgraph': 'spladder.classes.segmentgraph'
-    }
-
-    def mapname(name):
-        if name in renametable:
-            return renametable[name]
-        return name
-
-    def mapped_load_global(self):
-        module = mapname(self.readline()[:-1])
-        name = mapname(self.readline()[:-1])
-        klass = self.find_class(module, name)
-        self.append(klass)
-
-    unpickler = pickle.Unpickler(f)
-
-    unpickler.dispatch[pickle.GLOBAL] = mapped_load_global
-    return unpickler.load()
 
 
 @pytest.fixture
@@ -47,7 +21,7 @@ def load_gene_data():
     ann_path = os.path.join(data_dir, 'test1.gtf')
     ref_path = os.path.join(data_dir, 'test1.fa')
 
-    (graph_data, graph_meta) = _load_graph_pickle(f)  # cPickle.load(f)
+    (graph_data, graph_meta) = load_pickled_graph(f)  # cPickle.load(f)
     gene_cds_begin_dict, gene_to_transcript_table, transcript_to_cds_table = preprocess_ann(
         ann_path)
     interesting_chr = map(str, range(1, 23)) + ["X", "Y", "MT"]
@@ -118,52 +92,3 @@ def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
                                   vlist[3], variant_comb[i],
                                   mutation_sub_dic_maf, strand[i])
         assert sub_dna == groundtruth[i]
-
-
-@pytest.mark.skip("TODO: needs to be rewritten")
-def test_final_output():
-    import subprocess
-    # test the reference mode
-    print("Ref mode test")
-    subprocess.call(
-        "python immunopepper/main_immuno.py --samples test1 --output_dir tests --splice_path data/spladder/genes_graph_conf3.merge_graphs.pickle --count_path data/spladder/genes_graph_conf3.merge_graphs.count_0ts.hdf5  --ann_path data/test1.gtf --ref_path data/test1.fa",
-        shell=True)
-    f_gt = open('test/test1/ref_peptides_gt.fa', 'r')
-    f_test = open('test/test1/ref_peptides.fa', 'r')
-    assert f_gt.read() == f_test.read()
-    f_gt = open('test/test1/ref_metadata_gt.tsv', 'r')
-    f_test = gzip.open('test/test1/ref_metadata.tsv.gz', 'r')
-    assert f_gt.read() == f_test.read()
-
-    print("Germline mode test")
-    subprocess.call(
-        "python immunopepper/main_immuno.py --samples test1 --output_dir tests --splice_path data/spladder/genes_graph_conf3.merge_graphs.pickle --count_path data/spladder/genes_graph_conf3.merge_graphs.count_0ts.hdf5  --ann_path data/test1.gtf --ref_path data/test1.fa --vcf_path data/test1.vcf",
-        shell=True)
-    f_gt = open('test/test1/germline_peptides_gt.fa', 'r')
-    f_test = open('test/test1/germline_peptides.fa', 'r')
-    assert f_gt.read() == f_test.read()
-    f_gt = open('test/test1/germline_metadata_gt.tsv', 'r')
-    f_test = gzip.open('test/test1/germline_metadata.tsv.gz', 'r')
-    assert f_gt.read() == f_test.read()
-
-    print("Somatic mode test")
-    subprocess.call(
-        "python immunopepper/main_immuno.py --samples test1 --output_dir tests --splice_path data/spladder/genes_graph_conf3.merge_graphs.pickle --count_path data/spladder/genes_graph_conf3.merge_graphs.count_0ts.hdf5  --ann_path data/test1.gtf --ref_path data/test1.fa --maf_path data/test1.maf",
-        shell=True)
-    f_gt = open('test/test1/somatic_peptides_gt.fa', 'r')
-    f_test = open('test/test1/somatic_peptides.fa', 'r')
-    assert f_gt.read() == f_test.read()
-    f_gt = open('test/test1/somatic_metadata_gt.tsv', 'r')
-    f_test = gzip.open('test/test1/somatic_metadata.tsv.gz', 'r')
-    assert f_gt.read() == f_test.read()
-
-    print("Somatic and germline mode test")
-    subprocess.call(
-        "python immunopepper/main_immuno.py --samples test1 --output_dir tests --splice_path data/spladder/genes_graph_conf3.merge_graphs.pickle --count_path data/spladder/genes_graph_conf3.merge_graphs.count_0ts.hdf5  --ann_path data/test1.gtf --ref_path data/test1.fa --maf_path data/test1.maf --vcf_path data/test1.vcf",
-        shell=True)
-    f_gt = open('test/test1/somatic_and_germline_peptides_gt.fa', 'r')
-    f_test = open('test/test1/somatic_and_germline_peptides.fa', 'r')
-    assert f_gt.read() == f_test.read()
-    f_gt = open('test/test1/somatic_and_germline_metadata_gt.tsv', 'r')
-    f_test = gzip.open('test/test1/somatic_and_germline_metadata.tsv.gz', 'r')
-    assert f_gt.read() == f_test.read()
