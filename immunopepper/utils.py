@@ -222,9 +222,12 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     is_isolated = False
     if len(peptide_mut)*3 <= abs(stop_v1 - start_v1) + 1:
         is_isolated = True
+        jpos = 0.0
+    else:
+        jpos = float(stop_v1 - start_v1) / 3.0
 
     return peptide_mut, peptide_ref, start_v1, stop_v1, start_v2, stop_v2, \
-           mut_has_stop_codon,is_isolated,next_reading_frame
+           mut_has_stop_codon,is_isolated,next_reading_frame, jpos
 
 
 def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,ref_mut_seq):

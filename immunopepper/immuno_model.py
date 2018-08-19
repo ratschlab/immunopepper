@@ -81,13 +81,14 @@ def annotate_gene_opt(gene=None, ref_seq=None, gene_idx=None,
                     if prop_vertex != '.':
                         cross_peptide_mut, cross_peptide_ref, \
                         start_v1, stop_v1, start_v2, stop_v2, \
-                        has_stop_codon, is_isolated, next_reading_frame = cross_peptide_result(read_frame, gene.strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, sg.vertices[:, prop_vertex])
+                        has_stop_codon, is_isolated, next_reading_frame, jpos = cross_peptide_result(read_frame, gene.strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, sg.vertices[:, prop_vertex])
                         if not has_stop_codon:
                             sg.reading_frames[prop_vertex].add(next_reading_frame)
                     else: 
                         cross_peptide_mut, cross_peptide_ref, \
                         start_v1, stop_v1, start_v2, stop_v2, \
                         has_stop_codon, is_isolated = isolated_peptide_result(read_frame, gene.strand, variant_comb, mutation_sub_dic_maf,ref_mut_seq)
+                        jpos = 0.0
 
                     # If cross junction peptide has a stop-codon in it, the frame
                     # will not be propagated because the read is truncated before it reaches the end of the exon.
@@ -134,6 +135,13 @@ def annotate_gene_opt(gene=None, ref_seq=None, gene_idx=None,
                             else:
                                 edge_expr = '.'
                             meta_header_line += ("\t" .join([str(edge_expr)]))
+                            if jpos == 0:
+                                meta_header_line += '\t0'
+                            elif jpos % 3 == 0:
+                                meta_header_line += '\t%i,%i' % (int(jpos), int(jpos) + 1)
+                            else:
+                                meta_header_line += '\t%i' % (int(jpos + 0.5))
+
                             meta_ptr.write(meta_header_line + "\n")
                             peptide_str_pretty = '>' + str(gene_idx) + '.' + str(output_id) + '\n' + cross_peptide_mut
                             peptide_ptr.write(peptide_str_pretty + "\n")
