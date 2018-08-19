@@ -46,8 +46,6 @@ def get_remove_id(exon_dict):
                 j_pos1 = exon_pair_list[j][1]
                 j_pos2 = exon_pair_list[j][2]
                 if j!=i and i_pos1 >= j_pos1 and i_pos2 <= j_pos2:
-                    if exon_pair[0] == '33803.7':
-                        print exon_pair_list
                     remove_id_list.append(exon_pair[0])
                     break
     return remove_id_list
