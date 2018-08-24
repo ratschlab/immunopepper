@@ -1,7 +1,7 @@
 import itertools
 import scipy as sp
 import numpy as np
-
+import os
 
 def to_adj_list(adj_matrix):
     """
@@ -119,6 +119,7 @@ def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, varian
     """
     Get the mutated dna sub-sequence according to mutation specified by the variant_comb.
     """
+
     if start_v2 != '.':
         if strand == '-':
             sub_dna_list = list(background_seq[start_v1:stop_v1][::-1] + background_seq[start_v2:stop_v2][::-1])
@@ -130,7 +131,7 @@ def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, varian
         else:
             sub_dna_list = list(background_seq[start_v1:stop_v1])
 
-    if variant_comb == '.': # no mutation exist
+    if variant_comb == '.' : # no mutation exist
         return ''.join(sub_dna_list)
     for variant_ipos in variant_comb:
         mut_base = mutation_sub_dic_maf[variant_ipos]['mut_base']
@@ -138,19 +139,27 @@ def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, varian
         # strand = mutation_sub_dic_maf[variant_ipos]['strand']
 
         # decide mutation happens in which exon vertice
-        if variant_ipos >= start_v1 and variant_ipos <= stop_v1:
-            assert (sub_dna_list[variant_ipos-start_v1] == ref_base)
-            if strand == '-':
-                sub_dna_list[stop_v1-variant_ipos-1] = mut_base
-            else:
-                sub_dna_list[variant_ipos-start_v1] = mut_base
+        # it may falls out of the two ranges due to readframe shift
+        if variant_ipos in range(start_v1, stop_v1):
 
-        else:
-            assert (sub_dna_list[variant_ipos-start_v2+stop_v1-start_v1] == ref_base)
             if strand == '-':
-                sub_dna_list[stop_v2-variant_ipos+stop_v1-start_v1-1] = mut_base
+                pos = stop_v1-variant_ipos-1
+                assert (sub_dna_list[pos] == ref_base)
+                sub_dna_list[pos] = mut_base
             else:
-                sub_dna_list[variant_ipos-start_v2+stop_v1-start_v1] = mut_base
+                pos = variant_ipos - start_v1
+                assert (sub_dna_list[pos] == ref_base)
+                sub_dna_list[pos] = mut_base
+
+        elif variant_ipos in range(start_v2, stop_v2):
+            if strand == '-':
+                pos = stop_v2-variant_ipos+stop_v1-start_v1-1
+                assert (sub_dna_list[pos] == ref_base)
+                sub_dna_list[pos] = mut_base
+            else:
+                pos = variant_ipos-start_v2+stop_v1-start_v1
+                assert (sub_dna_list[pos] == ref_base)
+                sub_dna_list[pos] = mut_base
 
     final_dna = ''.join(sub_dna_list)
     return final_dna
@@ -260,7 +269,7 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
         peptide_dna_str_ref = ref_seq[start_v1:stop_v1]
     else:
         peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand))
-        peptide_dna_str_ref = ref_seq[start_v1:stop_v1][::-1]
+        peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1])
 
     peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut)
     peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref)
@@ -314,7 +323,8 @@ def is_isolated_cds(gene, idx):
     return sp.sum(gene.splicegraph.edges[:, idx]) == 0
 
 
-def is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2, read_frame):
+def is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2, read_frame_tuple):
+    read_frame = read_frame_tuple[2]
     strand = gene.strand
     output_vertex_dict = gene.output_vertex_dict
     if strand == '+':
@@ -323,109 +333,21 @@ def is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2, read_frame):
             for comb in all_output_comb:
                 if start_v1 >= comb[0] and stop_v2 <= comb[1]:
                     return True
-            output_vertex_dict[(stop_v1, start_v2)].append((start_v1, stop_v2, read_frame))
+            output_vertex_dict[(stop_v1, start_v2,read_frame)].append((start_v1, stop_v2))
         else:
-            output_vertex_dict[(stop_v1, start_v2)] = [(start_v1, stop_v2, read_frame)]
+            output_vertex_dict[(stop_v1, start_v2,read_frame)] = [(start_v1, stop_v2)]
     else:  # strand == '-'
         if (start_v1, stop_v2, read_frame) in output_vertex_dict:
             all_output_comb = output_vertex_dict[(start_v1, stop_v2, read_frame)]
             for comb in all_output_comb:
                 if stop_v1 <= comb[0] and start_v2 >= comb[1]:
                     return True
-            output_vertex_dict[(start_v1, stop_v2)].append((stop_v1, start_v2, read_frame))
+            output_vertex_dict[(start_v1, stop_v2, read_frame)].append((stop_v1, start_v2))
         else:
-            output_vertex_dict[(start_v1, stop_v2)] = [(stop_v1, start_v2, read_frame)]
+            output_vertex_dict[(start_v1, stop_v2, read_frame)] = [(stop_v1, start_v2)]
     return False
 
 
 def is_in_junction_list(v1,v2,strand,junction_list):
     return int(':'.join([str(v1[1]),  str(v2[0]), strand]) in junction_list)
-
-# step to create test genome
-# 1. modify test1.gtf file
-# 2. generate the test1.fa with the following function
-# 3. generate groundtruth with 'translate_dna_to_peptide' function and
-# pen & paper
-# 4. go back to step 1
-
-# steps to add new transcript
-# 1. modify test1pos.gtf file
-# 2. modify create_test_genome file to make tailor-made gene
-# 3. delete quick_test_data/spladder and create new splicegraph with command tools
-# 4. run main_immuno.py
-def create_test_genome(L,stop_position,seed=1):
-    np.random.seed(seed)
-    number_list = np.random.randint(0,4,L)
-    map_dict = {0:'A', 1:'G', 2:'C', 3:'T'}
-    dna_list = [map_dict[i] for i in number_list]
-    for pos in stop_position:
-        dna_list[pos:pos+3] = 'TAG'
-
-    # modify
-    dna_list[69] = 'C'  # remove stop codon
-    dna_list[98] = 'G'  # remove stop codon
-    dna_list[44] = 'A'  # create stop codon
-    dna_list[39] = 'T'  # create stop codon in mutation mode
-    dna_list[95] = 'A'  # create stop codon for transcript 4
-    dna_list[96] = 'G'  # create stop codon for transcript 4
-    new_dna_list = dna_list+list(complementary_seq(dna_list[::-1])) # create the same
-    dna = ''.join(new_dna_list)
-    f = open('./quick_test_data/test1.fa','w')
-    f.write('>X dna:chromosome chromosome:GRCh37:X:1:155270560:1'+'\n')
-    f.write(dna)
-    f.close()
-    return dna
-
-
-def create_full_from_pos(posgtf_file, posmaf_file, L):
-    f = open(posgtf_file,'r')
-    lines = f.readlines()
-    new_line_list = []
-    for line in lines:
-        item = line.split('\t')
-        start_pos = 2*L+1-int(item[3])
-        end_pos = 2*L+1-int(item[4])
-        new_detail = item[8].replace('GENE1', 'GENE2')
-        new_detail = new_detail.replace('TRANS1', 'TRANS2')
-        item[3] = str(end_pos)
-        item[4] = str(start_pos)
-        item[8] = new_detail
-        item[6] = '-'
-        new_line = '\t'.join(item)
-        new_line_list.append(new_line)
-    f = open('quick_test_data/test1.gtf','w')
-    f.writelines(lines+new_line_list)
-    f.close()
-
-    f = open(posmaf_file, 'r')
-    lines = f.readlines()
-    new_line_list = []
-    for line in lines[1:]:
-        item = line.split('\t')
-        pos = item[5]
-        pre_base = item[10]
-        new_base = item[12]
-        neg_pre_base = complementary_seq(pre_base)
-        neg_new_base = complementary_seq(new_base)
-        new_pos = 2*L+1-int(pos)
-        item[5] = str(new_pos)
-        item[6] = str(new_pos)
-        item[10] = neg_pre_base
-        item[11] = neg_pre_base
-        item[12] = neg_new_base
-        new_line = '\t'.join(item)
-        new_line_list.append(new_line)
-    f = open('quick_test_data/test1.maf','w')
-    f.writelines(lines+new_line_list)
-    f.close()
-    #f = open(posvcf_file, 'r')
-    #todo complete the pos maf part
-# create_test_genome(150, [73, 102])
-# create_full_from_pos('quick_test_data/test1pos.gtf','quick_test_data/test1pos.maf', 150)
-
-
-
-
-
-
 

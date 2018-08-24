@@ -41,9 +41,9 @@ def parse_arguments(argv):
     parser.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
 
 
-    if len(argv) < 2:
-        parser.print_help()
-        sys.exit(1)
+    # if len(argv) < 2:
+    #     parser.print_help()
+    #     sys.exit(1)
 
     pargs = parser.parse_args()
     return pargs
@@ -54,18 +54,16 @@ def main():
     arg = parse_arguments(sys.argv)
 
     # ## for debugging in pycharm
-    # arg.output_dir = 'test'
-    # arg.ann_path = 'quick_test_data/test1.gtf'
-    # arg.ref_path = 'quick_test_data/test1.fa'
-    # arg.splice_path = 'quick_test_data/spladder/genes_graph_conf3.merge_graphs.pickle'
-    # arg.gtex_junction_path = 'quick_test_data/gtex_junctions.hdf5'
-    # arg.vcf_path = ['quick_test_data/test1pos.vcf']
-    # arg.maf_path = ['quick_test_data/test1.maf']
-    # arg.count_path = 'quick_test_data/spladder/genes_graph_conf3.merge_graphs.count.hdf5'
-    # arg.samples = ['test1']
-
+    arg.output_dir = '../tests'
+    arg.ann_path = '../tests/data/test1.gtf'
+    arg.ref_path = '../tests/data/test1.fa'
+    arg.splice_path = '../tests/data/spladder/genes_graph_conf3.merge_graphs.pickle'
+    arg.gtex_junction_path = '../tests/data/gtex_junctions.hdf5'
+    arg.vcf_path = ['../tests/data/test1pos.vcf']
+    arg.maf_path = ['../tests/data/test1.maf']
+    arg.count_path = '../tests/data/spladder/genes_graph_conf3.merge_graphs.count.hdf5'
+    arg.samples = ['test1']
     mutation_mode, vcf_file_path, maf_file_path = get_mutation_mode_from_parser(arg)
-    print(arg.samples)
 
     # load genome sequence data
     seq_dict = {}
@@ -168,8 +166,6 @@ def main():
             os.makedirs(output_path)
         peptide_file_path = os.path.join(output_path, mutation_mode + '_peptides.fa')
         meta_peptide_file_path = os.path.join(output_path, mutation_mode + '_metadata.tsv.gz')
-        log_file_path = os.path.join(output_path, mutation_mode+'_no_output_gene.txt')
-        #log_fp = open(log_file_path, 'w')
         log_fp = None
         peptide_fp = open(peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')

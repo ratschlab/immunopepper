@@ -57,7 +57,6 @@ def annotate_gene_opt(gene=None, ref_seq=None, gene_idx=None,
     # return the list of the background peptide for each transcript
     background_pep_list = find_background_peptides(gene, ref_mut_seq['background'], gene_to_transcript_table,
                                                    transcript_to_cds_table)
-
     # check whether the junction (specific combination of vertices) also is annotated
     # as a junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_table)
@@ -65,36 +64,36 @@ def annotate_gene_opt(gene=None, ref_seq=None, gene_idx=None,
     for idx in gene.vertex_order:
         n_read_frames = len(sg.reading_frames[idx])
         if n_read_frames == 0:  # no cds start, skip the vertex
-            continue  
+            continue
         if is_isolated_cds(gene, idx):  # if it is an isolated cds, we add a flag idx '.', translate and output it
             gene.vertex_succ_list[idx].append('.')
         for prop_vertex in gene.vertex_succ_list[idx]:
             mut_seq_comb = get_mut_comb(exon_som_dict, idx, prop_vertex)
             for variant_comb in mut_seq_comb:  # go through each variant combination
                 # Skip de-generate exons that contain less than one codon
-                if gene.vertex_len_dict[idx] < 3: 
+                if gene.vertex_len_dict[idx] < 3:
                     continue
-                for read_frame in sorted(sg.reading_frames[idx]):
+                for read_frame_tuple in sorted(sg.reading_frames[idx]):
                     if debug:
-                        print(idx, prop_vertex, variant_comb, read_frame)
+                        print(idx, prop_vertex, variant_comb, read_frame_tuple)
                     peptide_weight = 1.0 / n_read_frames
                     if prop_vertex != '.':
                         cross_peptide_mut, cross_peptide_ref, \
                         start_v1, stop_v1, start_v2, stop_v2, \
-                        has_stop_codon, is_isolated, next_reading_frame = cross_peptide_result(read_frame, gene.strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, sg.vertices[:, prop_vertex])
+                        has_stop_codon, is_isolated, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, sg.vertices[:, prop_vertex])
                         if not has_stop_codon:
                             sg.reading_frames[prop_vertex].add(next_reading_frame)
-                    else: 
+                    else:
                         cross_peptide_mut, cross_peptide_ref, \
                         start_v1, stop_v1, start_v2, stop_v2, \
-                        has_stop_codon, is_isolated = isolated_peptide_result(read_frame, gene.strand, variant_comb, mutation_sub_dic_maf,ref_mut_seq)
+                        has_stop_codon, is_isolated = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation_sub_dic_maf,ref_mut_seq)
 
                     # If cross junction peptide has a stop-codon in it, the frame
                     # will not be propagated because the read is truncated before it reaches the end of the exon.
                     # also in mutation mode, only output the case where ref is different from mutated
                     if cross_peptide_mut != cross_peptide_ref or mutation_mode == 'ref':
                         if is_filter:
-                            is_redundant = is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2,read_frame)
+                            is_redundant = is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2,read_frame_tuple=read_frame_tuple)
                         if not is_filter or not is_redundant:
                             match_ts_list = peptide_match(background_pep_list, cross_peptide_mut)
                             peptide_is_annotated = len(match_ts_list)
@@ -117,7 +116,7 @@ def annotate_gene_opt(gene=None, ref_seq=None, gene_idx=None,
                             else:
                                 seg_exp_variant_comb = '.'  # if no mutation, the segment expression is .
                             meta_header_line = "\t".join(
-                                [str(gene_idx) + '.' + str(output_id), str(read_frame[2]), gene.name, gene.chr, gene.strand,
+                                [str(gene_idx) + '.' + str(output_id), str(read_frame_tuple[2]), gene.name, gene.chr, gene.strand,
                                  mutation_mode, "{:.3f}".format(peptide_weight), str(peptide_is_annotated), str(junction_anno_flag),
                                  str(int(has_stop_codon)), str(junctionOI_flag), str(int(is_isolated)),
                                  ';'.join(str_variant_comb), ';'.join(seg_exp_variant_comb)])

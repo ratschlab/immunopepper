@@ -20,7 +20,6 @@ from utils import to_adj_succ_list,find_overlapping_cds_simple,attribute_list_to
 # get gene.splicegraph.reading_frames
 
 def genes_preprocess(genes, gene_cds_begin_dict):
-    f_log = open('cds_match_log.txt','w')
     for gene_idx in range(genes.shape[0]):
         if gene_idx > 0 and gene_idx % 100 == 0:
             sys.stdout.write('.')
@@ -80,7 +79,6 @@ def genes_preprocess(genes, gene_cds_begin_dict):
                 gene.splicegraph.reading_frames[idx].add((cds_left_modi, cds_right_modi, read_phase))
 
         gene.to_sparse()
-    f_log.close()
 
 # Pre-processed the annotation file and builds a lookup structure that can be used to retrieve
 # the CDS start positions when looping over the genes
@@ -90,7 +88,7 @@ def preprocess_ann(ann_path):
     transcript_to_gene_dict = {}    # transcript -> gene id
     gene_to_transcript_dict = {}    # gene_id -> list of transcripts
     transcript_to_cds_dict = {}     # transcript -> list of CDS exons
-    transcript_cds_begin_dict = {}  # transcript -> first exon of the CDS 
+    transcript_cds_begin_dict = {}  # transcript -> first exon of the CDS
     gene_cds_begin_dict = {}        # gene -> list of first CDS exons
 
     # collect information from annotation file
