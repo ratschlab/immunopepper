@@ -21,6 +21,28 @@ python exon_filter.py -h
 
 Please add `modules` folder in [`spladder`](https://github.com/ratschlab/spladder/tree/development/python) repo on the same level with `main_immuno`. The
 packages is needed when loading the splicegraph.
+### update 24/08/2018
+1. Add new test cases. There are 7 transcripts, 7 vertices and 13 output pairs in total in the new test cases. Tests include
+    * read_frame propogation
+    * somatic and germline mutation
+    * filter function
+    * isolated exon case
+2. When running the test case, fix some bugs:
+    * `is_output_redundant`. The current function in `master` branch is wrong because it does not consider the read_frame compare.
+    * `get_sub_mut_seq`. Will cause bug when the mutation position is on the boundary. The original one in `master` will cause bug because sometimes the `start_v1` is not
+    eqal to the the start position of exon due to read_frame shift.
+    * `isolated_peptide_result`. In the negative strand case, the reference should be transformed using `complementary_seq`.
+3. Refine the whole process for test case creation in `step.sh`
+Put all the steps in the `step.sh` so that it will be quicker to change the test case case in the future.
+
+##### Future work
+1. Refactor the code.
+    * Split the `immuno_model.py` into two parts for computation and writing. Making the loop of body another function.
+    * Using named tuple to avoid complex return value
+    * Find a way to avoid making changes on the gene object.
+2. Merge into the `fix/envCleanup` branch.
+3. Achieve new requirement on the k-mer expression data.
+
 
 ### update 13/08/2018
 1. Build the basic test pipline using `pytest` module. It consists of two parts: test for one of the core function `get_sub_mut_dna` and test for all the output file (`peptide.fa`, `metadata.tsv`) in four modes (`ref`, `germline`, `somatic`, `somatic_and_germline`). Type the following command for testing. Remember to include `modules` directory from `spladder` repo in the work directory.
