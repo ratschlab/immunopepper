@@ -17,6 +17,7 @@ from immuno_print import print_memory_diags
 from immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_mutation_from_maf,parse_mutation_from_vcf_h5,parse_junction_meta_info,parse_mutation_from_vcf
 from immuno_mutation import get_mutation_mode_from_parser
 from immuno_model import annotate_gene_opt
+from immuno_filter import get_filtered_output_list
 from modules.classes import gene
 
 ### Example usage
@@ -37,7 +38,7 @@ def parse_arguments(argv):
     parser.add_argument("--count_path",help="specify the absolute path of the count h5 file", required=False, default=None)
     parser.add_argument("--gtex_junction_path",help="specify the absolute path the the gtex_junction h5 file", required=False, default=None)
     parser.add_argument("--process_num", type=int, help="Only process the first *process_num* gene in the splicegraph,default,0, means process all", required=False, default=0)
-    parser.add_argument("--is_filter", help="apply redundancy filter to the exon list", action="store_false", required=False, default=True)
+    parser.add_argument("--is_filter", help="apply redundancy filter to the exon list", action="store_false", required=False, default=False)
     parser.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
 
 
@@ -53,14 +54,14 @@ def main():
     print(os.path.abspath(os.curdir))
     arg = parse_arguments(sys.argv)
 
-    # ## for debugging in pycharm
+    ## for debugging in pycharm
     arg.output_dir = '../tests'
     arg.ann_path = '../tests/data/test1.gtf'
     arg.ref_path = '../tests/data/test1.fa'
     arg.splice_path = '../tests/data/spladder/genes_graph_conf3.merge_graphs.pickle'
-    arg.gtex_junction_path = '../tests/data/gtex_junctions.hdf5'
-    arg.vcf_path = ['../tests/data/test1pos.vcf']
-    arg.maf_path = ['../tests/data/test1.maf']
+    #arg.gtex_junction_path = '../tests/data/gtex_junctions.hdf5'
+    #arg.vcf_path = ['../tests/data/test1pos.vcf']
+    #arg.maf_path = ['../tests/data/test1.maf']
     arg.count_path = '../tests/data/spladder/genes_graph_conf3.merge_graphs.count.hdf5'
     arg.samples = ['test1']
     mutation_mode, vcf_file_path, maf_file_path = get_mutation_mode_from_parser(arg)
@@ -166,7 +167,6 @@ def main():
             os.makedirs(output_path)
         peptide_file_path = os.path.join(output_path, mutation_mode + '_peptides.fa')
         meta_peptide_file_path = os.path.join(output_path, mutation_mode + '_metadata.tsv.gz')
-        log_fp = None
         peptide_fp = open(peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')
         meta_header_line = "\t".join(['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
@@ -206,7 +206,7 @@ def main():
             else:
                 junction_list = None
 
-            annotate_gene_opt(gene=gene,
+            output_peptide_list, output_metadata_list = annotate_gene_opt(gene=gene,
                               ref_seq=seq_dict[chrm],
                               gene_idx=gene_idx,
                               seg_lookup_table=seg_lookup_table,
@@ -220,13 +220,12 @@ def main():
                               mutation_mode=mutation_mode,
                               mutation_sub_dic_vcf=mutation_sub_dict_vcf,
                               mutation_sub_dic_maf=mutation_sub_dict_maf,
-                              peptide_ptr=peptide_fp,
-                              meta_ptr=meta_peptide_fp,
-                              log_ptr=log_fp,
-                              is_filter=arg.is_filter,
                               debug=arg.debug
                             )
-
+            if arg.is_filter:
+                output_metadata_list, output_peptide_list = get_filtered_output_list(output_metadata_list,output_peptide_list)
+            meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
+            peptide_fp.write('\n'.join(output_peptide_list)+'\n')
             end_time = timeit.default_timer()
             print(gene_idx, end_time - start_time,'\n')
 

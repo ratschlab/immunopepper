@@ -251,7 +251,7 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
     -------
     is_isolated: Bool, True as Default
     mut_has_stop_codon: Bool, assert to be True
-    start_v2, stop_v2: '-' means not exist
+    start_v2, stop_v2: '.' means not exist
 
     """
     start_v1, stop_v1, emitting_frame = read_frame

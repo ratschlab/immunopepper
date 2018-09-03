@@ -26,16 +26,15 @@ def annotate_gene_opt(gene=None, ref_seq=None, gene_idx=None,
                       seg_lookup_table=None, edge_lookup_table=None, size_factor=None, junction_list=None,
                       segment_expr_info=None, edge_expr_info=None, transcript_to_cds_table=None,
                       gene_to_transcript_table=None,
-                      mutation_mode=None, mutation_sub_dic_vcf=None, mutation_sub_dic_maf=None,
-                      peptide_ptr=None, meta_ptr=None, log_ptr=None, is_filter=True, debug=False):
-    #junction_list = np.concatenate((junction_list,[['50197167','50198309','+']]),axis=0)
+                      mutation_mode=None, mutation_sub_dic_vcf=None, mutation_sub_dic_maf=None, debug=False):
+
 
     sg = gene.splicegraph
     gene.from_sparse()
 
-    is_output = False
     output_id = 0
-    gene.output_vertex_dict = {}
+    output_peptide_list = []
+    output_metadata_list = []
 
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
@@ -92,54 +91,50 @@ def annotate_gene_opt(gene=None, ref_seq=None, gene_idx=None,
                     # will not be propagated because the read is truncated before it reaches the end of the exon.
                     # also in mutation mode, only output the case where ref is different from mutated
                     if cross_peptide_mut != cross_peptide_ref or mutation_mode == 'ref':
-                        if is_filter:
-                            is_redundant = is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2,read_frame_tuple=read_frame_tuple)
-                        if not is_filter or not is_redundant:
-                            match_ts_list = peptide_match(background_pep_list, cross_peptide_mut)
-                            peptide_is_annotated = len(match_ts_list)
-                            if not is_isolated:
-                                junction_anno_flag = int(junction_flag[idx, prop_vertex])
-                                if junction_list is not None:
-                                    if gene.strand == '+':
-                                        junctionOI_flag = is_in_junction_list(sg.vertices[:, idx], sg.vertices[:, prop_vertex], gene.strand, junction_list)
-                                    else:
-                                        junctionOI_flag = is_in_junction_list(sg.vertices[:, prop_vertex], sg.vertices[:, idx], gene.strand, junction_list)
+                        match_ts_list = peptide_match(background_pep_list, cross_peptide_mut)
+                        peptide_is_annotated = len(match_ts_list)
+                        if not is_isolated:
+                            junction_anno_flag = int(junction_flag[idx, prop_vertex])
+                            if junction_list is not None:
+                                if gene.strand == '+':
+                                    junctionOI_flag = is_in_junction_list(sg.vertices[:, idx], sg.vertices[:, prop_vertex], gene.strand, junction_list)
                                 else:
-                                    junctionOI_flag = '.'
+                                    junctionOI_flag = is_in_junction_list(sg.vertices[:, prop_vertex], sg.vertices[:, idx], gene.strand, junction_list)
                             else:
-                                junction_anno_flag = '.'
                                 junctionOI_flag = '.'
-                            # Write the variant gene into the FASTA FP together with the donor ID
-                            str_variant_comb = [str(ipos) for ipos in variant_comb]
-                            if variant_comb != '.' and som_exp_dict is not None:  # which means there do exist some mutation
-                                seg_exp_variant_comb = [str(som_exp_dict[ipos]) for ipos in variant_comb]
-                            else:
-                                seg_exp_variant_comb = '.'  # if no mutation, the segment expression is .
-                            meta_header_line = "\t".join(
-                                [str(gene_idx) + '.' + str(output_id), str(read_frame_tuple[2]), gene.name, gene.chr, gene.strand,
-                                 mutation_mode, "{:.3f}".format(peptide_weight), str(peptide_is_annotated), str(junction_anno_flag),
-                                 str(int(has_stop_codon)), str(junctionOI_flag), str(int(is_isolated)),
-                                 ';'.join(str_variant_comb), ';'.join(seg_exp_variant_comb)])
-                            is_output = True
-                            meta_header_line += ('\t' + str(start_v1) + ";" + str(stop_v1))
-                            meta_header_line += (';' + str(start_v2) + ";" + str(stop_v2) + '\t')
-                            meta_header_line += (str(idx) + ',' + str(prop_vertex) + '\t')
+                        else:
+                            junction_anno_flag = '.'
+                            junctionOI_flag = '.'
+                        # Write the variant gene into the FASTA FP together with the donor ID
+                        str_variant_comb = [str(ipos) for ipos in variant_comb]
+                        if variant_comb != '.' and som_exp_dict is not None:  # which means there do exist some mutation
+                            seg_exp_variant_comb = [str(som_exp_dict[ipos]) for ipos in variant_comb]
+                        else:
+                            seg_exp_variant_comb = '.'  # if no mutation, the segment expression is .
+                        meta_header_line = "\t".join(
+                            [str(gene_idx) + '.' + str(output_id), str(read_frame_tuple[2]), gene.name, gene.chr, gene.strand,
+                             mutation_mode, "{:.3f}".format(peptide_weight), str(peptide_is_annotated), str(junction_anno_flag),
+                             str(int(has_stop_codon)), str(junctionOI_flag), str(int(is_isolated)),
+                             ';'.join(str_variant_comb), ';'.join(seg_exp_variant_comb)])
+                        is_output = True
+                        meta_header_line += ('\t' + str(start_v1) + ";" + str(stop_v1))
+                        meta_header_line += (';' + str(start_v2) + ";" + str(stop_v2) + '\t')
+                        meta_header_line += (str(idx) + ',' + str(prop_vertex) + '\t')
 
-                            # deal with expression data
-                            if edge_lookup_table is not None and not is_isolated:
-                                sorted_pos = sp.sort(np.array([start_v1, stop_v1, start_v2,stop_v2]))
-                                edge_expr = search_edge_metadata_segmentgraph(gene, sorted_pos, edge_lookup_table, edge_expr_info)
-                                # edge_expr = edge_expr*size_factor
-                            else:
-                                edge_expr = '.'
-                            meta_header_line += ("\t" .join([str(edge_expr)]))
-                            meta_ptr.write(meta_header_line + "\n")
-                            peptide_str_pretty = '>' + str(gene_idx) + '.' + str(output_id) + '\n' + cross_peptide_mut
-                            peptide_ptr.write(peptide_str_pretty + "\n")
-                            output_id += 1
+                        # deal with expression data
+                        if edge_lookup_table is not None and not is_isolated:
+                            sorted_pos = sp.sort(np.array([start_v1, stop_v1, start_v2,stop_v2]))
+                            edge_expr = search_edge_metadata_segmentgraph(gene, sorted_pos, edge_lookup_table, edge_expr_info)
+                            # edge_expr = edge_expr*size_factor
+                        else:
+                            edge_expr = '.'
+                        meta_header_line += ("\t" .join([str(edge_expr)]))
+                        output_metadata_list.append(meta_header_line)
+                        peptide_str_pretty = '>' + str(gene_idx) + '.' + str(output_id) + '\n' + cross_peptide_mut
+                        output_peptide_list.append(peptide_str_pretty)
+                        output_id += 1
     if not sg.edges is None:
         gene.to_sparse()
 
     gene.processed = True
-    # if not is_output:
-    #     log_ptr.write(str(gene_idx) + '\t' + gene.name + '\n')
+    return output_peptide_list,output_metadata_list
