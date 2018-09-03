@@ -18,7 +18,8 @@ from immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadat
 from immuno_mutation import get_mutation_mode_from_parser
 from immuno_model import annotate_gene_opt
 from immuno_filter import get_filtered_output_list
-from modules.classes import gene
+from immunopepper.io_utils import load_pickled_graph
+
 
 ### Example usage
 # python main_immuno.py --samples TCGA-13-1489 --output_dir t --splice_path quick_test_data/sample_gene.pkl --ann_path quick_test_data/small.gtf --ref_path quick_test_data/smallgene34.fa
@@ -26,7 +27,7 @@ from modules.classes import gene
 
 def parse_arguments(argv):
 
-    parser = argparse.ArgumentParser(argv)
+    parser = argparse.ArgumentParser()
     parser.add_argument("--samples", nargs='+', help="the sample names, can specify more than one sample", required=False, default='')
     parser.add_argument("--output_dir", help="specify the output directory [default: test]", required=False, default='test')
     parser.add_argument("--ann_path", help="specify the absolute path of annotation file", required=False)
@@ -46,13 +47,12 @@ def parse_arguments(argv):
     #     parser.print_help()
     #     sys.exit(1)
 
-    pargs = parser.parse_args()
+    pargs = parser.parse_args(argv)
     return pargs
 
 
-def main():
+def main(arg):
     print(os.path.abspath(os.curdir))
-    arg = parse_arguments(sys.argv)
 
     ## for debugging in pycharm
     arg.output_dir = '../tests'
@@ -110,7 +110,7 @@ def main():
     print('Loading splice graph ...')
     start_time = timeit.default_timer()
     with open(arg.splice_path, 'r') as graph_fp:
-        (graph_data, graph_meta) = cPickle.load(graph_fp)  # both graph data and meta data
+        (graph_data, graph_meta) = load_pickled_graph(graph_fp)  # both graph data and meta data
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
@@ -231,4 +231,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    arg = parse_arguments(sys.argv)
+    main(arg)

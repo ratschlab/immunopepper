@@ -1,6 +1,0 @@
-[
-  "tests/test_immunopepper.py::test_preprocess", 
-  "tests/test_immunopepper.py::test_germline_mutation", 
-  "tests/test_immunopepper.py::test_get_sub_mut_dna", 
-  "tests/test_immunopepper.py::test_final_output"
-]

@@ -31,11 +31,6 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     description="Software to translate splicing graphs into peptides",
-    entry_points={
-        'console_scripts': [
-            'silly_sum=immunopepper.silly_sum:main',
-        ],
-    },
     install_requires=requirements,
     license="MIT license",
     long_description=readme,
