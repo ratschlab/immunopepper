@@ -203,6 +203,7 @@ def parse_gene_metadata_info(h5f, donor_list):
     assert (strain_expr_info.size == segment_expr_info.shape[1])
     strain_idx_table = {}
 
+    #TODO: make it clear how strain_id come from in h5f file
     for strain_idx in np.arange(strain_expr_info.size):
         strain_id = strain_expr_info[strain_idx]
         #strain_id = '-'.join(strain_id.split('.')[0].split('-')[:3])

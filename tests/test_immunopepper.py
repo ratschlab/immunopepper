@@ -49,7 +49,7 @@ def load_mutation_data():
 def test_preprocess(load_gene_data):
     graph_data, seq_dict, gene_cds_begin_dict = load_gene_data
     genes_preprocess(graph_data, gene_cds_begin_dict)
-    assert graph_data[0].nvertices == 6
+    assert graph_data[0].nvertices == 8
 
 
 def test_germline_mutation(load_gene_data, load_mutation_data):

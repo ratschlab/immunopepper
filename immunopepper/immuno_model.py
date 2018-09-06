@@ -78,7 +78,7 @@ def annotate_gene_opt(gene=None, ref_seq=None, gene_idx=None,
                     peptide_weight = 1.0 / n_read_frames
                     if prop_vertex != '.':
                         cross_peptide_mut, cross_peptide_ref, \
-                        start_v1, stop_v1, start_v2, stop_v2, \
+                            start_v1, stop_v1, start_v2, stop_v2, \
                         has_stop_codon, is_isolated, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, sg.vertices[:, prop_vertex])
                         if not has_stop_codon:
                             sg.reading_frames[prop_vertex].add(next_reading_frame)

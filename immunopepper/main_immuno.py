@@ -27,7 +27,7 @@ from immunopepper.io_utils import load_pickled_graph
 
 def parse_arguments(argv):
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(argv)
     parser.add_argument("--samples", nargs='+', help="the sample names, can specify more than one sample", required=False, default='')
     parser.add_argument("--output_dir", help="specify the output directory [default: test]", required=False, default='test')
     parser.add_argument("--ann_path", help="specify the absolute path of annotation file", required=False)
@@ -47,7 +47,7 @@ def parse_arguments(argv):
     #     parser.print_help()
     #     sys.exit(1)
 
-    pargs = parser.parse_args(argv)
+    pargs = parser.parse_args()
     return pargs
 
 
@@ -61,7 +61,7 @@ def main(arg):
     arg.splice_path = '../tests/data/spladder/genes_graph_conf3.merge_graphs.pickle'
     #arg.gtex_junction_path = '../tests/data/gtex_junctions.hdf5'
     #arg.vcf_path = ['../tests/data/test1pos.vcf']
-    #arg.maf_path = ['../tests/data/test1.maf']
+    arg.maf_path = ['../tests/data/test1.maf']
     arg.count_path = '../tests/data/spladder/genes_graph_conf3.merge_graphs.count.hdf5'
     arg.samples = ['test1']
     mutation_mode, vcf_file_path, maf_file_path = get_mutation_mode_from_parser(arg)
