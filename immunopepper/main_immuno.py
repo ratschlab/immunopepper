@@ -155,6 +155,8 @@ def main(arg):
     else:
         print('...computing from annotation')
         genes_preprocess(graph_data, gene_cds_begin_dict)
+        if not os.path.exists(arg.output_dir):
+            os.makedirs(arg.output_dir)
         cPickle.dump((graph_data, gene_cds_begin_dict), open(anno_pickle, 'w'), -1)
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
@@ -173,7 +175,7 @@ def main(arg):
         peptide_fp = open(peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')
         meta_header_line = "\t".join(['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
-                                    'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','seg_expr', 'exons_coor', 'vertex_idx','junction_expr'])
+                                    'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','seg_expr', 'exons_coor', 'vertex_idx','junction_expr', 'junc_pos_in_peptide'])
         meta_peptide_fp.write(meta_header_line + '\n')
 
         # go over each gene in splicegraph
