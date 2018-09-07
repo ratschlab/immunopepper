@@ -16,11 +16,27 @@ You should download the genome from other places. We are using the `hg19_hs37d5`
 Type below command line for more help information.
 ```
 python main_immuno.py -h
-python exon_filter.py -h
 ```
 
 Please add `modules` folder in [`spladder`](https://github.com/ratschlab/spladder/tree/development/python) repo on the same level with `main_immuno`. The
 packages is needed when loading the splicegraph.
+
+### update 07/09/2018
+1. Split the computation and writing parts of `annotate_gene_opt`. Because of this modification, we can
+filter the redundant peptide completely accurate. see `18/06/2018` for more details
+2. Use namedtuple to improve the readability of functions.
+3. Achieve two new features:
+    * calculate the mean segment expression counts. Instead of only replying on the junction expression counts,
+    we add one more data to support the expression level of the given exon pair.
+    * Generate the libsize level file.
+
+##### Future work
+1. Still have some questions about the count file.
+    * The count data in the current test case might be inaccurate.
+    * why the `strain_id` in `count.h5` file is `Aligned.sortedByCoord.out`, how to change it?
+    * How to include more count data in one `count.h5` file?
+2. Better to test on the big data to see if something important is ommitted.
+
 ### update 24/08/2018
 1. Add new test cases. There are 7 transcripts, 7 vertices and 13 output pairs in total in the new test cases. Tests include
     * read_frame propogation
