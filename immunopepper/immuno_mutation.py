@@ -1,6 +1,6 @@
 import bisect
 from utils import get_all_comb
-
+from collections import namedtuple
 
 def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf):
     """
@@ -97,3 +97,17 @@ def get_mut_comb(exon_som_dict, idx, prop_vertex):
         mut_comb += all_comb
     return mut_comb
 
+
+def get_mutation_tuple(mutation_dic_vcf, mutation_dic_maf, sample, chrm, mutation_mode):
+    Mutation = namedtuple('Mutation',['vcf_dict','maf_dict','mode'])
+
+    if (sample, chrm) in mutation_dic_vcf.keys():
+        mutation_sub_dict_vcf = mutation_dic_vcf[(sample, chrm)]
+    else:
+        mutation_sub_dict_vcf = None
+    if (sample, chrm) in mutation_dic_maf.keys():
+        mutation_sub_dict_maf = mutation_dic_maf[(sample, chrm)]
+    else:
+        mutation_sub_dict_maf = None
+    mutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation_mode)
+    return mutation

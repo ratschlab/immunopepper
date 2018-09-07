@@ -14,11 +14,12 @@ from immuno_preprocess import search_edge_metadata_segmentgraph
 # over the GFF annotation file
 def annotate_gene_opt(gene=None, ref_seq=None, Idx = None,
                       Segments=None, Edges=None, Table=None,debug=False,size_factor=None, junction_list=None,
-                      mutation_mode=None, mutation_sub_dic_vcf=None, mutation_sub_dic_maf=None):
+                      Mutation = None):
 
 
     sg = gene.splicegraph
     gene.from_sparse()
+    total_expr = 0
 
     output_id = 0
     output_peptide_list = []
@@ -28,21 +29,22 @@ def annotate_gene_opt(gene=None, ref_seq=None, Idx = None,
     # when germline mutation is applied, background_seq != ref_seq
     # otherwise, background_seq = ref_seq
     ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq, pos_start=gene.start, pos_end=gene.stop,
-                                              mutation_sub_dic_vcf=mutation_sub_dic_vcf)
+                                              mutation_sub_dic_vcf=Mutation.vcf_dict)
 
     # apply somatic mutation
     # som_exp_dict: (mutation_position) |-> (expression)
     # exon_som_dict: (exon_id) |-> (mutation_postion)
     som_exp_dict, exon_som_dict = None,None
-    if mutation_sub_dic_maf is not None:
-        exon_som_dict = get_exon_som_dict(gene, mutation_sub_dic_maf.keys())
+    if Mutation.maf_dict is not None:
+        exon_som_dict = get_exon_som_dict(gene, Mutation.maf_dict.keys())
         if Segments is not None:
-            som_exp_dict = get_som_expr_dict(gene, mutation_sub_dic_maf.keys(), Segments, Idx)
+            som_exp_dict = get_som_expr_dict(gene, Mutation.maf_dict.keys(), Segments, Idx)
 
     # find background peptide
     # if no germline mutation is applies, germline key still exists, equals to reference.
     # return the list of the background peptide for each transcript
     background_pep_list = find_background_peptides(gene, ref_mut_seq['background'], Table.gene_to_ts, Table.ts_to_cds)
+
     # check whether the junction (specific combination of vertices) also is annotated
     # as a junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, Table.gene_to_ts, Table.ts_to_cds)
@@ -64,16 +66,16 @@ def annotate_gene_opt(gene=None, ref_seq=None, Idx = None,
                         print(idx, prop_vertex, variant_comb, read_frame_tuple)
                     peptide_weight = 1.0 / n_read_frames
                     if prop_vertex != '.':
-                        Peptide, Coord, Flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, sg.vertices[:, prop_vertex])
+                        Peptide, Coord, Flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, Mutation.maf_dict, ref_mut_seq, sg.vertices[:, prop_vertex])
                         if not Flag.has_stop:
                             sg.reading_frames[prop_vertex].add(next_reading_frame)
                     else:
-                        Peptide, Coord, Flag, = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation_sub_dic_maf,ref_mut_seq)
+                        Peptide, Coord, Flag, = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, Mutation.maf_dict,ref_mut_seq)
 
                     # If cross junction peptide has a stop-codon in it, the frame
                     # will not be propagated because the read is truncated before it reaches the end of the exon.
                     # also in mutation mode, only output the case where ref is different from mutated
-                    if Peptide.mut != Peptide.ref or mutation_mode == 'ref':
+                    if Peptide.mut != Peptide.ref or Mutation.mode == 'ref':
                         match_ts_list = peptide_match(background_pep_list, Peptide.mut)
                         peptide_is_annotated = len(match_ts_list)
                         if not Flag.is_isolated:
@@ -103,7 +105,7 @@ def annotate_gene_opt(gene=None, ref_seq=None, Idx = None,
 
                         meta_header_line = "\t".join(
                             [str(Idx.gene) + '.' + str(output_id), str(read_frame_tuple[2]), gene.name, gene.chr, gene.strand,
-                             mutation_mode, "{:.3f}".format(peptide_weight), str(peptide_is_annotated), str(junction_anno_flag),
+                             Mutation.mode, "{:.3f}".format(peptide_weight), str(peptide_is_annotated), str(junction_anno_flag),
                              str(int(Flag.has_stop)), str(junctionOI_flag), str(int(Flag.is_isolated)),
                              ';'.join(str_variant_comb), ';'.join(seg_exp_variant_comb)])
 
@@ -115,6 +117,7 @@ def annotate_gene_opt(gene=None, ref_seq=None, Idx = None,
                         if Edges is not None and not Flag.is_isolated:
                             sorted_pos = sp.sort(np.array([Coord.start_v1, Coord.stop_v1, Coord.start_v2, Coord.stop_v2]))
                             edge_expr = search_edge_metadata_segmentgraph(gene, sorted_pos, Edges, Idx)
+                            total_expr += edge_expr
                             # edge_expr = edge_expr*size_factor
                         else:
                             edge_expr = '.'
@@ -129,4 +132,4 @@ def annotate_gene_opt(gene=None, ref_seq=None, Idx = None,
         gene.to_sparse()
 
     gene.processed = True
-    return output_peptide_list,output_metadata_list
+    return output_peptide_list,output_metadata_list,total_expr

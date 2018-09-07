@@ -1,5 +1,6 @@
 import itertools
 import scipy as sp
+import numpy as np
 from collections import namedtuple
 import bisect
 
@@ -398,9 +399,19 @@ def get_segment_expr(gene, coord, Segments, Idx):
     return mean_expr
 
 
-def get_idx(strain_idx_table,sample,gene_idx):
+def get_idx(strain_idx_table, sample, gene_idx):
     Idx = namedtuple('Idx', ['gene', 'sample'])
     sample_idx = strain_idx_table[sample]
     idx = Idx(gene_idx,sample_idx)
     return idx
+
+def create_libsize(expr_distr_dict,output_fp):
+    libsize_count = {sample:(np.percentile(expr_list,75),np.sum(expr_list)) for sample,expr_list in expr_distr_dict.items()}
+    with open(output_fp,'w') as f:
+        f.write('\t'.join(['sample','libsize_75percent','libsize_total_count'])+'\n')
+        for sample,count_tuple in libsize_count.items():
+            line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
+            f.write(line)
+
+
 
