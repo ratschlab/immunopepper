@@ -184,7 +184,8 @@ def get_exon_dict(metadata_list):
     exon_dict = {}
     for line in metadata_list:
         items = line.strip().split('\t')
-        exon_list = items[-3].split(';')
+        ## TODO: need to come up with a new way to index the exon list
+        exon_list = items[-4].split(';')
         idx = items[0]
         read_frame = items[1]
         strand = items[4]

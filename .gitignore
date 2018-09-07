@@ -106,3 +106,4 @@ ENV/
 
 # intermediate test data
 tests/data/genome/
+/tests/generate_gt_file.py

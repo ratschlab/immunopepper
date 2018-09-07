@@ -118,7 +118,7 @@ def annotate_gene_opt(gene=None, ref_seq=None, Idx = None,
                             sorted_pos = sp.sort(np.array([Coord.start_v1, Coord.stop_v1, Coord.start_v2, Coord.stop_v2]))
                             edge_expr = search_edge_metadata_segmentgraph(gene, sorted_pos, Edges, Idx)
                             total_expr += edge_expr
-                            # edge_expr = edge_expr*size_factor
+                            #edge_expr = edge_expr*size_factor
                         else:
                             edge_expr = '.'
                         meta_header_line += ("\t" .join([str(edge_expr)]))

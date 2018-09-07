@@ -36,7 +36,7 @@ def parse_arguments(argv):
     parser.add_argument("--count_path",help="specify the absolute path of the count h5 file", required=False, default=None)
     parser.add_argument("--gtex_junction_path",help="specify the absolute path the the gtex_junction h5 file", required=False, default=None)
     parser.add_argument("--process_num", type=int, help="Only process the first *process_num* gene in the splicegraph,default,0, means process all", required=False, default=0)
-    parser.add_argument("--is_filter", help="apply redundancy filter to the exon list", action="store_false", required=False, default=False)
+    parser.add_argument("--is_filter", help="apply redundancy filter to the exon list", action="store_false", required=False, default=True)
     parser.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
 
 
@@ -58,7 +58,7 @@ def main(arg):
     arg.splice_path = '../tests/data/spladder/genes_graph_conf3.merge_graphs.pickle'
     #arg.gtex_junction_path = '../tests/data/gtex_junctions.hdf5'
     arg.vcf_path = ['../tests/data/test1pos.vcf']
-    #arg.maf_path = ['../tests/data/test1.maf']
+    arg.maf_path = ['../tests/data/test1.maf']
     arg.count_path = '../tests/data/spladder/genes_graph_conf3.merge_graphs.count.hdf5'
     arg.samples = ['test1']
     mutation_mode, vcf_file_path, maf_file_path = get_mutation_mode_from_parser(arg)
@@ -112,7 +112,7 @@ def main(arg):
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
 
-    if arg.process_num == 0: # Default process all genes
+    if arg.process_num == 0:  # Default process all genes
         num = len(graph_data)
     else:
         num = arg.process_num
@@ -129,7 +129,7 @@ def main(arg):
         # get the fp
         #strains = sp.array([x.split('.')[0] for x in h5f['strains'][:]])
         #size_factor = get_size_factor(strains, arg.libsize_path)
-        size_factor = None
+        #size_factor = None
     else:
         Segments = None
         Edges = None

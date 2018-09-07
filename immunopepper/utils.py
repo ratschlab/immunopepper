@@ -395,7 +395,6 @@ def get_segment_expr(gene, coord, Segments, Idx):
         expr_sum += item[0]*item[1]
         seg_len += item[0]
     mean_expr = int(expr_sum/seg_len)
-    print(seg_len,mean_expr)
     return mean_expr
 
 
@@ -412,6 +411,5 @@ def create_libsize(expr_distr_dict,output_fp):
         for sample,count_tuple in libsize_count.items():
             line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
             f.write(line)
-
 
 
