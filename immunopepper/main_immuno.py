@@ -61,7 +61,7 @@ def main(arg):
     arg.splice_path = '../tests/data/spladder/genes_graph_conf3.merge_graphs.pickle'
     #arg.gtex_junction_path = '../tests/data/gtex_junctions.hdf5'
     #arg.vcf_path = ['../tests/data/test1pos.vcf']
-    arg.maf_path = ['../tests/data/test1.maf']
+    #arg.maf_path = ['../tests/data/test1.maf']
     arg.count_path = '../tests/data/spladder/genes_graph_conf3.merge_graphs.count.hdf5'
     arg.samples = ['test1']
     mutation_mode, vcf_file_path, maf_file_path = get_mutation_mode_from_parser(arg)
@@ -169,7 +169,8 @@ def main(arg):
         peptide_fp = open(peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')
         meta_header_line = "\t".join(['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
-                                    'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','seg_expr', 'exons_coor', 'vertex_idx','junction_expr'])
+                                    'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','seg_expr',
+                                      'exons_coor', 'vertex_idx','junction_expr','segment_expr'])
         meta_peptide_fp.write(meta_header_line + '\n')
 
         # go over each gene in splicegraph
@@ -198,7 +199,6 @@ def main(arg):
                 junction_list = junction_dict[chrm]
             else:
                 junction_list = None
-
 
             output_peptide_list, output_metadata_list = annotate_gene_opt(gene=gene,
                               ref_seq=seq_dict[chrm],

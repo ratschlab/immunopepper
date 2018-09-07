@@ -5,23 +5,13 @@ import scipy as sp
 # immuno module
 from immuno_filter import junction_is_annotated, peptide_match, find_background_peptides
 from immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb
-from utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_output_redundant,is_in_junction_list
+from utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr
 from immuno_preprocess import search_edge_metadata_segmentgraph
 
 
 # Optimized annotation code that does not loop over the annotation but uses the lookup structure
 # that was built from the only initial pass
 # over the GFF annotation file
-# gene: Gene structure
-# seg_lookup_table: Segment lookup table based on Gene ID
-# strain_idx_table: Look-up strain index based on donor ID.
-# segment_expr_info: Segment expression information
-# gene_cds_begin_dict: Look-up to retrieve CDS beginnings associated with a gene [dict]
-# ref_seq: Nucleotide sequence of chromosome associated with gene [str]
-# mut_seq: Mutated sequence of donor
-# fa_ptr: File handle to the output FASTA file
-# mutation_mode: Mutation mode in {both, germline_only, somatic_only, None}
-# size_factor: the adjusted weight from libsize
 def annotate_gene_opt(gene=None, ref_seq=None, Idx = None,
                       Segments=None, Edges=None, Table=None,debug=False,size_factor=None, junction_list=None,
                       mutation_mode=None, mutation_sub_dic_vcf=None, mutation_sub_dic_maf=None):
@@ -74,19 +64,19 @@ def annotate_gene_opt(gene=None, ref_seq=None, Idx = None,
                         print(idx, prop_vertex, variant_comb, read_frame_tuple)
                     peptide_weight = 1.0 / n_read_frames
                     if prop_vertex != '.':
-                        peptide, coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, sg.vertices[:, prop_vertex])
-                        if not flag.has_stop:
+                        Peptide, Coord, Flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, sg.vertices[:, prop_vertex])
+                        if not Flag.has_stop:
                             sg.reading_frames[prop_vertex].add(next_reading_frame)
                     else:
-                        peptide, coord, flag, = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation_sub_dic_maf,ref_mut_seq)
+                        Peptide, Coord, Flag, = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation_sub_dic_maf,ref_mut_seq)
 
                     # If cross junction peptide has a stop-codon in it, the frame
                     # will not be propagated because the read is truncated before it reaches the end of the exon.
                     # also in mutation mode, only output the case where ref is different from mutated
-                    if peptide.mut != peptide.ref or mutation_mode == 'ref':
-                        match_ts_list = peptide_match(background_pep_list, peptide.mut)
+                    if Peptide.mut != Peptide.ref or mutation_mode == 'ref':
+                        match_ts_list = peptide_match(background_pep_list, Peptide.mut)
                         peptide_is_annotated = len(match_ts_list)
-                        if not flag.is_isolated:
+                        if not Flag.is_isolated:
                             junction_anno_flag = int(junction_flag[idx, prop_vertex])
                             if junction_list is not None:
                                 if gene.strand == '+':
@@ -100,30 +90,39 @@ def annotate_gene_opt(gene=None, ref_seq=None, Idx = None,
                             junctionOI_flag = '.'
                         # Write the variant gene into the FASTA FP together with the donor ID
                         str_variant_comb = [str(ipos) for ipos in variant_comb]
+
                         if variant_comb != '.' and som_exp_dict is not None:  # which means there do exist some mutation
-                            seg_exp_variant_comb = [str(som_exp_dict[ipos]) for ipos in variant_comb]
+                            seg_exp_variant_comb = [str(int(som_exp_dict[ipos])) for ipos in variant_comb]
                         else:
-                            seg_exp_variant_comb = '.'  # if no mutation, the segment expression is .
+                            seg_exp_variant_comb = '.'  # if no mutation or no count file,  the segment expression is .
+
+                        if Segments is not None:
+                            segment_expr = get_segment_expr(gene, Coord, Segments, Idx)
+                        else:
+                            segment_expr = '.'
+
                         meta_header_line = "\t".join(
                             [str(Idx.gene) + '.' + str(output_id), str(read_frame_tuple[2]), gene.name, gene.chr, gene.strand,
                              mutation_mode, "{:.3f}".format(peptide_weight), str(peptide_is_annotated), str(junction_anno_flag),
-                             str(int(flag.has_stop)), str(junctionOI_flag), str(int(flag.is_isolated)),
+                             str(int(Flag.has_stop)), str(junctionOI_flag), str(int(Flag.is_isolated)),
                              ';'.join(str_variant_comb), ';'.join(seg_exp_variant_comb)])
-                        is_output = True
-                        meta_header_line += ('\t' + str(coord.start_v1) + ";" + str(coord.stop_v1))
-                        meta_header_line += (';' + str(coord.start_v2) + ";" + str(coord.stop_v2) + '\t')
+
+                        meta_header_line += ('\t' + str(Coord.start_v1) + ";" + str(Coord.stop_v1))
+                        meta_header_line += (';' + str(Coord.start_v2) + ";" + str(Coord.stop_v2) + '\t')
                         meta_header_line += (str(idx) + ',' + str(prop_vertex) + '\t')
 
                         # deal with expression data
-                        if Edges is not None and not flag.is_isolated:
-                            sorted_pos = sp.sort(np.array([coord.start_v1, coord.stop_v1, coord.start_v2, coord.stop_v2]))
+                        if Edges is not None and not Flag.is_isolated:
+                            sorted_pos = sp.sort(np.array([Coord.start_v1, Coord.stop_v1, Coord.start_v2, Coord.stop_v2]))
                             edge_expr = search_edge_metadata_segmentgraph(gene, sorted_pos, Edges, Idx)
                             # edge_expr = edge_expr*size_factor
                         else:
                             edge_expr = '.'
                         meta_header_line += ("\t" .join([str(edge_expr)]))
+                        meta_header_line += "\t"+str(segment_expr)
+
                         output_metadata_list.append(meta_header_line)
-                        peptide_str_pretty = '>' + str(Idx.gene) + '.' + str(output_id) + '\n' + peptide.mut
+                        peptide_str_pretty = '>' + str(Idx.gene) + '.' + str(output_id) + '\n' + Peptide.mut
                         output_peptide_list.append(peptide_str_pretty)
                         output_id += 1
     if not sg.edges is None:

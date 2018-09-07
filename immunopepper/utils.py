@@ -365,31 +365,36 @@ def is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2, read_frame_t
 def is_in_junction_list(v1,v2,strand,junction_list):
     return int(':'.join([str(v1[1]),  str(v2[0]), strand]) in junction_list)
 
-def get_exon_expr(gene,vstart,vstop,expr_info):
+
+def get_exon_expr(gene,vstart,vstop,Segments,Idx):
+    if vstart == '.' or vstop == '.':  # isolated exon case
+        expr_list = []
+        return expr_list
     segments = gene.segmentgraph.segments
-    sv1_id = bisect.bisect(segments[1], vstart)
-    sv2_id = bisect.bisect(segments[1], vstop)
+    sv1_id = bisect.bisect(segments[0], vstart)-1
+    sv2_id = bisect.bisect(segments[0], vstop)-1
     expr_list = []
     if sv1_id == sv2_id:
-        expr_list.append((vstart - vstop, expr_info[sv1_id]))
+        expr_list.append((vstop - vstart, Segments.expr[sv1_id, Idx.sample]))
     else:
-        expr_list.append((segments[1, sv1_id] - vstart, expr_info[sv1_id]))
+        expr_list.append((segments[1, sv1_id] - vstart, Segments.expr[sv1_id,Idx.sample]))
         for i in range(sv1_id + 1, sv2_id):
-            expr_list.append((segments[1, sv1_id + 1] - segments[0, sv1_id + 1], expr_info[sv1_id + 1]))
-        expr_list.append((vstop-segments[0, sv2_id]+1, expr_info[sv2_id]))
+            expr_list.append((segments[1, i] - segments[0, i], Segments.expr[i,Idx.sample]))
+        expr_list.append((vstop-segments[0, sv2_id], Segments.expr[sv2_id, Idx.sample]))
     return expr_list
 
 
-def get_segment_expr(gene, coord, segments, idx):
-    expr_list1 = get_exon_expr(gene,coord.start_v1,coord.stop_v1,segments)
-    expr_list2 = get_exon_expr(gene,coord.start_v2,coord.stop_v2,segments)
+def get_segment_expr(gene, coord, Segments, Idx):
+    expr_list1 = get_exon_expr(gene,coord.start_v1,coord.stop_v1,Segments,Idx)
+    expr_list2 = get_exon_expr(gene,coord.start_v2,coord.stop_v2,Segments,Idx)
     expr_list1.extend(expr_list2)
     expr_sum = 0
     seg_len = 0
     for item in expr_list1:
         expr_sum += item[0]*item[1]
         seg_len += item[0]
-    mean_expr = float(expr_sum/seg_len)
+    mean_expr = int(expr_sum/seg_len)
+    print(seg_len,mean_expr)
     return mean_expr
 
 
