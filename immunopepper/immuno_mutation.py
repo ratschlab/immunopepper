@@ -61,17 +61,18 @@ def get_exon_som_dict(gene, mutation_pos):
     return exon_som_dict
 
 
-def get_som_expr_dict(gene, mutation_pos, expr_mat, gene_ids_seg):
+def get_som_expr_dict(gene, mutation_pos, segments, Idx):
     """
     Build somatic mutation position to expression data dict map.
     """
     seg_mat = gene.segmentgraph.segments[0]
     som_expr_dict = {}
-    seg_pos_list = gene_ids_seg[gene.name]
+
+    seg_pos_list = segments.lookup_table[gene.name]
     for ipos in mutation_pos:
         seg_id = bisect.bisect(seg_mat,ipos)
         if seg_id > 0 and  ipos <= gene.segmentgraph.segments[1][seg_id-1]: # the mutation is within the pos
-            expr = expr_mat[seg_pos_list[seg_id-1]]
+            expr = segments.expr[seg_pos_list[seg_id-1],Idx.sample]
             som_expr_dict[ipos] = expr
     return som_expr_dict
 

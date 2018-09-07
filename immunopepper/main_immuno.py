@@ -19,7 +19,7 @@ from immuno_mutation import get_mutation_mode_from_parser
 from immuno_model import annotate_gene_opt
 from immuno_filter import get_filtered_output_list
 from immunopepper.io_utils import load_pickled_graph
-
+from utils import get_idx
 
 ### Example usage
 # python main_immuno.py --samples TCGA-13-1489 --output_dir t --splice_path quick_test_data/sample_gene.pkl --ann_path quick_test_data/small.gtf --ref_path quick_test_data/smallgene34.fa
@@ -83,7 +83,7 @@ def main(arg):
     # read and process the annotation file
     print('Building lookup structure ...')
     start_time = timeit.default_timer()
-    gene_cds_begin_dict, gene_to_transcript_table, transcript_to_cds_table = preprocess_ann(arg.ann_path)
+    gene_cds_begin_dict, Table = preprocess_ann(arg.ann_path)
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
@@ -125,7 +125,7 @@ def main(arg):
     if arg.count_path is not None:
         print('Loading count data ...')
         h5f = h5py.File(arg.count_path, 'r')
-        seg_lookup_table, edge_lookup_table, strain_idx_table, segment_expr_info, edge_expr_info = parse_gene_metadata_info(h5f, arg.samples)
+        Segments, Edges, strain_idx_table = parse_gene_metadata_info(h5f, arg.samples)
         end_time = timeit.default_timer()
         print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
         print_memory_diags()
@@ -134,11 +134,9 @@ def main(arg):
         #size_factor = get_size_factor(strains, arg.libsize_path)
         size_factor = None
     else:
-        seg_lookup_table = None
-        edge_lookup_table = None
+        Segments = None
+        Edges = None
         strain_idx_table = None
-        segment_expr_info = None
-        edge_expr_info = None
         size_factor = None
 
     # read the intro of interest file gtex_junctions.hdf5
@@ -159,6 +157,7 @@ def main(arg):
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
 
+
     # process graph for each input sample
     for sample in arg.samples:
         # prepare for the output file
@@ -178,9 +177,10 @@ def main(arg):
             start_time = timeit.default_timer()
             print('%s %i/%i\n'%(sample, gene_idx, num))
             gene = graph_data[gene_idx]
+            Idx = get_idx(strain_idx_table,sample,gene_idx)
 
             # Genes not contained in the annotation...
-            if gene.name not in gene_cds_begin_dict or gene.name not in gene_to_transcript_table:
+            if gene.name not in gene_cds_begin_dict or gene.name not in Table.gene_to_ts:
                 gene.processed = False
                 continue
 
@@ -194,29 +194,19 @@ def main(arg):
             else:
                 mutation_sub_dict_maf = None
 
-            if segment_expr_info is not None:
-                sub_segment_expr_info = segment_expr_info[:, strain_idx_table[sample]]
-                sub_edge_expr_info = edge_expr_info[:, strain_idx_table[sample]]
-            else:
-                sub_segment_expr_info = None
-                sub_edge_expr_info = None
-
             if not junction_dict is None and chrm in junction_dict:
                 junction_list = junction_dict[chrm]
             else:
                 junction_list = None
 
+
             output_peptide_list, output_metadata_list = annotate_gene_opt(gene=gene,
                               ref_seq=seq_dict[chrm],
-                              gene_idx=gene_idx,
-                              seg_lookup_table=seg_lookup_table,
-                              edge_lookup_table=edge_lookup_table,
-                              size_factor=size_factor,
+                              Idx = Idx,
+                              Segments=Segments,
+                              Edges=Edges,
+                              Table=Table,
                               junction_list=junction_list,
-                              segment_expr_info=sub_segment_expr_info,
-                              edge_expr_info=sub_edge_expr_info,
-                              transcript_to_cds_table=transcript_to_cds_table,
-                              gene_to_transcript_table=gene_to_transcript_table,
                               mutation_mode=mutation_mode,
                               mutation_sub_dic_vcf=mutation_sub_dict_vcf,
                               mutation_sub_dic_maf=mutation_sub_dict_maf,

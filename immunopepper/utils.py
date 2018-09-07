@@ -1,7 +1,7 @@
 import itertools
 import scipy as sp
-import numpy as np
-import os
+from collections import namedtuple
+import bisect
 
 def to_adj_list(adj_matrix):
     """
@@ -187,6 +187,10 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     next_reading_frame: tuple, the reading frame to be propagated to the next vertex
 
     """
+    Peptide = namedtuple('Peptide',['mut','ref'])
+    Coord = namedtuple('Coord',['start_v1','stop_v1','start_v2','stop_v2'])
+    Flag = namedtuple('Flag', ['has_stop', 'is_isolated'])
+
     cds_left_modi, cds_right_modi, emitting_frame = read_frame
     next_emitting_frame = (peptide_accept_coord[1] - peptide_accept_coord[0] + emitting_frame) % 3
     start_v1 = cds_left_modi
@@ -232,8 +236,10 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     if len(peptide_mut)*3 <= abs(stop_v1 - start_v1) + 1:
         is_isolated = True
 
-    return peptide_mut, peptide_ref, start_v1, stop_v1, start_v2, stop_v2, \
-           mut_has_stop_codon,is_isolated,next_reading_frame
+    peptide = Peptide(peptide_mut,peptide_ref)
+    coord = Coord(start_v1,stop_v1,start_v2,stop_v2)
+    flag = Flag(mut_has_stop_codon,is_isolated)
+    return peptide, coord, flag, next_reading_frame
 
 
 def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,ref_mut_seq):
@@ -254,6 +260,10 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
     start_v2, stop_v2: '.' means not exist
 
     """
+    Peptide = namedtuple('Peptide',['mut','ref'])
+    Coord = namedtuple('Coord',['start_v1','stop_v1','start_v2','stop_v2'])
+    Flag = namedtuple('Flag', ['has_stop', 'is_isolated'])
+
     start_v1, stop_v1, emitting_frame = read_frame
     start_v2 = '.'  # does not exist
     stop_v2 = '.'  # does not exist
@@ -276,7 +286,11 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
 
     is_isolated = True
 
-    return peptide_mut, peptide_ref, start_v1, stop_v1, start_v2, stop_v2, mut_has_stop_codon, is_isolated
+    peptide = Peptide(peptide_mut,peptide_ref)
+    coord = Coord(start_v1,stop_v1,start_v2,stop_v2)
+    flag = Flag(mut_has_stop_codon,is_isolated)
+
+    return peptide, coord, flag
 
 
 def get_size_factor(strains,lib_file_path):
@@ -350,4 +364,38 @@ def is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2, read_frame_t
 
 def is_in_junction_list(v1,v2,strand,junction_list):
     return int(':'.join([str(v1[1]),  str(v2[0]), strand]) in junction_list)
+
+def get_exon_expr(gene,vstart,vstop,expr_info):
+    segments = gene.segmentgraph.segments
+    sv1_id = bisect.bisect(segments[1], vstart)
+    sv2_id = bisect.bisect(segments[1], vstop)
+    expr_list = []
+    if sv1_id == sv2_id:
+        expr_list.append((vstart - vstop, expr_info[sv1_id]))
+    else:
+        expr_list.append((segments[1, sv1_id] - vstart, expr_info[sv1_id]))
+        for i in range(sv1_id + 1, sv2_id):
+            expr_list.append((segments[1, sv1_id + 1] - segments[0, sv1_id + 1], expr_info[sv1_id + 1]))
+        expr_list.append((vstop-segments[0, sv2_id]+1, expr_info[sv2_id]))
+    return expr_list
+
+
+def get_segment_expr(gene, coord, segments, idx):
+    expr_list1 = get_exon_expr(gene,coord.start_v1,coord.stop_v1,segments)
+    expr_list2 = get_exon_expr(gene,coord.start_v2,coord.stop_v2,segments)
+    expr_list1.extend(expr_list2)
+    expr_sum = 0
+    seg_len = 0
+    for item in expr_list1:
+        expr_sum += item[0]*item[1]
+        seg_len += item[0]
+    mean_expr = float(expr_sum/seg_len)
+    return mean_expr
+
+
+def get_idx(strain_idx_table,sample,gene_idx):
+    Idx = namedtuple('Idx', ['gene', 'sample'])
+    sample_idx = strain_idx_table[sample]
+    idx = Idx(gene_idx,sample_idx)
+    return idx
 
