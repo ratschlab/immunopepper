@@ -22,7 +22,7 @@ def load_gene_data():
     ref_path = os.path.join(data_dir, 'test1.fa')
 
     (graph_data, graph_meta) = load_pickled_graph(f)  # cPickle.load(f)
-    gene_cds_begin_dict, gene_to_transcript_table, transcript_to_cds_table = preprocess_ann(
+    gene_cds_begin_dict, table = preprocess_ann(
         ann_path)
     interesting_chr = map(str, range(1, 23)) + ["X", "Y", "MT"]
     seq_dict = {}
@@ -79,13 +79,13 @@ def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
                  [60, 75, 87, 102],
                  [274, 286, 250, 262],
                  [225, 240, 198, 213]]
-    groundtruth = ['GATGACGCACGCATACAGATAGGTAGCGGA',
-                   'GATGACGCACGCATACAGATAAGTAGCGGA',
-                   'CTTCGGGTACGTATATCGACGTTAGGGTGG',
-                   'CTGCGTGCGTATTATCCATCGCCT',
-                   'GAAGCCCATGCATATAGCTGCAATCCCACC'
+    groundtruth = ['GATGACGCACGCATGGTGGTGGGTTGCGGA',
+                   'GATGACGCACGCATGGTGGTGAGTTGCGGA',
+                   'GTTCAGGTACGTATATCGACGTTCTGGTGG',
+                   'CTGCGTGCGTACCACCCAACGCCT',
+                   'CAAGTCCATGCATATAGCTGCAAGACCACC'
                    ]
-    variant_comb = [(40,), (40, 41), '.', (259,), '.']
+    variant_comb = [(38,), (38, 41), '.', (261,), '.']
     strand = ['+', '+', '+', '-', '-']
     for i, vlist in enumerate(test_list):
         sub_dna = get_sub_mut_dna(ref_seq, vlist[0], vlist[1], vlist[2],

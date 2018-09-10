@@ -1,7 +1,7 @@
 import bisect
 from utils import get_all_comb
 from collections import namedtuple
-
+from constant import NOT_EXIST
 def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf):
     """
     Apply all the germline mutations to the reference sequence.
@@ -57,7 +57,7 @@ def get_exon_som_dict(gene, mutation_pos):
         exon_id = bisect.bisect(exon_list[0, :], ipos)
         if exon_id > 0 and ipos <= exon_list[1][exon_id-1]:  # the mutation is within the pos
             exon_som_dict[exon_id-1].append(ipos)
-    exon_som_dict['.'] = []  # for single cds case
+    exon_som_dict[NOT_EXIST] = []  # for single cds case
     return exon_som_dict
 
 
@@ -71,7 +71,7 @@ def get_som_expr_dict(gene, mutation_pos, segments, Idx):
     seg_pos_list = segments.lookup_table[gene.name]
     for ipos in mutation_pos:
         seg_id = bisect.bisect(seg_mat,ipos)
-        if seg_id > 0 and  ipos <= gene.segmentgraph.segments[1][seg_id-1]: # the mutation is within the pos
+        if seg_id > 0 and ipos <= gene.segmentgraph.segments[1][seg_id-1]: # the mutation is within the pos
             expr = segments.expr[seg_pos_list[seg_id-1],Idx.sample]
             som_expr_dict[ipos] = expr
     return som_expr_dict
@@ -91,7 +91,7 @@ def get_mut_comb(exon_som_dict, idx, prop_vertex):
     mut_comb: list of tuple, list of mutation combination
 
     """
-    mut_comb = ['.']
+    mut_comb = [NOT_EXIST]
     if exon_som_dict is not None:
         all_comb = get_all_comb(exon_som_dict[idx] + exon_som_dict[prop_vertex])
         mut_comb += all_comb

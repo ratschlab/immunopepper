@@ -98,9 +98,6 @@ def preprocess_ann(ann_path):
         # store relationship between gene ID and its transcript IDs
         if feature_type in ['transcript', 'mRNA']:
             gene_id = attribute_dict['gene_id']
-            # gene_type = attribute_dict['gene_type']
-            # transcript_type = attribute_dict['transcript_type']
-
             transcript_id = attribute_dict['transcript_id']
             assert (transcript_id not in transcript_to_gene_dict)
             transcript_to_gene_dict[transcript_id] = gene_id
@@ -111,7 +108,6 @@ def preprocess_ann(ann_path):
                 gene_to_transcript_dict[gene_id] = set([transcript_id])
 
         # Todo python is 0-based while gene annotation file(.gtf, .vcf, .maf) is one based
-        # so we need to do a little modification
         elif feature_type == "CDS":
             parent_ts = attribute_dict['transcript_id']
             strand_mode = item[6]
@@ -144,7 +140,7 @@ def preprocess_ann(ann_path):
     for ts_key in transcript_to_cds_dict:
         transcript_to_cds_dict[ts_key] = sorted(transcript_to_cds_dict[ts_key], key=lambda coordpair: coordpair[0])
 
-    table = Table(transcript_to_cds_dict,gene_to_transcript_dict)
+    table = Table(transcript_to_cds_dict, gene_to_transcript_dict)
     return gene_cds_begin_dict, table
 
 

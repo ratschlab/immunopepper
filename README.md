@@ -21,6 +21,13 @@ python main_immuno.py -h
 Please add `modules` folder in [`spladder`](https://github.com/ratschlab/spladder/tree/development/python) repo on the same level with `main_immuno`. The
 packages is needed when loading the splicegraph.
 
+### update 10/09/2018
+1. Add a copy dictionary of `gene.reading_frames` in `immuno_model.py`. Avoid dynamic changes of `gene` object.
+2. Add a `constant.py` file and create an important global variable `NOT_EXIST`. It will appear in many places including
+**isolated exon case**,  **no mutastion exist case** etc.
+3. Decapitalize the namedtuple name.
+
+
 ### update 07/09/2018
 1. Split the computation and writing parts of `annotate_gene_opt`. Because of this modification, we can
 filter the redundant peptide completely accurate. see `18/06/2018` for more details

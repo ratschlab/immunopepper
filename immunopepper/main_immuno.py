@@ -22,9 +22,10 @@ from immunopepper.io_utils import load_pickled_graph
 from utils import get_idx,create_libsize
 
 
+
 def parse_arguments(argv):
 
-    parser = argparse.ArgumentParser(argv)
+    parser = argparse.ArgumentParser()
     parser.add_argument("--samples", nargs='+', help="the sample names, can specify more than one sample", required=False, default='')
     parser.add_argument("--output_dir", help="specify the output directory [default: test]", required=False, default='test')
     parser.add_argument("--ann_path", help="specify the absolute path of annotation file", required=False)
@@ -39,28 +40,16 @@ def parse_arguments(argv):
     parser.add_argument("--is_filter", help="apply redundancy filter to the exon list", action="store_false", required=False, default=True)
     parser.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
 
+    if len(argv) < 2:
+        parser.print_help()
+        sys.exit(1)
 
-    # if len(argv) < 2:
-    #     parser.print_help()
-    #     sys.exit(1)
-
-    pargs = parser.parse_args()
+    pargs = parser.parse_args(argv)
     return pargs
 
 
 def main(arg):
     print(os.path.abspath(os.curdir))
-
-    ## for debugging in pycharm
-    arg.output_dir = '../tests'
-    arg.ann_path = '../tests/data/test1.gtf'
-    arg.ref_path = '../tests/data/test1.fa'
-    arg.splice_path = '../tests/data/spladder/genes_graph_conf3.merge_graphs.pickle'
-    #arg.gtex_junction_path = '../tests/data/gtex_junctions.hdf5'
-    arg.vcf_path = ['../tests/data/test1pos.vcf']
-    arg.maf_path = ['../tests/data/test1.maf']
-    arg.count_path = '../tests/data/spladder/genes_graph_conf3.merge_graphs.count.hdf5'
-    arg.samples = ['test1']
     mutation_mode, vcf_file_path, maf_file_path = get_mutation_mode_from_parser(arg)
 
     # load genome sequence data
@@ -80,7 +69,7 @@ def main(arg):
     # read and process the annotation file
     print('Building lookup structure ...')
     start_time = timeit.default_timer()
-    gene_cds_begin_dict, Table = preprocess_ann(arg.ann_path)
+    gene_cds_begin_dict, table = preprocess_ann(arg.ann_path)
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
@@ -122,7 +111,7 @@ def main(arg):
     if arg.count_path is not None:
         print('Loading count data ...')
         h5f = h5py.File(arg.count_path, 'r')
-        Segments, Edges, strain_idx_table = parse_gene_metadata_info(h5f, arg.samples)
+        segments, edges, strain_idx_table = parse_gene_metadata_info(h5f, arg.samples)
         end_time = timeit.default_timer()
         print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
         print_memory_diags()
@@ -131,8 +120,8 @@ def main(arg):
         #size_factor = get_size_factor(strains, arg.libsize_path)
         #size_factor = None
     else:
-        Segments = None
-        Edges = None
+        segments = None
+        edges = None
         strain_idx_table = None
         size_factor = None
 
@@ -177,15 +166,15 @@ def main(arg):
             start_time = timeit.default_timer()
             print('%s %i/%i\n'%(sample, gene_idx, num))
             gene = graph_data[gene_idx]
-            Idx = get_idx(strain_idx_table,sample,gene_idx)
+            idx = get_idx(strain_idx_table,sample,gene_idx)
 
             # Genes not contained in the annotation...
-            if gene.name not in gene_cds_begin_dict or gene.name not in Table.gene_to_ts:
+            if gene.name not in gene_cds_begin_dict or gene.name not in table.gene_to_ts:
                 gene.processed = False
                 continue
 
             chrm = gene.chr.strip()
-            Mutation = get_mutation_tuple(mutation_dic_vcf,mutation_dic_maf,sample,chrm,mutation_mode)
+            mutation = get_mutation_tuple(mutation_dic_vcf,mutation_dic_maf, sample, chrm, mutation_mode)
             if not junction_dict is None and chrm in junction_dict:
                 junction_list = junction_dict[chrm]
             else:
@@ -193,8 +182,8 @@ def main(arg):
 
             output_peptide_list, output_metadata_list, total_expr = annotate_gene_opt(gene=gene,
                               ref_seq=seq_dict[chrm],
-                              Idx=Idx, Segments=Segments, Edges=Edges,
-                              Table=Table, Mutation=Mutation,
+                              idx=idx, segments=segments, edges=edges,
+                              table=table, mutation=mutation,
                               junction_list=junction_list, debug=arg.debug
                             )
             expr_distr.append(total_expr)
@@ -209,5 +198,5 @@ def main(arg):
 
 
 if __name__ == "__main__":
-    arg = parse_arguments(sys.argv)
+    arg = parse_arguments(sys.argv[1:])
     main(arg)

@@ -3,7 +3,7 @@ import scipy as sp
 import numpy as np
 from collections import namedtuple
 import bisect
-
+from constant import NOT_EXIST
 def to_adj_list(adj_matrix):
     """
     Converts a binary adjacency matrix to a list of directed edges
@@ -121,7 +121,7 @@ def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, varian
     Get the mutated dna sub-sequence according to mutation specified by the variant_comb.
     """
 
-    if start_v2 != '.':
+    if start_v2 != NOT_EXIST:
         if strand == '-':
             sub_dna_list = list(background_seq[start_v1:stop_v1][::-1] + background_seq[start_v2:stop_v2][::-1])
         else:
@@ -132,7 +132,7 @@ def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, varian
         else:
             sub_dna_list = list(background_seq[start_v1:stop_v1])
 
-    if variant_comb == '.' : # no mutation exist
+    if variant_comb == NOT_EXIST : # no mutation exist
         return ''.join(sub_dna_list)
     for variant_ipos in variant_comb:
         mut_base = mutation_sub_dic_maf[variant_ipos]['mut_base']
@@ -188,8 +188,8 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     next_reading_frame: tuple, the reading frame to be propagated to the next vertex
 
     """
-    Peptide = namedtuple('Peptide',['mut','ref'])
-    Coord = namedtuple('Coord',['start_v1','stop_v1','start_v2','stop_v2'])
+    Peptide = namedtuple('Peptide', ['mut', 'ref'])
+    Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
     Flag = namedtuple('Flag', ['has_stop', 'is_isolated'])
 
     cds_left_modi, cds_right_modi, emitting_frame = read_frame
@@ -266,8 +266,8 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
     Flag = namedtuple('Flag', ['has_stop', 'is_isolated'])
 
     start_v1, stop_v1, emitting_frame = read_frame
-    start_v2 = '.'  # does not exist
-    stop_v2 = '.'  # does not exist
+    start_v2 = NOT_EXIST
+    stop_v2 = NOT_EXIST
 
     if mutation_sub_dic_maf is None:  # no somatic mutation, the germline mutation will be the spotlight
         ref_seq = ref_mut_seq['ref']
@@ -368,7 +368,7 @@ def is_in_junction_list(v1,v2,strand,junction_list):
 
 
 def get_exon_expr(gene,vstart,vstop,Segments,Idx):
-    if vstart == '.' or vstop == '.':  # isolated exon case
+    if vstart == NOT_EXIST or vstop == NOT_EXIST:  # isolated exon case
         expr_list = []
         return expr_list
     segments = gene.segmentgraph.segments
