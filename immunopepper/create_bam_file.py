@@ -99,7 +99,7 @@ def create_bam_file(data_dir,seed=1):
     f = open(ref_path,'r')
     ref_seq = f.readlines()[1]
     ann_path = os.path.join(data_dir, 'test1.gtf')
-    gene_cds_begin_dict, gene_to_transcript_table, transcript_to_cds_table = preprocess_ann(ann_path)
+    gene_cds_begin_dict, table = preprocess_ann(ann_path)
 
     expr = [10, 0, 25, 15, 10, 10, 10,
             10, 10, 10, 10, 10, 10, 20]
@@ -107,7 +107,7 @@ def create_bam_file(data_dir,seed=1):
     cover = 100
 
     total_reads_list = []
-    for i,key_value_pair in enumerate(transcript_to_cds_table.items()):
+    for i,key_value_pair in enumerate(table.ts_to_cds.items()):
         if i < 6:
             exon_coord = key_value_pair[1]
             ts = ''
