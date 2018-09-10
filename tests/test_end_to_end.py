@@ -36,7 +36,7 @@ def test_end_to_end_ref(vcf_path, maf_path, prefix, tmpdir):
                '{}/spladder/genes_graph_conf3.merge_graphs.pickle'.format(
                    data_dir),
                '--count_path',
-               '{}/spladder/genes_graph_conf3.merge_graphs.count_0ts.hdf5'.format(
+               '{}/spladder/genes_graph_conf3.merge_graphs.count.hdf5'.format(
                    data_dir),
                '--ann_path', '{}/test1.gtf'.format(data_dir),
                '--ref_path', '{}/test1.fa'.format(data_dir)]

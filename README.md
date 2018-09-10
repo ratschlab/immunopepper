@@ -16,11 +16,56 @@ You should download the genome from other places. We are using the `hg19_hs37d5`
 Type below command line for more help information.
 ```
 python main_immuno.py -h
-python exon_filter.py -h
 ```
 
 Please add `modules` folder in [`spladder`](https://github.com/ratschlab/spladder/tree/development/python) repo on the same level with `main_immuno`. The
 packages is needed when loading the splicegraph.
+
+### update 10/09/2018
+1. Add a copy dictionary of `gene.reading_frames` in `immuno_model.py`. Avoid dynamic changes of `gene` object.
+2. Add a `constant.py` file and create an important global variable `NOT_EXIST`. It will appear in many places including
+**isolated exon case**,  **no mutastion exist case** etc.
+3. Decapitalize the namedtuple name.
+
+
+### update 07/09/2018
+1. Split the computation and writing parts of `annotate_gene_opt`. Because of this modification, we can
+filter the redundant peptide completely accurate. see `18/06/2018` for more details
+2. Use namedtuple to improve the readability of functions.
+3. Achieve two new features:
+    * calculate the mean segment expression counts. Instead of only replying on the junction expression counts,
+    we add one more data to support the expression level of the given exon pair.
+    * Generate the libsize level file.
+
+##### Future work
+1. Still have some questions about the count file.
+    * The count data in the current test case might be inaccurate.
+    * why the `strain_id` in `count.h5` file is `Aligned.sortedByCoord.out`, how to change it?
+    * How to include more count data in one `count.h5` file?
+2. Better to test on the big data to see if something important is ommitted.
+
+### update 24/08/2018
+1. Add new test cases. There are 7 transcripts, 7 vertices and 13 output pairs in total in the new test cases. Tests include
+    * read_frame propogation
+    * somatic and germline mutation
+    * filter function
+    * isolated exon case
+2. When running the test case, fix some bugs:
+    * `is_output_redundant`. The current function in `master` branch is wrong because it does not consider the read_frame compare.
+    * `get_sub_mut_seq`. Will cause bug when the mutation position is on the boundary. The original one in `master` will cause bug because sometimes the `start_v1` is not
+    eqal to the the start position of exon due to read_frame shift.
+    * `isolated_peptide_result`. In the negative strand case, the reference should be transformed using `complementary_seq`.
+3. Refine the whole process for test case creation in `step.sh`
+Put all the steps in the `step.sh` so that it will be quicker to change the test case case in the future.
+
+##### Future work
+1. Refactor the code.
+    * Split the `immuno_model.py` into two parts for computation and writing. Making the loop of body another function.
+    * Using named tuple to avoid complex return value
+    * Find a way to avoid making changes on the gene object.
+2. Merge into the `fix/envCleanup` branch.
+3. Achieve new requirement on the k-mer expression data.
+
 
 ### update 13/08/2018
 1. Build the basic test pipline using `pytest` module. It consists of two parts: test for one of the core function `get_sub_mut_dna` and test for all the output file (`peptide.fa`, `metadata.tsv`) in four modes (`ref`, `germline`, `somatic`, `somatic_and_germline`). Type the following command for testing. Remember to include `modules` directory from `spladder` repo in the work directory.

@@ -1,10 +1,6 @@
 # python library
-import timeit
-import cPickle
-import os
-import csv
 import sys
-
+from collections import namedtuple
 # external library
 import numpy as np
 import h5py
@@ -20,7 +16,6 @@ from utils import to_adj_succ_list,find_overlapping_cds_simple,attribute_list_to
 # get gene.splicegraph.reading_frames
 
 def genes_preprocess(genes, gene_cds_begin_dict):
-    f_log = open('cds_match_log.txt','w')
     for gene_idx in range(genes.shape[0]):
         if gene_idx > 0 and gene_idx % 100 == 0:
             sys.stdout.write('.')
@@ -80,17 +75,17 @@ def genes_preprocess(genes, gene_cds_begin_dict):
                 gene.splicegraph.reading_frames[idx].add((cds_left_modi, cds_right_modi, read_phase))
 
         gene.to_sparse()
-    f_log.close()
 
 # Pre-processed the annotation file and builds a lookup structure that can be used to retrieve
 # the CDS start positions when looping over the genes
 ##TODO: do we really need so many dictionary?
 def preprocess_ann(ann_path):
 
+    Table = namedtuple('Table',['ts_to_cds','gene_to_ts'])
     transcript_to_gene_dict = {}    # transcript -> gene id
     gene_to_transcript_dict = {}    # gene_id -> list of transcripts
     transcript_to_cds_dict = {}     # transcript -> list of CDS exons
-    transcript_cds_begin_dict = {}  # transcript -> first exon of the CDS 
+    transcript_cds_begin_dict = {}  # transcript -> first exon of the CDS
     gene_cds_begin_dict = {}        # gene -> list of first CDS exons
 
     # collect information from annotation file
@@ -103,9 +98,6 @@ def preprocess_ann(ann_path):
         # store relationship between gene ID and its transcript IDs
         if feature_type in ['transcript', 'mRNA']:
             gene_id = attribute_dict['gene_id']
-            # gene_type = attribute_dict['gene_type']
-            # transcript_type = attribute_dict['transcript_type']
-
             transcript_id = attribute_dict['transcript_id']
             assert (transcript_id not in transcript_to_gene_dict)
             transcript_to_gene_dict[transcript_id] = gene_id
@@ -116,7 +108,6 @@ def preprocess_ann(ann_path):
                 gene_to_transcript_dict[gene_id] = set([transcript_id])
 
         # Todo python is 0-based while gene annotation file(.gtf, .vcf, .maf) is one based
-        # so we need to do a little modification
         elif feature_type == "CDS":
             parent_ts = attribute_dict['transcript_id']
             strand_mode = item[6]
@@ -149,14 +140,16 @@ def preprocess_ann(ann_path):
     for ts_key in transcript_to_cds_dict:
         transcript_to_cds_dict[ts_key] = sorted(transcript_to_cds_dict[ts_key], key=lambda coordpair: coordpair[0])
 
-    return gene_cds_begin_dict, gene_to_transcript_dict, transcript_to_cds_dict
+    table = Table(transcript_to_cds_dict, gene_to_transcript_dict)
+    return gene_cds_begin_dict, table
 
 
-def search_edge_metadata_segmentgraph(gene, sorted_pos, edge_lookup_table, edge_expr_info):
+def search_edge_metadata_segmentgraph(gene, sorted_pos, edges, Idx):
     ''' Gives the ordered edge coordinates of the edge, return expression information of the edge'''
     gene_name = gene.name
     segmentgraph = gene.segmentgraph
-    edge_idxs = edge_lookup_table[gene_name]
+    edge_idxs = edges.lookup_table[gene_name]
+
     a = sp.where(segmentgraph.segments[1, :] == sorted_pos[1])[0]
     b = sp.where(segmentgraph.segments[0, :] == sorted_pos[2])[0]
     if a < b:
@@ -166,7 +159,7 @@ def search_edge_metadata_segmentgraph(gene, sorted_pos, edge_lookup_table, edge_
     cidxs = list(filter(lambda elem: elem[1] == idx, edge_idxs))
     assert (len(cidxs) == 1)
     cidx = cidxs[0]
-    count = edge_expr_info[cidx[0]]
+    count = edges.expr[cidx[0], Idx.sample]
     return count
 
 
@@ -205,6 +198,10 @@ def parse_gene_metadata_info(h5f, donor_list):
     assert (strain_expr_info.size == segment_expr_info.shape[1])
     strain_idx_table = {}
 
+    Segments = namedtuple('Segments',['expr','lookup_table'])
+    Edges = namedtuple('Edges',['expr','lookup_table'])
+
+    #TODO: make it clear how strain_id come from in h5f file
     for strain_idx in np.arange(strain_expr_info.size):
         strain_id = strain_expr_info[strain_idx]
         #strain_id = '-'.join(strain_id.split('.')[0].split('-')[:3])
@@ -233,7 +230,10 @@ def parse_gene_metadata_info(h5f, donor_list):
             edge_lookup_table[gene_id] = []
         edge_lookup_table[gene_id].append((edge_idx, edge_idx_info[edge_idx]))
 
-    return (seg_lookup_table, edge_lookup_table, strain_idx_table, segment_expr_info, edge_expr_info)
+    segments = Segments(segment_expr_info,seg_lookup_table)
+    edges = Edges(edge_expr_info,edge_lookup_table)
+
+    return segments, edges, strain_idx_table
 
 
 def parse_mutation_from_vcf(vcf_path):

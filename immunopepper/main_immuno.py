@@ -15,13 +15,13 @@ import h5py
 # immuno module
 from immuno_print import print_memory_diags
 from immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_mutation_from_maf,parse_mutation_from_vcf_h5,parse_junction_meta_info,parse_mutation_from_vcf
-from immuno_mutation import get_mutation_mode_from_parser
+from immuno_mutation import get_mutation_mode_from_parser,get_mutation_tuple
 from immuno_model import annotate_gene_opt
+from immuno_filter import get_filtered_output_list
 from immunopepper.io_utils import load_pickled_graph
+from utils import get_idx,create_libsize
 
-### Example usage
-# python main_immuno.py --samples TCGA-13-1489 --output_dir t --splice_path quick_test_data/sample_gene.pkl --ann_path quick_test_data/small.gtf --ref_path quick_test_data/smallgene34.fa
-# python exon_filter.py --meta_file t/TCGA-13-1489/ref_meta1.tsv.gz --peptide_file t/TCGA-13-1489/ref_peptide2.fa
+
 
 def parse_arguments(argv):
 
@@ -40,7 +40,6 @@ def parse_arguments(argv):
     parser.add_argument("--is_filter", help="apply redundancy filter to the exon list", action="store_false", required=False, default=True)
     parser.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
 
-
     if len(argv) < 2:
         parser.print_help()
         sys.exit(1)
@@ -51,20 +50,7 @@ def parse_arguments(argv):
 
 def main(arg):
     print(os.path.abspath(os.curdir))
-
-    # ## for debugging in pycharm
-    # arg.output_dir = 'test'
-    # arg.ann_path = 'quick_test_data/test1.gtf'
-    # arg.ref_path = 'quick_test_data/test1.fa'
-    # arg.splice_path = 'quick_test_data/spladder/genes_graph_conf3.merge_graphs.pickle'
-    # arg.gtex_junction_path = 'quick_test_data/gtex_junctions.hdf5'
-    # arg.vcf_path = ['quick_test_data/test1pos.vcf']
-    # arg.maf_path = ['quick_test_data/test1.maf']
-    # arg.count_path = 'quick_test_data/spladder/genes_graph_conf3.merge_graphs.count.hdf5'
-    # arg.samples = ['test1']
-
     mutation_mode, vcf_file_path, maf_file_path = get_mutation_mode_from_parser(arg)
-    print(arg.samples)
 
     # load genome sequence data
     seq_dict = {}
@@ -83,7 +69,7 @@ def main(arg):
     # read and process the annotation file
     print('Building lookup structure ...')
     start_time = timeit.default_timer()
-    gene_cds_begin_dict, gene_to_transcript_table, transcript_to_cds_table = preprocess_ann(arg.ann_path)
+    gene_cds_begin_dict, table = preprocess_ann(arg.ann_path)
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
@@ -115,7 +101,7 @@ def main(arg):
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
 
-    if arg.process_num == 0: # Default process all genes
+    if arg.process_num == 0:  # Default process all genes
         num = len(graph_data)
     else:
         num = arg.process_num
@@ -125,20 +111,18 @@ def main(arg):
     if arg.count_path is not None:
         print('Loading count data ...')
         h5f = h5py.File(arg.count_path, 'r')
-        seg_lookup_table, edge_lookup_table, strain_idx_table, segment_expr_info, edge_expr_info = parse_gene_metadata_info(h5f, arg.samples)
+        segments, edges, strain_idx_table = parse_gene_metadata_info(h5f, arg.samples)
         end_time = timeit.default_timer()
         print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
         print_memory_diags()
         # get the fp
         #strains = sp.array([x.split('.')[0] for x in h5f['strains'][:]])
         #size_factor = get_size_factor(strains, arg.libsize_path)
-        size_factor = None
+        #size_factor = None
     else:
-        seg_lookup_table = None
-        edge_lookup_table = None
+        segments = None
+        edges = None
         strain_idx_table = None
-        segment_expr_info = None
-        edge_expr_info = None
         size_factor = None
 
     # read the intro of interest file gtex_junctions.hdf5
@@ -159,7 +143,10 @@ def main(arg):
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
 
+    expr_distr_dict = {}
+    expr_distr = []
     # process graph for each input sample
+    output_libszie_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
     for sample in arg.samples:
         # prepare for the output file
         output_path = os.path.join(arg.output_dir, sample)
@@ -167,73 +154,49 @@ def main(arg):
             os.makedirs(output_path)
         peptide_file_path = os.path.join(output_path, mutation_mode + '_peptides.fa')
         meta_peptide_file_path = os.path.join(output_path, mutation_mode + '_metadata.tsv.gz')
-        log_file_path = os.path.join(output_path, mutation_mode+'_no_output_gene.txt')
-        #log_fp = open(log_file_path, 'w')
-        log_fp = None
         peptide_fp = open(peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')
         meta_header_line = "\t".join(['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
-                                    'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','seg_expr', 'exons_coor', 'vertex_idx','junction_expr'])
+                                    'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','seg_expr',
+                                      'exons_coor', 'vertex_idx','junction_expr','segment_expr'])
         meta_peptide_fp.write(meta_header_line + '\n')
-
+        expr_distr_dict[sample] = []
         # go over each gene in splicegraph
         for gene_idx, gene in enumerate(graph_data[:num]):
             start_time = timeit.default_timer()
             print('%s %i/%i\n'%(sample, gene_idx, num))
             gene = graph_data[gene_idx]
+            idx = get_idx(strain_idx_table,sample,gene_idx)
 
             # Genes not contained in the annotation...
-            if gene.name not in gene_cds_begin_dict or gene.name not in gene_to_transcript_table:
+            if gene.name not in gene_cds_begin_dict or gene.name not in table.gene_to_ts:
                 gene.processed = False
                 continue
 
             chrm = gene.chr.strip()
-            if (sample, chrm) in mutation_dic_vcf.keys():
-                mutation_sub_dict_vcf = mutation_dic_vcf[(sample, chrm)]
-            else:
-                mutation_sub_dict_vcf = None
-            if (sample, chrm) in mutation_dic_maf.keys():
-                mutation_sub_dict_maf = mutation_dic_maf[(sample, chrm)]
-            else:
-                mutation_sub_dict_maf = None
-
-            if segment_expr_info is not None:
-                sub_segment_expr_info = segment_expr_info[:, strain_idx_table[sample]]
-                sub_edge_expr_info = edge_expr_info[:, strain_idx_table[sample]]
-            else:
-                sub_segment_expr_info = None
-                sub_edge_expr_info = None
-
+            mutation = get_mutation_tuple(mutation_dic_vcf,mutation_dic_maf, sample, chrm, mutation_mode)
             if not junction_dict is None and chrm in junction_dict:
                 junction_list = junction_dict[chrm]
             else:
                 junction_list = None
 
-            annotate_gene_opt(gene=gene,
+            output_peptide_list, output_metadata_list, total_expr = annotate_gene_opt(gene=gene,
                               ref_seq=seq_dict[chrm],
-                              gene_idx=gene_idx,
-                              seg_lookup_table=seg_lookup_table,
-                              edge_lookup_table=edge_lookup_table,
-                              size_factor=size_factor,
-                              junction_list=junction_list,
-                              segment_expr_info=sub_segment_expr_info,
-                              edge_expr_info=sub_edge_expr_info,
-                              transcript_to_cds_table=transcript_to_cds_table,
-                              gene_to_transcript_table=gene_to_transcript_table,
-                              mutation_mode=mutation_mode,
-                              mutation_sub_dic_vcf=mutation_sub_dict_vcf,
-                              mutation_sub_dic_maf=mutation_sub_dict_maf,
-                              peptide_ptr=peptide_fp,
-                              meta_ptr=meta_peptide_fp,
-                              log_ptr=log_fp,
-                              is_filter=arg.is_filter,
-                              debug=arg.debug
+                              idx=idx, segments=segments, edges=edges,
+                              table=table, mutation=mutation,
+                              junction_list=junction_list, debug=arg.debug
                             )
-
+            expr_distr.append(total_expr)
+            if arg.is_filter:
+                output_metadata_list, output_peptide_list = get_filtered_output_list(output_metadata_list,output_peptide_list)
+            meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
+            peptide_fp.write('\n'.join(output_peptide_list)+'\n')
             end_time = timeit.default_timer()
             print(gene_idx, end_time - start_time,'\n')
+        expr_distr_dict[sample] = expr_distr
+    create_libsize(expr_distr_dict,output_libszie_fp)
 
 
 if __name__ == "__main__":
-    arg = parse_arguments(sys.argv)
+    arg = parse_arguments(sys.argv[1:])
     main(arg)

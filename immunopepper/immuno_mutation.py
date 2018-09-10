@@ -1,10 +1,16 @@
 import bisect
 from utils import get_all_comb
-
-
+from collections import namedtuple
+from constant import NOT_EXIST
 def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf):
     """
     Apply all the germline mutations to the reference sequence.
+
+
+    Returns
+    -------
+    output_seq: dict, two keys. "ref" to the original reference sequence
+                                "background" to the germline_mutation_applied ref (if there is germline mutation exist)
     """
     output_seq = {}
     output_seq['ref'] = ref_sequence  # copy the reference
@@ -51,21 +57,22 @@ def get_exon_som_dict(gene, mutation_pos):
         exon_id = bisect.bisect(exon_list[0, :], ipos)
         if exon_id > 0 and ipos <= exon_list[1][exon_id-1]:  # the mutation is within the pos
             exon_som_dict[exon_id-1].append(ipos)
-    exon_som_dict['.'] = []  # for single cds case
+    exon_som_dict[NOT_EXIST] = []  # for single cds case
     return exon_som_dict
 
 
-def get_som_expr_dict(gene, mutation_pos, expr_mat, gene_ids_seg):
+def get_som_expr_dict(gene, mutation_pos, segments, Idx):
     """
     Build somatic mutation position to expression data dict map.
     """
     seg_mat = gene.segmentgraph.segments[0]
     som_expr_dict = {}
-    seg_pos_list = gene_ids_seg[gene.name]
+
+    seg_pos_list = segments.lookup_table[gene.name]
     for ipos in mutation_pos:
         seg_id = bisect.bisect(seg_mat,ipos)
-        if seg_id > 0 and  ipos <= gene.segmentgraph.segments[1][seg_id-1]: # the mutation is within the pos
-            expr = expr_mat[seg_pos_list[seg_id-1]]
+        if seg_id > 0 and ipos <= gene.segmentgraph.segments[1][seg_id-1]: # the mutation is within the pos
+            expr = segments.expr[seg_pos_list[seg_id-1],Idx.sample]
             som_expr_dict[ipos] = expr
     return som_expr_dict
 
@@ -84,9 +91,23 @@ def get_mut_comb(exon_som_dict, idx, prop_vertex):
     mut_comb: list of tuple, list of mutation combination
 
     """
-    mut_comb = ['.']
+    mut_comb = [NOT_EXIST]
     if exon_som_dict is not None:
         all_comb = get_all_comb(exon_som_dict[idx] + exon_som_dict[prop_vertex])
         mut_comb += all_comb
     return mut_comb
 
+
+def get_mutation_tuple(mutation_dic_vcf, mutation_dic_maf, sample, chrm, mutation_mode):
+    Mutation = namedtuple('Mutation',['vcf_dict','maf_dict','mode'])
+
+    if (sample, chrm) in mutation_dic_vcf.keys():
+        mutation_sub_dict_vcf = mutation_dic_vcf[(sample, chrm)]
+    else:
+        mutation_sub_dict_vcf = None
+    if (sample, chrm) in mutation_dic_maf.keys():
+        mutation_sub_dict_maf = mutation_dic_maf[(sample, chrm)]
+    else:
+        mutation_sub_dict_maf = None
+    mutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation_mode)
+    return mutation
