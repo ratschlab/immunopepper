@@ -55,3 +55,5 @@ python ${script_dir}/main_immuno.py --mutation_mode somatic --output_dir ${test_
 python ${script_dir}/main_immuno.py --mutation_mode germline --output_dir ${test_data_dir} --ann_path ${test_data_dir}/data/test1neg.gtf --splice_path ${test_data_dir}/data/neggraph/spladder/genes_graph_conf3.merge_graphs.pickle --ref_path ${test_data_dir}/data/test1neg.fa --count_path ${test_data_dir}/data/neggraph/spladder/genes_graph_conf3.merge_graphs.count.hdf5 --samples test1neg --debug --vcf_path ${test_data_dir}/data/test1neg.vcf --maf_path ${test_data_dir}/data/test1neg.maf
 python ${script_dir}/main_immuno.py --mutation_mode somatic_and_germline --output_dir ${test_data_dir} --ann_path ${test_data_dir}/data/test1neg.gtf --splice_path ${test_data_dir}/data/neggraph/spladder/genes_graph_conf3.merge_graphs.pickle --ref_path ${test_data_dir}/data/test1neg.fa --count_path ${test_data_dir}/data/neggraph/spladder/genes_graph_conf3.merge_graphs.count.hdf5 --samples test1neg --debug --vcf_path ${test_data_dir}/data/test1neg.vcf --maf_path ${test_data_dir}/data/test1neg.maf
 
+# step9: unzip gz file and rename to _gt file
+python ${script_dir}/generate_gt_file.py

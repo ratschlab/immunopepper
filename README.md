@@ -21,6 +21,38 @@ python main_immuno.py -h
 Please add `modules` folder in [`spladder`](https://github.com/ratschlab/spladder/tree/development/python) repo on the same level with `main_immuno`. The
 packages is needed when loading the splicegraph.
 
+### update 14/09/2018
+1. To avoid multimapper case, which might obscure our estimate for the expression count data, the test case
+is splitted into positive and negative case. In the following development, all the test case will also
+consists two parts.
+
+2. Change the hierarchy of test directory. In future development, we just need create new test case `test2`, `test3`. More pre
+cisely, creating `test2pos.fa`, `test2pos.maf`, `test2pos.vcf`, `test2pos.gtf`. Then run `create_bam_file` to generate the corresponding negative case
+Follow the next steps stated in `step.sh`. The groundtruth file can be generated automatically in `tests/test2/test2pos` or `tests/test2/test2neg`. Make some
+small changes on the `test_end_to_end.py` file. The whole process is done.
+
+>
+
+    .
+    ├── ...
+    ├── tests                    # root directory for all tests
+    │   ├── test1
+    │   ├── test2
+    │   └── test3
+    │       ├── test3pos          # groundtruth for positive case
+    │       ├── test3neg          # groundtruth for negative case
+    │       └── data              # test data for test3
+    │
+    │        # Unit tests
+    └── ...
+
+3. Move scripts to `./scripts` directory and keep the `./immunopepper` a real packaeg.
+4. Calculate all the theoretical value for segment expression in `scripts/validate_count.py`.
+5. are incorrect in total 12 segments. Need further check.
+
+##### Future work
+Some bash script trick. How to make the `test1`, `test2` flexible variable? like `'insert_a_variable{}'.format('_with_format')`
+
 ### update 10/09/2018
 1. Add a copy dictionary of `gene.reading_frames` in `immuno_model.py`. Avoid dynamic changes of `gene` object.
 2. Add a `constant.py` file and create an important global variable `NOT_EXIST`. It will appear in many places including
