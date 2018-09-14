@@ -2,6 +2,8 @@ import bisect
 from utils import get_all_comb
 from collections import namedtuple
 from constant import NOT_EXIST
+from immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
+import sys
 def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf):
     """
     Apply all the germline mutations to the reference sequence.
@@ -30,21 +32,38 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_v
 
 
 def get_mutation_mode_from_parser(args):
-    flag = 0
-    if len(args.vcf_path) == 0:
-        vcf_path = ''
+    Mutation = namedtuple('Mutation', ['mode','maf_dict','vcf_dict'])
+    mutation_mode = args.mutation_mode
+    maf_file_path = args.maf_path[0]
+    vcf_file_path = args.vcf_path[0]
+    is_error = True
+    if mutation_mode == 'somatic_and_germline':
+        if maf_file_path != '' and vcf_file_path != '':
+            mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
+            mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path)
+            is_error = False
+    elif mutation_mode == 'germline':
+        if vcf_file_path != '':
+            mutation_dic_maf = {}  # empty dic
+            mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path)
+            is_error = False
+    elif mutation_mode == 'somatic':
+        if maf_file_path != '':
+            mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
+            mutation_dic_vcf = {}
+            is_error = False
+    elif mutation_mode == 'ref':
+        mutation_dic_maf = {}
+        mutation_dic_vcf = {}
+        is_error = False
     else:
-        vcf_path = args.vcf_path[0]
-        flag += 1
+        print('Mutation mode "%s" not recognized' % mutation_mode)
 
-    if len(args.maf_path) == 0:
-        maf_path = ''
-    else:
-        maf_path = args.maf_path[0]
-        flag += 2
-    map_dict = {0: 'ref', 1: 'germline', 2: 'somatic', 3: 'somatic_and_germline'}
-    mutation_mode = map_dict[flag]
-    return mutation_mode, vcf_path, maf_path
+    if is_error:
+         print("The input mutation file does not match the mutation mode, please check again")
+         sys.exit(1)
+    mutation = Mutation(mutation_mode,mutation_dic_maf,mutation_dic_vcf)
+    return mutation
 
 
 def get_exon_som_dict(gene, mutation_pos):
@@ -98,16 +117,15 @@ def get_mut_comb(exon_som_dict, idx, prop_vertex):
     return mut_comb
 
 
-def get_mutation_tuple(mutation_dic_vcf, mutation_dic_maf, sample, chrm, mutation_mode):
+def get_sub_mutation_tuple(mutation, sample, chrm):
     Mutation = namedtuple('Mutation',['vcf_dict','maf_dict','mode'])
-
-    if (sample, chrm) in mutation_dic_vcf.keys():
-        mutation_sub_dict_vcf = mutation_dic_vcf[(sample, chrm)]
+    if (sample, chrm) in mutation.vcf_dict.keys():
+        mutation_sub_dict_vcf = mutation.vcf_dict[(sample, chrm)]
     else:
         mutation_sub_dict_vcf = None
-    if (sample, chrm) in mutation_dic_maf.keys():
-        mutation_sub_dict_maf = mutation_dic_maf[(sample, chrm)]
+    if (sample, chrm) in mutation.maf_dict.keys():
+        mutation_sub_dict_maf = mutation.maf_dict[(sample, chrm)]
     else:
         mutation_sub_dict_maf = None
-    mutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation_mode)
-    return mutation
+    submutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation.mode)
+    return submutation

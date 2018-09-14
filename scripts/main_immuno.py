@@ -13,13 +13,13 @@ import Bio.SeqIO as BioIO
 import h5py
 
 # immuno module
-from immuno_print import print_memory_diags
-from immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_mutation_from_maf,parse_mutation_from_vcf_h5,parse_junction_meta_info,parse_mutation_from_vcf
-from immuno_mutation import get_mutation_mode_from_parser,get_mutation_tuple
-from immuno_model import annotate_gene_opt
-from immuno_filter import get_filtered_output_list
+from immunopepper.immuno_print import print_memory_diags
+from immunopepper.immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_mutation_from_maf,parse_mutation_from_vcf_h5,parse_junction_meta_info,parse_mutation_from_vcf
+from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_mutation_tuple
+from immunopepper.immuno_model import annotate_gene_opt
+from immunopepper.immuno_filter import get_filtered_output_list
 from immunopepper.io_utils import load_pickled_graph
-from utils import get_idx,create_libsize
+from immunopepper.utils import get_idx,create_libsize
 
 
 
@@ -27,7 +27,7 @@ def parse_arguments(argv):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--samples", nargs='+', help="the sample names, can specify more than one sample", required=False, default='')
-    parser.add_argument("--output_dir", help="specify the output directory [default: test]", required=False, default='test')
+    parser.add_argument("--output_dir", help="specify the output directory [default: tests]", required=False, default='test')
     parser.add_argument("--ann_path", help="specify the absolute path of annotation file", required=False)
     parser.add_argument("--splice_path", help="specify the absolute path of splicegraph file", required=False)
     parser.add_argument("--ref_path", help="specify the absolute path of reference gene file to the work_dir", required=False)
@@ -39,6 +39,7 @@ def parse_arguments(argv):
     parser.add_argument("--process_num", type=int, help="Only process the first *process_num* gene in the splicegraph,default,0, means process all", required=False, default=0)
     parser.add_argument("--is_filter", help="apply redundancy filter to the exon list", action="store_false", required=False, default=True)
     parser.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
+    parser.add_argument("--mutation_mode", help="specify the mutation mdoe", required=False, default='ref')
 
     if len(argv) < 2:
         parser.print_help()
@@ -49,15 +50,11 @@ def parse_arguments(argv):
 
 
 def main(arg):
-    print(os.path.abspath(os.curdir))
-    mutation_mode, vcf_file_path, maf_file_path = get_mutation_mode_from_parser(arg)
 
     # load genome sequence data
     seq_dict = {}
     start_time = timeit.default_timer()
     interesting_chr = map(str, range(1, 23)) + ["X", "Y", "MT"]
-
-    # read reference genome for standard chromosomes
     print('Parsing genome sequence ...')
     for record in BioIO.parse(arg.ref_path, "fasta"):
         if record.id in interesting_chr:
@@ -69,29 +66,14 @@ def main(arg):
     # read and process the annotation file
     print('Building lookup structure ...')
     start_time = timeit.default_timer()
-    gene_cds_begin_dict, table = preprocess_ann(arg.ann_path)
+    genetable = preprocess_ann(arg.ann_path)
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
 
     # read the variant file
-    if mutation_mode == 'somatic_and_germline':
-        mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
-        mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path)
-    elif mutation_mode == 'germline':
-        mutation_dic_maf = {} # empty dic
-        mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path)
-    elif mutation_mode == 'somatic':
-        mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
-        mutation_dic_vcf = {} # empty dic
-    elif mutation_mode == 'ref':
-        mutation_dic_maf = {}
-        mutation_dic_vcf = {}
-    else:
-        print('Mutation mode "%s" not recognized' % mutation_mode)
-        sys.exit(1)
+    mutation = get_mutation_mode_from_parser(arg)
 
-    # Personalized analysis
     # load splicegraph
     print('Loading splice graph ...')
     start_time = timeit.default_timer()
@@ -111,7 +93,8 @@ def main(arg):
     if arg.count_path is not None:
         print('Loading count data ...')
         h5f = h5py.File(arg.count_path, 'r')
-        segments, edges, strain_idx_table = parse_gene_metadata_info(h5f, arg.samples)
+        countinfo = parse_gene_metadata_info(h5f, arg.samples)
+        edges, segments, strain_idx_table = countinfo.edges,countinfo.segments,countinfo.strain_idx_table
         end_time = timeit.default_timer()
         print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
         print_memory_diags()
@@ -125,7 +108,7 @@ def main(arg):
         strain_idx_table = None
         size_factor = None
 
-    # read the intro of interest file gtex_junctions.hdf5
+    # read the intron of interest file gtex_junctions.hdf5
     junction_dict = parse_junction_meta_info(arg.gtex_junction_path)
 
     # process the genes according to the annotation file
@@ -133,13 +116,13 @@ def main(arg):
     print('Processing gene set ...')
     start_time = timeit.default_timer()
     anno_pickle = os.path.join(arg.output_dir, 'annotation_preprop.pickle')
-    if os.path.exists(anno_pickle):
+    if os.path.exists(anno_pickle) and not arg.debug:
         print('...loading from preprocessed dump: %s' % anno_pickle)
         (graph_data, gene_cds_begin_dict) = cPickle.load(open(anno_pickle, 'r'))
     else:
         print('...computing from annotation')
-        genes_preprocess(graph_data, gene_cds_begin_dict)
-        cPickle.dump((graph_data, gene_cds_begin_dict), open(anno_pickle, 'w'), -1)
+        genes_preprocess(graph_data, genetable.gene_to_cds_begin)
+        cPickle.dump((graph_data, genetable.gene_to_cds_begin), open(anno_pickle, 'w'), -1)
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
 
@@ -152,8 +135,8 @@ def main(arg):
         output_path = os.path.join(arg.output_dir, sample)
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
-        peptide_file_path = os.path.join(output_path, mutation_mode + '_peptides.fa')
-        meta_peptide_file_path = os.path.join(output_path, mutation_mode + '_metadata.tsv.gz')
+        peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa')
+        meta_peptide_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz')
         peptide_fp = open(peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')
         meta_header_line = "\t".join(['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
@@ -169,12 +152,12 @@ def main(arg):
             idx = get_idx(strain_idx_table,sample,gene_idx)
 
             # Genes not contained in the annotation...
-            if gene.name not in gene_cds_begin_dict or gene.name not in table.gene_to_ts:
+            if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
                 gene.processed = False
                 continue
 
             chrm = gene.chr.strip()
-            mutation = get_mutation_tuple(mutation_dic_vcf,mutation_dic_maf, sample, chrm, mutation_mode)
+            sub_mutation = get_sub_mutation_tuple(mutation,sample, chrm)
             if not junction_dict is None and chrm in junction_dict:
                 junction_list = junction_dict[chrm]
             else:
@@ -183,7 +166,7 @@ def main(arg):
             output_peptide_list, output_metadata_list, total_expr = annotate_gene_opt(gene=gene,
                               ref_seq=seq_dict[chrm],
                               idx=idx, segments=segments, edges=edges,
-                              table=table, mutation=mutation,
+                              table=genetable, mutation=sub_mutation,
                               junction_list=junction_list, debug=arg.debug
                             )
             expr_distr.append(total_expr)

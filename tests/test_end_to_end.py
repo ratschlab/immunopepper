@@ -3,10 +3,7 @@ import os
 
 import pytest
 
-from immunopepper import main_immuno
-
-data_dir = os.path.join(os.path.dirname(__file__), 'data')
-sample_dir = os.path.join(os.path.dirname(__file__), 'test1')
+from scripts import main_immuno
 
 
 def _assert_files_equal(expected_path, actual_path):
@@ -21,38 +18,44 @@ def _assert_files_equal(expected_path, actual_path):
             assert e.read() == a.read()
 
 
-@pytest.mark.parametrize("vcf_path,maf_path,prefix,", [
-    [None, None, 'ref'],
-    ['test1.vcf', None, 'germline'],
-    [None, 'test1.maf', 'somatic'],
-    ['test1.vcf', 'test1.maf', 'somatic_and_germline']
+@pytest.mark.parametrize("test_id,case,mutation_mode", [
+    ['1', 'pos', 'ref'],
+    ['1', 'pos', 'germline'],
+    ['1', 'pos', 'somatic'],
+    ['1', 'pos', 'somatic_and_germline'],
+    ['1', 'neg', 'ref'],
+    ['1', 'neg', 'germline'],
+    ['1', 'neg', 'somatic'],
+    ['1', 'neg', 'somatic_and_germline']
 ])
-def test_end_to_end_ref(vcf_path, maf_path, prefix, tmpdir):
+
+
+def test_end_to_end_ref(test_id, case, mutation_mode, tmpdir):
+    data_dir = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id), 'data')
+    sample_dir = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id), 'test{}{}'.format(test_id,case))
+
     out_dir = str(tmpdir)
 
-    my_args = ['--samples', 'test1',
+    my_args = ['--samples', 'test{}{}'.format(test_id,case),
                '--output_dir', out_dir,
                '--splice_path',
-               '{}/spladder/genes_graph_conf3.merge_graphs.pickle'.format(
-                   data_dir),
+               '{}/{}graph/spladder/genes_graph_conf3.merge_graphs.pickle'.format(
+                   data_dir, case),
                '--count_path',
-               '{}/spladder/genes_graph_conf3.merge_graphs.count.hdf5'.format(
-                   data_dir),
-               '--ann_path', '{}/test1.gtf'.format(data_dir),
-               '--ref_path', '{}/test1.fa'.format(data_dir)]
-
-    if vcf_path:
-        my_args.extend(['--vcf_path', os.path.join(data_dir, vcf_path)])
-
-    if maf_path:
-        my_args.extend(['--maf_path', os.path.join(data_dir, maf_path)])
+               '{}/{}graph/spladder/genes_graph_conf3.merge_graphs.count.hdf5'.format(
+                   data_dir, case),
+               '--ann_path', '{}/test{}{}.gtf'.format(data_dir, test_id, case),
+               '--ref_path', '{}/test{}{}.fa'.format(data_dir, test_id, case),
+               '--vcf_path', '{}/test{}{}.vcf'.format(data_dir, test_id, case),
+               '--maf_path', '{}/test{}{}.maf'.format(data_dir, test_id, case),
+               '--mutation_mode', mutation_mode]
 
     main_immuno.main(main_immuno.parse_arguments(my_args))
 
     _assert_files_equal(
-        os.path.join(sample_dir, '{}_peptides_gt.fa'.format(prefix)),
-        os.path.join(out_dir, 'test1', '{}_peptides.fa'.format(prefix)))
+        os.path.join(sample_dir, '{}_peptides_gt.fa'.format(mutation_mode)),
+        os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_peptides.fa'.format(mutation_mode)))
 
     _assert_files_equal(
-        os.path.join(sample_dir, '{}_metadata_gt.tsv'.format(prefix)),
-        os.path.join(out_dir, 'test1', '{}_metadata.tsv.gz'.format(prefix)))
+        os.path.join(sample_dir, '{}_metadata_gt.tsv'.format(mutation_mode)),
+        os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_metadata.tsv.gz'.format(mutation_mode)))
