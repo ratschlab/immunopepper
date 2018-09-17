@@ -12,7 +12,7 @@ from constant import NOT_EXIST
 # Optimized annotation code that does not loop over the annotation but uses the lookup structure
 # that was built from the only initial pass
 # over the GFF annotation file
-def annotate_gene_opt(gene=None, ref_seq=None, idx = None,
+def calculate_output_peptide(gene=None, ref_seq=None, idx = None,
                       segments=None, edges=None, table=None,debug=False,size_factor=None, junction_list=None,
                       mutation = None):
 
@@ -66,17 +66,17 @@ def annotate_gene_opt(gene=None, ref_seq=None, idx = None,
                         print(v_id, prop_vertex, variant_comb, read_frame_tuple)
                     peptide_weight = 1.0 / n_read_frames
                     if prop_vertex != NOT_EXIST:
-                        Peptide, Coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.maf_dict, ref_mut_seq, sg.vertices[:, prop_vertex])
+                        peptide, coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.maf_dict, ref_mut_seq, sg.vertices[:, prop_vertex])
                         if not flag.has_stop:
                             reading_frame_dict[prop_vertex].add(next_reading_frame)
                     else:
-                        Peptide, Coord, flag, = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.maf_dict,ref_mut_seq)
+                        peptide, coord, flag = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.maf_dict,ref_mut_seq)
 
                     # If cross junction peptide has a stop-codon in it, the frame
                     # will not be propagated because the read is truncated before it reaches the end of the exon.
                     # also in mutation mode, only output the case where ref is different from mutated
-                    if Peptide.mut != Peptide.ref or mutation.mode == 'ref':
-                        match_ts_list = peptide_match(background_pep_list, Peptide.mut)
+                    if peptide.mut != peptide.ref or mutation.mode == 'ref':
+                        match_ts_list = peptide_match(background_pep_list, peptide.mut)
                         peptide_is_annotated = len(match_ts_list)
                         if not flag.is_isolated:
                             junction_anno_flag = int(junction_flag[v_id, prop_vertex])
@@ -99,7 +99,7 @@ def annotate_gene_opt(gene=None, ref_seq=None, idx = None,
                             seg_exp_variant_comb = NOT_EXIST  # if no mutation or no count file,  the segment expression is .
 
                         if segments is not None:
-                            segment_expr = get_segment_expr(gene, Coord, segments, idx)
+                            segment_expr = get_segment_expr(gene, coord, segments, idx)
                         else:
                             segment_expr = NOT_EXIST
 
@@ -109,13 +109,13 @@ def annotate_gene_opt(gene=None, ref_seq=None, idx = None,
                              str(int(flag.has_stop)), str(junctionOI_flag), str(int(flag.is_isolated)),
                              ';'.join(str_variant_comb), ';'.join(seg_exp_variant_comb)])
 
-                        meta_header_line += ('\t' + str(Coord.start_v1) + ";" + str(Coord.stop_v1))
-                        meta_header_line += (';' + str(Coord.start_v2) + ";" + str(Coord.stop_v2) + '\t')
+                        meta_header_line += ('\t' + str(coord.start_v1) + ";" + str(coord.stop_v1))
+                        meta_header_line += (';' + str(coord.start_v2) + ";" + str(coord.stop_v2) + '\t')
                         meta_header_line += (str(v_id) + ',' + str(prop_vertex) + '\t')
 
                         # deal with expression data
                         if edges is not None and not flag.is_isolated:
-                            sorted_pos = sp.sort(np.array([Coord.start_v1, Coord.stop_v1, Coord.start_v2, Coord.stop_v2]))
+                            sorted_pos = sp.sort(np.array([coord.start_v1, coord.stop_v1, coord.start_v2, coord.stop_v2]))
                             edge_expr = search_edge_metadata_segmentgraph(gene, sorted_pos, edges, idx)
                             total_expr += edge_expr
                             #edge_expr = edge_expr*size_factor
@@ -125,7 +125,7 @@ def annotate_gene_opt(gene=None, ref_seq=None, idx = None,
                         meta_header_line += "\t"+str(segment_expr)
 
                         output_metadata_list.append(meta_header_line)
-                        peptide_str_pretty = '>' + str(idx.gene) + '.' + str(output_id) + '\n' + Peptide.mut
+                        peptide_str_pretty = '>' + str(idx.gene) + '.' + str(output_id) + '\n' + peptide.mut
                         output_peptide_list.append(peptide_str_pretty)
                         output_id += 1
     if not sg.edges is None:

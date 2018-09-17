@@ -6,6 +6,11 @@ import numpy as np
 import h5py
 import scipy as sp
 
+GeneTable = namedtuple('GeneTable', ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_ts'])
+Segments = namedtuple('Segments', ['expr', 'lookup_table'])
+Edges = namedtuple('Edges', ['expr', 'lookup_table'])
+CountInfo = namedtuple('CountInfo', ['segments', 'edges', 'strain_idx_table'])
+
 # immuno module
 from immuno_print import print_memory_diags
 from utils import to_adj_succ_list,find_overlapping_cds_simple,attribute_list_to_dict,leq_strand,encode_chromosome
@@ -81,7 +86,6 @@ def genes_preprocess(genes, gene_cds_begin_dict):
 ##TODO: do we really need so many dictionary?
 def preprocess_ann(ann_path):
 
-    GeneTable = namedtuple('GeneTable',['gene_to_cds_begin','ts_to_cds','gene_to_ts'])
     transcript_to_gene_dict = {}    # transcript -> gene id
     gene_to_transcript_dict = {}    # gene_id -> list of transcripts
     transcript_to_cds_dict = {}     # transcript -> list of CDS exons
@@ -198,9 +202,6 @@ def parse_gene_metadata_info(h5f, donor_list):
     assert (strain_expr_info.size == segment_expr_info.shape[1])
     strain_idx_table = {}
 
-    Segments = namedtuple('Segments', ['expr','lookup_table'])
-    Edges = namedtuple('Edges',['expr', 'lookup_table'])
-    CountInfo = namedtuple('CountInfo', ['segments', 'edges', 'strain_idx_table'])
     #TODO: make it clear how strain_id come from in h5f file
     for strain_idx in np.arange(strain_expr_info.size):
         strain_id = strain_expr_info[strain_idx]

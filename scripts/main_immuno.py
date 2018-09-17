@@ -15,9 +15,9 @@ import h5py
 # immuno module
 
 from immunopepper.immuno_print import print_memory_diags
-from immunopepper.immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_mutation_from_maf,parse_mutation_from_vcf_h5,parse_junction_meta_info,parse_mutation_from_vcf
+from immunopepper.immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_junction_meta_info
 from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_mutation_tuple
-from immunopepper.immuno_model import annotate_gene_opt
+from immunopepper.immuno_model import calculate_output_peptide
 from immunopepper.immuno_filter import get_filtered_output_list
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.utils import get_idx,create_libsize
@@ -163,7 +163,7 @@ def main(arg):
             else:
                 junction_list = None
 
-            output_peptide_list, output_metadata_list, total_expr = annotate_gene_opt(gene=gene,
+            output_peptide_list, output_metadata_list, total_expr = calculate_output_peptide(gene=gene,
                               ref_seq=seq_dict[chrm],
                               idx=idx, segments=segments, edges=edges,
                               table=genetable, mutation=sub_mutation,
