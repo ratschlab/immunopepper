@@ -118,7 +118,7 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
                 else:
                     coord_right -= frameshift
                 first_cds = False
-                
+
             nuc_seq = ref_seq[coord_left:coord_right+1]
 
             # Accumulate new DNA sequence...
@@ -179,3 +179,59 @@ def has_stop_codon_cross(seq_prop, seq_accept, read_frame, strand):
         if nuc_frame.lower() in ["tag", "taa", "tga"]:
             return True
     return False
+
+def get_exon_dict(metadata_list):
+    exon_dict = {}
+    for line in metadata_list:
+        items = line.strip().split('\t')
+        ## TODO: need to come up with a new way to index the exon list
+        exon_list = items[-4].split(';')
+        idx = items[0]
+        read_frame = items[1]
+        strand = items[4]
+        if strand == '+':
+            key = (read_frame,exon_list[1],exon_list[2])
+            if key in exon_dict:
+                exon_dict[key].append((idx, exon_list[0],exon_list[3]))
+            else:
+                exon_dict[key] = [(idx, exon_list[0],exon_list[3])]
+        else:
+            key = (read_frame,exon_list[3], exon_list[0])
+            if key in exon_dict:
+                exon_dict[key].append((idx, exon_list[2], exon_list[1]))
+            else:
+                exon_dict[key] = [(idx, exon_list[2], exon_list[1])]
+    return exon_dict
+
+def get_remove_id(metadata_dict):
+    remove_id_list = []
+    for exon_pair_list in metadata_dict.values():
+        L = len(exon_pair_list)
+        if L < 2:
+            continue
+        for i, exon_pair in enumerate(exon_pair_list):
+            for j in range(L):
+                i_pos1 = exon_pair[1]
+                i_pos2 = exon_pair[2]
+                j_pos1 = exon_pair_list[j][1]
+                j_pos2 = exon_pair_list[j][2]
+                if j!=i and i_pos1 >= j_pos1 and i_pos2 <= j_pos2:
+                    remove_id_list.append(exon_pair[0])
+                    break
+    return remove_id_list
+
+def get_filtered_output_list(metadata_list,peptide_list):
+    exon_list = get_exon_dict(metadata_list)
+    remove_id_list = get_remove_id(exon_list)
+    filtered_meta_list = []
+    filtered_peptide_list = []
+    for i,imeta_line in enumerate(metadata_list):
+        items = imeta_line.strip().split('\t')
+        idx = items[0]
+        if idx not in remove_id_list:
+            filtered_meta_list.append(imeta_line)
+            filtered_peptide_list.append(peptide_list[i])
+    return filtered_meta_list, filtered_peptide_list
+
+
+
