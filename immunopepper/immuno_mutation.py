@@ -4,6 +4,9 @@ from collections import namedtuple
 from constant import NOT_EXIST
 from immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
 import sys
+
+Mutation = namedtuple('Mutation', ['vcf_dict', 'maf_dict', 'mode'])
+
 def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf):
     """
     Apply all the germline mutations to the reference sequence.
@@ -118,7 +121,6 @@ def get_mut_comb(exon_som_dict, idx, prop_vertex):
 
 
 def get_sub_mutation_tuple(mutation, sample, chrm):
-    Mutation = namedtuple('Mutation',['vcf_dict','maf_dict','mode'])
     if (sample, chrm) in mutation.vcf_dict.keys():
         mutation_sub_dict_vcf = mutation.vcf_dict[(sample, chrm)]
     else:

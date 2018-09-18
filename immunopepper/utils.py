@@ -4,6 +4,11 @@ import numpy as np
 from collections import namedtuple
 import bisect
 from constant import NOT_EXIST
+
+Peptide = namedtuple('Peptide', ['mut', 'ref'])
+Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
+Flag = namedtuple('Flag', ['has_stop', 'is_isolated'])
+
 def to_adj_list(adj_matrix):
     """
     Converts a binary adjacency matrix to a list of directed edges
@@ -188,10 +193,6 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     next_reading_frame: tuple, the reading frame to be propagated to the next vertex
 
     """
-    Peptide = namedtuple('Peptide', ['mut', 'ref'])
-    Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
-    Flag = namedtuple('Flag', ['has_stop', 'is_isolated'])
-
     cds_left_modi, cds_right_modi, emitting_frame = read_frame
     next_emitting_frame = (peptide_accept_coord[1] - peptide_accept_coord[0] + emitting_frame) % 3
     start_v1 = cds_left_modi
