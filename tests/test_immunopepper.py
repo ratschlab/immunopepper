@@ -5,14 +5,14 @@ import pickle
 import Bio.SeqIO as BioIO
 import pytest
 
-from immunopepper.immuno_mutation import apply_germline_mutation
+from immunopepper.immuno_mutation import apply_germline_mutation,mut_replace
 from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
     parse_mutation_from_vcf, parse_mutation_from_maf
-from immunopepper.utils import get_sub_mut_dna
+from immunopepper.utils import get_sub_mut_dna,complementary_seq
 from immunopepper.io_utils import load_pickled_graph
-
+from collections import namedtuple
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
-
+VARIANT_DICT = namedtuple('VAR_DICT', ['snp','dele','inse'])
 
 @pytest.fixture
 def load_gene_data():
@@ -45,45 +45,143 @@ def load_mutation_data():
     return mutation_dic_vcf, mutation_dic_maf
 
 
+@pytest.fixture
+def load_ref_seq():
+    pos_ref_seq = 'GTAATGTGTAAGATGACGCACGCATGGTGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTCAG' \
+              'GTACGTATAGTTGCTAAGTAGTCGACGTTCTGGTGGTAGACCTTTTGTTACCCAATTGGGTAAGGCAGCCATGTTGATATACAT'
+    neg_ref_seq = 'ATGTATATCAACATGGCTGCCTTACCCAATTGGGTAACAAAAGGTCTACCACCAGAACGTCGACTAC' \
+                  'TTAGCAACTATACGTACCTGAACTCGAACTTACTCCGCAACCCATCTCCAATACCACCATGCGTGCGTCATCTTACACATTAC'
+    return pos_ref_seq,neg_ref_seq
+
+@pytest.fixture
+def load_mut_dict():
+
+    pos_var_del = {'ref_base': 'CA', 'mut_base': 'C', 'strand': '+',
+                'Variant_Classification': 'Silent', 'Variant_Type': 'DEL'}
+    pos_var_snp = {'ref_base': 'A', 'mut_base': 'G', 'strand': '+',
+                'Variant_Classification': 'Silent', 'Variant_Type': 'SNP'}
+    pos_var_ins = {'ref_base': 'G', 'mut_base': 'GT', 'strand': '+',
+                'Variant_Classification': 'Silent', 'Variant_Type': 'INS'}
+    pos_mutation_dic = {}
+    pos_mutation_dic[18] = pos_var_del
+    pos_mutation_dic[38] = pos_var_snp
+    pos_mutation_dic[45] = pos_var_ins
+
+    neg_var_del = {'ref_base': 'TG', 'mut_base': 'G', 'strand': '-',
+                'Variant_Classification': 'Silent', 'Variant_Type': 'DEL'}
+    neg_var_snp = {'ref_base': 'T', 'mut_base': 'C', 'strand': '-',
+                'Variant_Classification': 'Silent', 'Variant_Type': 'SNP'}
+    neg_var_ins = {'ref_base': 'C', 'mut_base': 'AC', 'strand': '-',
+                'Variant_Classification': 'Silent', 'Variant_Type': 'INS'}
+
+    neg_mutation_dic = {}
+    neg_mutation_dic[104] = neg_var_ins
+    neg_mutation_dic[111] = neg_var_snp
+    neg_mutation_dic[130] = neg_var_del
+    return pos_mutation_dic, neg_mutation_dic
+
+
 def test_preprocess(load_gene_data):
     graph_data, seq_dict, gene_cds_begin_dict = load_gene_data
     genes_preprocess(graph_data, gene_cds_begin_dict)
     assert graph_data[0].nvertices == 8
 
 
-def test_germline_mutation(load_gene_data, load_mutation_data):
-    graph_data, ref_seq, gene_cds_begin_dict = load_gene_data
-    mutation_dic_vcf, mutation_dic_maf = load_mutation_data
-    gene = graph_data[0]
-    mutation_sub_dic_vcf = mutation_dic_vcf['test1pos', gene.chr]
-    ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq,
-                                          pos_start=gene.start,
-                                          pos_end=gene.stop,
-                                          mutation_sub_dic_vcf=mutation_sub_dic_vcf)
-    assert 'ref' in ref_mut_seq.keys()
+def test_get_sub_mut_dna(load_ref_seq,load_mut_dict):
+    # --------------
+    # positive case
+    pos_ref_seq, neg_ref_seq = load_ref_seq
+    pos_mut_dict, neg_mut_dict = load_mut_dict
 
 
-def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
-    graph_data, ref_seq, gene_cds_begin_dict = load_gene_data
-    mutation_dic_vcf, mutation_dic_maf = load_mutation_data
-    gene = graph_data[0]
+    pos_groundtruth = ['GATGACGCCGCATGGTGATGGGTTGCGGA',
+                       'GATGACGCCGCATGGTGGTGGGTTGCGGA',
+                       'GATGACGCCGCATGGTGATGGGTTGTCGGA',
+                       'GATGACGCCGCATGGTGGTGGGTTGTCGGA']
+    vlist = [11, 29, 38, 50]
+    variant_comb_list = [(18,), (18, 38), (18, 45), (18, 38, 45)]
+    for i, variant_comb in enumerate(variant_comb_list):
+        sub_dna = get_sub_mut_dna(pos_ref_seq, vlist[0], vlist[1], vlist[2],
+                                  vlist[3], variant_comb,
+                                  pos_mut_dict, '+')
+        assert sub_dna == pos_groundtruth[i]
 
-    # made modification to the mutation_dic_vcf
-    var_dict = {'ref_base': 'G', 'mut_base': 'A', 'strand': '+',
-                'Variant_Classification': 'Silent', 'Variant_Type': 'SNP'}
-    mutation_sub_dic_maf = mutation_dic_maf['test1pos', gene.chr]
-    mutation_sub_dic_maf[41] = var_dict
-    test_list = [[11, 29, 38, 50],
-                 [11, 29, 38, 50],
-                 [60, 75, 87, 102]]
-    groundtruth = ['GATGACGCACGCATGGTGGTGGGTTGCGGA',
-                   'GATGACGCACGCATGGTGGTGAGTTGCGGA',
-                   'GTTCAGGTACGTATATCGACGTTCTGGTGG',
-                   ]
-    variant_comb = [(38,), (38, 41), '.']
-    strand = ['+', '+', '+']
-    for i, vlist in enumerate(test_list):
-        sub_dna = get_sub_mut_dna(ref_seq, vlist[0], vlist[1], vlist[2],
-                                  vlist[3], variant_comb[i],
-                                  mutation_sub_dic_maf, strand[i])
-        assert sub_dna == groundtruth[i]
+    # --------------
+    # negative case
+    vlist = [121, 139, 100, 112]
+    variant_comb_list = [(130,), (130, 111), (111, 104), (130, 111, 104)]
+
+    # neg_dna_list = list(neg_ref_seq)
+    # assert neg_dna_list[111] == 'T'
+    # neg_dna_list[111] = 'C'
+    # assert ''.join(neg_dna_list[104]) == 'C'
+    # neg_dna_list[104] = 'AC'
+    # assert ''.join(neg_dna_list[130:132]) == 'TG'
+    # neg_dna_list[130:132] = ['','G']
+    # complementary_seq(''.join(neg_dna_list[121:139][::-1]+neg_dna_list[100:112][::-1]))
+
+    neg_groundtruth = ['GATGACGCCGCATGGTGATGGGTTGCGGA',
+                       'GATGACGCCGCATGGTGGTGGGTTGCGGA',
+                       'GATGACGCACGCATGGTGGTGGGTTTGCGGA',
+                       'GATGACGCCGCATGGTGGTGGGTTTGCGGA']
+    for i, variant_comb in enumerate(variant_comb_list):
+        sub_dna = complementary_seq(get_sub_mut_dna(neg_ref_seq, vlist[0], vlist[1], vlist[2],
+                                  vlist[3], variant_comb,
+                                  neg_mut_dict, '-'))
+        assert sub_dna == neg_groundtruth[i]
+
+
+def test_mut_replace():
+    ori_seq = 'CGTACAATGA'
+    variant_pos = 2
+    ref_base = 'TA'
+    mut_base = 'T'
+    mut_seq = mut_replace(ori_seq,variant_pos,ref_base,mut_base)
+    assert mut_seq == ['C', 'G', 'T', '', 'C', 'A', 'A', 'T', 'G', 'A']
+
+    variant_pos = 2
+    ref_base = 'T'
+    mut_base = 'TA'
+    mut_seq = mut_replace(ori_seq,variant_pos,ref_base,mut_base)
+    assert mut_seq == ['C', 'G', 'TA', 'A', 'C', 'A', 'A', 'T', 'G', 'A']
+
+
+def test_apply_germline_mutation(load_ref_seq,load_mut_dict):
+    pos_ref_seq, neg_ref_seq = load_ref_seq
+    pos_mut_dict, neg_mut_dict = load_mut_dict
+    ref_mut_seq = apply_germline_mutation(pos_ref_seq,0,len(pos_ref_seq),pos_mut_dict)
+    pos_dna = 'GTAATGTGTAAGATGACGCACGCATGGTGGTATTGGAGATGGGT' \
+              'TGCGGAGTAAGTTCGAGTTCAGGTACGTATAGTTGCTAAGTAGTCGACGTTCTGGTGGTAGACCTTTTGTTACCCAATTGGGTAAGGCAGCCATGTTGATATACAT'
+    pos_dna_list = list(pos_dna)
+    assert pos_dna_list[18:20] == ['C','A']
+    pos_dna_list[18:20] = ['C','']
+    assert pos_dna_list[38] == 'A'
+    pos_dna_list[38] = 'G'
+    assert pos_dna_list[45] == 'G'
+    pos_dna_list[45] = 'GT'
+    assert ref_mut_seq['ref'] == list(pos_ref_seq)
+    assert ref_mut_seq['background'] == pos_dna_list
+
+    neg_dna = 'ATGTATATCAACATGGCTGCCTTACCCAATTGGGTAACAAAAGGTCTACCACCAGAACGTCGACTACTTAGCAACTATACGTACCTGAACTCGAACTTACTCCG' \
+              'CAACCCATCTCCAATACCACCATGCGTGCGTCATCTTACACATTAC'
+    neg_dna_list = list(neg_dna)
+    assert neg_dna_list[130:132] == ['T','G']
+    neg_dna_list[130:132] = ['G','']
+    assert neg_dna_list[111] == 'T'
+    neg_dna_list[111] = 'C'
+    assert neg_dna_list[104] == 'C'
+    neg_dna_list[104] = 'AC'
+    ref_mut_seq = apply_germline_mutation(neg_ref_seq,0,len(neg_ref_seq),neg_mut_dict)
+    assert ref_mut_seq['ref'] == list(neg_ref_seq)
+    assert ref_mut_seq['background'] == neg_dna_list
+
+
+def test_complementary_seq():
+    dna = 'AGCT'
+    assert complementary_seq(dna) == 'TCGA'
+    assert complementary_seq(list(dna)) == 'TCGA'
+    false_dna = 'aGcT'
+    assert complementary_seq(false_dna) == 'aCcA'
+
+
+

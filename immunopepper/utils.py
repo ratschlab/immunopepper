@@ -9,6 +9,7 @@ Peptide = namedtuple('Peptide', ['mut', 'ref'])
 Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
 Flag = namedtuple('Flag', ['has_stop', 'is_isolated'])
 
+
 def to_adj_list(adj_matrix):
     """
     Converts a binary adjacency matrix to a list of directed edges
@@ -102,6 +103,7 @@ def translate_dna_to_peptide(dna_str):
         'TAC': 'Y', 'TAT': 'Y', 'TAA': '_', 'TAG': '_',
         'TGC': 'C', 'TGT': 'C', 'TGA': '_', 'TGG': 'W'
     }
+    dna_str = ''.join(dna_str)  # in case it is a list
     dna_str = dna_str.upper()
     has_stop_codon = False
     aa_str = []
@@ -121,7 +123,7 @@ def translate_dna_to_peptide(dna_str):
     return "".join(aa_str),has_stop_codon
 
 
-def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand):
+def get_sub_mut_dna(background_seq,start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand):
     """
     Get the mutated dna sub-sequence according to mutation specified by the variant_comb.
     """
@@ -147,26 +149,16 @@ def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, varian
         # decide mutation happens in which exon vertice
         # it may falls out of the two ranges due to readframe shift
         if variant_ipos in range(start_v1, stop_v1):
-
             if strand == '-':
                 pos = stop_v1-variant_ipos-1
-                assert (sub_dna_list[pos] == ref_base)
-                sub_dna_list[pos] = mut_base
             else:
                 pos = variant_ipos - start_v1
-                assert (sub_dna_list[pos] == ref_base)
-                sub_dna_list[pos] = mut_base
-
         elif variant_ipos in range(start_v2, stop_v2):
             if strand == '-':
                 pos = stop_v2-variant_ipos+stop_v1-start_v1-1
-                assert (sub_dna_list[pos] == ref_base)
-                sub_dna_list[pos] = mut_base
             else:
                 pos = variant_ipos-start_v2+stop_v1-start_v1
-                assert (sub_dna_list[pos] == ref_base)
-                sub_dna_list[pos] = mut_base
-
+        sub_dna_list = mut_replace(sub_dna_list, pos, ref_base,mut_base)
     final_dna = ''.join(sub_dna_list)
     return final_dna
 
@@ -207,20 +199,20 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     if mutation_sub_dic_maf is None:
         ref_seq = ref_mut_seq['ref']
     else:
-        ref_seq = ref_mut_seq['background']
+        ref_seq = ref_mut_seq['background'] # auxillary array with the size of ref_seq
     # python is 0-based while gene annotation file(.gtf) is one based
     # so we need to do a little modification
     if strand == "+":
         start_v2 = peptide_accept_coord[0]
         stop_v2 = peptide_accept_coord[1] - next_emitting_frame
-        peptide_dna_str_mut = get_sub_mut_dna(ref_mut_seq['background'], start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand)
-        peptide_dna_str_ref = ref_seq[start_v1:stop_v1] + ref_seq[start_v2:stop_v2]
+        peptide_dna_str_mut = get_sub_mut_dna(ref_mut_seq['background'],start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand)
+        peptide_dna_str_ref = ''.join(ref_seq[start_v1:stop_v1] + ref_seq[start_v2:stop_v2])
         next_start_v1 = start_v2 + accepting_frame
         next_stop_v1 = peptide_accept_coord[1]
     else:  # strand == "-"
         start_v2 = peptide_accept_coord[0] + next_emitting_frame
         stop_v2 = peptide_accept_coord[1]
-        mut_seq = get_sub_mut_dna(ref_mut_seq['background'], start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand)
+        mut_seq = get_sub_mut_dna(ref_mut_seq['background'],start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand)
         peptide_dna_str_mut = complementary_seq(mut_seq)
         peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1] + ref_seq[start_v2:stop_v2][::-1])
         next_start_v1 = peptide_accept_coord[0]
@@ -280,7 +272,7 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
 
     if strand == '+':
         peptide_dna_str_mut = get_sub_mut_dna(mut_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand)
-        peptide_dna_str_ref = ref_seq[start_v1:stop_v1]
+        peptide_dna_str_ref = ''.join(ref_seq[start_v1:stop_v1])
     else:
         peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand))
         peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1])
@@ -415,4 +407,9 @@ def create_libsize(expr_distr_dict,output_fp):
             line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
             f.write(line)
 
-
+def mut_replace(ori_seq, variant_ipos, ref_base, mut_base):
+    mut_seq = list(ori_seq)
+    len_ref = len(ref_base)
+    #assert str(mut_seq[variant_ipos:variant_ipos + len_ref]) == ref_base
+    mut_seq[variant_ipos:variant_ipos + len_ref] = ([mut_base] + [''] * (len_ref - 1))
+    return mut_seq

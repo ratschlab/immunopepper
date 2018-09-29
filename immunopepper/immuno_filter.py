@@ -83,10 +83,11 @@ def find_background_transcript(gene, ref_seq, gene_to_transcript_table, transcri
     gene.processed = True
     return ts_list
 
+
 def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript_cds_table):
     gene_transcripts = gene_to_transcript_table[gene.name]
     peptide_list = []
-
+    ref_seq_str = ''.join(ref_seq)
     # Generate a background peptide for every variant transcript
     for ts in gene_transcripts:
 
@@ -119,7 +120,7 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
                     coord_right -= frameshift
                 first_cds = False
 
-            nuc_seq = ref_seq[coord_left:coord_right+1]
+            nuc_seq = ref_seq_str[coord_left:coord_right+1]
 
             # Accumulate new DNA sequence...
             if gene.strand.strip() == "+":

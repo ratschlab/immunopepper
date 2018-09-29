@@ -1,11 +1,12 @@
 import bisect
-from utils import get_all_comb
+from utils import get_all_comb, mut_replace
 from collections import namedtuple
 from constant import NOT_EXIST
 from immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
 import sys
 
 Mutation = namedtuple('Mutation', ['vcf_dict', 'maf_dict', 'mode'])
+
 
 def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf):
     """
@@ -18,7 +19,7 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_v
                                 "background" to the germline_mutation_applied ref (if there is germline mutation exist)
     """
     output_seq = {}
-    output_seq['ref'] = ref_sequence  # copy the reference
+    output_seq['ref'] = list(ref_sequence)  # copy the reference
     if mutation_sub_dic_vcf is not None:
         mut_seq = list(ref_sequence) # if no mutation infomation is provided
         variant_pos = [pos for pos in mutation_sub_dic_vcf.keys()]
@@ -27,8 +28,8 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_v
         for variant_ipos in variant_pos_candi:
             ref_base = mutation_sub_dic_vcf[variant_ipos]['ref_base']
             mut_base = mutation_sub_dic_vcf[variant_ipos]['mut_base']
-            mut_seq[variant_ipos] = mut_base
-        output_seq['background'] = ''.join(mut_seq)
+            mut_seq = mut_replace(mut_seq, variant_ipos, ref_base,mut_base)
+        output_seq['background'] = mut_seq
     else:
         output_seq['background'] = ref_sequence
     return output_seq
@@ -131,3 +132,10 @@ def get_sub_mutation_tuple(mutation, sample, chrm):
         mutation_sub_dict_maf = None
     submutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation.mode)
     return submutation
+
+
+def mut_replace(ori_seq, variant_ipos, ref_base, mut_base):
+    mut_seq = list(ori_seq)
+    len_ref = len(ref_base)
+    mut_seq[variant_ipos:variant_ipos + len_ref] = ([mut_base] + [''] * (len_ref - 1))
+    return mut_seq
