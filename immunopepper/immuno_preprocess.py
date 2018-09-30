@@ -248,7 +248,6 @@ def parse_mutation_from_vcf(vcf_path):
     mut_dict: with key (sample, chromo) and values (var_dict)
 
     """
-    print(vcf_path)
     f = open(vcf_path,'r')
     lines = f.readlines()
     mutation_dic = {}
@@ -332,7 +331,6 @@ def parse_mutation_from_maf(maf_path):
     lines = f.readlines()
     mutation_dic = {}
     for i,line in enumerate(lines[1:]):
-        print(i)
         items = line.strip().split('\t')
         if items[9] == 'SNP':  # only consider snp
             sample_id = '-'.join(items[15].split('-')[:3])

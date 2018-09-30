@@ -34,7 +34,7 @@ def parse_arguments(argv):
     parser.add_argument("--libsize_path", nargs='?', help="specify the absolute path to expression library sizes",required=False, default=None)
     parser.add_argument("--vcf_path", nargs=1, help="specify the absolute path of vcf file", required=False, default='')
     parser.add_argument("--maf_path", nargs=1, help="specify the absolute path of maf file", required=False, default='')
-    parser.add_argument("--count_path",help="specify the absolute path of the count h5 file", required=False, default=None)
+    parser.add_argument("--count_path", help="specify the absolute path of the count h5 file", required=False, default=None)
     parser.add_argument("--gtex_junction_path",help="specify the absolute path the the gtex_junction h5 file", required=False, default=None)
     parser.add_argument("--process_num", type=int, help="Only process the first *process_num* gene in the splicegraph,default,0, means process all", required=False, default=0)
     parser.add_argument("--is_filter", help="apply redundancy filter to the exon list", action="store_false", required=False, default=True)

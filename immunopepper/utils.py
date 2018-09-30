@@ -144,7 +144,6 @@ def get_sub_mut_dna(background_seq,start_v1, stop_v1, start_v2, stop_v2, variant
     for variant_ipos in variant_comb:
         mut_base = mutation_sub_dic_maf[variant_ipos]['mut_base']
         ref_base = mutation_sub_dic_maf[variant_ipos]['ref_base']
-        # strand = mutation_sub_dic_maf[variant_ipos]['strand']
 
         # decide mutation happens in which exon vertice
         # it may falls out of the two ranges due to readframe shift
@@ -153,12 +152,13 @@ def get_sub_mut_dna(background_seq,start_v1, stop_v1, start_v2, stop_v2, variant
                 pos = stop_v1-variant_ipos-1
             else:
                 pos = variant_ipos - start_v1
+            sub_dna_list = mut_replace(sub_dna_list, pos, ref_base, mut_base)
         elif variant_ipos in range(start_v2, stop_v2):
             if strand == '-':
                 pos = stop_v2-variant_ipos+stop_v1-start_v1-1
             else:
                 pos = variant_ipos-start_v2+stop_v1-start_v1
-        sub_dna_list = mut_replace(sub_dna_list, pos, ref_base,mut_base)
+            sub_dna_list = mut_replace(sub_dna_list, pos, ref_base, mut_base)
     final_dna = ''.join(sub_dna_list)
     return final_dna
 
@@ -219,7 +219,6 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
         next_stop_v1 = stop_v2 - accepting_frame
 
     next_reading_frame = (next_start_v1, next_stop_v1, next_emitting_frame)
-    assert (len(peptide_dna_str_mut) == len(peptide_dna_str_ref))
     if len(peptide_dna_str_mut) % 3 != 0:
         print("Applied mutations have changed the length of the DNA fragment - no longer divisible by 3")
     peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut)
@@ -399,6 +398,7 @@ def get_idx(strain_idx_table, sample, gene_idx):
     idx = Idx(gene_idx,sample_idx)
     return idx
 
+
 def create_libsize(expr_distr_dict,output_fp):
     libsize_count = {sample:(np.percentile(expr_list,75),np.sum(expr_list)) for sample,expr_list in expr_distr_dict.items()}
     with open(output_fp,'w') as f:
@@ -407,9 +407,10 @@ def create_libsize(expr_distr_dict,output_fp):
             line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
             f.write(line)
 
+
 def mut_replace(ori_seq, variant_ipos, ref_base, mut_base):
     mut_seq = list(ori_seq)
     len_ref = len(ref_base)
-    #assert str(mut_seq[variant_ipos:variant_ipos + len_ref]) == ref_base
+    assert ''.join(mut_seq[variant_ipos:variant_ipos + len_ref]) == ref_base
     mut_seq[variant_ipos:variant_ipos + len_ref] = ([mut_base] + [''] * (len_ref - 1))
     return mut_seq

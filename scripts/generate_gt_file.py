@@ -1,7 +1,7 @@
 import os
 import gzip
-pos_result_path = '/Users/jiayu/PycharmProjects/CBM_RA/projects2018_immunopepper/tests/test1/test1neg'
-neg_esult_path = '/Users/jiayu/PycharmProjects/CBM_RA/projects2018_immunopepper/tests/test1/test1pos'
+pos_result_path = '/Users/jiayu/PycharmProjects/CBM_RA/projects2018_immunopepper/tests/test2/test2neg'
+neg_esult_path = '/Users/jiayu/PycharmProjects/CBM_RA/projects2018_immunopepper/tests/test2/test2pos'
 
 def rename_as_gt_file(result_path):
     file_list = os.listdir(result_path)

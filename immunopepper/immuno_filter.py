@@ -181,6 +181,18 @@ def has_stop_codon_cross(seq_prop, seq_accept, read_frame, strand):
             return True
     return False
 
+
+def get_true_variant_comb(variant_comb, exon_list):
+    new_variant = []
+    if variant_comb == ['.']:
+        return '.'
+    for ivariant in variant_comb:
+        if int(ivariant) in range(int(exon_list[0]),int(exon_list[1])) or \
+                int(ivariant) in range(int(exon_list[2]),int(exon_list[3])):
+            new_variant.append(ivariant)
+    return ';'.join(new_variant)
+
+
 def get_exon_dict(metadata_list):
     exon_dict = {}
     for line in metadata_list:
@@ -190,19 +202,22 @@ def get_exon_dict(metadata_list):
         idx = items[0]
         read_frame = items[1]
         strand = items[4]
+        variant_comb = items[-6].split(';')
+        variant_comb = get_true_variant_comb(variant_comb,exon_list)
         if strand == '+':
-            key = (read_frame,exon_list[1],exon_list[2])
+            key = (read_frame,exon_list[1],exon_list[2],variant_comb)
             if key in exon_dict:
                 exon_dict[key].append((idx, exon_list[0],exon_list[3]))
             else:
                 exon_dict[key] = [(idx, exon_list[0],exon_list[3])]
         else:
-            key = (read_frame,exon_list[3], exon_list[0])
+            key = (read_frame,exon_list[3], exon_list[0],variant_comb)
             if key in exon_dict:
                 exon_dict[key].append((idx, exon_list[2], exon_list[1]))
             else:
                 exon_dict[key] = [(idx, exon_list[2], exon_list[1])]
     return exon_dict
+
 
 def get_remove_id(metadata_dict):
     remove_id_list = []
@@ -220,6 +235,7 @@ def get_remove_id(metadata_dict):
                     remove_id_list.append(exon_pair[0])
                     break
     return remove_id_list
+
 
 def get_filtered_output_list(metadata_list,peptide_list):
     exon_list = get_exon_dict(metadata_list)

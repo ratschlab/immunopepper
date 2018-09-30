@@ -30,7 +30,16 @@ def _assert_files_equal(expected_path, actual_path):
     ['1', 'neg', 'ref'],
     ['1', 'neg', 'germline'],
     ['1', 'neg', 'somatic'],
-    ['1', 'neg', 'somatic_and_germline']
+    ['1', 'neg', 'somatic_and_germline'],
+    ['2', 'pos', 'ref'],
+    ['2', 'pos', 'germline'],
+    ['2', 'pos', 'somatic'],
+    ['2', 'pos', 'somatic_and_germline'],
+    ['2', 'neg', 'ref'],
+    ['2', 'neg', 'germline'],
+    ['2', 'neg', 'somatic'],
+    ['2', 'neg', 'somatic_and_germline']
+
 ])
 
 
@@ -63,3 +72,4 @@ def test_end_to_end_ref(test_id, case, mutation_mode, tmpdir):
     _assert_files_equal(
         os.path.join(sample_dir, '{}_metadata_gt.tsv'.format(mutation_mode)),
         os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_metadata.tsv.gz'.format(mutation_mode)))
+

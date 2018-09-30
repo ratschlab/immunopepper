@@ -10,6 +10,7 @@ from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
     parse_mutation_from_vcf, parse_mutation_from_maf
 from immunopepper.utils import get_sub_mut_dna,complementary_seq
 from immunopepper.io_utils import load_pickled_graph
+from immunopepper.immuno_filter import get_true_variant_comb
 from collections import namedtuple
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 VARIANT_DICT = namedtuple('VAR_DICT', ['snp','dele','inse'])
@@ -36,12 +37,14 @@ def load_gene_data():
 
 
 @pytest.fixture
-def load_mutation_data():
-    vcf_path = os.path.join(data_dir, 'test1pos.vcf')
-    maf_path = os.path.join(data_dir, 'test1pos.maf')
+def load_mutation_data(testname):
+    data_dir = os.path.join(os.path.dirname(__file__), testname, 'data')
+    vcf_filename = testname + 'pos.vcf'
+    maf_filename = testname + 'pos.maf'
+    vcf_path = os.path.join(data_dir, vcf_filename)
+    maf_path = os.path.join(data_dir, maf_filename)
     mutation_dic_vcf = parse_mutation_from_vcf(vcf_path)
     mutation_dic_maf = parse_mutation_from_maf(maf_path)
-
     return mutation_dic_vcf, mutation_dic_maf
 
 
@@ -184,4 +187,17 @@ def test_complementary_seq():
     assert complementary_seq(false_dna) == 'aCcA'
 
 
+def test_get_true_variant_comb():
+    variant_comb = '38;43'.split(';')
+    exon_coord = '39;50;66;74'.split(';')
+    true_variant = get_true_variant_comb(variant_comb,exon_coord)
+    assert true_variant == '43'
+    variant_comb = '106;111'.split(';')
+    exon_coord = '100;110;76;84'.split(';')
+    true_variant = get_true_variant_comb(variant_comb,exon_coord)
+    assert true_variant == '106'
+    variant_comb = '.'.split(';')
+    exon_coord = '100;110;76;84'.split(';')
+    true_variant = get_true_variant_comb(variant_comb,exon_coord)
+    assert true_variant == '.'
 

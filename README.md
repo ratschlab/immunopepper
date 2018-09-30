@@ -21,6 +21,32 @@ python main_immuno.py -h
 Please add `modules` folder in [`spladder`](https://github.com/ratschlab/spladder/tree/development/python) repo on the same level with `main_immuno`. The
 packages is needed when loading the splicegraph.
 
+### update 30/09/2018
+1. Add a new feature to deal with insertion and deletion mutation. To simplify the problem, we
+apply the mutation on the list object. eg. To insert `G` behind `A` in position `15`,
+we have `dna[15] = `AG`. To delete `G` behind `A` in position `15`, we have
+`dna[15:17] = ['A','']`.
+
+2. After considering insertion and deletion, we need to make some changes on the output
+filtering part. See `get_exon_dict` in `immuno_filter` model, the element `variant_comb` is
+added to the dictionary key.  Since different variantion combination will cause the result to be different
+even if they have the same `exon_coord` and `read_frame`.
+
+3. Because of the `read_frame`, the `exon_coord` sometimes will be different from exon
+position specified in `splicegraph`. However, the somatic mutation dictionary is attached
+to certain exon. In this way, some variant combination is not true. eg. we have variant_comb to be `38;43` while
+the `exon_coord` is `40;50;66;74`. It is obvious that only mutation in position `43` takes effect.
+This ambiguity will bring trouble to the filtering mechanism. So some changes are made: to compute
+the true `variant_comb` in `get_true_variant_comb` function (also in `immuno_filter` module).
+
+4. Build new test files. The new added `test2` case is for the new feature. The original `test1` case
+is for the basic requirement.
+
+##### Future work
+1. Add k-mer expression data output feature
+2. Write good document.
+
+
 ### update 14/09/2018
 1. To avoid multimapper case, which might obscure our estimate for the expression count data, the test case
 is splitted into positive and negative case. In the following development, all the test case will also

@@ -12,7 +12,7 @@ from collections import Counter
 # 4. run main_immuno.py
 def create_test_genome(L,stop_position,data_dir,seed=1):
     np.random.seed(seed)
-    number_list = np.random.randint(0,4,L)
+    number_list = np.random.randint(0, 4, L)
     map_dict = {0:'A', 1:'G', 2:'C', 3:'T'}
     dna_list = [map_dict[i] for i in number_list]
     for pos in stop_position:
