@@ -1,18 +1,5 @@
 # immuno
 immuno is a script which predicts the pepetide sequency from the RNA sequency splicegraph. You can specify the donor and output using the command line below.
-
-
-```
-python main_immuno.py --donor TCGA-13-1489 --output_dir test --splice_path quick_test_data/sample_gene.pkl --ann_path quick_test_data/small.gtf --ref_path quick_test_data/smallgene34.fa
-python exon_filter.py --meta_file test/TCGA-13-1489/ref_meta1.tsv.gz --peptide_file test/TCGA-13-1489/ref_peptide2.fa
-```
-
-If you add the expression information, make sure there are `.merge_graphs.pickle` and `.merge_graphs.count.hdf5` files in the same folder.
-The github repo provides the splicegraph `sample_gene.pkl` and the annotation information `small.gtf`
-but not with the genome sequence `smallgene34.fa` because it is too large.
-
-You should download the genome from other places. We are using the `hg19_hs37d5` version for testing.
-
 Type below command line for more help information.
 ```
 python main_immuno.py -h
@@ -20,6 +7,14 @@ python main_immuno.py -h
 
 Please add `modules` folder in [`spladder`](https://github.com/ratschlab/spladder/tree/development/python) repo on the same level with `main_immuno`. The
 packages is needed when loading the splicegraph.
+### update 01/10/2018
+1. Add new feature to create kmer peptide output. Add a new option `kmer` to the
+argument. When a positive integer is set to `kmer`, kmer output will outputted to `${mutation_mode}_kmer.txt`
+Currently, the expression data for mutated exons are not correct (no expression data for the mutation is given).
+Need more discussion about it.
+
+##### Future work
+1. Write docstring to make the code more readable.
 
 ### update 30/09/2018
 1. Add a new feature to deal with insertion and deletion mutation. To simplify the problem, we

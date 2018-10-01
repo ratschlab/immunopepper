@@ -11,6 +11,8 @@ from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
 from immunopepper.utils import get_sub_mut_dna,complementary_seq
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.immuno_filter import get_true_variant_comb
+from immunopepper.immuno_model import create_output_kmer
+
 from collections import namedtuple
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 VARIANT_DICT = namedtuple('VAR_DICT', ['snp','dele','inse'])
@@ -200,4 +202,3 @@ def test_get_true_variant_comb():
     exon_coord = '100;110;76;84'.split(';')
     true_variant = get_true_variant_comb(variant_comb,exon_coord)
     assert true_variant == '.'
-

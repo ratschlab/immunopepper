@@ -237,18 +237,20 @@ def get_remove_id(metadata_dict):
     return remove_id_list
 
 
-def get_filtered_output_list(metadata_list,peptide_list):
+def get_filtered_output_list(metadata_list,peptide_list,expr_lists):
     exon_list = get_exon_dict(metadata_list)
     remove_id_list = get_remove_id(exon_list)
     filtered_meta_list = []
     filtered_peptide_list = []
+    filtered_expr_lists = []
     for i,imeta_line in enumerate(metadata_list):
         items = imeta_line.strip().split('\t')
         idx = items[0]
         if idx not in remove_id_list:
             filtered_meta_list.append(imeta_line)
             filtered_peptide_list.append(peptide_list[i])
-    return filtered_meta_list, filtered_peptide_list
+            filtered_expr_lists.append(expr_lists[i])
+    return filtered_meta_list, filtered_peptide_list, filtered_expr_lists
 
 
 

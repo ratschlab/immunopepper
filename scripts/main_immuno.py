@@ -17,7 +17,7 @@ import h5py
 from immunopepper.immuno_print import print_memory_diags
 from immunopepper.immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_junction_meta_info
 from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_mutation_tuple
-from immunopepper.immuno_model import calculate_output_peptide
+from immunopepper.immuno_model import calculate_output_peptide,create_output_kmer
 from immunopepper.immuno_filter import get_filtered_output_list
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.utils import get_idx,create_libsize
@@ -40,6 +40,7 @@ def parse_arguments(argv):
     parser.add_argument("--is_filter", help="apply redundancy filter to the exon list", action="store_false", required=False, default=True)
     parser.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
     parser.add_argument("--mutation_mode", help="specify the mutation mdoe", required=False, default='ref')
+    parser.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
 
     if len(argv) < 2:
         parser.print_help()
@@ -137,8 +138,10 @@ def main(arg):
             os.makedirs(output_path)
         peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa')
         meta_peptide_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz')
+        kmer_peptide_file_path = os.path.join(output_path, mutation.mode + '_kmer.txt')
         peptide_fp = open(peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')
+        kmer_peptide_fp = open(kmer_peptide_file_path,'w')
         meta_header_line = "\t".join(['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
                                     'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','seg_expr',
                                       'exons_coor', 'vertex_idx','junction_expr','segment_expr'])
@@ -163,7 +166,7 @@ def main(arg):
             else:
                 junction_list = None
 
-            output_peptide_list, output_metadata_list, total_expr = calculate_output_peptide(gene=gene,
+            output_peptide_list, output_metadata_list, expr_lists, total_expr = calculate_output_peptide(gene=gene,
                               ref_seq=seq_dict[chrm],
                               idx=idx, segments=segments, edges=edges,
                               table=genetable, mutation=sub_mutation,
@@ -171,7 +174,10 @@ def main(arg):
                             )
             expr_distr.append(total_expr)
             if arg.is_filter:
-                output_metadata_list, output_peptide_list = get_filtered_output_list(output_metadata_list,output_peptide_list)
+                output_metadata_list, output_peptide_list,expr_lists = get_filtered_output_list(output_metadata_list,output_peptide_list,expr_lists)
+            if arg.kmer > 0:
+                kmer_output_list = create_output_kmer(output_peptide_list,expr_lists,arg.kmer)
+                kmer_peptide_fp.write('\n'.join(kmer_output_list)+'\n')
             meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
             peptide_fp.write('\n'.join(output_peptide_list)+'\n')
             end_time = timeit.default_timer()

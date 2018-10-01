@@ -379,17 +379,19 @@ def get_exon_expr(gene,vstart,vstop,Segments,Idx):
     return expr_list
 
 
-def get_segment_expr(gene, coord, Segments, Idx):
-    expr_list1 = get_exon_expr(gene,coord.start_v1,coord.stop_v1,Segments,Idx)
-    expr_list2 = get_exon_expr(gene,coord.start_v2,coord.stop_v2,Segments,Idx)
+def get_segment_expr(gene, coord, segments, idx):
+    expr_list1 = get_exon_expr(gene,coord.start_v1,coord.stop_v1,segments,idx)
+    expr_list2 = get_exon_expr(gene,coord.start_v2,coord.stop_v2,segments,idx)
     expr_list1.extend(expr_list2)
     expr_sum = 0
     seg_len = 0
     for item in expr_list1:
-        expr_sum += item[0]*item[1]
-        seg_len += item[0]
+        length = item[0]
+        expr = item[1]
+        expr_sum += length*expr
+        seg_len += length
     mean_expr = int(expr_sum/seg_len)
-    return mean_expr
+    return mean_expr, expr_list1
 
 
 def get_idx(strain_idx_table, sample, gene_idx):
