@@ -22,30 +22,29 @@ def _assert_files_equal(expected_path, actual_path):
 
 
 
-@pytest.mark.parametrize("test_id,case,mutation_mode", [
-    ['1', 'pos', 'ref'],
-    ['1', 'pos', 'germline'],
-    ['1', 'pos', 'somatic'],
-    ['1', 'pos', 'somatic_and_germline'],
-    ['1', 'neg', 'ref'],
-    ['1', 'neg', 'germline'],
-    ['1', 'neg', 'somatic'],
-    ['1', 'neg', 'somatic_and_germline'],
-    ['2', 'pos', 'ref'],
-    ['2', 'pos', 'germline'],
-    ['2', 'pos', 'somatic'],
-    ['2', 'pos', 'somatic_and_germline'],
-    ['2', 'neg', 'ref'],
-    ['2', 'neg', 'germline'],
-    ['2', 'neg', 'somatic'],
-    ['2', 'neg', 'somatic_and_germline']
-
+@pytest.mark.parametrize("test_type, test_id,case,mutation_mode", [
+    ['_base', '1', 'pos', 'ref'],
+    ['_base', '1', 'pos', 'germline'],
+    ['_base', '1', 'pos', 'somatic'],
+    ['_base', '1', 'pos', 'somatic_and_germline'],
+    ['_base', '1', 'neg', 'ref'],
+    ['_base', '1', 'neg', 'germline'],
+    ['_base', '1', 'neg', 'somatic'],
+    ['_base', '1', 'neg', 'somatic_and_germline'],
+    ['_insertion', '2', 'pos', 'ref'],
+    ['_insertion', '2', 'pos', 'germline'],
+    ['_insertion', '2', 'pos', 'somatic'],
+    ['_insertion', '2', 'pos', 'somatic_and_germline'],
+    ['_insertion', '2', 'neg', 'ref'],
+    ['_insertion', '2', 'neg', 'germline'],
+    ['_insertion', '2', 'neg', 'somatic'],
+    ['_insertion', '2', 'neg', 'somatic_and_germline']
 ])
 
 
-def test_end_to_end_ref(test_id, case, mutation_mode, tmpdir):
-    data_dir = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id), 'data')
-    sample_dir = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id), 'test{}{}'.format(test_id,case))
+def test_end_to_end_ref(test_type, test_id, case, mutation_mode, tmpdir):
+    data_dir = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_type), 'data')
+    sample_dir = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_type), 'test{}{}'.format(test_id,case))
 
     out_dir = str(tmpdir)
 
