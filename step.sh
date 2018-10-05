@@ -4,7 +4,7 @@ set -e
 
 work_dir="/Users/jiayu/PycharmProjects/CBM_RA/projects2018_immunopepper"
 spladder_dir="/Users/jiayu/PycharmProjects/CBM_RA/spladder/python"
-testname='test2'
+testname='test_insertion'
 
 script_dir=${work_dir}/scripts
 test_data_dir=${work_dir}/tests/$testname
@@ -23,24 +23,24 @@ test_data_dir=${work_dir}/tests/$testname
 
 ## Step 4: Running maping jobs
 #mkdir ${test_data_dir}/data/align || TRUE
-#STAR --runThreadN 3 --genomeDir ${test_data_dir}/data/genome/pos --readFilesIn ${test_data_dir}/data/test1_1.fq --outSAMtype BAM SortedByCoordinate --outFileNamePrefix ${test_data_dir}/data/align/pos
-#STAR --runThreadN 3 --genomeDir ${test_data_dir}/data/genome/neg --readFilesIn ${test_data_dir}/data/test1_1.fq --outSAMtype BAM SortedByCoordinate --outFileNamePrefix ${test_data_dir}/data/align/neg
+#STAR --runThreadN 3 --genomeDir ${test_data_dir}/data/genome/pos --readFilesIn ${test_data_dir}/data/${testname}_1.fq --outSAMtype BAM SortedByCoordinate --outFileNamePrefix ${test_data_dir}/data/align/pos
+#STAR --runThreadN 3 --genomeDir ${test_data_dir}/data/genome/neg --readFilesIn ${test_data_dir}/data/${testname}_1.fq --outSAMtype BAM SortedByCoordinate --outFileNamePrefix ${test_data_dir}/data/align/neg
 
 # Step 5: Rename the bam file so that we can control the strain id
-#mv ${test_data_dir}/data/align/posAligned.sortedByCoord.out.bam ${test_data_dir}/data/align/${testname}pos.bam || TRUE
-#mv ${test_data_dir}/data/align/negAligned.sortedByCoord.out.bam ${test_data_dir}/data/align/${testname}neg.bam || TRUE
+mv ${test_data_dir}/data/align/posAligned.sortedByCoord.out.bam ${test_data_dir}/data/align/${testname}pos.bam || TRUE
+mv ${test_data_dir}/data/align/negAligned.sortedByCoord.out.bam ${test_data_dir}/data/align/${testname}neg.bam || TRUE
 
 ## Step 6: Using Samtools to create bai file
-#samtools index  ${test_data_dir}/data/align/${testname}pos.bam
-#samtools index  ${test_data_dir}/data/align/${testname}neg.bam
+samtools index  ${test_data_dir}/data/align/${testname}pos.bam
+samtools index  ${test_data_dir}/data/align/${testname}neg.bam
 
 ## Step 7: Generating splicegraph and corresponding count file using spladder
-#rm ${test_data_dir}/data/${testname}pos.gtf.pickle || TRUE
-#rm ${test_data_dir}/data/${testname}neg.gtf.pickle || TRUE
-#rm -rf ${test_data_dir}/data/posgraph || TRUE
-#rm -rf ${test_data_dir}/data/neggraph || TRUE
-#python ${spladder_dir}/spladder.py  --insert_ir=n --insert_es=n --insert_ni=n --remove_se=n --validate_sg=n -b ${test_data_dir}/data/align/${testname}pos.bam -o ${test_data_dir}/data/posgraph -a ${test_data_dir}/data/${testname}pos.gtf -v y -c 3 -M merge_graphs -T n -P n -p n -q y
-#python ${spladder_dir}/spladder.py  --insert_ir=n --insert_es=n --insert_ni=n --remove_se=n --validate_sg=n -b ${test_data_dir}/data/align/${testname}neg.bam -o ${test_data_dir}/data/neggraph -a ${test_data_dir}/data/${testname}neg.gtf -v y -c 3 -M merge_graphs -T n -P n -p n -q y
+rm ${test_data_dir}/data/${testname}pos.gtf.pickle || TRUE
+rm ${test_data_dir}/data/${testname}neg.gtf.pickle || TRUE
+rm -rf ${test_data_dir}/data/posgraph || TRUE
+rm -rf ${test_data_dir}/data/neggraph || TRUE
+python ${spladder_dir}/spladder.py  --insert_ir=n --insert_es=n --insert_ni=n --remove_se=n --validate_sg=n -b ${test_data_dir}/data/align/${testname}pos.bam -o ${test_data_dir}/data/posgraph -a ${test_data_dir}/data/${testname}pos.gtf -v y -c 3 -M merge_graphs -T n -P n -p n -q y
+python ${spladder_dir}/spladder.py  --insert_ir=n --insert_es=n --insert_ni=n --remove_se=n --validate_sg=n -b ${test_data_dir}/data/align/${testname}neg.bam -o ${test_data_dir}/data/neggraph -a ${test_data_dir}/data/${testname}neg.gtf -v y -c 3 -M merge_graphs -T n -P n -p n -q y
 
 ## Step8: run main file to generate ground result
 # positive case
@@ -56,4 +56,4 @@ test_data_dir=${work_dir}/tests/$testname
 #python ${script_dir}/main_immuno.py --mutation_mode somatic_and_germline --output_dir ${test_data_dir} --ann_path ${test_data_dir}/data/${testname}neg.gtf --splice_path ${test_data_dir}/data/neggraph/spladder/genes_graph_conf3.merge_graphs.pickle --ref_path ${test_data_dir}/data/${testname}neg.fa --count_path ${test_data_dir}/data/neggraph/spladder/genes_graph_conf3.merge_graphs.count.hdf5 --samples ${testname}neg --debug --vcf_path ${test_data_dir}/data/${testname}neg.vcf --maf_path ${test_data_dir}/data/${testname}neg.maf
 
 # step9: unzip gz file and rename to _gt file
-python ${script_dir}/generate_gt_file.py
+#python ${script_dir}/generate_gt_file.py

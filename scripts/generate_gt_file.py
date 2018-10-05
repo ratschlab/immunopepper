@@ -78,6 +78,13 @@ rename_as_gt_file(neg_esult_path)
 #     fpos.close()
 #     fneg.close()
 
-
-
+import os
+dir_name = '/Users/jiayu/PycharmProjects/CBM_RA/projects2018_immunopepper/tests/test_insertion/data'
+file_list = os.listdir(dir_name)
+for file_name in file_list:
+    newname = str(file_name)
+    newname = newname.replace('test_base','test_insertion')
+    src = os.path.join(dir_name, file_name)
+    dst = os.path.join(dir_name, newname)
+    os.rename(src,dst)
 
