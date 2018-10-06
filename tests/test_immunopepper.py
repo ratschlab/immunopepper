@@ -15,7 +15,6 @@ from immunopepper.immuno_model import create_output_kmer
 
 from collections import namedtuple
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
-VARIANT_DICT = namedtuple('VAR_DICT', ['snp','dele','inse'])
 
 @pytest.fixture
 def load_gene_data():

@@ -1,5 +1,5 @@
 import bisect
-from utils import get_all_comb, mut_replace
+from utils import get_all_comb
 from collections import namedtuple
 from constant import NOT_EXIST
 from immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
@@ -133,9 +133,9 @@ def get_sub_mutation_tuple(mutation, sample, chrm):
     submutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation.mode)
     return submutation
 
-
 def mut_replace(ori_seq, variant_ipos, ref_base, mut_base):
     mut_seq = list(ori_seq)
     len_ref = len(ref_base)
+    assert ''.join(mut_seq[variant_ipos:variant_ipos + len_ref]) == ref_base
     mut_seq[variant_ipos:variant_ipos + len_ref] = ([mut_base] + [''] * (len_ref - 1))
     return mut_seq

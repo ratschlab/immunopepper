@@ -409,10 +409,3 @@ def create_libsize(expr_distr_dict,output_fp):
             line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
             f.write(line)
 
-
-def mut_replace(ori_seq, variant_ipos, ref_base, mut_base):
-    mut_seq = list(ori_seq)
-    len_ref = len(ref_base)
-    assert ''.join(mut_seq[variant_ipos:variant_ipos + len_ref]) == ref_base
-    mut_seq[variant_ipos:variant_ipos + len_ref] = ([mut_base] + [''] * (len_ref - 1))
-    return mut_seq
