@@ -1,13 +1,29 @@
+"""Contain the function used for filtering"""
 import sys
 import re
 
-# external package
 import scipy as sp
 
-# immuno module
 from utils import complementary_seq,translate_dna_to_peptide
 
+
 def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_table):
+    """ Indicate whether exon pair also appear in transcript given by .gtf file
+
+    Parameters
+    ----------
+    gene: Object. Created by SplAdder.
+    gene_to_transcript_table: Dict. "Gene" -> "transcript"
+    transcript_to_cds_table: Dict. "transcript" -> "cds"
+
+    Returns
+    -------
+    junction_flag: 2D array matrix with shape len(edges)*len(edges).
+        True indicates the exon pair also appear in gtf file
+        while False indicates the exon pair not exist or it does not show in the
+        given .gtf file.
+
+    """
     ts_list = gene_to_transcript_table[gene.name]
     vertices = gene.splicegraph.vertices
     edges = gene.splicegraph.edges
@@ -31,7 +47,23 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
 
     return junction_flag
 
+
 def find_background_transcript(gene, ref_seq, gene_to_transcript_table, transcript_cds_table):
+    """Calculate the transcript derived from the annotation file.
+    It is used for generating artificial reads.
+
+    Parameters
+    ----------
+    gene: Object. Created by SplAdder
+    ref_seq: List(str). Reference sequence of certain chromosome.
+    gene_to_transcript_table: Dict. "Gene" -> "transcript"
+    transcript_to_cds_table: Dict. "transcript" -> "cds"
+
+    Returns
+    -------
+    ts_list: List[str]. List of all the peptide translated from the given
+        splicegraph and annotation.
+    """
     gene_transcripts = gene_to_transcript_table[gene.name]
     ts_list = []
 
@@ -78,13 +110,25 @@ def find_background_transcript(gene, ref_seq, gene_to_transcript_table, transcri
                 print("ERROR: Invalid strand...")
                 sys.exit(1)
         ts_list.append(cds_string)
-        #aa_str_mutated = translate_dna_to_peptide(cds_string)
-        #peptide_list.append((aa_str_mutated, ts))
     gene.processed = True
     return ts_list
 
 
 def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript_cds_table):
+    """Calculate the peptide translated from the complete transcript instead of exon pairs
+
+    Parameters
+    ----------
+    gene: Object. Created by SplAdder
+    ref_seq: List(str). Reference sequence of certain chromosome.
+    gene_to_transcript_table: Dict. "Gene" -> "transcript"
+    transcript_to_cds_table: Dict. "transcript" -> "cds"
+
+    Returns
+    -------
+    peptide_list: List[str]. List of all the peptide translated from the given
+        splicegraph and annotation.
+    """
     gene_transcripts = gene_to_transcript_table[gene.name]
     peptide_list = []
     ref_seq_str = ''.join(ref_seq)
@@ -132,57 +176,45 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
                 sys.exit(1)
 
         aa_str_mutated = translate_dna_to_peptide(cds_string)
-        peptide_list.append((aa_str_mutated, ts))
+        # aa_str_mutated = (peptide, stop_codon_indicator)
+        peptide_list.append(aa_str_mutated[0])
     gene.processed = True
     return peptide_list
 
 
-def peptide_match(ref_peptides, peptide):
-    match_ts_list = []
-    for ref in ref_peptides:
-        ref_peptide = ref[0][0]
-        transcript = ref[1]
+def peptide_match(background_peptide_list, peptide):
+    """ Find if the translated exon-pair peptide also appear in the annotation file.
+    Parameters
+    ----------
+    background_peptide_list: List(str) All the peptide translated from transcripts in annotation file
+    peptide: str. peptide translated from certain exon-pairs
+
+    Returns
+    -------
+    count: int. Count how many matches exist between background peptide and given peptide
+
+    """
+    count = 0
+    for ref in background_peptide_list:
+        ref_peptide = ref
         if not re.search(peptide, ref_peptide) is None:
-            match_ts_list.append(transcript)
-    return match_ts_list
-
-## Returns true if there is a stop codon in the sequence. All codons that are fully in the
-#  interval [start_coord<->end_coord] are checked.
-# seq: Nucleotide sequence of vertex/CDS region
-# start_coord: Read start coordinate
-# stop_coord: Read stop coordinate
-# strand: Read direction, one of {"+","-"}
-def has_stop_codon_initial(seq, start_coord, end_coord, strand):
-    if strand == "+":
-        assert (start_coord <= end_coord)
-        substr = seq[start_coord - 1:end_coord]
-    else:  # strand=="-"
-        assert (start_coord >= end_coord)
-        substr = complementary_seq(seq[end_coord - 1:start_coord][::-1])
-    for idx in range(0, len(substr) - 2, 3):
-        nuc_frame = substr[idx:idx + 3]
-        if nuc_frame.lower() in ["tag", "taa", "tga"]:
-            return True
-    return False
-
-## Returns true if there is a stop codon found spanning the two sequences
-# seq_prop: Propagating sequence
-# seq_accept: Accepting sequence
-# read_frame: Read frame of propagating vertex
-# strand: Direction of read strand
-def has_stop_codon_cross(seq_prop, seq_accept, read_frame, strand):
-    if strand == "+":
-        check_seq = seq_prop[-read_frame:] + seq_accept
-    else:  # strand=="-"
-        check_seq = seq_prop[::-1][-read_frame:] + seq_accept[::-1]
-    for idx in range(0, len(check_seq) - 2, 3):
-        nuc_frame = check_seq[idx:idx + 3]
-        if nuc_frame.lower() in ["tag", "taa", "tga"]:
-            return True
-    return False
+            count += 1
+    return count
 
 
 def get_true_variant_comb(variant_comb, exon_list):
+    """ Filter out the variants that do not take effect
+
+    Parameters
+    ----------
+    variant_comb: List(str). List of all the variant positions
+    exon_list: List(str). List of the four exon terminals.
+
+    Returns
+    -------
+    new_variant: List(str). List of the variants that take effect.
+
+    """
     new_variant = []
     if variant_comb == ['.']:
         return '.'
@@ -194,10 +226,23 @@ def get_true_variant_comb(variant_comb, exon_list):
 
 
 def get_exon_dict(metadata_list):
+    """ Get an auxiliary dictionary used for filtering
+
+    Parameters
+    ----------
+    metadata_list: List(str). Returned by `calculate_output_peptide`
+
+    Returns
+    -------
+    exon_dict: dict. (read_frame, pos_mid_1, pos_mid_2, variant_combination)
+        -> List[Tuple(output_idx, pos_start, pos_end,)]
+
+    """
+
     exon_dict = {}
     for line in metadata_list:
         items = line.strip().split('\t')
-        ## TODO: need to come up with a new way to index the exon list
+        #(Jiayu) TODO: need to come up with a new way to index the exon list
         exon_list = items[-4].split(';')
         idx = items[0]
         read_frame = items[1]
@@ -220,6 +265,16 @@ def get_exon_dict(metadata_list):
 
 
 def get_remove_id(metadata_dict):
+    """ Get all redundant output id.
+    Parameters
+    ----------
+    metadata_dict: Dict. Returned by get_exon_dict
+
+    Returns
+    -------
+    remove_id_list: List[str]. The list of id to be removed.
+
+    """
     remove_id_list = []
     for exon_pair_list in metadata_dict.values():
         L = len(exon_pair_list)
@@ -227,17 +282,29 @@ def get_remove_id(metadata_dict):
             continue
         for i, exon_pair in enumerate(exon_pair_list):
             for j in range(L):
+                output_id = exon_pair[0]
                 i_pos1 = exon_pair[1]
                 i_pos2 = exon_pair[2]
                 j_pos1 = exon_pair_list[j][1]
                 j_pos2 = exon_pair_list[j][2]
                 if j!=i and i_pos1 >= j_pos1 and i_pos2 <= j_pos2:
-                    remove_id_list.append(exon_pair[0])
+                    remove_id_list.append(output_id)
                     break
     return remove_id_list
 
 
-def get_filtered_output_list(metadata_list,peptide_list,expr_lists):
+def get_filtered_output_list(metadata_list, peptide_list, expr_lists):
+    """ Filter redundant output
+
+    Parameters
+    ----------
+    output_peptide_list: List[str]. Contain all the possible output peptide in the given splicegraph.
+    output_metadata_list: List[str]. Contain the correpsonding medata data for each output peptide.
+    expr_list: List[List[Tuple]]. The Tuple is (len_segments, expression). The Inner List is all the component
+        segment corresponding to one exon pair. The outer List is the aggregation for all the exon-pair segment expression
+        information in the given gene.
+    All the above three are returned from `calculate_output_peptide`
+    """
     exon_list = get_exon_dict(metadata_list)
     remove_id_list = get_remove_id(exon_list)
     filtered_meta_list = []

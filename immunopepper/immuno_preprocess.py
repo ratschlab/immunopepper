@@ -12,7 +12,6 @@ Edges = namedtuple('Edges', ['expr', 'lookup_table'])
 CountInfo = namedtuple('CountInfo', ['segments', 'edges', 'strain_idx_table'])
 
 # immuno module
-from immuno_print import print_memory_diags
 from utils import to_adj_succ_list,find_overlapping_cds_simple,attribute_list_to_dict,leq_strand,encode_chromosome
 
 # Pre-process gene structures to aid fast generation of cross-junction peptides

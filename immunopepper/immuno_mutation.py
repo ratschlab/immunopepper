@@ -1,22 +1,30 @@
 import bisect
-from utils import get_all_comb
+import sys
 from collections import namedtuple
+
 from constant import NOT_EXIST
 from immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
-import sys
+from utils import mut_replace, get_all_comb
+
 
 Mutation = namedtuple('Mutation', ['vcf_dict', 'maf_dict', 'mode'])
 
-
 def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf):
-    """
-    Apply all the germline mutations to the reference sequence.
+    """Apply germline mutation on the reference sequence
 
+    Parameters
+    ----------
+    ref_sequence: str. reference sequence of certain chromosome.
+    pos_start: int. start position of sequence for applying germiline mutation.
+    pos_end: int. Ending position of sequence for applying germline mutation.
+    mutation_sub_dic_vcf: dict. (position) -> variant details
 
     Returns
     -------
-    output_seq: dict, two keys. "ref" to the original reference sequence
-                                "background" to the germline_mutation_applied ref (if there is germline mutation exist)
+    output_seq: dict. (sequence_type) -> list[char]. output['ref'] is the original
+        reference sequence output['background'] is the germline-mutation-applied sequence
+        if .maf file (somatic mutation) exists while is original sequence if no somatic
+        information is available.
     """
     output_seq = {}
     output_seq['ref'] = list(ref_sequence)  # copy the reference
@@ -31,11 +39,21 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_v
             mut_seq = mut_replace(mut_seq, variant_ipos, ref_base,mut_base)
         output_seq['background'] = mut_seq
     else:
-        output_seq['background'] = ref_sequence
+        output_seq['background'] = list(ref_sequence)
     return output_seq
 
 
 def get_mutation_mode_from_parser(args):
+    """
+
+    Parameters
+    ----------
+    args
+
+    Returns
+    -------
+
+    """
     Mutation = namedtuple('Mutation', ['mode','maf_dict','vcf_dict'])
     mutation_mode = args.mutation_mode
     maf_file_path = args.maf_path[0]
@@ -132,10 +150,3 @@ def get_sub_mutation_tuple(mutation, sample, chrm):
         mutation_sub_dict_maf = None
     submutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation.mode)
     return submutation
-
-def mut_replace(ori_seq, variant_ipos, ref_base, mut_base):
-    mut_seq = list(ori_seq)
-    len_ref = len(ref_base)
-    assert ''.join(mut_seq[variant_ipos:variant_ipos + len_ref]) == ref_base
-    mut_seq[variant_ipos:variant_ipos + len_ref] = ([mut_base] + [''] * (len_ref - 1))
-    return mut_seq

@@ -1,8 +1,10 @@
 import itertools
 import scipy as sp
 import numpy as np
+
 from collections import namedtuple
 import bisect
+
 from constant import NOT_EXIST
 
 Peptide = namedtuple('Peptide', ['mut', 'ref'])
@@ -84,6 +86,16 @@ def encode_chromosome(in_num):
 def translate_dna_to_peptide(dna_str):
     """
     Translate a DNA sequence encoding a peptide to amino-acid sequence via RNA
+
+    Parameters
+    ----------
+    dna_str: str or List(str). dna string to be translated.
+
+    Returns
+    -------
+    aa_str: translated peptide
+    has_stop_codon: Indicator for showing if the input dna contains stop codon
+
     """
     codontable = {
         'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
@@ -120,7 +132,7 @@ def translate_dna_to_peptide(dna_str):
             else:
                 aa_str.append(codontable[codon])
 
-    return "".join(aa_str),has_stop_codon
+    return "".join(aa_str), has_stop_codon
 
 
 def get_sub_mut_dna(background_seq,start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand):
@@ -409,3 +421,9 @@ def create_libsize(expr_distr_dict,output_fp):
             line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
             f.write(line)
 
+def mut_replace(ori_seq, variant_ipos, ref_base, mut_base):
+    mut_seq = list(ori_seq)
+    len_ref = len(ref_base)
+    assert ''.join(mut_seq[variant_ipos:variant_ipos + len_ref]) == ref_base
+    mut_seq[variant_ipos:variant_ipos + len_ref] = ([mut_base] + [''] * (len_ref - 1))
+    return mut_seq
