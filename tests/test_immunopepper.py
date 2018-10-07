@@ -14,14 +14,14 @@ from immunopepper.immuno_filter import get_true_variant_comb
 from immunopepper.immuno_model import create_output_kmer
 
 from collections import namedtuple
-data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
+data_dir = os.path.join(os.path.dirname(__file__), 'test_base','data')
 
 @pytest.fixture
 def load_gene_data():
     f = open(os.path.join(data_dir, 'posgraph','spladder',
                           'genes_graph_conf3.merge_graphs.pickle'), 'r')
-    ann_path = os.path.join(data_dir, 'test1pos.gtf')
-    ref_path = os.path.join(data_dir, 'test1pos.fa')
+    ann_path = os.path.join(data_dir, 'test_basepos.gtf')
+    ref_path = os.path.join(data_dir, 'test_basepos.fa')
 
     (graph_data, graph_meta) = load_pickled_graph(f)  # cPickle.load(f)
     genetable = preprocess_ann(ann_path)

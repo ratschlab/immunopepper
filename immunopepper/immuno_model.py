@@ -7,7 +7,7 @@ import scipy as sp
 
 from immuno_filter import junction_is_annotated, peptide_match, find_background_peptides
 from immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb
-from utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr
+from utils import cross_peptide_result, is_isolated_cds, isolated_peptide_result, is_in_junction_list, get_segment_expr
 from immuno_preprocess import search_edge_metadata_segmentgraph
 from constant import NOT_EXIST
 

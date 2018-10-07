@@ -6,8 +6,8 @@ from constant import NOT_EXIST
 from immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
 from utils import mut_replace, get_all_comb
 
-
 Mutation = namedtuple('Mutation', ['vcf_dict', 'maf_dict', 'mode'])
+
 
 def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf):
     """Apply germline mutation on the reference sequence
