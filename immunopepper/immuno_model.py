@@ -181,6 +181,7 @@ def create_output_kmer(peptide_list, expr_lists, k):
     output_list: List(str). Each line is the output peptide and corresponding expression level.
 
     """
+    # Todo: write an unit test.
     def change_expr_lists_to_array(expr_list):
         array = []
         for item in expr_list:

@@ -7,6 +7,15 @@ python main_immuno.py -h
 
 Please add `modules` folder in [`spladder`](https://github.com/ratschlab/spladder/tree/development/python) repo on the same level with `main_immuno`. The
 packages is needed when loading the splicegraph.
+
+### update 07/10/2018
+1. Update the docstring for all the functions in main modules.
+2. Remove obsolet functions.
+
+##### Future work
+1. Write unit tests. (All ready marked as todo)
+
+
 ### update 01/10/2018
 1. Add new feature to create kmer peptide output. Add a new option `kmer` to the
 argument. When a positive integer is set to `kmer`, kmer output will outputted to `${mutation_mode}_kmer.txt`
