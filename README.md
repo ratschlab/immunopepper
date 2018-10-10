@@ -5,6 +5,36 @@ Type below command line for more help information.
 python main_immuno.py -h
 ```
 
+General use case:
+```
+python main_immuno --output_dir
+YOUR_OUPUT_DIRECTORY
+--ann_path
+YOUR_ANNOTATION_PATH(.gtf)
+--ref_path
+YOUR_GENE_SEQUENCE_PATH(.fa)
+--splice_path
+YOUR_SPLICEGRAPH_PATH(.merge_graphs.pickle)
+--count_path
+YOUR_SPLICEGRAPH_COUNT_PATH(.count.hdf5)
+--maf_path
+YOUR_SOMATIC_MUTATION_FILE_PATH(.maf)
+--vcf_path
+YOUR_GERMLINE_MUTATION_FILE_PATH(.vcf)
+--samples
+YOUR_SAMPLE_NAME('EOC225')
+--kmer
+LENGTH_OF_KMER
+--mutation_mode
+ref
+```
+After run the command line above, there will be `ref_peptides.fa`, `ref_metadata.tsv.gz` and `ref_kmer.txt` in YOUR_OUPUT_DIRECTORY/YOUR_SAMPLE_NAME
+
+1. In `mutation_mode` argument, you can choose from `ref`, `germline`, `somatic` and `somatic_and_germline`. The input file should
+provide all the files that `mutation_mode` requires. For examples, when running in `somatic` mode, it's OK to input both `.vcf` and `.maf` file. But only `.vcf` file will
+cause an error.
+2. The `.vcf`, `.maf` `.count.hdf5` file should contain the information for YOUR_SAMPLE_NAME, otherwise it will throw an `KeyError`.
+
 Please add `modules` folder in [`spladder`](https://github.com/ratschlab/spladder/tree/development/python) repo on the same level with `main_immuno`. The
 packages is needed when loading the splicegraph.
 
