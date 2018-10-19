@@ -118,7 +118,6 @@ def preprocess_ann(ann_path):
             transcript_id = attribute_dict['transcript_id']
             assert (transcript_id not in transcript_to_gene_dict)
             transcript_to_gene_dict[transcript_id] = gene_id
-
             try:
                 gene_to_transcript_dict[gene_id].add(transcript_id)
             except KeyError:
