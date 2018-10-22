@@ -13,7 +13,7 @@ CountInfo = namedtuple('CountInfo', ['segments', 'edges', 'strain_idx_table'])
 
 # immuno module
 from immuno_print import print_memory_diags
-from utils import to_adj_succ_list,find_overlapping_cds_simple,attribute_list_to_dict,leq_strand,encode_chromosome
+from utils import to_adj_succ_list,find_overlapping_cds_simple, leq_strand, encode_chromosome
 
 # Pre-process gene structures to aid fast generation of cross-junction peptides
 # get gene.vertex_succ_list
@@ -81,11 +81,95 @@ def genes_preprocess(genes, gene_cds_begin_dict):
 
         gene.to_sparse()
 
+
+def preprocess_ann(ann_path):
+    if ann_path.endswith('gtf'):
+        gene_table = preprocess_ann_gtf(ann_path)
+    elif ann_path.endswith('gff'):
+        gene_table = preprocess_ann_gff(ann_path)
+    else:
+        print("invalid input annotation file type")
+        sys.exit(1)
+    return gene_table
+
 # Pre-processed the annotation file and builds a lookup structure that can be used to retrieve
 # the CDS start positions when looping over the genes
 ##TODO: do we really need so many dictionary?
-def preprocess_ann(ann_path):
+def preprocess_ann_gtf(ann_path):
+    def attribute_list_to_dict(a_list):
+        a_dict = {}
+        for attribute_pair in a_list:
+            pair = attribute_pair.split(' ')
+            a_dict[pair[0]] = pair[1][1:-1]  # delete "", currently now work on level 2
+        return a_dict
+    transcript_to_gene_dict = {}    # transcript -> gene id
+    gene_to_transcript_dict = {}    # gene_id -> list of transcripts
+    transcript_to_cds_dict = {}     # transcript -> list of CDS exons
+    transcript_cds_begin_dict = {}  # transcript -> first exon of the CDS
+    gene_cds_begin_dict = {}        # gene -> list of first CDS exons
 
+    # collect information from annotation file
+    for line in open(ann_path, 'r'):
+        item = line.split('\t')
+        feature_type = item[2]
+        attribute_list = item[-1].split('; ')
+        attribute_dict = attribute_list_to_dict(attribute_list)
+
+        # store relationship between gene ID and its transcript IDs
+        if feature_type in ['transcript', 'mRNA']:
+            gene_id = attribute_dict['gene_id']
+            transcript_id = attribute_dict['transcript_id']
+            assert (transcript_id not in transcript_to_gene_dict)
+            transcript_to_gene_dict[transcript_id] = gene_id
+            try:
+                gene_to_transcript_dict[gene_id].add(transcript_id)
+            except KeyError:
+                gene_to_transcript_dict[gene_id] = set([transcript_id])
+
+        # Todo python is 0-based while gene annotation file(.gtf, .vcf, .maf) is one based
+        elif feature_type == "CDS":
+            parent_ts = attribute_dict['transcript_id']
+            strand_mode = item[6]
+            cds_left = int(item[3])-1
+            cds_right = int(item[4])-1
+            frameshift = int(item[7])
+            try:
+                transcript_to_cds_dict[parent_ts].append((cds_left, cds_right, frameshift))
+            except KeyError:
+                transcript_to_cds_dict[parent_ts] = [(cds_left, cds_right, frameshift)]
+            if strand_mode == "+" :
+                cds_start, cds_stop = cds_left, cds_right
+            else:
+                cds_start, cds_stop = cds_right, cds_left
+
+            # we only consider the start of the whole CoDing Segment
+            if parent_ts not in transcript_cds_begin_dict or \
+               leq_strand(cds_start, transcript_cds_begin_dict[parent_ts][0], strand_mode):
+                transcript_cds_begin_dict[parent_ts] = (cds_start, cds_stop, item)
+
+    # collect first CDS exons for all transcripts of a gene
+    for ts_key in transcript_to_gene_dict:
+        target_gene = transcript_to_gene_dict[ts_key]
+        if target_gene not in gene_cds_begin_dict:
+            gene_cds_begin_dict[target_gene] = []
+        if ts_key in transcript_cds_begin_dict:
+            gene_cds_begin_dict[target_gene].append(transcript_cds_begin_dict[ts_key])
+
+    # sort list of CDS exons per transcript
+    for ts_key in transcript_to_cds_dict:
+        transcript_to_cds_dict[ts_key] = sorted(transcript_to_cds_dict[ts_key], key=lambda coordpair: coordpair[0])
+
+    genetable = GeneTable(gene_cds_begin_dict, transcript_to_cds_dict, gene_to_transcript_dict)
+    return genetable
+
+
+def preprocess_ann_gff(ann_path):
+    def attribute_list_to_dict(a_list):
+        a_dict = {}
+        for attribute_pair in a_list:
+            pair = attribute_pair.split('=')
+            a_dict[pair[0]] = pair[1]  # delete "", currently now work on level 2
+        return a_dict
     transcript_to_gene_dict = {}    # transcript -> gene id
     gene_to_transcript_dict = {}    # gene_id -> list of transcripts
     transcript_to_cds_dict = {}     # transcript -> list of CDS exons
@@ -131,7 +215,6 @@ def preprocess_ann(ann_path):
             if parent_ts not in transcript_cds_begin_dict or \
                leq_strand(cds_start, transcript_cds_begin_dict[parent_ts][0], strand_mode):
                 transcript_cds_begin_dict[parent_ts] = (cds_start, cds_stop, item)
-
     # collect first CDS exons for all transcripts of a gene
     for ts_key in transcript_to_gene_dict:
         target_gene = transcript_to_gene_dict[ts_key]
