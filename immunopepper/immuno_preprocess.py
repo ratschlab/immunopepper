@@ -177,19 +177,24 @@ def preprocess_ann_gff(ann_path):
     gene_cds_begin_dict = {}        # gene -> list of first CDS exons
 
     # collect information from annotation file
-    for line in open(ann_path, 'r'):
+    ann_file = open(ann_path, 'r')
+    lines = ann_file.readlines()
+    for line in lines[2:]: # parsing gff, which has two more head lines
         item = line.split('\t')
         feature_type = item[2]
-        attribute_list = item[-1].split('; ')
+        attribute_list = item[-1].split(';')
         attribute_dict = attribute_list_to_dict(attribute_list)
 
         # store relationship between gene ID and its transcript IDs
         if feature_type in ['transcript', 'mRNA']:
-            gene_id = attribute_dict['gene_id']
-            transcript_id = attribute_dict['transcript_id']
+            gene_id = attribute_dict['geneID']
+            gene_type = attribute_dict['gene_type']
+            transcript_type = attribute_dict['transcript_type']
+            if gene_type != 'protein_coding' or transcript_type != "protein_coding":
+                continue
+            transcript_id = attribute_dict['ID']
             assert (transcript_id not in transcript_to_gene_dict)
             transcript_to_gene_dict[transcript_id] = gene_id
-
             try:
                 gene_to_transcript_dict[gene_id].add(transcript_id)
             except KeyError:
@@ -197,7 +202,7 @@ def preprocess_ann_gff(ann_path):
 
         # Todo python is 0-based while gene annotation file(.gtf, .vcf, .maf) is one based
         elif feature_type == "CDS":
-            parent_ts = attribute_dict['transcript_id']
+            parent_ts = attribute_dict['Parent'].strip()
             strand_mode = item[6]
             cds_left = int(item[3])-1
             cds_right = int(item[4])-1
@@ -206,15 +211,17 @@ def preprocess_ann_gff(ann_path):
                 transcript_to_cds_dict[parent_ts].append((cds_left, cds_right, frameshift))
             except KeyError:
                 transcript_to_cds_dict[parent_ts] = [(cds_left, cds_right, frameshift)]
-            if strand_mode == "+" :
-                cds_start, cds_stop = cds_left, cds_right
-            else:
-                cds_start, cds_stop = cds_right, cds_left
-
             # we only consider the start of the whole CoDing Segment
-            if parent_ts not in transcript_cds_begin_dict or \
-               leq_strand(cds_start, transcript_cds_begin_dict[parent_ts][0], strand_mode):
-                transcript_cds_begin_dict[parent_ts] = (cds_start, cds_stop, item)
+            if strand_mode == '+' :
+                if parent_ts not in transcript_cds_begin_dict or \
+                leq_strand(cds_left, transcript_cds_begin_dict[parent_ts][0], strand_mode):
+                    transcript_cds_begin_dict[parent_ts] = (cds_left, cds_right, item)
+            else:
+                if parent_ts not in transcript_cds_begin_dict or \
+                leq_strand(cds_right, transcript_cds_begin_dict[parent_ts][0], strand_mode):
+                    transcript_cds_begin_dict[parent_ts] = (cds_left, cds_right, item)
+
+
     # collect first CDS exons for all transcripts of a gene
     for ts_key in transcript_to_gene_dict:
         target_gene = transcript_to_gene_dict[ts_key]
