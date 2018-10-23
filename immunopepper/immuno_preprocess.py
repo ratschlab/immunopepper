@@ -218,13 +218,13 @@ def parse_gene_metadata_info(h5f, donor_list):
 
     #print(gene_ids_segs.shape)
     for seg_idx in np.arange(gene_ids_segs.shape[0]):
-        gene_id = gene_names[gene_ids_segs[seg_idx, 0]][0]  # no [0] before
+        gene_id = gene_names[gene_ids_segs[seg_idx, 0]]
         if gene_id not in seg_lookup_table:
             seg_lookup_table[gene_id] = []
         seg_lookup_table[gene_id].append(seg_idx)
 
     for edge_idx in np.arange(gene_ids_edges.shape[0]):
-        gene_id = gene_names[gene_ids_edges[edge_idx, 0]][0]  # no [0] before
+        gene_id = gene_names[gene_ids_edges[edge_idx, 0]]
         if gene_id not in edge_lookup_table:
             edge_lookup_table[gene_id] = []
         edge_lookup_table[gene_id].append((edge_idx, edge_idx_info[edge_idx]))
