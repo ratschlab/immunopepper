@@ -37,7 +37,7 @@ def parse_arguments(argv):
     parser.add_argument("--count_path",help="specify the absolute path of the count h5 file", required=False, default=None)
     parser.add_argument("--gtex_junction_path",help="specify the absolute path the the gtex_junction h5 file", required=False, default=None)
     parser.add_argument("--process_num", type=int, help="Only process the first *process_num* gene in the splicegraph,default,0, means process all", required=False, default=0)
-    parser.add_argument("--is_filter", help="apply redundancy filter to the exon list", action="store_false", required=False, default=True)
+    parser.add_argument("--is_filter", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
     parser.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
     parser.add_argument("--mutation_mode", help="specify the mutation mdoe", required=False, default='ref')
 
