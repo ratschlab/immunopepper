@@ -148,7 +148,6 @@ def main(arg):
         for gene_idx, gene in enumerate(graph_data[:num]):
             start_time = timeit.default_timer()
             print('%s %i/%i\n'%(sample, gene_idx, num))
-            gene = graph_data[gene_idx]
             idx = get_idx(strain_idx_table,sample,gene_idx)
 
             # Genes not contained in the annotation...
