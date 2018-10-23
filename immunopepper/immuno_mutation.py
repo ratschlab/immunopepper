@@ -37,21 +37,21 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_v
 def get_mutation_mode_from_parser(args):
     Mutation = namedtuple('Mutation', ['mode','maf_dict','vcf_dict'])
     mutation_mode = args.mutation_mode
-    maf_file_path = args.maf_path[0]
-    vcf_file_path = args.vcf_path[0]
+    maf_file_path = args.maf_path
+    vcf_file_path = args.vcf_path
     is_error = True
     if mutation_mode == 'somatic_and_germline':
-        if maf_file_path != '' and vcf_file_path != '':
+        if maf_file_path[0] != '' and vcf_file_path[0] != '':
             mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
             mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path)
             is_error = False
     elif mutation_mode == 'germline':
-        if vcf_file_path != '':
+        if vcf_file_path[0] != '':
             mutation_dic_maf = {}  # empty dic
             mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path)
             is_error = False
     elif mutation_mode == 'somatic':
-        if maf_file_path != '':
+        if maf_file_path[0] != '':
             mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
             mutation_dic_vcf = {}
             is_error = False
