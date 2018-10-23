@@ -401,9 +401,12 @@ def get_segment_expr(gene, coord, Segments, Idx):
     return mean_expr
 
 
-def get_idx(strain_idx_table, sample, gene_idx):
+def get_idx(sample_idx_table, sample, gene_idx):
     Idx = namedtuple('Idx', ['gene', 'sample'])
-    sample_idx = strain_idx_table[sample]
+    if sample_idx_table is not None:
+        sample_idx = sample_idx_table[sample]
+    else:
+        sample_idx = None
     idx = Idx(gene_idx,sample_idx)
     return idx
 
