@@ -13,13 +13,20 @@ but not with the genome sequence `smallgene34.fa` because it is too large.
 
 You should download the genome from other places. We are using the `hg19_hs37d5` version for testing.
 
-Type below command line for more help information.
+### Immunopepper Installation
+
+It is recommended to setup a separate virtual or conda environment.
+
+The basic immunopepper package can be installed from source using:
 ```
-python main_immuno.py -h
+pip install -r requirements.txt -r requirements_dev.txt
+make install
 ```
 
-Please add `modules` folder in [`spladder`](https://github.com/ratschlab/spladder/tree/development/python) repo on the same level with `main_immuno`. The
-packages is needed when loading the splicegraph.
+After that, consult the output of the following command for usage options
+```
+immunopepper -h
+```
 
 ### update 14/09/2018
 1. To avoid multimapper case, which might obscure our estimate for the expression count data, the test case
