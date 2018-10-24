@@ -6,7 +6,7 @@ import pytest
 
 data_dir = os.path.join(os.path.dirname(__file__), 'data')
 sample_dir = os.path.join(os.path.dirname(__file__), 'test1')
-from scripts import main_immuno
+from immunopepper import main_immuno
 
 
 def _assert_files_equal(expected_path, actual_path):
