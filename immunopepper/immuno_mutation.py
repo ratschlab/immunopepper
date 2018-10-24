@@ -5,6 +5,8 @@ from constant import NOT_EXIST
 from immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
 import sys
 
+import numpy as np
+
 Mutation = namedtuple('Mutation', ['vcf_dict', 'maf_dict', 'mode'])
 
 def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf):
@@ -20,19 +22,22 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_v
     output_seq = {}
     output_seq['ref'] = ref_sequence  # copy the reference
     if mutation_sub_dic_vcf is not None:
-        mut_seq = list(ref_sequence) # if no mutation infomation is provided
-        variant_pos = [pos for pos in mutation_sub_dic_vcf.keys()]
-        variant_pos_candi = [ipos for ipos in variant_pos if ipos > pos_start and ipos < pos_end]
-
-        for variant_ipos in variant_pos_candi:
-            ref_base = mutation_sub_dic_vcf[variant_ipos]['ref_base']
-            mut_base = mutation_sub_dic_vcf[variant_ipos]['mut_base']
-            mut_seq[variant_ipos] = mut_base
-        output_seq['background'] = ''.join(mut_seq)
+        mut_seq = construct_mut_seq_with_str_concat(ref_sequence, mutation_sub_dic_vcf)
+        output_seq['background'] = mut_seq
     else:
         output_seq['background'] = ref_sequence
     return output_seq
 
+
+def construct_mut_seq_with_str_concat(ref_seq, mut_dict):
+    variant_pos_sorted = np.sort(mut_dict.keys())
+    mut_seq_list = [ref_seq[:variant_pos_sorted[0]]]
+    for i in range(len(variant_pos_sorted)-1):
+        mut_seq_list.append(mut_dict[variant_pos_sorted[i]]['mut_base'])
+        mut_seq_list.append(ref_seq[variant_pos_sorted[i]+1:variant_pos_sorted[i+1]])
+    mut_seq_list.append(mut_dict[variant_pos_sorted[-1]]['mut_base'])
+    mut_seq_list.append(ref_seq[variant_pos_sorted[-1]+1:])
+    return ''.join(mut_seq_list)
 
 def get_mutation_mode_from_parser(args):
     Mutation = namedtuple('Mutation', ['mode','maf_dict','vcf_dict'])
