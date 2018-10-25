@@ -42,10 +42,9 @@ def find_overlapping_cds_simple(v_start, v_stop, cds_begins, strand):
     """
     Find overlapping CDS within an exon given a list of CDS starts
     """
-    if strand == "+":
-        return filter(lambda cds_begin: cds_begin[0] >= v_start and cds_begin[0] <= v_stop, cds_begins)
-    else:
-        return filter(lambda cds_begin: cds_begin[1] >= v_start and cds_begin[1] <= v_stop, cds_begins)
+    # cds_start = cds_begin[0]
+    return filter(lambda cds_begin: cds_begin[0] >= v_start and cds_begin[0] <= v_stop, cds_begins)
+
 
 def leq_strand(coord1, coord2, strand):
     if strand == "+":
