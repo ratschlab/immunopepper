@@ -82,49 +82,36 @@ def genes_preprocess(genes, gene_cds_begin_dict):
         gene.to_sparse()
 
 
-def preprocess_ann(ann_path):
-    if ann_path.endswith('gtf'):
-        gene_table = preprocess_ann_gtf(ann_path)
-    elif ann_path.endswith('gff'):
-        gene_table = preprocess_ann_gff(ann_path)
-    else:
-        print("invalid input annotation file type")
-        sys.exit(1)
-    return gene_table
-
 # Pre-processed the annotation file and builds a lookup structure that can be used to retrieve
 # the CDS start positions when looping over the genes
-##TODO: do we really need so many dictionary?
-def preprocess_ann_gtf(ann_path):
-    def attribute_list_to_dict(a_list):
-        a_dict = {}
-        for attribute_pair in a_list:
-            pair = attribute_pair.split(' ')
-            a_dict[pair[0]] = pair[1][1:-1]  # delete "", currently now work on level 2
-        return a_dict
+def preprocess_ann(ann_path):
     transcript_to_gene_dict = {}    # transcript -> gene id
     gene_to_transcript_dict = {}    # gene_id -> list of transcripts
     transcript_to_cds_dict = {}     # transcript -> list of CDS exons
     transcript_cds_begin_dict = {}  # transcript -> first exon of the CDS
     gene_cds_begin_dict = {}        # gene -> list of first CDS exons
 
+    file_type = ann_path.split('.')[-1]
+    lines = get_effective_lines(ann_path)
+
     # collect information from annotation file
-    for line in open(ann_path, 'r'):
+    for line in lines:
         item = line.split('\t')
         feature_type = item[2]
-        attribute_list = item[-1].split('; ')
-        attribute_dict = attribute_list_to_dict(attribute_list)
-
+        attribute_item = item[-1]
+        attribute_dict = attribute_item_to_dict(attribute_item, file_type, feature_type)
         # store relationship between gene ID and its transcript IDs
         if feature_type in ['transcript', 'mRNA']:
             gene_id = attribute_dict['gene_id']
             transcript_id = attribute_dict['transcript_id']
+            if attribute_dict['gene_type'] != 'protein_coding' or attribute_dict['transcript_type']  != 'protein_coding':
+                continue
             assert (transcript_id not in transcript_to_gene_dict)
             transcript_to_gene_dict[transcript_id] = gene_id
-            try:
+            if gene_id in gene_to_transcript_dict:
                 gene_to_transcript_dict[gene_id].add(transcript_id)
-            except KeyError:
-                gene_to_transcript_dict[gene_id] = set([transcript_id])
+            else:
+                gene_to_transcript_dict[gene_id] = {transcript_id}
 
         # Todo python is 0-based while gene annotation file(.gtf, .vcf, .maf) is one based
         elif feature_type == "CDS":
@@ -133,9 +120,9 @@ def preprocess_ann_gtf(ann_path):
             cds_left = int(item[3])-1
             cds_right = int(item[4])-1
             frameshift = int(item[7])
-            try:
+            if parent_ts in transcript_to_cds_dict:
                 transcript_to_cds_dict[parent_ts].append((cds_left, cds_right, frameshift))
-            except KeyError:
+            else:
                 transcript_to_cds_dict[parent_ts] = [(cds_left, cds_right, frameshift)]
             if strand_mode == "+" :
                 cds_start, cds_stop = cds_left, cds_right
@@ -163,80 +150,40 @@ def preprocess_ann_gtf(ann_path):
     return genetable
 
 
-def preprocess_ann_gff(ann_path):
-    def attribute_list_to_dict(a_list):
-        a_dict = {}
-        for attribute_pair in a_list:
-            pair = attribute_pair.split('=')
-            a_dict[pair[0]] = pair[1]  # delete "", currently now work on level 2
-        return a_dict
-    transcript_to_gene_dict = {}    # transcript -> gene id
-    gene_to_transcript_dict = {}    # gene_id -> list of transcripts
-    transcript_to_cds_dict = {}     # transcript -> list of CDS exons
-    transcript_cds_begin_dict = {}  # transcript -> first exon of the CDS
-    gene_cds_begin_dict = {}        # gene -> list of first CDS exons
-
-    # collect information from annotation file
+def get_effective_lines(ann_path):
     ann_file = open(ann_path, 'r')
     lines = ann_file.readlines()
-    for line in lines[2:]: # parsing gff, which has two more head lines
-        item = line.split('\t')
-        feature_type = item[2]
-        attribute_list = item[-1].split(';')
-        attribute_dict = attribute_list_to_dict(attribute_list)
-
-        # store relationship between gene ID and its transcript IDs
-        if feature_type in ['transcript', 'mRNA']:
-            gene_id = attribute_dict['geneID']
-            gene_type = attribute_dict['gene_type']
-            transcript_type = attribute_dict['transcript_type']
-            if gene_type != 'protein_coding' or transcript_type != "protein_coding":
-                continue
-            transcript_id = attribute_dict['ID']
-            assert (transcript_id not in transcript_to_gene_dict)
-            transcript_to_gene_dict[transcript_id] = gene_id
-            try:
-                gene_to_transcript_dict[gene_id].add(transcript_id)
-            except KeyError:
-                gene_to_transcript_dict[gene_id] = set([transcript_id])
-
-        # Todo python is 0-based while gene annotation file(.gtf, .vcf, .maf) is one based
-        elif feature_type == "CDS":
-            parent_ts = attribute_dict['Parent'].strip()
-            strand_mode = item[6]
-            cds_left = int(item[3])-1
-            cds_right = int(item[4])-1
-            frameshift = int(item[7])
-            try:
-                transcript_to_cds_dict[parent_ts].append((cds_left, cds_right, frameshift))
-            except KeyError:
-                transcript_to_cds_dict[parent_ts] = [(cds_left, cds_right, frameshift)]
-            # we only consider the start of the whole CoDing Segment
-            if strand_mode == '+' :
-                if parent_ts not in transcript_cds_begin_dict or \
-                leq_strand(cds_left, transcript_cds_begin_dict[parent_ts][0], strand_mode):
-                    transcript_cds_begin_dict[parent_ts] = (cds_left, cds_right, item)
-            else:
-                if parent_ts not in transcript_cds_begin_dict or \
-                leq_strand(cds_right, transcript_cds_begin_dict[parent_ts][0], strand_mode):
-                    transcript_cds_begin_dict[parent_ts] = (cds_left, cds_right, item)
+    start_num = 0
+    for line in lines:
+        if line[0] == '#':  # comment line, ignore it
+            start_num += 1
+        else:
+            break
+    return lines[start_num:]
 
 
-    # collect first CDS exons for all transcripts of a gene
-    for ts_key in transcript_to_gene_dict:
-        target_gene = transcript_to_gene_dict[ts_key]
-        if target_gene not in gene_cds_begin_dict:
-            gene_cds_begin_dict[target_gene] = []
-        if ts_key in transcript_cds_begin_dict:
-            gene_cds_begin_dict[target_gene].append(transcript_cds_begin_dict[ts_key])
+def attribute_item_to_dict(a_item, file_type, feature_type):
+    gtf_dict = {}
+    if file_type == 'gtf':
+        attribute_list = a_item.split('; ')
+        for attribute_pair in attribute_list:
+            pair = attribute_pair.split(' ')
+            gtf_dict[pair[0]] = pair[1][1:-1]
+    else:
+        gff_dict = {}
+        attribute_list = a_item.split(';')
+        for attribute_pair in attribute_list:
+            pair = attribute_pair.split('=')
+            gff_dict[pair[0]] = pair[1][1:-1]  # delete "", currently now work on level 2
+        if feature_type == 'CDS':
+            gtf_dict['transcript_id'] = gff_dict['Parent']
+        else:  # mRNA or transcript
+            gtf_dict['gene_id'] = gff_dict['geneID']
+            gtf_dict['transcript_id'] = gff_dict['ID']
+            gtf_dict['gene_type'] = gff_dict['gene_type']
+            gtf_dict['transcript_type'] = gff_dict['transcript_type']
 
-    # sort list of CDS exons per transcript
-    for ts_key in transcript_to_cds_dict:
-        transcript_to_cds_dict[ts_key] = sorted(transcript_to_cds_dict[ts_key], key=lambda coordpair: coordpair[0])
-
-    genetable = GeneTable(gene_cds_begin_dict, transcript_to_cds_dict, gene_to_transcript_dict)
-    return genetable
-
+    return gtf_dict
 
 def search_edge_metadata_segmentgraph(gene, sorted_pos, edges, Idx):
     ''' Gives the ordered edge coordinates of the edge, return expression information of the edge'''
