@@ -60,7 +60,8 @@ def test_end_to_end_ref(test_type, case, mutation_mode, tmpdir):
                '--ref_path', '{}/test{}{}.fa'.format(data_dir, test_type, case),
                '--vcf_path', '{}/test{}{}.vcf'.format(data_dir, test_type, case),
                '--maf_path', '{}/test{}{}.maf'.format(data_dir, test_type, case),
-               '--mutation_mode', mutation_mode]
+               '--mutation_mode', mutation_mode,
+               '--is_filter']
 
     main_immuno.main(main_immuno.parse_arguments(my_args))
 
