@@ -96,7 +96,7 @@ def preprocess_ann(ann_path):
 
     # collect information from annotation file
     for line in lines:
-        item = line.split('\t')
+        item = line.strip().split('\t')
         feature_type = item[2]
         attribute_item = item[-1]
         attribute_dict = attribute_item_to_dict(attribute_item, file_type, feature_type)
@@ -169,15 +169,20 @@ def attribute_item_to_dict(a_item, file_type, feature_type):
         for attribute_pair in attribute_list:
             pair = attribute_pair.split(' ')
             gtf_dict[pair[0]] = pair[1][1:-1]
-    else:
+    elif file_type == 'gff3':
+        attribute_list = a_item.split(';')
+        for attribute_pair in attribute_list:
+            pair = attribute_pair.split('=')
+            gtf_dict[pair[0]] = pair[1]
+    elif file_type == 'gff':
         gff_dict = {}
         attribute_list = a_item.split(';')
         for attribute_pair in attribute_list:
             pair = attribute_pair.split('=')
-            gff_dict[pair[0]] = pair[1][1:-1]  # delete "", currently now work on level 2
+            gff_dict[pair[0]] = pair[1]  # delete "", currently now work on level 2
         if feature_type == 'CDS':
             gtf_dict['transcript_id'] = gff_dict['Parent']
-        else:  # mRNA or transcript
+        elif feature_type in {'mRNA', 'transcript'}:  # mRNA or transcript
             gtf_dict['gene_id'] = gff_dict['geneID']
             gtf_dict['transcript_id'] = gff_dict['ID']
             gtf_dict['gene_type'] = gff_dict['gene_type']
