@@ -29,6 +29,7 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_v
     return output_seq
 
 
+
 def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     variant_pos_candi = [ipos for ipos in mut_dict.keys() if ipos > pos_start and ipos < pos_end]
     if len(variant_pos_candi) >0 :
@@ -42,6 +43,13 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
             else:
                 mut_seq_list.append(ref_base)
             mut_seq_list.append(ref_seq[variant_pos_sorted[i]+1:variant_pos_sorted[i+1]])
+        mut_base = mut_dict[variant_pos_sorted[-1]]['mut_base']
+        ref_base = mut_dict[variant_pos_sorted[-1]]['ref_base']
+        if mut_base != '*':
+            mut_seq_list.append(mut_base)
+        else:
+            mut_seq_list.append(ref_base)
+        mut_seq_list.append(ref_seq[variant_pos_sorted[i]+1:variant_pos_sorted[i+1]])
         mut_base = mut_dict[variant_pos_sorted[-1]]['mut_base']
         ref_base = mut_dict[variant_pos_sorted[-1]]['ref_base']
         if mut_base != '*':
