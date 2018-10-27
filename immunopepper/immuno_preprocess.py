@@ -92,10 +92,11 @@ def preprocess_ann(ann_path):
     gene_cds_begin_dict = {}        # gene -> list of first CDS exons
 
     file_type = ann_path.split('.')[-1]
-    lines = get_effective_lines(ann_path)
 
     # collect information from annotation file
-    for line in lines:
+    for line in open(ann_path):
+        if line[0] == '#':
+            continue
         item = line.strip().split('\t')
         feature_type = item[2]
         attribute_item = item[-1]
@@ -148,19 +149,6 @@ def preprocess_ann(ann_path):
 
     genetable = GeneTable(gene_cds_begin_dict, transcript_to_cds_dict, gene_to_transcript_dict)
     return genetable
-
-
-def get_effective_lines(ann_path):
-    ann_file = open(ann_path, 'r')
-    lines = ann_file.readlines()
-    start_num = 0
-    for line in lines:
-        if line[0] == '#':  # comment line, ignore it
-            start_num += 1
-        else:
-            break
-    return lines[start_num:]
-
 
 def attribute_item_to_dict(a_item, file_type, feature_type):
     gtf_dict = {}
