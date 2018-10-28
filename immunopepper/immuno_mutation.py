@@ -31,14 +31,28 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_v
 
 def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     variant_pos_candi = [ipos for ipos in mut_dict.keys() if ipos > pos_start and ipos < pos_end]
-    variant_pos_sorted = np.sort(variant_pos_candi)
-    mut_seq_list = [ref_seq[:variant_pos_sorted[0]]]
-    for i in range(len(variant_pos_sorted)-1):
-        mut_seq_list.append(mut_dict[variant_pos_sorted[i]]['mut_base'])
-        mut_seq_list.append(ref_seq[variant_pos_sorted[i]+1:variant_pos_sorted[i+1]])
-    mut_seq_list.append(mut_dict[variant_pos_sorted[-1]]['mut_base'])
-    mut_seq_list.append(ref_seq[variant_pos_sorted[-1]+1:])
-    return ''.join(mut_seq_list)
+    if len(variant_pos_candi) >0 :
+        variant_pos_sorted = np.sort(variant_pos_candi)
+        mut_seq_list = [ref_seq[:variant_pos_sorted[0]]]
+        for i in range(len(variant_pos_sorted)-1):
+            mut_base = mut_dict[variant_pos_sorted[i]]['mut_base']
+            ref_base = mut_dict[variant_pos_sorted[i]]['ref_base']
+            if mut_base != '*':
+                mut_seq_list.append(mut_base)
+            else:
+                mut_seq_list.append(ref_base)
+            mut_seq_list.append(ref_seq[variant_pos_sorted[i]+1:variant_pos_sorted[i+1]])
+        mut_base = mut_dict[variant_pos_sorted[-1]]['mut_base']
+        ref_base = mut_dict[variant_pos_sorted[-1]]['ref_base']
+        if mut_base != '*':
+            mut_seq_list.append(mut_base)
+        else:
+            mut_seq_list.append(ref_base)
+        mut_seq_list.append(ref_seq[variant_pos_sorted[-1]+1:])
+        mut_seq = ''.join(mut_seq_list)
+    else:
+        mut_seq = ref_seq
+    return mut_seq
 
 def get_mutation_mode_from_parser(args):
     Mutation = namedtuple('Mutation', ['mode','maf_dict','vcf_dict'])
