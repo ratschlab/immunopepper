@@ -125,7 +125,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx = None,
                         meta_header_line += "\t"+str(segment_expr)
 
                         output_metadata_list.append(meta_header_line)
-                        peptide_str_pretty = '>' + str(idx.gene) + '.' + str(output_id) + '\n' + peptide.mut
+                        peptide_str_pretty = '>' + str(idx.gene) + '.' + str(output_id) + '\t' + gene.name + '\n' + peptide.mut
                         output_peptide_list.append(peptide_str_pretty)
                         output_id += 1
     if not sg.edges is None:

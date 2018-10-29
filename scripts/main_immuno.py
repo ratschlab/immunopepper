@@ -37,7 +37,7 @@ def parse_arguments(argv):
     parser.add_argument("--count_path",help="specify the absolute path of the count h5 file", required=False, default=None)
     parser.add_argument("--gtex_junction_path",help="specify the absolute path the the gtex_junction h5 file", required=False, default=None)
     parser.add_argument("--process_num", type=int, help="Only process the first *process_num* gene in the splicegraph,default,0, means process all", required=False, default=0)
-    parser.add_argument("--is_filter", help="apply redundancy filter to the exon list", action="store_false", required=False, default=True)
+    parser.add_argument("--filter_redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
     parser.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
     parser.add_argument("--mutation_mode", help="specify the mutation mdoe", required=False, default='ref')
 
@@ -148,7 +148,6 @@ def main(arg):
         for gene_idx, gene in enumerate(graph_data[:num]):
             start_time = timeit.default_timer()
             print('%s %i/%i\n'%(sample, gene_idx, num))
-            gene = graph_data[gene_idx]
             idx = get_idx(strain_idx_table,sample,gene_idx)
 
             # Genes not contained in the annotation...
@@ -170,7 +169,7 @@ def main(arg):
                               junction_list=junction_list, debug=arg.debug
                             )
             expr_distr.append(total_expr)
-            if arg.is_filter:
+            if arg.filter_redundant:
                 output_metadata_list, output_peptide_list = get_filtered_output_list(output_metadata_list,output_peptide_list)
             meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
             peptide_fp.write('\n'.join(output_peptide_list)+'\n')

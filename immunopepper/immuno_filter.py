@@ -204,6 +204,9 @@ def get_exon_dict(metadata_list):
     return exon_dict
 
 def get_remove_id(metadata_dict):
+    # Todo: [Warning!] if two output lines have identical
+    # coordinates and readframe
+    # both of them will be removed. Need to fix.
     remove_id_list = []
     for exon_pair_list in metadata_dict.values():
         L = len(exon_pair_list)

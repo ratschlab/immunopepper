@@ -1,7 +1,9 @@
 output_id	read_frame	gene_name	gene_chr	gene_strand	mutation_mode	peptide_weight	peptide_annotated	junction_annotated	has_stop_codon	is_in_junction_list	is_isolated	variant_comb	seg_expr	exons_coor	vertex_idx	junction_expr	segment_expr
-0.0	1	GENE1	X	-	somatic_and_germline	1.000	0	1	0	.	0	111	1409	124;134;101;112	7,5	0.0	1351
-0.1	1	GENE1	X	-	somatic_and_germline	0.333	0	1	0	.	0	111	1409	121;134;101;112	6,5	1195.0	1498
-0.2	2	GENE1	X	-	somatic_and_germline	0.333	0	1	0	.	0	111	1409	121;138;102;112	6,5	1195.0	1470
-0.3	0	GENE1	X	-	somatic_and_germline	0.333	0	1	0	.	0	111	1409	121;139;100;112	6,5	1195.0	1450
-0.4	0	GENE1	X	-	somatic_and_germline	0.333	0	1	1	.	0	111	1409	100;112;62;89	5,1	869.0	1125
-0.5	0	GENE1	X	-	somatic_and_germline	0.333	0	1	0	.	0	111	1409	100;112;75;84	5,3	0.0	1527
+0.0	1	GENE1	X	-	somatic_and_germline	0.333	0	1	0	.	0	111	1409	124;134;101;112	7,5	0.0	1351
+0.1	2	GENE1	X	-	somatic_and_germline	0.333	0	1	0	.	0	111	1409	124;138;102;112	7,5	0.0	1338
+0.2	0	GENE1	X	-	somatic_and_germline	0.333	0	1	0	.	0	111	1409	124;139;100;112	7,5	0.0	1330
+0.3	1	GENE1	X	-	somatic_and_germline	0.333	0	1	0	.	0	111	1409	121;134;101;112	6,5	1195.0	1498
+0.4	2	GENE1	X	-	somatic_and_germline	0.333	0	1	0	.	0	111	1409	121;138;102;112	6,5	1195.0	1470
+0.5	0	GENE1	X	-	somatic_and_germline	0.333	0	1	0	.	0	111	1409	121;139;100;112	6,5	1195.0	1450
+0.6	0	GENE1	X	-	somatic_and_germline	0.333	0	1	1	.	0	111	1409	100;112;62;89	5,1	869.0	1125
+0.7	0	GENE1	X	-	somatic_and_germline	0.333	0	1	0	.	0	111	1409	100;112;75;84	5,3	0.0	1527

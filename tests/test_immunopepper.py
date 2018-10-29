@@ -87,3 +87,24 @@ def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
                                   vlist[3], variant_comb[i],
                                   mutation_sub_dic_maf, strand[i])
         assert sub_dna == groundtruth[i]
+
+
+def test_reading_gtf_and_gff3_file():
+    gff3_path = os.path.join(data_dir,'small.gencode.v29.gff3')
+    gtf_path = os.path.join(data_dir, 'small.gencode.v29.gtf')
+    gene_table_gtf = preprocess_ann(gtf_path)
+    gene_table_gff = preprocess_ann(gff3_path)
+    assert gene_table_gff.gene_to_ts == gene_table_gtf.gene_to_ts
+    assert gene_table_gtf.ts_to_cds.keys() == gene_table_gff.ts_to_cds.keys()
+    assert gene_table_gtf.ts_to_cds['ENST00000335137.4'] == [(69090, 70004, 0)]
+    assert gene_table_gff.ts_to_cds['ENST00000335137.4'] == [(69090, 70007, 0)] # include stop codon in gff3
+
+def test_reading_gtf_and_gff_file():
+    gff_path = os.path.join(data_dir,'small.gencode.v19.gff')
+    gtf_path = os.path.join(data_dir, 'small.gencode.v19.gtf')
+    gene_table_gtf = preprocess_ann(gtf_path)
+    gene_table_gff = preprocess_ann(gff_path)
+    assert gene_table_gff.gene_to_ts == gene_table_gtf.gene_to_ts
+    assert gene_table_gtf.ts_to_cds.keys() == gene_table_gff.ts_to_cds.keys()
+    assert gene_table_gff.ts_to_cds['ENST00000335137.3'] == [(69090, 70005, 0)]
+    assert gene_table_gtf.ts_to_cds['ENST00000335137.3'] == [(69090, 70004, 0)]
