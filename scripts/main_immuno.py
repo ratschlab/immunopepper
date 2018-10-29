@@ -171,7 +171,7 @@ def main(arg):
             expr_distr.append(total_expr)
             if arg.filter_redundant:
                 output_metadata_list, output_peptide_list = get_filtered_output_list(output_metadata_list,output_peptide_list)
-            assert 2*len(output_metadata_list)) == len(output_peptide_list)
+            assert len(output_metadata_list) == len(output_peptide_list)
             if len(output_peptide_list) > 0:
                 meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
                 peptide_fp.write('\n'.join(output_peptide_list)+'\n')
