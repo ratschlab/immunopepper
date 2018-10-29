@@ -49,13 +49,6 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
             mut_seq_list.append(mut_base)
         else:
             mut_seq_list.append(ref_base)
-        mut_seq_list.append(ref_seq[variant_pos_sorted[i]+1:variant_pos_sorted[i+1]])
-        mut_base = mut_dict[variant_pos_sorted[-1]]['mut_base']
-        ref_base = mut_dict[variant_pos_sorted[-1]]['ref_base']
-        if mut_base != '*':
-            mut_seq_list.append(mut_base)
-        else:
-            mut_seq_list.append(ref_base)
         mut_seq_list.append(ref_seq[variant_pos_sorted[-1]+1:])
         mut_seq = ''.join(mut_seq_list)
     else:
