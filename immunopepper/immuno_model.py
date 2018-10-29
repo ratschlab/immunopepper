@@ -28,8 +28,10 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx = None,
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
     # otherwise, background_seq = ref_seq
-    ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq, pos_start=gene.start, pos_end=gene.stop,
-                                              mutation_sub_dic_vcf=mutation.vcf_dict)
+    pos_start = np.min(sg.vertices[0])
+    pos_end = np.max(sg.vertices[1])
+    ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq, pos_start=pos_start, pos_end=pos_end,
+                                           mutation_sub_dic_vcf=mutation.vcf_dict)
 
     # apply somatic mutation
     # som_exp_dict: (mutation_position) |-> (expression)
