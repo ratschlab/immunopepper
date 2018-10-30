@@ -147,7 +147,7 @@ def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, varian
                 assert (sub_dna_list[pos] == ref_base)
                 sub_dna_list[pos] = mut_base
 
-        elif variant_ipos in range(start_v2, stop_v2):
+        elif start_v2 != NOT_EXIST and variant_ipos in range(start_v2, stop_v2):
             if strand == '-':
                 pos = stop_v2-variant_ipos+stop_v1-start_v1-1
                 assert (sub_dna_list[pos] == ref_base)
