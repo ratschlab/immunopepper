@@ -179,6 +179,10 @@ def main(arg):
     create_libsize(expr_distr_dict,output_libszie_fp)
 
 
-if __name__ == "__main__":
+def cmd_entry():
     arg = parse_arguments(sys.argv[1:])
     main(arg)
+
+
+if __name__ == "__main__":
+    cmd_entry()
