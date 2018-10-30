@@ -97,9 +97,9 @@ def get_exon_som_dict(gene, mutation_pos):
     exon_list = gene.splicegraph.vertices
     exon_som_dict = {k:[] for k in range(exon_list.shape[1])}
     for ipos in mutation_pos:
-        exon_id = bisect.bisect(exon_list[0, :], ipos)
-        if exon_id > 0 and ipos <= exon_list[1][exon_id-1]:  # the mutation is within the pos
-            exon_som_dict[exon_id-1].append(ipos)
+        for i in range(exon_list.shape[1]):
+            if ipos in range(exon_list[0,i], exon_list[1,i]):
+                exon_som_dict[i].append(ipos)
     exon_som_dict[NOT_EXIST] = []  # for single cds case
     return exon_som_dict
 
