@@ -265,7 +265,7 @@ def parse_gene_metadata_info(h5f, donor_list):
     return countinfo
 
 
-def parse_mutation_from_vcf(vcf_path):
+def parse_mutation_from_vcf(vcf_path, sample_list):
     """
     Extract germline mutation information from given vcf file.
 
@@ -278,7 +278,10 @@ def parse_mutation_from_vcf(vcf_path):
     mut_dict: with key (sample, chromo) and values (var_dict)
 
     """
-    print(vcf_path)
+    file_type = vcf_path.split('.')[-1]
+    if file_type == 'h5':
+        mutation_dic = parse_mutation_from_vcf_h5(vcf_path,sample_list)
+        return mutation_dic
     f = open(vcf_path,'r')
     lines = f.readlines()
     mutation_dic = {}
@@ -297,20 +300,14 @@ def parse_mutation_from_vcf(vcf_path):
         var_dict['mut_base'] = items[4]
         var_dict['qual'] = items[5]
         var_dict['filter'] = items[6]
-        info = items[7]
-        info_items =info.split(';')
-        for info_item in info_items:
-            key, value = info_item.split('=')
-            if key == 'VT':
-                var_dict['varianttype'] = value
-                break
-        if var_dict['varianttype'] == 'SNP':  # only consider snp for now
-            for sample_id in sample_list:
-                if (sample_id,chr) in mutation_dic.keys():
-                    mutation_dic[(sample_id,chr)][int(pos)] = var_dict
-                else:
-                    mutation_dic[(sample_id,chr)] = {}
-                    mutation_dic[(sample_id, chr)][int(pos)] = var_dict
+        if len(var_dict['ref_base']) == len(var_dict['mut_base']):  # only consider snp for now
+            for i, sample_id in enumerate(sample_list):
+                if items[9+i].split(':')[0] in {'1|1' ,'1|0', '0|1'}:
+                    if (sample_id,chr) in mutation_dic.keys():
+                        mutation_dic[(sample_id,chr)][int(pos)] = var_dict
+                    else:
+                        mutation_dic[(sample_id,chr)] = {}
+                        mutation_dic[(sample_id, chr)][int(pos)] = var_dict
     return mutation_dic
 
 def parse_mutation_from_vcf_h5(h5_vcf_path,sample_list):
@@ -408,12 +405,3 @@ def parse_junction_meta_info(h5f_path):
             except KeyError:
                 junction_dict[ichr] = set([':'.join([pos[i, 0], pos[i, 1], strand[i]])])
     return junction_dict
-
-
-
-
-
-
-
-
-
