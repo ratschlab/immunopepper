@@ -39,7 +39,7 @@ def load_gene_data():
 def load_mutation_data():
     vcf_path = os.path.join(data_dir, 'test1pos.vcf')
     maf_path = os.path.join(data_dir, 'test1pos.maf')
-    mutation_dic_vcf = parse_mutation_from_vcf(vcf_path)
+    mutation_dic_vcf = parse_mutation_from_vcf(vcf_path,['test1pos'])
     mutation_dic_maf = parse_mutation_from_maf(maf_path)
 
     return mutation_dic_vcf, mutation_dic_maf
