@@ -293,7 +293,7 @@ def parse_gene_metadata_info(h5f, sample_list):
     return countinfo
 
 
-def parse_mutation_from_vcf(vcf_path, sample_list):
+def parse_mutation_from_vcf(vcf_path, sample_list=None, heter_code=0):
     """Extract germline mutation information from the given vcf file and vcf.h5 file
 
     Parameters
@@ -307,7 +307,7 @@ def parse_mutation_from_vcf(vcf_path, sample_list):
     """
     file_type = vcf_path.split('.')[-1]
     if file_type == 'h5':
-        mutation_dic = parse_mutation_from_vcf_h5(vcf_path,sample_list)
+        mutation_dic = parse_mutation_from_vcf_h5(vcf_path,sample_list,heter_code)
         return mutation_dic
     f = open(vcf_path,'r')
     lines = f.readlines()
@@ -338,7 +338,7 @@ def parse_mutation_from_vcf(vcf_path, sample_list):
     return mutation_dic
 
 
-def parse_mutation_from_vcf_h5(h5_vcf_path, sample_list):
+def parse_mutation_from_vcf_h5(h5_vcf_path, sample_list, heter_code=0):
     """
     Extract germline mutation information from given vcf h5py file.
 
@@ -356,7 +356,7 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, sample_list):
     mut_dict = {}
     for sample in sample_list:
         col_id = [i for (i, item) in enumerate(a['gtid']) if item.startswith(sample)][0]
-        row_id = sp.where(a['gt'][:,col_id]==0)[0]
+        row_id = sp.where(sp.logical_or(a['gt'][:,col_id] == heter_code,a['gt'][:,col_id] == 1))[0]
         for irow in row_id:
             chromo = encode_chromosome(a['pos'][irow,0])
             pos = a['pos'][irow,1]-1
