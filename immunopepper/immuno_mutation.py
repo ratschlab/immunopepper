@@ -1,23 +1,33 @@
+"""Contain functions to deal with mutation"""
 import bisect
-from utils import get_all_comb
+import sys
 from collections import namedtuple
+
 from constant import NOT_EXIST
 from immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
-import sys
+from utils import get_all_comb
 
 import numpy as np
 
 Mutation = namedtuple('Mutation', ['vcf_dict', 'maf_dict', 'mode'])
 
-def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf):
-    """
-    Apply all the germline mutations to the reference sequence.
 
+def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf):
+    """Apply germline mutation on the reference sequence
+
+    Parameters
+    ----------
+    ref_sequence: str. reference sequence of certain chromosome.
+    pos_start: int. start position of sequence for applying germiline mutation.
+    pos_end: int. Ending position of sequence for applying germline mutation.
+    mutation_sub_dic_vcf: dict. (position) -> variant details
 
     Returns
     -------
-    output_seq: dict, two keys. "ref" to the original reference sequence
-                                "background" to the germline_mutation_applied ref (if there is germline mutation exist)
+    output_seq: dict. (sequence_type) -> list[char]. output['ref'] is the original
+    reference sequence output['background'] is the germline-mutation-applied sequence
+    if .maf file (somatic mutation) exists while is original sequence if no somatic
+    information is available.
     """
     output_seq = {}
     output_seq['ref'] = ref_sequence  # copy the reference
@@ -29,10 +39,22 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_v
     return output_seq
 
 
-
 def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
+    """ Applying germline mutation on given range and get mutated sequence
+
+    Parameters
+    ----------
+    ref_seq: str. reference sequence
+    pos_start: int. Start position of applying germline mutation
+    pos_end: int. Stop position of applying germline mutation
+    mut_dict: dict. Germline mutation dictioanry
+
+    Returns
+    -------
+    mut_seq: str. mutation sequence
+    """
     variant_pos_candi = [ipos for ipos in mut_dict.keys() if ipos > pos_start and ipos < pos_end]
-    if len(variant_pos_candi) >0 :
+    if len(variant_pos_candi) > 0:
         variant_pos_sorted = np.sort(variant_pos_candi)
         mut_seq_list = [ref_seq[:variant_pos_sorted[0]]]
         for i in range(len(variant_pos_sorted)-1):
@@ -54,6 +76,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     else:
         mut_seq = ref_seq
     return mut_seq
+
 
 def get_mutation_mode_from_parser(args):
     Mutation = namedtuple('Mutation', ['mode','maf_dict','vcf_dict'])
@@ -92,7 +115,7 @@ def get_mutation_mode_from_parser(args):
 
 def get_exon_som_dict(gene, mutation_pos):
     """
-    Build exon id to somatic mutation position dictionary map.
+    Build exon id (key) to somatic mutation position dictionary.
     """
     exon_list = gene.splicegraph.vertices
     exon_som_dict = {k:[] for k in range(exon_list.shape[1])}
@@ -106,7 +129,7 @@ def get_exon_som_dict(gene, mutation_pos):
 
 def get_som_expr_dict(gene, mutation_pos, segments, Idx):
     """
-    Build somatic mutation position to expression data dict map.
+    Build somatic mutation position(key) to expression data(value) dictionary.
     """
     seg_mat = gene.segmentgraph.segments[0]
     som_expr_dict = {}
@@ -142,6 +165,7 @@ def get_mut_comb(exon_som_dict, idx, prop_vertex):
 
 
 def get_sub_mutation_tuple(mutation, sample, chrm):
+    """ Get sub mutation namedtuple on given sample and chromosome """
     if (sample, chrm) in mutation.vcf_dict.keys():
         mutation_sub_dict_vcf = mutation.vcf_dict[(sample, chrm)]
     else:
