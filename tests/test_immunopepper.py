@@ -99,6 +99,7 @@ def test_reading_gtf_and_gff3_file():
     assert gene_table_gtf.ts_to_cds['ENST00000335137.4'] == [(69090, 70004, 0)]
     assert gene_table_gff.ts_to_cds['ENST00000335137.4'] == [(69090, 70007, 0)] # include stop codon in gff3
 
+
 def test_reading_gtf_and_gff_file():
     gff_path = os.path.join(data_dir,'small.gencode.v19.gff')
     gtf_path = os.path.join(data_dir, 'small.gencode.v19.gtf')
@@ -108,3 +109,14 @@ def test_reading_gtf_and_gff_file():
     assert gene_table_gtf.ts_to_cds.keys() == gene_table_gff.ts_to_cds.keys()
     assert gene_table_gff.ts_to_cds['ENST00000335137.3'] == [(69090, 70005, 0)]
     assert gene_table_gtf.ts_to_cds['ENST00000335137.3'] == [(69090, 70004, 0)]
+
+
+def test_reading_vcf_h5():
+    vcf_dict_default_heter_code0 = parse_mutation_from_vcf(os.path.join(data_dir,'test1vcf.h5'),['test1pos','test1neg'])
+    vcf_dict_heter_code2 = parse_mutation_from_vcf(os.path.join(data_dir,'test1vcf.h5'),['test1pos','test1neg'],heter_code=2)
+    assert len(vcf_dict_default_heter_code0) == 2
+    assert vcf_dict_default_heter_code0['test1neg', 'X'][135] == {'mut_base': 'G', 'ref_base': 'C'}
+    assert vcf_dict_default_heter_code0['test1pos', 'X'][14] == {'mut_base': 'C', 'ref_base':'G'}
+    assert vcf_dict_heter_code2['test1pos', 'X'][135] == {'mut_base': 'G', 'ref_base': 'C'}
+    assert vcf_dict_heter_code2['test1neg', 'X'][14] == {'mut_base': 'C', 'ref_base':'G'}
+    assert vcf_dict_heter_code2['test1neg', 'X'][135] == {'mut_base': 'G', 'ref_base':'C'}
