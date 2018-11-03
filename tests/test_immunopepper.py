@@ -121,4 +121,3 @@ def test_reading_vcf_h5():
     assert vcf_dict_heter_code2['test1neg', 'X'][14] == {'mut_base': 'C', 'ref_base':'G'}
     assert vcf_dict_heter_code2['test1neg', 'X'][135] == {'mut_base': 'G', 'ref_base':'C'}
 
-/Users/jiayu/PycharmProjects/CBM_RA/projects2018_immunopepper/tests/test1/data/test1vcf.h5
