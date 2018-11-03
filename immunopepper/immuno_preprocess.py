@@ -237,28 +237,6 @@ def search_edge_metadata_segmentgraph(gene, sorted_pos, edges, Idx):
     return count
 
 
-def search_metadata_segmentgraph(gene, gen_coord, seg_lookup_table, strain_idx_table, segment_expr_info, donor_id,
-                                 sample_suffix=None):
-    gene_name = gene.name
-    segment_graph = gene.segmentgraph
-    seg_idxs = seg_lookup_table[gene_name]
-    col_idx = strain_idx_table[donor_id + sample_suffix]
-    assert (len(seg_idxs) == segment_graph.segments.shape[1])
-
-    # We use that in a segment graph, the vertices are not overlapping, so once we have found the segment,
-    # we can look-up its expression value and return directly.
-    for per_gene_idx, global_seg_idx in enumerate(seg_idxs):
-        lbound = segment_graph.segments[0, per_gene_idx] + 1
-        rbound = segment_graph.segments[1, per_gene_idx]
-
-        if gen_coord >= lbound and gen_coord <= rbound:
-            gene_expr_entry = float(segment_expr_info[global_seg_idx, col_idx])
-            return gene_expr_entry, per_gene_idx
-
-    assert (False)
-    return np.nan
-
-
 def parse_gene_metadata_info(h5f, sample_list):
     """ Parse the count file
 

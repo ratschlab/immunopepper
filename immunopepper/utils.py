@@ -403,31 +403,6 @@ def is_isolated_cds(gene, idx):
     return sp.sum(gene.splicegraph.edges[:, idx]) == 0
 
 
-def is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2, read_frame_tuple):
-    read_frame = read_frame_tuple[2]
-    strand = gene.strand
-    output_vertex_dict = gene.output_vertex_dict
-    if strand == '+':
-        if (stop_v1, start_v2, read_frame) in output_vertex_dict:
-            all_output_comb = output_vertex_dict[(stop_v1, start_v2, read_frame)]
-            for comb in all_output_comb:
-                if start_v1 >= comb[0] and stop_v2 <= comb[1]:
-                    return True
-            output_vertex_dict[(stop_v1, start_v2,read_frame)].append((start_v1, stop_v2))
-        else:
-            output_vertex_dict[(stop_v1, start_v2,read_frame)] = [(start_v1, stop_v2)]
-    else:  # strand == '-'
-        if (start_v1, stop_v2, read_frame) in output_vertex_dict:
-            all_output_comb = output_vertex_dict[(start_v1, stop_v2, read_frame)]
-            for comb in all_output_comb:
-                if stop_v1 <= comb[0] and start_v2 >= comb[1]:
-                    return True
-            output_vertex_dict[(start_v1, stop_v2, read_frame)].append((stop_v1, start_v2))
-        else:
-            output_vertex_dict[(start_v1, stop_v2, read_frame)] = [(stop_v1, start_v2)]
-    return False
-
-
 def is_in_junction_list(v1,v2,strand,junction_list):
     """Check if the intron is in concerned junction list"""
     return int(':'.join([str(v1[1]),  str(v2[0]), strand]) in junction_list)
