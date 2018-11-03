@@ -224,7 +224,7 @@ def search_metadata_segmentgraph(gene, gen_coord, seg_lookup_table, strain_idx_t
 ## Constructs look-up tables to lookup the correct column in matrix for a particular donor and
 #  splits the global segments matrix into smaller chunks for each geneID to enable faster look-up
 #  during peptide emission.
-def parse_gene_metadata_info(h5f, donor_list):
+def parse_gene_metadata_info(h5f, sample_list):
     strain_expr_info = h5f["/strains"]
     segment_expr_info = h5f["/segments"]
     edge_expr_info = h5f["/edges"]
@@ -232,11 +232,11 @@ def parse_gene_metadata_info(h5f, donor_list):
     assert (strain_expr_info.size == segment_expr_info.shape[1])
     strain_idx_table = {}
 
-    #TODO: make it clear how strain_id come from in h5f file
-    for strain_idx in np.arange(strain_expr_info.size):
-        strain_id = strain_expr_info[strain_idx]
-        if strain_id in donor_list:
-            strain_idx_table[strain_id] = strain_idx
+    for sample in sample_list:
+        for i, strain in enumerate(strain_expr_info):
+            if strain.startswith(sample):
+                strain_idx_table[sample] = i
+                continue
 
     gene_names = h5f["/gene_names"]
     gene_ids_segs = h5f["/gene_ids_segs"]
