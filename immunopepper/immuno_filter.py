@@ -203,36 +203,6 @@ def peptide_match(ref_peptides, peptide):
     return match_ts_list
 
 
-def has_stop_codon_initial(seq, start_coord, end_coord, strand):
-    if strand == "+":
-        assert (start_coord <= end_coord)
-        substr = seq[start_coord - 1:end_coord]
-    else:  # strand=="-"
-        assert (start_coord >= end_coord)
-        substr = complementary_seq(seq[end_coord - 1:start_coord][::-1])
-    for idx in range(0, len(substr) - 2, 3):
-        nuc_frame = substr[idx:idx + 3]
-        if nuc_frame.lower() in ["tag", "taa", "tga"]:
-            return True
-    return False
-
-## Returns true if there is a stop codon found spanning the two sequences
-# seq_prop: Propagating sequence
-# seq_accept: Accepting sequence
-# read_frame: Read frame of propagating vertex
-# strand: Direction of read strand
-def has_stop_codon_cross(seq_prop, seq_accept, read_frame, strand):
-    if strand == "+":
-        check_seq = seq_prop[-read_frame:] + seq_accept
-    else:  # strand=="-"
-        check_seq = seq_prop[::-1][-read_frame:] + seq_accept[::-1]
-    for idx in range(0, len(check_seq) - 2, 3):
-        nuc_frame = check_seq[idx:idx + 3]
-        if nuc_frame.lower() in ["tag", "taa", "tga"]:
-            return True
-    return False
-
-
 def get_exon_dict(metadata_list):
     """ Get an auxiliary dictionary used for filtering
 
