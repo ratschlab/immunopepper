@@ -19,18 +19,18 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
        ----------
        gene: Object, returned by SplAdder.
        ref_seq: Str, reference sequnce of specific chromosome
-       idx: Namedtuple, has attribute idx.gene and idx.sample
-       segments: Namedtuple, store segment expression information from count.hdf5.
+       idx: Namedtuple Idx, has attribute idx.gene and idx.sample
+       segments: Namedtuple Segments, store segment expression information from count.hdf5.
            has attribute ['expr', 'lookup_table'].
-       edges: namedtuple, store edges expression information from count.hdf5.
+       edges: Namedtuple Edges, store edges expression information from count.hdf5.
            has attribute ['expr','lookup_table']
-       table: Namedtuple, store the gene-transcript-cds mapping tables derived
+       table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
            from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
        debug: bool. More detailed information will be printed when debugging.
        size_factor: Scalar. To adjust the expression counts based on the external file `libsize.tsv`
        junction_list: List. Work as a filter to indicate some exon pair has certain
            ordinary intron which can be ignored further.
-       mutation: Namedtuple, store the mutation information of specific chromosome and sample.
+       mutation: Namedtuple Mutation, store the mutation information of specific chromosome and sample.
            has the attribute ['mode', 'maf_dict', 'vcf_dict']
        Returns
        -------

@@ -11,6 +11,7 @@ from constant import NOT_EXIST
 Peptide = namedtuple('Peptide', ['mut', 'ref'])
 Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
 Flag = namedtuple('Flag', ['has_stop', 'is_isolated'])
+Idx = namedtuple('Idx', ['gene', 'sample'])
 
 
 def to_adj_list(adj_matrix):
@@ -218,12 +219,12 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
 
     Returns
     -------
-    peptide: NamedTuple. has attribute ['ref', 'mut']. contain the output peptide
+    peptide: NamedTuple Peptide. has attribute ['ref', 'mut']. contain the output peptide
         translated from reference sequence and mutated sequence.
-    coord: NamedTuple. has attribute ['start_v1', 'stop_v1', 'start_v2', 'stop_v2']
+    coord: NamedTuple Coord. has attribute ['start_v1', 'stop_v1', 'start_v2', 'stop_v2']
         contains the true four position of exon pairs (after considering read framee)
         that outputs the peptide.
-    flag: NamedTuple. has attribute ['has_stop', 'is_isolated']
+    flag: NamedTuple Flag. has attribute ['has_stop', 'is_isolated']
     next_reading_frame: Tuple. The reading frame to be propogated to the next vertex.
 
     """
@@ -487,7 +488,6 @@ def get_idx(sample_idx_table, sample, gene_idx):
     gene_idx: int. Gene index, mainly for formatting the output.
 
     """
-    Idx = namedtuple('Idx', ['gene', 'sample'])
     if sample_idx_table is not None:
         sample_idx = sample_idx_table[sample]
     else:
