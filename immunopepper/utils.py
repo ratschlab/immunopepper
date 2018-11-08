@@ -1,13 +1,18 @@
+"""Contain functions to help compute, to preprocess"""
 import itertools
 import scipy as sp
 import numpy as np
+
 from collections import namedtuple
 import bisect
+
 from constant import NOT_EXIST
 
 Peptide = namedtuple('Peptide', ['mut', 'ref'])
 Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
 Flag = namedtuple('Flag', ['has_stop', 'is_isolated'])
+Idx = namedtuple('Idx', ['gene', 'sample'])
+
 
 def to_adj_list(adj_matrix):
     """
@@ -23,8 +28,19 @@ def to_adj_list(adj_matrix):
 
 
 def to_adj_succ_list(adj_matrix, vertex_map, read_strand):
-    """
-    Returns a list of successors by vertex, sensitive to the read strand
+    """ Returns a list of successors by vertex, sensitive to the read strand
+
+    Parameters
+    ----------
+    adj_matrix: 2D array with size [len(edges),len(edges)]. '1' represents the two edges
+        are connected.
+    vertex_map: 2D array with size [2, len(vertexs)]. Vertex positions
+    read_strand: The gene strand. '+' or '-'.
+
+    Returns
+    -------
+    succ_list: List[List[int]]. The connected vertex list for each vertex
+
     """
     succ_list = []
     assert (adj_matrix.shape[0] == adj_matrix.shape[1])
@@ -54,8 +70,9 @@ def leq_strand(coord1, coord2, strand):
 
 
 def complementary_seq(dna_seq):
-    """
-    Yields the complementary DNA sequence
+    """ Yields the complementary DNA sequence
+    Only convert the character in comp_dict.
+    Otherwise remain the same.
     """
     comp_dict = {"A": "T", "T": "A", "C": "G", "G": "C"}
     comp_dict_keys = comp_dict.keys()
@@ -71,8 +88,20 @@ def encode_chromosome(in_num):
 
 
 def translate_dna_to_peptide(dna_str):
-    """
-    Translate a DNA sequence encoding a peptide to amino-acid sequence via RNA
+    """ Translate a DNA sequence encoding a peptide to amino-acid sequence via RNA.
+
+    If 'N' is included in input dna, 'X' will be outputted since 'N' represents
+    uncertainty. Also will output a flag indicating if has stop codon.
+
+    Parameters
+    ----------
+    dna_str: str or List(str). dna string to be translated.
+
+    Returns
+    -------
+    aa_str: translated peptide
+    has_stop_codon: Indicator for showing if the input dna contains stop codon
+
     """
     codontable = {
         'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
@@ -112,10 +141,24 @@ def translate_dna_to_peptide(dna_str):
 
 
 def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand):
-    """
-    Get the mutated dna sub-sequence according to mutation specified by the variant_comb.
-    """
+    """ Get the mutated dna sub-sequence according to mutation specified by the variant_comb.
 
+    Parameters
+    ----------
+    background_seq: List(str). backgound sequence.
+    start_v1: int. start position of first vertex.
+    stop_v1: int. stop position of first vertex.
+    start_v2: int. start position of second vertex.
+    stop_v2: int. stop position of second vertex.
+    variant_comb: List(int). List of variant position. Like ['38', '43']
+    mutation_sub_dic_maf: Dict. variant position -> variant details.
+    strand: gene strand
+
+    Returns
+    -------
+    final_dna: str. dna when applied somatic mutation.
+
+    """
     if start_v2 != NOT_EXIST:
         if strand == '-':
             sub_dna_list = list(background_seq[start_v1:stop_v1][::-1] + background_seq[start_v2:stop_v2][::-1])
@@ -147,7 +190,7 @@ def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, varian
                 assert (sub_dna_list[pos] == ref_base)
                 sub_dna_list[pos] = mut_base
 
-        elif variant_ipos in range(start_v2, stop_v2):
+        elif start_v2 != NOT_EXIST and variant_ipos in range(start_v2, stop_v2):
             if strand == '-':
                 pos = stop_v2-variant_ipos+stop_v1-start_v1-1
                 assert (sub_dna_list[pos] == ref_base)
@@ -162,25 +205,27 @@ def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, varian
 
 
 def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, peptide_accept_coord):
-    """
-    Get translated peptide from the given exon pairs.
+    """ Get translated peptide from the given exon pairs.
+
     Parameters
     ----------
-    read_frame: tuple, (read_start_codon, read_stop_codon, emitting_frame)
-    strand: str, '+' or '-'
-    mut_seq: str, mutation string
-    background_seq: str, background string
-    peptide_accept_coord: np.ndarray, the 'next' vertex coordinate
+    read_frame: Tuple. (read_start_codon, read_stop_codon, emitting_frame)
+    strand: str. '+' or '-'
+    variant_comb: List(int).
+    mutation_sub_dic_maf: Dict. variant position -> variant details.
+    ref_mut_seq: Dict.['ref', 'background'] -> List(str)
+    peptide_accept_coord: The start and end position of next vertex. Positions of the first vertex
+        are already given in read_frame.
 
     Returns
     -------
-    peptide_mut: str, the translated peptide of mutation sequence
-    peptide_ref: str, the translated peptide of reference sequence
-    start_v1, stop_v1: int, the corresponding start and end position of sequence of first exon which can output peptide
-    start_v2, stop_v2:
-    mut_has_stop_codon: bool, flag indicating if the sequence of interest has stop codon
-    is_single: bool, flag indicating if the outputed peptide only comes from one exon
-    next_reading_frame: tuple, the reading frame to be propagated to the next vertex
+    peptide: NamedTuple Peptide. has attribute ['ref', 'mut']. contain the output peptide
+        translated from reference sequence and mutated sequence.
+    coord: NamedTuple Coord. has attribute ['start_v1', 'stop_v1', 'start_v2', 'stop_v2']
+        contains the true four position of exon pairs (after considering read framee)
+        that outputs the peptide.
+    flag: NamedTuple Flag. has attribute ['has_stop', 'is_isolated']
+    next_reading_frame: Tuple. The reading frame to be propogated to the next vertex.
 
     """
     cds_left_modi, cds_right_modi, emitting_frame = read_frame
@@ -236,22 +281,25 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     return peptide, coord, flag, next_reading_frame
 
 
-def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,ref_mut_seq):
-    """
-    Deal with translating isolated cds, almost the same as cross_peptide_result
+def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq):
+    """ Deal with translating isolated cds, almost the same as cross_peptide_result
 
     Parameters
     ----------
-    read_frame
-    strand
-    mut_seq
-    background_seq
+    read_frame: Tuple. (read_start_codon, read_stop_codon, emitting_frame)
+    strand: str. '+' or '-'
+    variant_comb: List(int).
+    mutation_sub_dic_maf: Dict. variant position -> variant details.
+    ref_mut_seq: Dict.['ref', 'background'] -> List(str)
 
     Returns
     -------
-    is_isolated: Bool, True as Default
-    mut_has_stop_codon: Bool, assert to be True
-    start_v2, stop_v2: '.' means not exist
+    peptide: NamedTuple. has attribute ['ref', 'mut']. contain the output peptide
+        translated from reference sequence and mutated sequence.
+    coord: NamedTuple. has attribute ['start_v1', 'stop_v1', 'start_v2', 'stop_v2']
+        contains the true two position of exon pairs (after considering read framee)
+        that outputs the peptide. 'start_v2', 'stop_v2' is set to be NOT_EXIST.
+    flag: NamedTuple. has attribute ['has_stop', 'is_isolated']
 
     """
     Peptide = namedtuple('Peptide',['mut','ref'])
@@ -287,7 +335,19 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
     return peptide, coord, flag
 
 
-def get_size_factor(strains,lib_file_path):
+def get_size_factor(strains, lib_file_path):
+    """ Get the expression adjustment parameter for certain samples.
+
+    Parameters
+    ----------
+    samples: List[str]. List of samples.
+    lib_file_path: str. libsize file path
+
+    Returns
+    -------
+    sf: 1darray. size factor.
+
+    """
     libs = sp.loadtxt(lib_file_path, dtype='str', skiprows=1, delimiter='\t')
     a, b = sp.where(strains[:, sp.newaxis] == libs[:, 0])
     assert sp.all(libs[b, 0] == strains)
@@ -297,7 +357,20 @@ def get_size_factor(strains,lib_file_path):
     return sf
 
 
-def get_all_comb(array,r=None):
+def get_all_comb(array, r=None):
+    """ Get all the combination of items in the given array
+    Specifically used for generating variant combination
+
+    Parameters
+    ----------
+    array: 1D array. input array
+    r: int. The number of items in a combination
+
+    Returns
+    -------
+    result: List(Tuple). List of combination
+
+    """
     if r is None:
         r = len(array)
     result = []
@@ -331,36 +404,29 @@ def is_isolated_cds(gene, idx):
     return sp.sum(gene.splicegraph.edges[:, idx]) == 0
 
 
-def is_output_redundant(gene, start_v1, stop_v1, start_v2, stop_v2, read_frame_tuple):
-    read_frame = read_frame_tuple[2]
-    strand = gene.strand
-    output_vertex_dict = gene.output_vertex_dict
-    if strand == '+':
-        if (stop_v1, start_v2, read_frame) in output_vertex_dict:
-            all_output_comb = output_vertex_dict[(stop_v1, start_v2, read_frame)]
-            for comb in all_output_comb:
-                if start_v1 >= comb[0] and stop_v2 <= comb[1]:
-                    return True
-            output_vertex_dict[(stop_v1, start_v2,read_frame)].append((start_v1, stop_v2))
-        else:
-            output_vertex_dict[(stop_v1, start_v2,read_frame)] = [(start_v1, stop_v2)]
-    else:  # strand == '-'
-        if (start_v1, stop_v2, read_frame) in output_vertex_dict:
-            all_output_comb = output_vertex_dict[(start_v1, stop_v2, read_frame)]
-            for comb in all_output_comb:
-                if stop_v1 <= comb[0] and start_v2 >= comb[1]:
-                    return True
-            output_vertex_dict[(start_v1, stop_v2, read_frame)].append((stop_v1, start_v2))
-        else:
-            output_vertex_dict[(start_v1, stop_v2, read_frame)] = [(stop_v1, start_v2)]
-    return False
-
-
 def is_in_junction_list(v1,v2,strand,junction_list):
+    """Check if the intron is in concerned junction list"""
     return int(':'.join([str(v1[1]),  str(v2[0]), strand]) in junction_list)
 
 
 def get_exon_expr(gene,vstart,vstop,Segments,Idx):
+    """ Split the exon into segments and get the corresponding counts.
+
+    Parameters
+    ----------
+    gene: Object. Generated by SplAdder.
+    vstart: int. Start position of given exon.
+    vstop: int. Stop position of given exon.
+    Segments: Namedtuple, store segment expression information from count.hdf5.
+        has attribute ['expr', 'lookup_table'].
+    Idx: Namedtuple, has attribute idx.gene and idx.sample
+
+    Returns
+    -------
+    expr_list: List[Tuple(int,float)] (int, float) represents the length of segment
+        and the expression count of that segment.
+
+    """
     if vstart == NOT_EXIST or vstop == NOT_EXIST:  # isolated exon case
         expr_list = []
         return expr_list
@@ -379,6 +445,26 @@ def get_exon_expr(gene,vstart,vstop,Segments,Idx):
 
 
 def get_segment_expr(gene, coord, Segments, Idx):
+    """ Get the segment expression for one exon-pair.
+    Apply 'get_exon_expr' for each exon and concatenate them.
+
+    Parameters
+    ----------
+    gene: Object. Generated by SplAdder.
+    coord: NamedTuple. has attribute ['start_v1', 'stop_v1', 'start_v2', 'stop_v2']
+        contains the true four position of exon pairs (after considering read framee)
+        that outputs the peptide.
+    Segments: Namedtuple, store segment expression information from count.hdf5.
+        has attribute ['expr', 'lookup_table'].
+    Idx: Namedtuple, has attribute idx.gene and idx.sample
+
+    Returns
+    -------
+    mean_expr: float. The average expression counts for the given exon-pair
+    expr1: List[Tuple(int,float)] (int, float) represents the length of segment
+        and the expression count of that segment.
+
+    """
     expr_list1 = get_exon_expr(gene,coord.start_v1,coord.stop_v1,Segments,Idx)
     expr_list2 = get_exon_expr(gene,coord.start_v2,coord.stop_v2,Segments,Idx)
     expr_list1.extend(expr_list2)
@@ -392,7 +478,16 @@ def get_segment_expr(gene, coord, Segments, Idx):
 
 
 def get_idx(sample_idx_table, sample, gene_idx):
-    Idx = namedtuple('Idx', ['gene', 'sample'])
+    """ Create a aggregated Index with nametuple idx
+    Combine the gene_idx, sample_idx
+
+    Parameters
+    ----------
+    sample_idx_table: Dict. str -> int. Mapping sample to idx.
+    sample: str. sample name
+    gene_idx: int. Gene index, mainly for formatting the output.
+
+    """
     if sample_idx_table is not None:
         sample_idx = sample_idx_table[sample]
     else:
@@ -400,7 +495,19 @@ def get_idx(sample_idx_table, sample, gene_idx):
     idx = Idx(gene_idx,sample_idx)
     return idx
 
+
 def create_libsize(expr_distr_dict,output_fp):
+    """ create library_size text file.
+
+    Calculate the 75% expression and sum of expression for each sample
+    and write into output_fp.
+
+    Parameters
+    ----------
+    expr_distr_dict: Dict. str -> List(float). Mapping sample to the expression of all exon pairs
+    output_fp: file pointer. library_size text
+
+    """
     libsize_count = {sample:(np.percentile(expr_list,75),np.sum(expr_list)) for sample,expr_list in expr_distr_dict.items()}
     with open(output_fp,'w') as f:
         f.write('\t'.join(['sample','libsize_75percent','libsize_total_count'])+'\n')

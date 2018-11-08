@@ -32,15 +32,15 @@ def parse_arguments(argv):
     parser.add_argument("--splice_path", help="specify the absolute path of splicegraph file", required=False)
     parser.add_argument("--ref_path", help="specify the absolute path of reference gene file to the work_dir", required=False)
     parser.add_argument("--libsize_path", nargs='?', help="specify the absolute path to expression library sizes",required=False, default=None)
-    parser.add_argument("--vcf_path", nargs=1, help="specify the absolute path of vcf file", required=False, default='')
-    parser.add_argument("--maf_path", nargs=1, help="specify the absolute path of maf file", required=False, default='')
+    parser.add_argument("--vcf_path", help="specify the absolute path of vcf file", required=False, default='')
+    parser.add_argument("--maf_path", help="specify the absolute path of maf file", required=False, default='')
     parser.add_argument("--count_path",help="specify the absolute path of the count h5 file", required=False, default=None)
     parser.add_argument("--gtex_junction_path",help="specify the absolute path the the gtex_junction h5 file", required=False, default=None)
     parser.add_argument("--process_num", type=int, help="Only process the first *process_num* gene in the splicegraph,default,0, means process all", required=False, default=0)
     parser.add_argument("--filter_redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
     parser.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
     parser.add_argument("--mutation_mode", help="specify the mutation mdoe", required=False, default='ref')
-
+    parser.add_argument("--heter_code", type=int, help="if count expression data is provided in h5 format, specify the code for heterzygous", default=0)
     if len(argv) < 2:
         parser.print_help()
         sys.exit(1)
@@ -140,7 +140,7 @@ def main(arg):
         peptide_fp = open(peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')
         meta_header_line = "\t".join(['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
-                                    'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','seg_expr',
+                                    'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','variant_seg_expr',
                                       'exons_coor', 'vertex_idx','junction_expr','segment_expr'])
         meta_peptide_fp.write(meta_header_line + '\n')
         expr_distr_dict[sample] = []
@@ -171,8 +171,10 @@ def main(arg):
             expr_distr.append(total_expr)
             if arg.filter_redundant:
                 output_metadata_list, output_peptide_list = get_filtered_output_list(output_metadata_list,output_peptide_list)
-            meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
-            peptide_fp.write('\n'.join(output_peptide_list)+'\n')
+            assert len(output_metadata_list) == len(output_peptide_list)
+            if len(output_peptide_list) > 0:
+                meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
+                peptide_fp.write('\n'.join(output_peptide_list)+'\n')
             end_time = timeit.default_timer()
             print(gene_idx, end_time - start_time,'\n')
         expr_distr_dict[sample] = expr_distr

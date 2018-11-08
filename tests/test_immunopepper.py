@@ -5,11 +5,12 @@ import pickle
 import Bio.SeqIO as BioIO
 import pytest
 
-from immunopepper.immuno_mutation import apply_germline_mutation
+from immunopepper.immuno_mutation import apply_germline_mutation,construct_mut_seq_with_str_concat,get_mutation_mode_from_parser
 from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
     parse_mutation_from_vcf, parse_mutation_from_maf
 from immunopepper.utils import get_sub_mut_dna
 from immunopepper.io_utils import load_pickled_graph
+from immunopepper.main_immuno import parse_arguments
 
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 
@@ -39,7 +40,7 @@ def load_gene_data():
 def load_mutation_data():
     vcf_path = os.path.join(data_dir, 'test1pos.vcf')
     maf_path = os.path.join(data_dir, 'test1pos.maf')
-    mutation_dic_vcf = parse_mutation_from_vcf(vcf_path)
+    mutation_dic_vcf = parse_mutation_from_vcf(vcf_path,['test1pos'])
     mutation_dic_maf = parse_mutation_from_maf(maf_path)
 
     return mutation_dic_vcf, mutation_dic_maf
@@ -99,6 +100,7 @@ def test_reading_gtf_and_gff3_file():
     assert gene_table_gtf.ts_to_cds['ENST00000335137.4'] == [(69090, 70004, 0)]
     assert gene_table_gff.ts_to_cds['ENST00000335137.4'] == [(69090, 70007, 0)] # include stop codon in gff3
 
+
 def test_reading_gtf_and_gff_file():
     gff_path = os.path.join(data_dir,'small.gencode.v19.gff')
     gtf_path = os.path.join(data_dir, 'small.gencode.v19.gtf')
@@ -108,3 +110,51 @@ def test_reading_gtf_and_gff_file():
     assert gene_table_gtf.ts_to_cds.keys() == gene_table_gff.ts_to_cds.keys()
     assert gene_table_gff.ts_to_cds['ENST00000335137.3'] == [(69090, 70005, 0)]
     assert gene_table_gtf.ts_to_cds['ENST00000335137.3'] == [(69090, 70004, 0)]
+
+
+def test_reading_vcf_h5():
+    vcf_dict_default_heter_code0 = parse_mutation_from_vcf(os.path.join(data_dir,'test1vcf.h5'),['test1pos','test1neg'])
+    vcf_dict_heter_code2 = parse_mutation_from_vcf(os.path.join(data_dir,'test1vcf.h5'),['test1pos','test1neg'],heter_code=2)
+    assert len(vcf_dict_default_heter_code0) == 2
+    assert vcf_dict_default_heter_code0['test1neg', 'X'][135] == {'mut_base': 'G', 'ref_base': 'C'}
+    assert vcf_dict_default_heter_code0['test1pos', 'X'][14] == {'mut_base': 'C', 'ref_base':'G'}
+    assert vcf_dict_heter_code2['test1pos', 'X'][135] == {'mut_base': 'G', 'ref_base': 'C'}
+    assert vcf_dict_heter_code2['test1neg', 'X'][14] == {'mut_base': 'C', 'ref_base':'G'}
+    assert vcf_dict_heter_code2['test1neg', 'X'][135] == {'mut_base': 'G', 'ref_base':'C'}
+
+
+def test_construct_mut_seq_with_str_concat():
+    ref_seq = 'GTAATGTGTAAGATGACGCACGCATGGTGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
+    gt_mut_seq1 = 'GTAATGTGTAGGATGACGCACGCATACTGGTATTGGAGATGGTTTGCGGAGTAAGTTCGAGTTC'
+    gt_mut_seq2 = 'GTAATGTGTAAGATGACGCACGCATGCTGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
+    mut_dict = {}
+    mut_dict[10] = {'mut_base':'G','ref_base':'A'}
+    mut_dict[25] = {'mut_base':'A','ref_base':'G'}
+    mut_dict[26] = {'mut_base':'C','ref_base':'G'}
+    mut_dict[28] = {'mut_base':'*','ref_base':'G'}
+    mut_dict[42] = {'mut_base':'T','ref_base':'G'}
+    mut_dict[45] = {'mut_base':'*','ref_base':'G'}
+    mut_seq1 = construct_mut_seq_with_str_concat(ref_seq,0,len(ref_seq),mut_dict)
+    assert mut_seq1 == gt_mut_seq1
+    mut_seq2 = construct_mut_seq_with_str_concat(ref_seq,25,27,mut_dict) # (25,27) open in two side, only include 26
+    assert mut_seq2 == gt_mut_seq2
+    mut_seq3 = construct_mut_seq_with_str_concat(ref_seq,25,26,mut_dict)
+    assert mut_seq3 == ref_seq
+
+
+def test_get_mutation_mode_from_parser():
+    my_args1 = ['--vcf_path', os.path.join(data_dir,'test1pos.vcf'),
+               '--maf_path', os.path.join(data_dir,'test1pos.maf'),
+               '--mutation_mode', 'somantic']  # bad mutation mode
+    args = parse_arguments(my_args1)
+    try:
+        get_mutation_mode_from_parser(args)
+    except SystemExit:
+        assert 1
+    my_args2 = ['--vcf_path', os.path.join(data_dir,'test1pos.vcf'),
+               '--mutation_mode', 'somatic']  # mismatch mutation mode and input files
+    args = parse_arguments(my_args2)
+    try:
+        get_mutation_mode_from_parser(args)
+    except SystemExit:
+        assert 1

@@ -1,21 +1,43 @@
+"""Contains all the output computation based on gene splicegraph"""
 from __future__ import print_function
-# External libraries
+
 import numpy as np
 import scipy as sp
-# immuno module
+
 from immuno_filter import junction_is_annotated, peptide_match, find_background_peptides
 from immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb
 from utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr
 from immuno_preprocess import search_edge_metadata_segmentgraph
 from constant import NOT_EXIST
 
-# Optimized annotation code that does not loop over the annotation but uses the lookup structure
-# that was built from the only initial pass
-# over the GFF annotation file
-def calculate_output_peptide(gene=None, ref_seq=None, idx = None,
-                      segments=None, edges=None, table=None,debug=False,size_factor=None, junction_list=None,
-                      mutation = None):
 
+def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
+                      segments=None, edges=None, table=None,debug=False, size_factor=None, junction_list=None,
+                      mutation=None):
+    """Calculte the output peptide for every exon-pairs in the splicegraph
+       Parameters
+       ----------
+       gene: Object, returned by SplAdder.
+       ref_seq: Str, reference sequnce of specific chromosome
+       idx: Namedtuple Idx, has attribute idx.gene and idx.sample
+       segments: Namedtuple Segments, store segment expression information from count.hdf5.
+           has attribute ['expr', 'lookup_table'].
+       edges: Namedtuple Edges, store edges expression information from count.hdf5.
+           has attribute ['expr','lookup_table']
+       table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
+           from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
+       debug: bool. More detailed information will be printed when debugging.
+       size_factor: Scalar. To adjust the expression counts based on the external file `libsize.tsv`
+       junction_list: List. Work as a filter to indicate some exon pair has certain
+           ordinary intron which can be ignored further.
+       mutation: Namedtuple Mutation, store the mutation information of specific chromosome and sample.
+           has the attribute ['mode', 'maf_dict', 'vcf_dict']
+       Returns
+       -------
+       output_peptide_list: List[str]. Contain all the possible output peptide in the given splicegraph.
+       output_metadata_list: List[str]. Contain the correpsonding medata data for each output peptide.
+       total_expr: Float. The sum of all the expression counts which will be used for generating libsize.tsv
+       """
 
     sg = gene.splicegraph
     gene.from_sparse()
@@ -28,8 +50,10 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx = None,
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
     # otherwise, background_seq = ref_seq
-    ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq, pos_start=gene.start, pos_end=gene.stop,
-                                              mutation_sub_dic_vcf=mutation.vcf_dict)
+    pos_start = np.min(sg.vertices[0])
+    pos_end = np.max(sg.vertices[1])
+    ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq, pos_start=pos_start, pos_end=pos_end,
+                                           mutation_sub_dic_vcf=mutation.vcf_dict)
 
     # apply somatic mutation
     # som_exp_dict: (mutation_position) |-> (expression)

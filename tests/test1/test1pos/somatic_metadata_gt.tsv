@@ -1,4 +1,4 @@
-output_id	read_frame	gene_name	gene_chr	gene_strand	mutation_mode	peptide_weight	peptide_annotated	junction_annotated	has_stop_codon	is_in_junction_list	is_isolated	variant_comb	seg_expr	exons_coor	vertex_idx	junction_expr	segment_expr
+output_id	read_frame	gene_name	gene_chr	gene_strand	mutation_mode	peptide_weight	peptide_annotated	junction_annotated	has_stop_codon	is_in_junction_list	is_isolated	variant_comb	variant_seg_expr	exons_coor	vertex_idx	junction_expr	segment_expr
 0.0	0	GENE1	X	+	somatic	0.333	0	1	0	.	0	38	1409	11;26;38;50	0,2	0.0	1330
 0.1	2	GENE1	X	+	somatic	0.333	0	1	0	.	0	38	1409	12;26;38;48	0,2	0.0	1338
 0.2	1	GENE1	X	+	somatic	0.333	0	1	0	.	0	38	1409	16;26;38;49	0,2	0.0	1351
