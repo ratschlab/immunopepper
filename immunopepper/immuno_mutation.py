@@ -85,18 +85,18 @@ def get_mutation_mode_from_parser(args):
     vcf_file_path = args.vcf_path
     is_error = True
     if mutation_mode == 'somatic_and_germline':
-        if maf_file_path[0] != '' and vcf_file_path[0] != '':
-            mutation_dic_maf = parse_mutation_from_maf(maf_file_path[0])
-            mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path[0],args.samples, args.heter_code)
+        if maf_file_path != '' and vcf_file_path != '':
+            mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
+            mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path,args.samples, args.heter_code)
             is_error = False
     elif mutation_mode == 'germline':
-        if vcf_file_path[0] != '':
+        if vcf_file_path != '':
             mutation_dic_maf = {}  # empty dic
-            mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path[0],args.samples, args.heter_code)
+            mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path,args.samples, args.heter_code)
             is_error = False
     elif mutation_mode == 'somatic':
-        if maf_file_path[0] != '':
-            mutation_dic_maf = parse_mutation_from_maf(maf_file_path[0])
+        if maf_file_path != '':
+            mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
             mutation_dic_vcf = {}
             is_error = False
     elif mutation_mode == 'ref':
@@ -107,7 +107,7 @@ def get_mutation_mode_from_parser(args):
         print('Mutation mode "%s" not recognized' % mutation_mode)
 
     if is_error:
-         print("The input mutation file does not match the mutation mode, please check again")
+         print("The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")
          sys.exit(1)
     mutation = Mutation(mutation_mode,mutation_dic_maf,mutation_dic_vcf)
     return mutation

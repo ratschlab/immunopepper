@@ -5,11 +5,12 @@ import pickle
 import Bio.SeqIO as BioIO
 import pytest
 
-from immunopepper.immuno_mutation import apply_germline_mutation,construct_mut_seq_with_str_concat
+from immunopepper.immuno_mutation import apply_germline_mutation,construct_mut_seq_with_str_concat,get_mutation_mode_from_parser
 from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
     parse_mutation_from_vcf, parse_mutation_from_maf
 from immunopepper.utils import get_sub_mut_dna
 from immunopepper.io_utils import load_pickled_graph
+from immunopepper.main_immuno import parse_arguments
 
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 
@@ -139,3 +140,21 @@ def test_construct_mut_seq_with_str_concat():
     assert mut_seq2 == gt_mut_seq2
     mut_seq3 = construct_mut_seq_with_str_concat(ref_seq,25,26,mut_dict)
     assert mut_seq3 == ref_seq
+
+
+def test_get_mutation_mode_from_parser():
+    my_args1 = ['--vcf_path', os.path.join(data_dir,'test1pos.vcf'),
+               '--maf_path', os.path.join(data_dir,'test1pos.maf'),
+               '--mutation_mode', 'somantic']  # bad mutation mode
+    args = parse_arguments(my_args1)
+    try:
+        get_mutation_mode_from_parser(args)
+    except SystemExit:
+        assert 1
+    my_args2 = ['--vcf_path', os.path.join(data_dir,'test1pos.vcf'),
+               '--mutation_mode', 'somatic']  # mismatch mutation mode and input files
+    args = parse_arguments(my_args2)
+    try:
+        get_mutation_mode_from_parser(args)
+    except SystemExit:
+        assert 1
