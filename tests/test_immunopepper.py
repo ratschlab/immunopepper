@@ -5,7 +5,7 @@ import pickle
 import Bio.SeqIO as BioIO
 import pytest
 
-from immunopepper.immuno_mutation import apply_germline_mutation
+from immunopepper.immuno_mutation import apply_germline_mutation,construct_mut_seq_with_str_concat
 from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
     parse_mutation_from_vcf, parse_mutation_from_maf
 from immunopepper.utils import get_sub_mut_dna
@@ -121,3 +121,21 @@ def test_reading_vcf_h5():
     assert vcf_dict_heter_code2['test1neg', 'X'][14] == {'mut_base': 'C', 'ref_base':'G'}
     assert vcf_dict_heter_code2['test1neg', 'X'][135] == {'mut_base': 'G', 'ref_base':'C'}
 
+
+def test_construct_mut_seq_with_str_concat():
+    ref_seq = 'GTAATGTGTAAGATGACGCACGCATGGTGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
+    gt_mut_seq1 = 'GTAATGTGTAGGATGACGCACGCATACTGGTATTGGAGATGGTTTGCGGAGTAAGTTCGAGTTC'
+    gt_mut_seq2 = 'GTAATGTGTAAGATGACGCACGCATGCTGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
+    mut_dict = {}
+    mut_dict[10] = {'mut_base':'G','ref_base':'A'}
+    mut_dict[25] = {'mut_base':'A','ref_base':'G'}
+    mut_dict[26] = {'mut_base':'C','ref_base':'G'}
+    mut_dict[28] = {'mut_base':'*','ref_base':'G'}
+    mut_dict[42] = {'mut_base':'T','ref_base':'G'}
+    mut_dict[45] = {'mut_base':'*','ref_base':'G'}
+    mut_seq1 = construct_mut_seq_with_str_concat(ref_seq,0,len(ref_seq),mut_dict)
+    assert mut_seq1 == gt_mut_seq1
+    mut_seq2 = construct_mut_seq_with_str_concat(ref_seq,25,27,mut_dict) # (25,27) open in two side, only include 26
+    assert mut_seq2 == gt_mut_seq2
+    mut_seq3 = construct_mut_seq_with_str_concat(ref_seq,25,26,mut_dict)
+    assert mut_seq3 == ref_seq
