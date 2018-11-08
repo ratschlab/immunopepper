@@ -57,7 +57,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     if len(variant_pos_candi) > 0:
         variant_pos_sorted = np.sort(variant_pos_candi)
         mut_seq_list = [ref_seq[:variant_pos_sorted[0]]]
-        for i in range(len(variant_pos_sorted)-1):
+        for i in range(len(variant_pos_sorted)-1):  # process all the mutation in order except the last one
             mut_base = mut_dict[variant_pos_sorted[i]]['mut_base']
             ref_base = mut_dict[variant_pos_sorted[i]]['ref_base']
             if mut_base != '*':
@@ -65,6 +65,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
             else:
                 mut_seq_list.append(ref_base)
             mut_seq_list.append(ref_seq[variant_pos_sorted[i]+1:variant_pos_sorted[i+1]])
+        # process the last mutation separately
         mut_base = mut_dict[variant_pos_sorted[-1]]['mut_base']
         ref_base = mut_dict[variant_pos_sorted[-1]]['ref_base']
         if mut_base != '*':
