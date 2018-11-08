@@ -45,6 +45,7 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+.pytest_cache/
 
 # Translations
 *.mo
@@ -102,3 +103,7 @@ ENV/
 
 # Pycharm
 .idea
+
+# intermediate test data
+tests/data/genome/
+/scripts/generate_gt_file.py

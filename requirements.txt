@@ -1,3 +1,5 @@
-# dependencies for 'silly_sum' example
-pandas==0.22
-Click==6.0
+h5py==2.8.0
+numpy>=1.13
+psutil==5.4.6
+scipy==1.1.0
+biopython

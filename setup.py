@@ -31,10 +31,8 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     description="Software to translate splicing graphs into peptides",
-    entry_points={
-        'console_scripts': [
-            'silly_sum=immunopepper.silly_sum:main',
-        ],
+    entry_points = {
+        'console_scripts': ['immunopepper=immunopepper.main_immuno:cmd_entry'],
     },
     install_requires=requirements,
     license="MIT license",
@@ -47,6 +45,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/ratschlab/immunopepper',
-    version='0.1.0',
+    version='1.0.0',
     zip_safe=False,
 )

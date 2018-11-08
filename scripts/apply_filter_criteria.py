@@ -3,19 +3,36 @@ import os
 import scipy as sp
 import re
 
-basedir = '/cluster/work/grlab/projects/coukos_immuno/results/output_peptide/ref'
+
+if len(sys.argv) < 2:
+    sys.stderr.write('Usage: %s <dataset>\n' % sys.argv[0])
+    sys.exit(1)
+dataset = sys.argv[1]
+
+basedir = '/cluster/work/grlab/projects/coukos_immuno/results_%s/output_peptide/ref' % dataset
 filt_tag = '.filt'
 metafile = os.path.join(basedir, 'ref_metadata%s_REF.tsv.gz' % filt_tag)
+metafile_gtex = os.path.join(basedir, 'ref_metadata%s_GTEX.tsv.gz' % filt_tag)
 fasta_file = os.path.join(basedir, 'ref_peptides%s.fa' % filt_tag)
 
 ### set filter criteria
-celllines = ["OD5P", "EOC24", "MM12"]
+if dataset == '20171031':
+    celllines = ["OD5P", "EOC24", "MM12", "EOC11", "MM33", "OMM475", "ONVC"]
+elif dataset == '20180802':
+    celllines = ['C3N-02289', 'C3N-02671', 'EOC04', 'GY150806', 'JM-2', 'JM-4', 'MM170111', 'MM909362', 'MM909432', 'Me275', 'Me290', 'RCC14', 'RCC16', 'T1015A', 'T1185B']
+else:
+    celllines = []
 filter_levels = ['1', '2', '3']
 
 ### load metadata
 metadata = sp.loadtxt(metafile, dtype='str' , delimiter='\t')
 metaheader = metadata[0, :]
 metadata = metadata[1:, :]
+
+### load metadata GTEX
+metadata_gtex = sp.loadtxt(metafile_gtex, dtype='str' , delimiter='\t')
+metaheader_gtex = metadata_gtex[0, :]
+metadata_gtex = metadata_gtex[1:, :]
 
 for cl in celllines:
 
@@ -32,8 +49,10 @@ for cl in celllines:
     idx = sp.where(metaheader == 'junction_annotated')[0][0]
     k_idx3 = (metadata[:, idx].astype('int') > 0)
     ### non-gtex junction
-    idx = sp.where(metaheader == 'is_in_junction_list')[0][0]
-    k_idx4 = (metadata[:, idx].astype('int') == 0)
+    #idx = sp.where(metaheader == 'is_in_junction_list')[0][0]
+    #k_idx4 = (metadata[:, idx].astype('int') == 0)
+    gt_idx = sp.where([_.startswith('junc_exp:gtex') for _ in metaheader_gtex])[0]
+    k_idx4 = (metadata_gtex[:, gt_idx].astype('float').max(axis=1) < 3)
 
     idx = sp.where(metaheader == 'output_id')[0][0]
 

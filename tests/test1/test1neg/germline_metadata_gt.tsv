@@ -1,0 +1,5 @@
+output_id	read_frame	gene_name	gene_chr	gene_strand	mutation_mode	peptide_weight	peptide_annotated	junction_annotated	has_stop_codon	is_in_junction_list	is_isolated	variant_comb	variant_seg_expr	exons_coor	vertex_idx	junction_expr	segment_expr
+0.0	2	GENE1	X	-	germline	0.333	1	.	1	.	1	.	.	124;138;102;112	7,5	.	1338
+0.1	0	GENE1	X	-	germline	0.333	0	1	0	.	0	.	.	124;139;100;112	7,5	0.0	1330
+0.2	2	GENE1	X	-	germline	0.333	1	.	1	.	1	.	.	121;138;102;112	6,5	.	1470
+0.3	0	GENE1	X	-	germline	0.333	1	1	0	.	0	.	.	121;139;100;112	6,5	1195.0	1450
