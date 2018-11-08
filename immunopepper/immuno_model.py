@@ -68,6 +68,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
     # if no germline mutation is applies, germline key still exists, equals to reference.
     # return the list of the background peptide for each transcript
     background_pep_list = find_background_peptides(gene, ref_mut_seq['background'], table.gene_to_ts, table.ts_to_cds)
+    output_background_pep_list = ['\t'.join(back_pep_tuple) for back_pep_tuple in background_pep_list]
 
     # check whether the junction (specific combination of vertices) also is annotated
     # as a junction of a protein coding transcript
@@ -156,4 +157,4 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
         gene.to_sparse()
 
     gene.processed = True
-    return output_peptide_list,output_metadata_list,total_expr
+    return output_peptide_list,output_metadata_list,output_background_pep_list,total_expr

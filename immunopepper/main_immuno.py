@@ -137,8 +137,10 @@ def main(arg):
             os.makedirs(output_path)
         peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa')
         meta_peptide_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz')
+        background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa')
         peptide_fp = open(peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')
+        background_fp = open(background_peptide_file_path,'w')
         meta_header_line = "\t".join(['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
                                     'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','variant_seg_expr',
                                       'exons_coor', 'vertex_idx','junction_expr','segment_expr'])
@@ -162,7 +164,7 @@ def main(arg):
             else:
                 junction_list = None
 
-            output_peptide_list, output_metadata_list, total_expr = calculate_output_peptide(gene=gene,
+            output_peptide_list, output_metadata_list, output_background_list, total_expr = calculate_output_peptide(gene=gene,
                               ref_seq=seq_dict[chrm],
                               idx=idx, segments=segments, edges=edges,
                               table=genetable, mutation=sub_mutation,
@@ -175,6 +177,8 @@ def main(arg):
             if len(output_peptide_list) > 0:
                 meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
                 peptide_fp.write('\n'.join(output_peptide_list)+'\n')
+            if len(output_peptide_list) > 0:
+                background_fp.write('\n'.join(output_background_list)+'\n')
             end_time = timeit.default_timer()
             print(gene_idx, end_time - start_time,'\n')
         expr_distr_dict[sample] = expr_distr

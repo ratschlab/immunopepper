@@ -176,8 +176,8 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
                 print("ERROR: Invalid strand...")
                 sys.exit(1)
 
-        aa_str_mutated = translate_dna_to_peptide(cds_string)
-        peptide_list.append((aa_str_mutated, ts))
+        aa_str_mutated, is_stop_flag = translate_dna_to_peptide(cds_string)
+        peptide_list.append((ts, aa_str_mutated))
     gene.processed = True
     return peptide_list
 
@@ -196,8 +196,8 @@ def peptide_match(ref_peptides, peptide):
     """
     match_ts_list = []
     for ref in ref_peptides:
-        ref_peptide = ref[0][0]
-        transcript = ref[1]
+        ref_peptide = ref[1]
+        transcript = ref[0]
         if not re.search(peptide, ref_peptide) is None:
             match_ts_list.append(transcript)
     return match_ts_list
@@ -239,7 +239,7 @@ def get_exon_dict(metadata_list):
 
 
 def get_remove_id(metadata_dict):
-    # Todo: [Warning!] if two output lines have identical
+    # TODO: [Warning!] if two output lines have identical
     # coordinates and readframe
     # both of them will be removed. Need to fix.
     remove_id_list = []
