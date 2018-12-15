@@ -36,6 +36,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
        -------
        output_peptide_list: List[str]. Contain all the possible output peptide in the given splicegraph.
        output_metadata_list: List[str]. Contain the correpsonding medata data for each output peptide.
+       output_background_pep_list: List[str]. Contain the background peptide for each transcript.
        total_expr: Float. The sum of all the expression counts which will be used for generating libsize.tsv
        """
 
