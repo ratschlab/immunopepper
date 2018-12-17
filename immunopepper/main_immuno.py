@@ -177,7 +177,7 @@ def main(arg):
             if len(output_peptide_list) > 0:
                 meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
                 peptide_fp.write('\n'.join(output_peptide_list)+'\n')
-            if len(output_peptide_list) > 0:
+            if len(output_background_list) > 0:
                 background_fp.write('\n'.join(output_background_list)+'\n')
             end_time = timeit.default_timer()
             print(gene_idx, end_time - start_time,'\n')
