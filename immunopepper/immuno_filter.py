@@ -147,9 +147,9 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
         # add 3 bases to the last cds part to account for non-annotated stops
         if gene.strand.strip() == "-":
             cds_list = cds_list[::-1]
-            cds_list[-1] = (cds_list[-1][0] - 3, cds_list[-1][1], cds_list[-1][2])
+            cds_list[-1] = (cds_list[-1][0], cds_list[-1][1], cds_list[-1][2])
         else:
-            cds_list[-1] = (cds_list[-1][0], cds_list[-1][1] + 3, cds_list[-1][2])
+            cds_list[-1] = (cds_list[-1][0], cds_list[-1][1], cds_list[-1][2])
 
         cds_string = ""
         first_cds = True
