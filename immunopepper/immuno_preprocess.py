@@ -300,9 +300,9 @@ def parse_mutation_from_vcf(vcf_path, sample_list=None, heter_code=0):
     ----------
     vcf_path: str, vcf file path
     sample_list: list, list of samples
-    heter_code: int (0 or 1). specify which number represents heter alle.
-        0: 0-> homozygous alternative, 1-> heterozygous 2->homozygous reference
-        1: 0-> homozygous reference, 1-> heterozygous 2->homozygous alternative
+    heter_code: int (0 or 2). specify which number represents heter alle.
+        0: 0-> homozygous alternative(1|1), 1-> heterozygous(0|1,1|0) 2->homozygous reference(0|0)
+        2: 0-> homozygous reference(0|0), 1-> heterozygous(0|1,1|0) 2->homozygous alternative(1|1)
     Returns
     -------
     mut_dict: with key (sample, chromo) and values (var_dict)
