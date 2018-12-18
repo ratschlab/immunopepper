@@ -97,8 +97,8 @@ def test_reading_gtf_and_gff3_file():
     gene_table_gff = preprocess_ann(gff3_path)
     assert gene_table_gff.gene_to_ts == gene_table_gtf.gene_to_ts
     assert gene_table_gtf.ts_to_cds.keys() == gene_table_gff.ts_to_cds.keys()
-    assert gene_table_gtf.ts_to_cds['ENST00000335137.4'] == [(69090, 70004, 0)]
-    assert gene_table_gff.ts_to_cds['ENST00000335137.4'] == [(69090, 70007, 0)] # include stop codon in gff3
+    assert gene_table_gtf.ts_to_cds['ENST00000335137.4'] == [(69090, 70005, 0)]
+    assert gene_table_gff.ts_to_cds['ENST00000335137.4'] == [(69090, 70008, 0)] # include stop codon in gff3
 
 
 def test_reading_gtf_and_gff_file():
@@ -108,8 +108,8 @@ def test_reading_gtf_and_gff_file():
     gene_table_gff = preprocess_ann(gff_path)
     assert gene_table_gff.gene_to_ts == gene_table_gtf.gene_to_ts
     assert gene_table_gtf.ts_to_cds.keys() == gene_table_gff.ts_to_cds.keys()
-    assert gene_table_gff.ts_to_cds['ENST00000335137.3'] == [(69090, 70005, 0)]
-    assert gene_table_gtf.ts_to_cds['ENST00000335137.3'] == [(69090, 70004, 0)]
+    assert gene_table_gff.ts_to_cds['ENST00000335137.3'] == [(69090, 70006, 0)]
+    assert gene_table_gtf.ts_to_cds['ENST00000335137.3'] == [(69090, 70005, 0)]
 
 
 def test_reading_vcf_h5():
@@ -126,7 +126,7 @@ def test_reading_vcf_h5():
 def test_construct_mut_seq_with_str_concat():
     ref_seq = 'GTAATGTGTAAGATGACGCACGCATGGTGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
     gt_mut_seq1 = 'GTAATGTGTAGGATGACGCACGCATACTGGTATTGGAGATGGTTTGCGGAGTAAGTTCGAGTTC'
-    gt_mut_seq2 = 'GTAATGTGTAAGATGACGCACGCATGCTGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
+    gt_mut_seq2 = 'GTAATGTGTAAGATGACGCACGCATACTGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
     mut_dict = {}
     mut_dict[10] = {'mut_base':'G','ref_base':'A'}
     mut_dict[25] = {'mut_base':'A','ref_base':'G'}
@@ -134,12 +134,10 @@ def test_construct_mut_seq_with_str_concat():
     mut_dict[28] = {'mut_base':'*','ref_base':'G'}
     mut_dict[42] = {'mut_base':'T','ref_base':'G'}
     mut_dict[45] = {'mut_base':'*','ref_base':'G'}
-    mut_seq1 = construct_mut_seq_with_str_concat(ref_seq,0,len(ref_seq),mut_dict)
+    mut_seq1 = construct_mut_seq_with_str_concat(ref_seq, 0, len(ref_seq),mut_dict)
     assert mut_seq1 == gt_mut_seq1
-    mut_seq2 = construct_mut_seq_with_str_concat(ref_seq,25,27,mut_dict) # (25,27) open in two side, only include 26
+    mut_seq2 = construct_mut_seq_with_str_concat(ref_seq, 25, 27, mut_dict) # (25,27) left open and right close
     assert mut_seq2 == gt_mut_seq2
-    mut_seq3 = construct_mut_seq_with_str_concat(ref_seq,25,26,mut_dict)
-    assert mut_seq3 == ref_seq
 
 
 def test_get_mutation_mode_from_parser():
