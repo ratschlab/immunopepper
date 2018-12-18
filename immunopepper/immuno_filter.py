@@ -40,7 +40,7 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
                                 curr_ts.ravel()[1:-1].reshape(curr_ts.shape[0] - 1, 2).astype('str')]
 
         for x in sp.array(sp.where(sp.triu(edges))).T:
-            if '%i:%i' % (vertices[1, x[0]] - 1, vertices[0, x[1]]) in transcript_junctions:
+            if '%i:%i' % (vertices[1, x[0]], vertices[0, x[1]]) in transcript_junctions:
                 junction_flag[x[0], x[1]] = 1
                 junction_flag[x[1], x[0]] = 1
 
@@ -80,10 +80,6 @@ def find_background_transcript(gene, ref_seq, gene_to_transcript_table, transcri
         # add 3 bases to the last cds part to account for non-annotated stops
         if gene.strand.strip() == "-":
             cds_list = cds_list[::-1]
-            cds_list[-1] = (cds_list[-1][0] - 3, cds_list[-1][1], cds_list[-1][2])
-        else:
-            cds_list[-1] = (cds_list[-1][0], cds_list[-1][1] + 3, cds_list[-1][2])
-
         cds_string = ""
         first_cds = True
 
@@ -98,7 +94,7 @@ def find_background_transcript(gene, ref_seq, gene_to_transcript_table, transcri
                     coord_right -= frameshift
                 first_cds = False
 
-            nuc_seq = ref_seq[coord_left:coord_right + 1]
+            nuc_seq = ref_seq[coord_left:coord_right]
 
             # Accumulate new DNA sequence...
             if gene.strand.strip() == "+":
@@ -147,9 +143,6 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
         # add 3 bases to the last cds part to account for non-annotated stops
         if gene.strand.strip() == "-":
             cds_list = cds_list[::-1]
-            cds_list[-1] = (cds_list[-1][0], cds_list[-1][1], cds_list[-1][2])
-        else:
-            cds_list[-1] = (cds_list[-1][0], cds_list[-1][1], cds_list[-1][2])
 
         cds_string = ""
         first_cds = True
@@ -165,7 +158,7 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
                     coord_right -= frameshift
                 first_cds = False
 
-            nuc_seq = ref_seq[coord_left:coord_right+1]
+            nuc_seq = ref_seq[coord_left:coord_right]
 
             # Accumulate new DNA sequence...
             if gene.strand.strip() == "+":

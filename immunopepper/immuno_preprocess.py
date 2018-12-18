@@ -130,7 +130,7 @@ def preprocess_ann(ann_path):
             parent_ts = attribute_dict['transcript_id']
             strand_mode = item[6]
             cds_left = int(item[3])-1
-            cds_right = int(item[4])-1
+            cds_right = int(item[4])
             frameshift = int(item[7])
             if parent_ts in transcript_to_cds_dict:
                 transcript_to_cds_dict[parent_ts].append((cds_left, cds_right, frameshift))
