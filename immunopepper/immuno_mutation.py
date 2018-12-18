@@ -53,7 +53,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     -------
     mut_seq: str. mutation sequence
     """
-    variant_pos_candi = [ipos for ipos in mut_dict.keys() if ipos > pos_start and ipos < pos_end]
+    variant_pos_candi = [ipos for ipos in mut_dict.keys() if ipos >= pos_start and ipos <= pos_end]
     if len(variant_pos_candi) > 0:
         variant_pos_sorted = np.sort(variant_pos_candi)
         mut_seq_list = [ref_seq[:variant_pos_sorted[0]]]
