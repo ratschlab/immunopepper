@@ -47,70 +47,6 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
     return junction_flag
 
 
-def find_background_transcript(gene, ref_seq, gene_to_transcript_table, transcript_cds_table):
-    """Calculate the transcript derived from the annotation file.
-    It is used for generating artificial reads.
-
-    Parameters
-    ----------
-    gene: Object. Created by SplAdder
-    ref_seq: List(str). Reference sequence of certain chromosome.
-    gene_to_transcript_table: Dict. "Gene" -> "transcript"
-    transcript_to_cds_table: Dict. "transcript" -> "cds"
-
-    Returns
-    -------
-    ts_list: List[str]. List of all the peptide translated from the given
-    splicegraph and annotation.
-    """
-    gene_transcripts = gene_to_transcript_table[gene.name]
-    ts_list = []
-
-    # Generate a background peptide for every variant transcript
-    for ts in gene_transcripts:
-
-        # No CDS entries for transcript in annotation file...
-        if ts not in transcript_cds_table:
-            # print("WARNING: Transcript not in CDS table")
-            continue
-
-        cds_list = transcript_cds_table[ts]
-
-        # Reverse CDS in reverse strand transcription...
-        # add 3 bases to the last cds part to account for non-annotated stops
-        if gene.strand.strip() == "-":
-            cds_list = cds_list[::-1]
-        cds_string = ""
-        first_cds = True
-
-        # Append transcribed CDS regions to the output
-        for coord_left, coord_right, frameshift in cds_list:
-
-            # Apply initial frameshift on the first CDS of the transcript
-            if first_cds:
-                if gene.strand.strip() == "+":
-                    coord_left += frameshift
-                else:
-                    coord_right -= frameshift
-                first_cds = False
-
-            nuc_seq = ref_seq[coord_left:coord_right]
-
-            # Accumulate new DNA sequence...
-            if gene.strand.strip() == "+":
-                cds_string += nuc_seq
-            elif gene.strand.strip() == "-":
-                cds_string += complementary_seq(nuc_seq[::-1])
-            else:
-                print("ERROR: Invalid strand...")
-                sys.exit(1)
-        ts_list.append(cds_string)
-        #aa_str_mutated = translate_dna_to_peptide(cds_string)
-        #peptide_list.append((aa_str_mutated, ts))
-    gene.processed = True
-    return ts_list
-
-
 def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript_cds_table):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
@@ -125,9 +61,12 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
     -------
     peptide_list: List[str]. List of all the peptide translated from the given
        splicegraph and annotation.
+    (ts_list): List[str]. List of all the transcript indicated by the  annotation file
+        can be used to generate artifical reads.
     """
     gene_transcripts = gene_to_transcript_table[gene.name]
     peptide_list = []
+    ts_list = []
 
     # Generate a background peptide for every variant transcript
     for ts in gene_transcripts:
@@ -170,6 +109,7 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
                 sys.exit(1)
 
         aa_str_mutated, is_stop_flag = translate_dna_to_peptide(cds_string)
+        ts_list.append(cds_string)
         peptide_list.append((ts, aa_str_mutated))
     gene.processed = True
     return peptide_list
