@@ -64,3 +64,7 @@ def test_end_to_end_ref(test_id, case, mutation_mode, tmpdir):
     _assert_files_equal(
         os.path.join(sample_dir, '{}_metadata_gt.tsv'.format(mutation_mode)),
         os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_metadata.tsv.gz'.format(mutation_mode)))
+    _assert_files_equal(
+        os.path.join(sample_dir, '{}_back_peptides_gt.fa'.format(mutation_mode)),
+        os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_back_peptides.fa'.format(mutation_mode)))
+
