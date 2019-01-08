@@ -471,11 +471,12 @@ def get_segment_expr(gene, coord, Segments, Idx):
     expr_sum = 0
     seg_len = 0
     for item in expr_list1:
-        expr_sum += item[0]*item[1]
-        seg_len += item[0]
+        length = item[0]
+        expr = item[1]
+        expr_sum += length*expr
+        seg_len += length
     mean_expr = int(expr_sum/seg_len)
-    return mean_expr
-
+    return mean_expr,expr_list1
 
 def get_idx(sample_idx_table, sample, gene_idx):
     """ Create a aggregated Index with nametuple idx
@@ -515,4 +516,15 @@ def create_libsize(expr_distr_dict,output_fp):
             line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
             f.write(line)
 
-
+def build_kmer_dict(kmer_file):
+    f = open(kmer_file,'r')
+    kmer_dict = {}
+    for line in f:
+        items = line.strip().split('\t')
+        kmer = items[0]
+        expr = float(items[1])
+        if kmer not in kmer_dict:
+            kmer_dict[kmer] = expr
+        elif expr > kmer_dict[kmer]:
+            kmer_dict[kmer] = expr
+    return kmer_dict

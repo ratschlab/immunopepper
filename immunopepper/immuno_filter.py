@@ -4,7 +4,7 @@ import re
 
 import scipy as sp
 
-from utils import complementary_seq,translate_dna_to_peptide
+from utils import complementary_seq,translate_dna_to_peptide,get_exon_expr
 
 
 def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_table):
@@ -47,7 +47,7 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
     return junction_flag
 
 
-def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript_cds_table):
+def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript_cds_table, Segments, Idx):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
     Parameters
@@ -67,7 +67,7 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
     gene_transcripts = gene_to_transcript_table[gene.name]
     peptide_list = []
     ts_list = []
-
+    back_expr_lists = []
     # Generate a background peptide for every variant transcript
     for ts in gene_transcripts:
 
@@ -85,7 +85,7 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
 
         cds_string = ""
         first_cds = True
-
+        expr_list = []
         # Append transcribed CDS regions to the output
         for coord_left, coord_right, frameshift in cds_list:
 
@@ -96,7 +96,7 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
                 else:
                     coord_right -= frameshift
                 first_cds = False
-
+            expr_list.extend(get_exon_expr(gene, coord_left, coord_right, Segments, Idx))
             nuc_seq = ref_seq[coord_left:coord_right]
 
             # Accumulate new DNA sequence...
@@ -107,12 +107,12 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
             else:
                 print("ERROR: Invalid strand...")
                 sys.exit(1)
-
+        back_expr_lists.append(expr_list)
         aa_str_mutated, is_stop_flag = translate_dna_to_peptide(cds_string)
         ts_list.append(cds_string)
         peptide_list.append((ts, aa_str_mutated))
     gene.processed = True
-    return peptide_list
+    return peptide_list,back_expr_lists
 
 
 def peptide_match(ref_peptides, peptide):
@@ -192,7 +192,7 @@ def get_remove_id(metadata_dict):
     return remove_id_list
 
 
-def get_filtered_output_list(metadata_list,peptide_list):
+def get_filtered_output_list(metadata_list,peptide_list,expr_lists):
     """ Get all redundant output id.
 
     Parameters
@@ -207,13 +207,15 @@ def get_filtered_output_list(metadata_list,peptide_list):
     remove_id_list = get_remove_id(exon_list)
     filtered_meta_list = []
     filtered_peptide_list = []
+    filtered_expr_lists = []
     for i,imeta_line in enumerate(metadata_list):
         items = imeta_line.strip().split('\t')
         idx = items[0]
         if idx not in remove_id_list:
             filtered_meta_list.append(imeta_line)
             filtered_peptide_list.append(peptide_list[i])
-    return filtered_meta_list, filtered_peptide_list
+            filtered_expr_lists.append(expr_lists[i])
+    return filtered_meta_list, filtered_peptide_list,filtered_expr_lists
 
 
 

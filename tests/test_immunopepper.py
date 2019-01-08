@@ -11,6 +11,7 @@ from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
 from immunopepper.utils import get_sub_mut_dna
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.main_immuno import parse_arguments
+from immunopepper.immuno_model import create_output_kmer
 
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 
@@ -125,19 +126,19 @@ def test_reading_vcf_h5():
 
 def test_construct_mut_seq_with_str_concat():
     ref_seq = 'GTAATGTGTAAGATGACGCACGCATGGTGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
-    gt_mut_seq1 = 'GTAATGTGTAGGATGACGCACGCATACTGGTATTGGAGATGGTTTGCGGAGTAAGTTCGAGTTC'
-    gt_mut_seq2 = 'GTAATGTGTAAGATGACGCACGCATACTGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
+    gt_mut_seq2 = 'GTAATGTGTAAGATGACGCACGCATA'+'C'+'TGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
+    gt_mut_seq3 = 'GTAATGTGTAAGATGACGCACGCATA'+'G'+'TGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
     mut_dict = {}
-    mut_dict[10] = {'mut_base':'G','ref_base':'A'}
+    mut_dict[10] = {'mut_base':'*','ref_base':'A'}
     mut_dict[25] = {'mut_base':'A','ref_base':'G'}
     mut_dict[26] = {'mut_base':'C','ref_base':'G'}
-    mut_dict[28] = {'mut_base':'*','ref_base':'G'}
-    mut_dict[42] = {'mut_base':'T','ref_base':'G'}
-    mut_dict[45] = {'mut_base':'*','ref_base':'G'}
-    mut_seq1 = construct_mut_seq_with_str_concat(ref_seq, 0, len(ref_seq),mut_dict)
-    assert mut_seq1 == gt_mut_seq1
-    mut_seq2 = construct_mut_seq_with_str_concat(ref_seq, 25, 27, mut_dict) # (25,27) left open and right close
+    mut_seq1 = construct_mut_seq_with_str_concat(ref_seq, 45, 46, mut_dict) # test unclear mut_base
+    assert mut_seq1 == ref_seq
+    mut_seq2 = construct_mut_seq_with_str_concat(ref_seq, 25, 27, mut_dict) # [25,27) include 26
     assert mut_seq2 == gt_mut_seq2
+    mut_seq3 = construct_mut_seq_with_str_concat(ref_seq, 25, 26, mut_dict) # [25,26) not include 26
+    assert mut_seq3 == gt_mut_seq3
+
 
 
 def test_get_mutation_mode_from_parser():
@@ -156,3 +157,25 @@ def test_get_mutation_mode_from_parser():
         get_mutation_mode_from_parser(args)
     except SystemExit:
         assert 1
+
+
+def test_create_output_kmer():
+    peptide_list = ['1\nRTHDGLRSTYI','2\nMTHAW']
+    expr_lists = [[(8,1000),(1,220),(0,0)]]
+    k = 3
+    try:
+        c = create_output_kmer(peptide_list,expr_lists,k)
+    except AssertionError: # make sure len(peptide) == len(expr_lists)
+        assert 1
+    peptide_list = ['1\nMTHAW']
+    expr_lists = [[(8,1000),(1,220),(6,0)]] # test 0 expression
+    c = create_output_kmer(peptide_list, expr_lists, k)
+    true_output = ['MTH\t913.33', 'THA\t580.0', 'HAW\t246.67']
+    assert c == true_output
+    expr_lists = [[(8,1000),(1,220),(0,0)]] # test 0 expression
+    c = create_output_kmer(peptide_list, expr_lists, k)
+    true_output = ['MTH\t913.33', 'THA\t870.0', 'HAW\t740.0']
+    assert c == true_output
+
+
+

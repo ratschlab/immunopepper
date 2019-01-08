@@ -37,6 +37,8 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
        output_peptide_list: List[str]. Contain all the possible output peptide in the given splicegraph.
        output_metadata_list: List[str]. Contain the correpsonding medata data for each output peptide.
        output_background_pep_list: List[str]. Contain the background peptide for each transcript.
+       expr_lists: List[List(Tuple(int,float))]. Contain the segment expression data for each output peptide.
+       back_expr_lists: List[List(Tuple(int,float))]. Contain the segment expression data for background output.
        total_expr: Float. The sum of all the expression counts which will be used for generating libsize.tsv
        """
 
@@ -47,6 +49,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
     output_id = 0
     output_peptide_list = []
     output_metadata_list = []
+    expr_lists = []
 
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
@@ -68,8 +71,8 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
     # find background peptide
     # if no germline mutation is applies, germline key still exists, equals to reference.
     # return the list of the background peptide for each transcript
-    background_pep_list = find_background_peptides(gene, ref_mut_seq['background'], table.gene_to_ts, table.ts_to_cds)
-    output_background_pep_list = ['\t'.join(back_pep_tuple) for back_pep_tuple in background_pep_list]
+    background_pep_list, back_expr_lists = find_background_peptides(gene, ref_mut_seq['background'], table.gene_to_ts, table.ts_to_cds,segments,idx)
+    output_background_pep_list = ['\n'.join(back_pep_tuple) for back_pep_tuple in background_pep_list]
 
     # check whether the junction (specific combination of vertices) also is annotated
     # as a junction of a protein coding transcript
@@ -125,9 +128,9 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                             seg_exp_variant_comb = NOT_EXIST  # if no mutation or no count file,  the segment expression is .
 
                         if segments is not None:
-                            segment_expr = get_segment_expr(gene, coord, segments, idx)
+                            segment_expr, expr_list = get_segment_expr(gene, coord, segments, idx)
                         else:
-                            segment_expr = NOT_EXIST
+                            segment_expr, expr_list = NOT_EXIST, NOT_EXIST
 
                         meta_header_line = "\t".join(
                             [str(idx.gene) + '.' + str(output_id), str(read_frame_tuple[2]), gene.name, gene.chr, gene.strand,
@@ -153,9 +156,50 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                         output_metadata_list.append(meta_header_line)
                         peptide_str_pretty = '>' + str(idx.gene) + '.' + str(output_id) + '\t' + gene.name + '\n' + peptide.mut
                         output_peptide_list.append(peptide_str_pretty)
+                        expr_lists.append(expr_list)
                         output_id += 1
     if not sg.edges is None:
         gene.to_sparse()
 
     gene.processed = True
-    return output_peptide_list,output_metadata_list,output_background_pep_list,total_expr
+    return output_peptide_list,output_metadata_list,output_background_pep_list,expr_lists,back_expr_lists,total_expr
+
+
+def create_output_kmer(peptide_list, expr_lists, k):
+    """Calculate the output kmer and the corresponding expression based on output peptide
+
+    Parameters
+    ----------
+    peptide_list: List(str). Filtered output_peptide_list.
+    expr_lists: List(List(Tuple)). Filtered expr_list.
+    k: int. Specify k-mer length
+
+    Returns
+    -------
+    output_list: List(str). Each line is the output peptide and corresponding expression level.
+
+    """
+    def change_expr_lists_to_array(expr_list):
+        array = []
+        for item in expr_list:
+            length = item[0]
+            expr = item[1]
+            array.extend([expr]*length)
+        return np.array(array)
+    assert len(peptide_list) == len(expr_lists)
+    output_list = []
+    for i in range(len(peptide_list)):
+        expr_array = change_expr_lists_to_array(expr_lists[i])
+        peptide = peptide_list[i].split('\n')[1]
+        if len(peptide) >= k:
+            for j in range(len(peptide)-k+1):
+                kmer_peptide = peptide[j:j+k]
+                kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]),2)
+                kmer_line = kmer_peptide+'\t'+str(kmer_peptide_expr)
+                output_list.append(kmer_line)
+        else:
+            kmer_peptide = peptide
+            kmer_peptide_expr = np.round(np.mean(expr_array),2)
+            kmer_line = kmer_peptide+'\t'+str(kmer_peptide_expr)
+            output_list.append(kmer_line)
+    return output_list

@@ -17,7 +17,7 @@ import h5py
 from immunopepper.immuno_print import print_memory_diags
 from immunopepper.immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_junction_meta_info
 from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_mutation_tuple
-from immunopepper.immuno_model import calculate_output_peptide
+from immunopepper.immuno_model import calculate_output_peptide, create_output_kmer
 from immunopepper.immuno_filter import get_filtered_output_list
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.utils import get_idx,create_libsize
@@ -41,6 +41,7 @@ def parse_arguments(argv):
     parser.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
     parser.add_argument("--mutation_mode", help="specify the mutation mdoe", required=False, default='ref')
     parser.add_argument("--heter_code", type=int, help="if count expression data is provided in h5 format, specify the code for heterzygous", default=0)
+    parser.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
     if len(argv) < 2:
         parser.print_help()
         sys.exit(1)
@@ -138,9 +139,15 @@ def main(arg):
         peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa')
         meta_peptide_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz')
         background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa')
+        junction_kmer_peptide_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.txt')
+        back_kmer_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.txt')
+
         peptide_fp = open(peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')
         background_fp = open(background_peptide_file_path,'w')
+        junction_kmer_peptide_fp = open(junction_kmer_peptide_file_path, 'w')
+        back_kmer_peptide_fp = open(back_kmer_peptide_file_path, 'w')
+
         meta_header_line = "\t".join(['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
                                     'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','variant_seg_expr',
                                       'exons_coor', 'vertex_idx','junction_expr','segment_expr'])
@@ -164,15 +171,21 @@ def main(arg):
             else:
                 junction_list = None
 
-            output_peptide_list, output_metadata_list, output_background_list, total_expr = calculate_output_peptide(gene=gene,
+            output_peptide_list, output_metadata_list, output_background_list, expr_lists, back_expr_lists, total_expr = calculate_output_peptide(gene=gene,
                               ref_seq=seq_dict[chrm],
                               idx=idx, segments=segments, edges=edges,
                               table=genetable, mutation=sub_mutation,
                               junction_list=junction_list, debug=arg.debug
                             )
             expr_distr.append(total_expr)
+
             if arg.filter_redundant:
-                output_metadata_list, output_peptide_list = get_filtered_output_list(output_metadata_list,output_peptide_list)
+                output_metadata_list, output_peptide_list, expr_lists = get_filtered_output_list(output_metadata_list,output_peptide_list,expr_lists)
+            if arg.kmer > 0:
+                junction_kmer_output_list = create_output_kmer(output_peptide_list, expr_lists, arg.kmer)
+                back_kmer_output_list = create_output_kmer(output_background_list,back_expr_lists, arg.kmer)
+                junction_kmer_peptide_fp.write('\n'.join(junction_kmer_output_list) + '\n')
+                back_kmer_peptide_fp.write('\n'.join(back_kmer_output_list)+'\n')
             assert len(output_metadata_list) == len(output_peptide_list)
             if len(output_peptide_list) > 0:
                 meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
