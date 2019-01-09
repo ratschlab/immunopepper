@@ -2,7 +2,6 @@
 import itertools
 import scipy as sp
 import numpy as np
-from anytree import Node, RenderTree
 
 from collections import namedtuple
 import bisect
