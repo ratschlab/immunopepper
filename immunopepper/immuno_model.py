@@ -5,7 +5,7 @@ import numpy as np
 import scipy as sp
 
 from immuno_filter import junction_is_annotated, peptide_match, find_background_peptides, get_full_peptide_list
-from immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb
+from immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
 from utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr,get_all_paths
 from immuno_preprocess import search_edge_metadata_segmentgraph
 from constant import NOT_EXIST
@@ -59,7 +59,6 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
     ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq, pos_start=pos_start, pos_end=pos_end,
                                            mutation_sub_dic_vcf=mutation.vcf_dict)
 
-
     # apply somatic mutation
     # som_exp_dict: (mutation_position) |-> (expression)
     # exon_som_dict: (exon_id) |-> (mutation_postion)
@@ -68,6 +67,8 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
         exon_som_dict = get_exon_som_dict(gene, mutation.maf_dict.keys())
         if segments is not None:
             som_exp_dict = get_som_expr_dict(gene, mutation.maf_dict.keys(), segments, idx)
+    final_seq = apply_somatic_mutation(ref_sequence=ref_mut_seq['background'], pos_start=pos_start, pos_end=pos_end,
+                                       mutation_sub_dic_maf=mutation.maf_dict)
 
     # find background peptide
     # if no germline mutation is applies, germline key still exists, equals to reference.
@@ -76,7 +77,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
     output_background_pep_list = ['\n'.join(back_pep_tuple) for back_pep_tuple in background_pep_list]
 
     all_path_dict = get_all_paths(gene)
-    full_pep_list, full_expr_lists = get_full_peptide_list(gene,ref_mut_seq['background'],all_path_dict,segments,idx)
+    full_pep_list, full_expr_lists = get_full_peptide_list(gene,final_seq,all_path_dict,segments,idx)
     output_full_pep_list = ['\n'.join(full_pep_tuple) for full_pep_tuple in full_pep_list]
 
     # check whether the junction (specific combination of vertices) also is annotated

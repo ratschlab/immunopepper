@@ -50,7 +50,7 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
 def get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode):
     # Reverse CDS in reverse strand transcription...
     # add 3 bases to the last cds part to account for non-annotated stops
-    if gene.strand.strip() == "-":
+    if gene.strand.strip() == "-" and mode=='back':
         cds_list = cds_list[::-1]
 
     cds_string = ""
@@ -60,13 +60,14 @@ def get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode):
     for coord_left, coord_right, frameshift in cds_list:
 
         # Apply initial frameshift on the first CDS of the transcript
-        if first_cds and mode != 'rf':
+        if first_cds and mode != 'full':
             if gene.strand.strip() == "+":
                 coord_left += frameshift
             else:
                 coord_right -= frameshift
             first_cds = False
-        cds_expr_list.extend(get_exon_expr(gene, coord_left, coord_right, Segments, Idx))
+        cds_expr = get_exon_expr(gene, coord_left, coord_right, Segments, Idx)
+        cds_expr_list.extend(cds_expr)
         nuc_seq = ref_seq[coord_left:coord_right]
 
         # Accumulate new DNA sequence...
@@ -115,7 +116,7 @@ def get_full_peptide_list(gene, ref_seq, all_path_dict, segments, idx):
     peptide_list = []
     expr_lists = []
     for i,cds_list in enumerate(all_cds_list):
-        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_seq, cds_list, segments, idx, mode='rf')
+        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_seq, cds_list, segments, idx, mode='full')
         peptide_list.append((convert_cds_list_to_string(cds_list),cds_peptide))
         expr_lists.append(cds_expr_list)
     return peptide_list, expr_lists
@@ -151,7 +152,7 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
         cds_list = transcript_cds_table[ts]
         cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode='back')
         peptide_list.append((ts,cds_peptide))
-        expr_lists.append(cds_list)
+        expr_lists.append(cds_expr_list)
     gene.processed = True
     return peptide_list, expr_lists
 

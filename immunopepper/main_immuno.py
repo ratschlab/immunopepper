@@ -187,7 +187,7 @@ def main(arg):
                 output_metadata_list, output_peptide_list, expr_lists = get_filtered_output_list(output_metadata_list,output_peptide_list,expr_lists)
             if arg.kmer > 0:
                 junction_kmer_output_list = create_output_kmer(output_peptide_list, expr_lists, arg.kmer)
-                back_kmer_output_list = create_output_kmer(output_background_list,back_expr_lists, arg.kmer)
+                back_kmer_output_list = create_output_kmer(output_background_list, back_expr_lists, arg.kmer)
                 full_kmer_output_list = create_output_kmer(output_full_background_list,full_expr_lists,arg.kmer)
                 junction_kmer_peptide_fp.write('\n'.join(junction_kmer_output_list) + '\n')
                 back_kmer_peptide_fp.write('\n'.join(back_kmer_output_list)+'\n')

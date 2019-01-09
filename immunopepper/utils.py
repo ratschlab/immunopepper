@@ -204,7 +204,6 @@ def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, varian
     final_dna = ''.join(sub_dna_list)
     return final_dna
 
-
 def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, peptide_accept_coord):
     """ Get translated peptide from the given exon pairs.
 
@@ -442,6 +441,8 @@ def get_exon_expr(gene,vstart,vstop,Segments,Idx):
         for i in range(sv1_id + 1, sv2_id):
             expr_list.append((segments[1, i] - segments[0, i], Segments.expr[i,Idx.sample]))
         expr_list.append((vstop-segments[0, sv2_id], Segments.expr[sv2_id, Idx.sample]))
+        if gene.strand == '-': # need to reverse epression list to match the order of translation
+            expr_list = expr_list[::-1]
     return expr_list
 
 

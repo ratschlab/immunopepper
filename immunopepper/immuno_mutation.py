@@ -39,6 +39,30 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_v
     return output_seq
 
 
+def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_maf):
+    """Apply somatic mutation on the reference sequence
+
+    Parameters
+    ----------
+    ref_sequence: str. reference sequence of certain chromosome.
+    pos_start: int. start position of sequence for applying somatic mutation.
+    pos_end: int. Ending position of sequence for applying somatic mutation.
+    mutation_sub_dic_maf: dict. (position) -> variant details
+
+    Returns
+    -------
+    output_seq: dict. (sequence_type) -> list[char]. output['ref'] is the original
+    reference sequence output['background'] is the germline-mutation-applied sequence
+    if .maf file (somatic mutation) exists while is original sequence if no somatic
+    information is available.
+    """
+    if mutation_sub_dic_maf is not None:
+        mut_seq = construct_mut_seq_with_str_concat(ref_sequence, pos_start, pos_end, mutation_sub_dic_maf)
+    else:
+        mut_seq = ref_sequence
+    return mut_seq
+
+
 def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     """ Applying germline mutation on given range and get mutated sequence
 
