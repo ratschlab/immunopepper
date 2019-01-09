@@ -2,6 +2,7 @@
 import itertools
 import scipy as sp
 import numpy as np
+from anytree import Node, RenderTree
 
 from collections import namedtuple
 import bisect
@@ -528,3 +529,40 @@ def build_kmer_dict(kmer_file):
         elif expr > kmer_dict[kmer]:
             kmer_dict[kmer] = expr
     return kmer_dict
+
+
+def get_all_paths(gene):
+    """
+    Get all possible paths according to reading frames and success vertex list
+    Parameters
+    ----------
+    gene: SpAddler gene object.
+
+    Returns
+    -------
+    path_dict: Dict. Key is vertex id, value is the list of paths that end with that vertex.
+
+    """
+    def add_v_to_list3(_list,v):
+        return [_ilist + [v] for _ilist in _list]
+    reading_frame = gene.splicegraph.reading_frames
+    succ_list = gene.vertex_succ_list
+    path_dict = {i: [[i]] for i in range(len(reading_frame)) if len(reading_frame[i]) > 0}
+    for i,succ_vlist in enumerate(succ_list) if gene.strand == '+' else reversed(list(enumerate(succ_list))):
+        if len(succ_vlist) > 0:
+            for succ_v in succ_vlist:
+                if succ_v not in path_dict:
+                    path_dict[succ_v] = add_v_to_list3(path_dict[i],succ_v)
+                else:
+                    path_dict[succ_v].extend(add_v_to_list3(path_dict[i],succ_v))
+            path_dict[i] = []
+            # print("--------")
+            # print(i)
+            # print(path_dict)
+    return path_dict
+
+
+
+
+
+

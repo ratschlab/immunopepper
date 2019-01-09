@@ -47,6 +47,80 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
     return junction_flag
 
 
+def get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode):
+    # Reverse CDS in reverse strand transcription...
+    # add 3 bases to the last cds part to account for non-annotated stops
+    if gene.strand.strip() == "-":
+        cds_list = cds_list[::-1]
+
+    cds_string = ""
+    first_cds = True
+    cds_expr_list = []
+    # Append transcribed CDS regions to the output
+    for coord_left, coord_right, frameshift in cds_list:
+
+        # Apply initial frameshift on the first CDS of the transcript
+        if first_cds and mode != 'rf':
+            if gene.strand.strip() == "+":
+                coord_left += frameshift
+            else:
+                coord_right -= frameshift
+            first_cds = False
+        cds_expr_list.extend(get_exon_expr(gene, coord_left, coord_right, Segments, Idx))
+        nuc_seq = ref_seq[coord_left:coord_right]
+
+        # Accumulate new DNA sequence...
+        if gene.strand.strip() == "+":
+            cds_string += nuc_seq
+        elif gene.strand.strip() == "-":
+            cds_string += complementary_seq(nuc_seq[::-1])
+        else:
+            print("ERROR: Invalid strand...")
+            sys.exit(1)
+    cds_peptide, is_stop_flag = translate_dna_to_peptide(cds_string)
+    return cds_expr_list, cds_string, cds_peptide
+
+
+def get_full_peptide_list(gene, ref_seq, all_path_dict, segments, idx):
+    def re_arrange_dict(all_path_dict):
+        new_dict = {}
+        for path_list in all_path_dict.values():
+            for path in path_list:
+                if path[0] not in new_dict:
+                    new_dict[path[0]] = [path]
+                else:
+                    new_dict[path[0]].append(path)
+        return new_dict
+
+    def convert_to_cds_list(new_dict,gene):
+        all_cds_list = []
+        vlist = gene.splicegraph.vertices
+        for start_point,path_list in new_dict.items():
+            reading_frame_list = list(gene.splicegraph.reading_frames[start_point])
+            for reading_frame_tuple in reading_frame_list:
+                for path in path_list:
+                    cds_list = []
+                    cds_list.append(reading_frame_tuple)
+                    for succ_point in path[1:]:
+                        cds_list.append((vlist[0][succ_point],vlist[1][succ_point],0))
+                    all_cds_list.append(cds_list)
+        return all_cds_list
+
+    def convert_cds_list_to_string(cds_list):
+        cds_str_list = [str(cds_item) for cds_item in cds_list]
+        return '_'.join(cds_str_list)
+
+    new_path_dict = re_arrange_dict(all_path_dict)
+    all_cds_list = convert_to_cds_list(new_path_dict,gene)
+    peptide_list = []
+    expr_lists = []
+    for i,cds_list in enumerate(all_cds_list):
+        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_seq, cds_list, segments, idx, mode='rf')
+        peptide_list.append((convert_cds_list_to_string(cds_list),cds_peptide))
+        expr_lists.append(cds_expr_list)
+    return peptide_list, expr_lists
+
+
 def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript_cds_table, Segments, Idx):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
@@ -66,8 +140,7 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
     """
     gene_transcripts = gene_to_transcript_table[gene.name]
     peptide_list = []
-    ts_list = []
-    back_expr_lists = []
+    expr_lists = []
     # Generate a background peptide for every variant transcript
     for ts in gene_transcripts:
 
@@ -75,44 +148,12 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
         if ts not in transcript_cds_table:
             #print("WARNING: Transcript not in CDS table")
             continue
-
         cds_list = transcript_cds_table[ts]
-
-        # Reverse CDS in reverse strand transcription...
-        # add 3 bases to the last cds part to account for non-annotated stops
-        if gene.strand.strip() == "-":
-            cds_list = cds_list[::-1]
-
-        cds_string = ""
-        first_cds = True
-        expr_list = []
-        # Append transcribed CDS regions to the output
-        for coord_left, coord_right, frameshift in cds_list:
-
-            # Apply initial frameshift on the first CDS of the transcript
-            if first_cds:
-                if gene.strand.strip() == "+":
-                    coord_left += frameshift
-                else:
-                    coord_right -= frameshift
-                first_cds = False
-            expr_list.extend(get_exon_expr(gene, coord_left, coord_right, Segments, Idx))
-            nuc_seq = ref_seq[coord_left:coord_right]
-
-            # Accumulate new DNA sequence...
-            if gene.strand.strip() == "+":
-                cds_string += nuc_seq
-            elif gene.strand.strip() == "-":
-                cds_string += complementary_seq(nuc_seq[::-1])
-            else:
-                print("ERROR: Invalid strand...")
-                sys.exit(1)
-        back_expr_lists.append(expr_list)
-        aa_str_mutated, is_stop_flag = translate_dna_to_peptide(cds_string)
-        ts_list.append(cds_string)
-        peptide_list.append((ts, aa_str_mutated))
+        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode='back')
+        peptide_list.append((ts,cds_peptide))
+        expr_lists.append(cds_list)
     gene.processed = True
-    return peptide_list,back_expr_lists
+    return peptide_list, expr_lists
 
 
 def peptide_match(ref_peptides, peptide):
