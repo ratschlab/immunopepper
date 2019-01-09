@@ -47,9 +47,29 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
     return junction_flag
 
 
-def get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode):
-    # Reverse CDS in reverse strand transcription...
-    # add 3 bases to the last cds part to account for non-annotated stops
+def get_full_peptide(gene, seq, cds_list, Segments, Idx, mode):
+    """
+    Output translated peptide and segment expression list given cds_list
+    Parameters
+    ----------
+    gene: Object, created by SplAdder.
+    seq: str. Gene sequence.
+    cds_list: List[Tuple(v_start,v_stop,reading_frame)]
+    Segments: Namedtuple Segments, store segment expression information from count.hdf5.
+           has attribute ['expr', 'lookup_table'].
+    Idx: Namedtuple Idx, has attribute idx.gene and idx.sample
+    mode: [temporal argument]. Due to the different meaning of cds_tuple in gene.splicegraph.reading_frame
+        and that in gene_to_cds dict (the formal v_start and v_stop has already considered reading_frame and
+        do not need additional modified), we need to deal with them differently. So for now there are two modes
+        'full' and 'background', indicating full-kmer and background. Will remove it in the future version.
+
+    Returns
+    -------
+    cds_expr_list: List[Tuple(segment_length,segment_expression)]
+    cds_string: str. Concatenated sequence string according to cds_list
+    cds_peptide: str. Translated peptide string according to cds_list
+
+    """
     if gene.strand.strip() == "-" and mode=='back':
         cds_list = cds_list[::-1]
 
@@ -68,7 +88,7 @@ def get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode):
             first_cds = False
         cds_expr = get_exon_expr(gene, coord_left, coord_right, Segments, Idx)
         cds_expr_list.extend(cds_expr)
-        nuc_seq = ref_seq[coord_left:coord_right]
+        nuc_seq = seq[coord_left:coord_right]
 
         # Accumulate new DNA sequence...
         if gene.strand.strip() == "+":
@@ -82,8 +102,12 @@ def get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode):
     return cds_expr_list, cds_string, cds_peptide
 
 
-def get_full_peptide_list(gene, ref_seq, all_path_dict, segments, idx):
+def get_full_peptide_list(gene, ref_seq, all_path_dict, Segments, Idx):
+    """
+    Output all peptides and corresponding expression list given all possible paths
+    """
     def re_arrange_dict(all_path_dict):
+        """Index path with start vertices"""
         new_dict = {}
         for path_list in all_path_dict.values():
             for path in path_list:
@@ -94,6 +118,7 @@ def get_full_peptide_list(gene, ref_seq, all_path_dict, segments, idx):
         return new_dict
 
     def convert_to_cds_list(new_dict,gene):
+        """Change vertex index to cds tuple"""
         all_cds_list = []
         vlist = gene.splicegraph.vertices
         for start_point,path_list in new_dict.items():
@@ -108,6 +133,7 @@ def get_full_peptide_list(gene, ref_seq, all_path_dict, segments, idx):
         return all_cds_list
 
     def convert_cds_list_to_string(cds_list):
+        """For the header line in the output"""
         cds_str_list = [str(cds_item) for cds_item in cds_list]
         return '_'.join(cds_str_list)
 
@@ -116,7 +142,7 @@ def get_full_peptide_list(gene, ref_seq, all_path_dict, segments, idx):
     peptide_list = []
     expr_lists = []
     for i,cds_list in enumerate(all_cds_list):
-        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_seq, cds_list, segments, idx, mode='full')
+        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_seq, cds_list, Segments, Idx, mode='full')
         peptide_list.append((convert_cds_list_to_string(cds_list),cds_peptide))
         expr_lists.append(cds_expr_list)
     return peptide_list, expr_lists

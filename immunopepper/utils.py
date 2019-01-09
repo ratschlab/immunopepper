@@ -518,6 +518,7 @@ def create_libsize(expr_distr_dict,output_fp):
             line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
             f.write(line)
 
+
 def build_kmer_dict(kmer_file):
     f = open(kmer_file,'r')
     kmer_dict = {}
@@ -544,7 +545,7 @@ def get_all_paths(gene):
     path_dict: Dict. Key is vertex id, value is the list of paths that end with that vertex.
 
     """
-    def add_v_to_list3(_list,v):
+    def add_v_to_list(_list,v):
         return [_ilist + [v] for _ilist in _list]
     reading_frame = gene.splicegraph.reading_frames
     succ_list = gene.vertex_succ_list
@@ -553,13 +554,10 @@ def get_all_paths(gene):
         if len(succ_vlist) > 0:
             for succ_v in succ_vlist:
                 if succ_v not in path_dict:
-                    path_dict[succ_v] = add_v_to_list3(path_dict[i],succ_v)
+                    path_dict[succ_v] = add_v_to_list(path_dict[i],succ_v)
                 else:
-                    path_dict[succ_v].extend(add_v_to_list3(path_dict[i],succ_v))
+                    path_dict[succ_v].extend(add_v_to_list(path_dict[i],succ_v))
             path_dict[i] = []
-            # print("--------")
-            # print(i)
-            # print(path_dict)
     return path_dict
 
 
