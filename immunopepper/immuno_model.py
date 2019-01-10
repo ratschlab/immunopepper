@@ -76,7 +76,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
     background_pep_list, back_expr_lists = find_background_peptides(gene, ref_mut_seq['background'], table.gene_to_ts, table.ts_to_cds, segments, idx)
     output_background_pep_list = ['\n'.join(back_pep_tuple) for back_pep_tuple in background_pep_list]
 
-    all_path_dict = get_all_paths(gene)
+    all_path_dict = get_all_paths(gene,9)
     full_pep_list, full_expr_lists = get_full_peptide_list(gene,final_seq,all_path_dict,segments,idx)
     output_full_pep_list = ['\n'.join(full_pep_tuple) for full_pep_tuple in full_pep_list]
 

@@ -536,7 +536,37 @@ def build_kmer_dict(kmer_file):
     return kmer_dict
 
 
-def get_all_paths(gene):
+def get_all_paths(gene, k):
+    """
+    Get all possible paths according to reading frames and success vertex list
+    Parameters
+    ----------
+    gene: SpAddler gene object.
+    k: the k for k-mer
+
+    Returns
+    -------
+    path_dict: Dict. Key is vertex id, value is the list of paths that end with that vertex.
+
+    """
+    def add_v_to_list(_list,v):
+        return [_ilist + [v] for _ilist in _list]
+    reading_frame = gene.splicegraph.reading_frames
+    succ_list = gene.vertex_succ_list
+    vertices = gene.splicegraph.vertices
+    path_dict = {i: [[i]] for i in range(len(reading_frame)) if len(reading_frame[i]) > 0}
+    for end_v,succ_vlist in enumerate(succ_list) if gene.strand == '+' else reversed(list(enumerate(succ_list))):
+        if len(succ_vlist) > 0 and end_v in path_dict and len(path_dict[end_v]) > 0:
+            for succ_v in succ_vlist:
+                if succ_v not in path_dict:
+                    path_dict[succ_v] = add_v_to_list(path_dict[end_v],succ_v)
+                else:
+                    path_dict[succ_v].extend(add_v_to_list(path_dict[end_v],succ_v))
+            path_dict[end_v] = []
+    path_dict = filter_path(path_dict,vertices,k)
+    return path_dict
+
+def get_all_paths_2(reading_frame_dict, strand, vertex_succ_list):
     """
     Get all possible paths according to reading frames and success vertex list
     Parameters
@@ -550,10 +580,8 @@ def get_all_paths(gene):
     """
     def add_v_to_list(_list,v):
         return [_ilist + [v] for _ilist in _list]
-    reading_frame = gene.splicegraph.reading_frames
-    succ_list = gene.vertex_succ_list
-    path_dict = {i: [[i]] for i in range(len(reading_frame)) if len(reading_frame[i]) > 0}
-    for end_v,succ_vlist in enumerate(succ_list) if gene.strand == '+' else reversed(list(enumerate(succ_list))):
+    path_dict = {i: [[i]] for i in range(len(reading_frame_dict)) if len(reading_frame_dict[i]) > 0}
+    for end_v,succ_vlist in enumerate(vertex_succ_list) if strand == '+' else reversed(list(enumerate(vertex_succ_list))):
         if len(succ_vlist) > 0 and end_v in path_dict and len(path_dict[end_v]) > 0:
             for succ_v in succ_vlist:
                 if succ_v not in path_dict:
@@ -564,5 +592,15 @@ def get_all_paths(gene):
     return path_dict
 
 
+def filter_path(all_path,vertex,k):
+    vertex_len = vertex[1,:]-vertex[0,:]
+    key_id = np.where(vertex_len < (k+1)*3)[0]
+    for end_v in all_path:
+        if end_v in key_id:
+            new_list = []
+        else:
+            new_list = [path for path in all_path[end_v] if len(set(key_id).intersection(path)) > 0]
+        all_path[end_v] = new_list
+    return all_path
 
 
