@@ -522,10 +522,11 @@ def create_libsize(expr_distr_dict,output_fp):
 def build_kmer_dict(kmer_file):
     f = open(kmer_file,'r')
     kmer_dict = {}
-    for line in f:
-        line = line.strip()
-        if len(line)>0:
-            items = line.split('\t')
+    for i,line in enumerate(f):
+        if i % 1000000 == 0:
+            print("Processed {} lines".format(i))
+        items = line.strip().split('\t')
+        if len(items) == 2: # ignore abnormal case
             kmer = items[0]
             expr = float(items[1])
             if kmer not in kmer_dict:
