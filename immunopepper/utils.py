@@ -563,7 +563,7 @@ def get_all_paths(gene, k):
                 else:
                     path_dict[succ_v].extend(add_v_to_list(path_dict[end_v],succ_v))
             path_dict[end_v] = []
-    path_dict = filter_path(path_dict,vertices,k)
+    path_dict = filter_path(path_dict,vertices,gene.strand,k)
     return path_dict
 
 def get_all_paths_2(reading_frame_dict, strand, vertex_succ_list):
@@ -592,15 +592,25 @@ def get_all_paths_2(reading_frame_dict, strand, vertex_succ_list):
     return path_dict
 
 
-def filter_path(all_path,vertex,k):
+def filter_path(all_path,vertex,strand,k):
     vertex_len = vertex[1,:]-vertex[0,:]
-    key_id = np.where(vertex_len < (k+1)*3)[0]
+    key_id_list = np.where(vertex_len < (k+1)*3)[0]
+    early_path_set = set()
     for end_v in all_path:
-        if end_v in key_id:
+        if end_v not in key_id_list:
             new_list = []
-        else:
-            new_list = [path for path in all_path[end_v] if len(set(key_id).intersection(path)) > 0]
-        all_path[end_v] = new_list
+            for path in all_path[end_v]:
+                commmon_key_id_set = set(key_id_list).intersection(path)
+                if len(commmon_key_id_set) > 0:  # only consider the path pass key_id vertex
+                    key_id = max(commmon_key_id_set) if strand == '+' else min(commmon_key_id_set)
+                    key_id_pos = path.index(key_id)
+                    early_path = tuple(path[:key_id_pos])
+                    if early_path not in early_path_set: #
+                        early_path_set.add(early_path)
+                        new_list.append(path)
+            all_path[end_v] = new_list
+        else:  # if end_v is the ending terminal of path, ignore the path
+            all_path[end_v] = []
     return all_path
 
 
