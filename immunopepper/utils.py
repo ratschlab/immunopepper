@@ -554,14 +554,13 @@ def get_all_paths(gene):
     succ_list = gene.vertex_succ_list
     path_dict = {i: [[i]] for i in range(len(reading_frame)) if len(reading_frame[i]) > 0}
     for end_v,succ_vlist in enumerate(succ_list) if gene.strand == '+' else reversed(list(enumerate(succ_list))):
-        if len(succ_vlist) > 0:
+        if len(succ_vlist) > 0 and end_v in path_dict and len(path_dict[end_v]) > 0:
             for succ_v in succ_vlist:
-                if end_v in path_dict:
-                    if succ_v not in path_dict:
-                        path_dict[succ_v] = add_v_to_list(path_dict[end_v],succ_v)
-                    else:
-                        path_dict[succ_v].extend(add_v_to_list(path_dict[end_v],succ_v))
-                path_dict[end_v] = []
+                if succ_v not in path_dict:
+                    path_dict[succ_v] = add_v_to_list(path_dict[end_v],succ_v)
+                else:
+                    path_dict[succ_v].extend(add_v_to_list(path_dict[end_v],succ_v))
+            path_dict[end_v] = []
     return path_dict
 
 
