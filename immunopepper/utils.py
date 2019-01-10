@@ -426,6 +426,7 @@ def get_exon_expr(gene,vstart,vstop,Segments,Idx):
         and the expression count of that segment.
 
     """
+    # Todo: deal with absense of count file
     if vstart == NOT_EXIST or vstop == NOT_EXIST:  # isolated exon case
         expr_list = []
         return expr_list
@@ -522,13 +523,15 @@ def build_kmer_dict(kmer_file):
     f = open(kmer_file,'r')
     kmer_dict = {}
     for line in f:
-        items = line.strip().split('\t')
-        kmer = items[0]
-        expr = float(items[1])
-        if kmer not in kmer_dict:
-            kmer_dict[kmer] = expr
-        elif expr > kmer_dict[kmer]:
-            kmer_dict[kmer] = expr
+        line = line.strip()
+        if len(line)>0:
+            items = line.split('\t')
+            kmer = items[0]
+            expr = float(items[1])
+            if kmer not in kmer_dict:
+                kmer_dict[kmer] = expr
+            elif expr > kmer_dict[kmer]:
+                kmer_dict[kmer] = expr
     return kmer_dict
 
 
@@ -549,17 +552,16 @@ def get_all_paths(gene):
     reading_frame = gene.splicegraph.reading_frames
     succ_list = gene.vertex_succ_list
     path_dict = {i: [[i]] for i in range(len(reading_frame)) if len(reading_frame[i]) > 0}
-    for i,succ_vlist in enumerate(succ_list) if gene.strand == '+' else reversed(list(enumerate(succ_list))):
+    for end_v,succ_vlist in enumerate(succ_list) if gene.strand == '+' else reversed(list(enumerate(succ_list))):
         if len(succ_vlist) > 0:
             for succ_v in succ_vlist:
-                if succ_v not in path_dict:
-                    path_dict[succ_v] = add_v_to_list(path_dict[i],succ_v)
-                else:
-                    path_dict[succ_v].extend(add_v_to_list(path_dict[i],succ_v))
-            path_dict[i] = []
+                if end_v in path_dict:
+                    if succ_v not in path_dict:
+                        path_dict[succ_v] = add_v_to_list(path_dict[end_v],succ_v)
+                    else:
+                        path_dict[succ_v].extend(add_v_to_list(path_dict[end_v],succ_v))
+                path_dict[end_v] = []
     return path_dict
-
-
 
 
 
