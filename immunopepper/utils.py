@@ -618,6 +618,10 @@ def filter_path(all_path,vertex,strand,k):
 
 
 def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segments,Idx, k):
+    def get_longest_match_position(front_str,back_str,L):
+        for i in reversed(range(L)):
+            if front_str[-i:] == back_str[:i]:
+                return i
     def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_peptide, strand):
         if strand == '+':
             front_coord = int(front_coord_pair.split(';')[-1])
@@ -626,11 +630,9 @@ def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segment
             front_coord = int(front_coord_pair.split(';')[-2])
             back_coord = int(back_coord_pair.split(';')[1])
         if abs(front_coord-back_coord) % 3 == 0:
-            front_len = len(front_peptide)
             assert back_peptide[0] in front_peptide
-            pep_front_pos = front_len - 1 - front_peptide[::-1].index(back_peptide[0])
-            assert front_peptide[pep_front_pos:] == back_peptide[:front_len - pep_front_pos]
-            new_peptide = front_peptide + back_peptide[front_len - pep_front_pos:]
+            pep_common_num = get_longest_match_position(front_peptide,back_peptide,k)
+            new_peptide = front_peptide + back_peptide[pep_common_num:]
             return new_peptide
         else:
             return []
