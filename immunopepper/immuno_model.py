@@ -189,17 +189,21 @@ def create_output_kmer(peptide_list, expr_lists, k):
     assert len(peptide_list) == len(expr_lists)
     output_list = []
     for i in range(len(peptide_list)):
-        expr_array = change_expr_lists_to_array(expr_lists[i])
         peptide = peptide_list[i].split('\n')[1]
-        if len(peptide) >= k:
-            for j in range(len(peptide)-k+1):
-                kmer_peptide = peptide[j:j+k]
-                kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]),2)
+        if NOT_EXIST in expr_lists[i]:
+            kmer_line = peptide+'\t'+ NOT_EXIST
+            output_list.append(kmer_line)
+        else:
+            expr_array = change_expr_lists_to_array(expr_lists[i])
+            if len(peptide) >= k:
+                for j in range(len(peptide)-k+1):
+                    kmer_peptide = peptide[j:j+k]
+                    kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]),2)
+                    kmer_line = kmer_peptide+'\t'+str(kmer_peptide_expr)
+                    output_list.append(kmer_line)
+            else:
+                kmer_peptide = peptide
+                kmer_peptide_expr = np.round(np.mean(expr_array),2)
                 kmer_line = kmer_peptide+'\t'+str(kmer_peptide_expr)
                 output_list.append(kmer_line)
-        else:
-            kmer_peptide = peptide
-            kmer_peptide_expr = np.round(np.mean(expr_array),2)
-            kmer_line = kmer_peptide+'\t'+str(kmer_peptide_expr)
-            output_list.append(kmer_line)
     return output_list

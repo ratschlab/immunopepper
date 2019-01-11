@@ -200,7 +200,7 @@ def main(arg):
                     output_metadata_list, output_peptide_list, expr_lists = get_filtered_output_list(output_metadata_list,output_peptide_list,expr_lists)
 
                 concat_peptide_list,concat_expr_list = concat_junction_kmer(gene,output_peptide_list,output_metadata_list,
-                                                                            countinfo.segments,idx,arg.kmer)
+                                                                            segments,idx,arg.kmer)
                 if arg.kmer > 0:
                     junction_kmer_output_list = create_output_kmer(output_peptide_list, expr_lists, arg.kmer)
                     back_kmer_output_list = create_output_kmer(output_background_list, back_expr_lists, arg.kmer)
