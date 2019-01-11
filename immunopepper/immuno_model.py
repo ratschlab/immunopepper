@@ -67,18 +67,12 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
         exon_som_dict = get_exon_som_dict(gene, mutation.maf_dict.keys())
         if segments is not None:
             som_exp_dict = get_som_expr_dict(gene, mutation.maf_dict.keys(), segments, idx)
-    final_seq = apply_somatic_mutation(ref_sequence=ref_mut_seq['background'], pos_start=pos_start, pos_end=pos_end,
-                                       mutation_sub_dic_maf=mutation.maf_dict)
 
     # find background peptide
     # if no germline mutation is applies, germline key still exists, equals to reference.
     # return the list of the background peptide for each transcript
     background_pep_list, back_expr_lists = find_background_peptides(gene, ref_mut_seq['background'], table.gene_to_ts, table.ts_to_cds, segments, idx)
     output_background_pep_list = ['\n'.join(back_pep_tuple) for back_pep_tuple in background_pep_list]
-
-    all_path_dict = get_all_paths(gene,9)
-    full_pep_list, full_expr_lists = get_full_peptide_list(gene,final_seq,all_path_dict,segments,idx)
-    output_full_pep_list = ['\n'.join(full_pep_tuple) for full_pep_tuple in full_pep_list]
 
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
@@ -168,8 +162,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
         gene.to_sparse()
 
     gene.processed = True
-    return output_peptide_list,output_metadata_list,output_background_pep_list,\
-           output_full_pep_list,expr_lists,back_expr_lists,full_expr_lists,total_expr
+    return output_peptide_list,output_metadata_list,output_background_pep_list,expr_lists,back_expr_lists,total_expr
 
 
 def create_output_kmer(peptide_list, expr_lists, k):

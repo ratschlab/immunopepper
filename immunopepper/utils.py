@@ -614,3 +614,63 @@ def filter_path(all_path,vertex,strand,k):
     return all_path
 
 
+def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segments,Idx, k):
+    def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_peptide, strand):
+        if strand == '+':
+            front_coord = int(front_coord_pair.split(';')[-1])
+            back_coord = int(back_coord_pair.split(';')[0])
+        else:
+            front_coord = int(front_coord_pair.split(';')[-2])
+            back_coord = int(back_coord_pair.split(';')[1])
+        if abs(front_coord-back_coord) % 3 == 0:
+            front_len = len(front_peptide)
+            assert back_peptide[0] in front_peptide
+            pep_front_pos = front_len - 1 - front_peptide[::-1].index(back_peptide[0])
+            assert front_peptide[pep_front_pos:] == back_peptide[:front_len - pep_front_pos]
+            new_peptide = front_peptide + back_peptide[front_len - pep_front_pos:]
+            return new_peptide
+        else:
+            return []
+
+    def get_concat_expr_list(front_coord_pair,back_vertex_pair):
+        new_expr_list = []
+        # first vertex
+        first_cds_id = front_coord_pair.split(';')[:2]
+        expr_list = get_exon_expr(gene, int(first_cds_id[0]), int(first_cds_id[1]), Segments, Idx)
+        new_expr_list.extend(expr_list)
+        # second vetex
+        second_cds_id = int(back_vertex_pair.split(',')[0])
+        expr_list = get_exon_expr(gene, vertices[0, second_cds_id], vertices[1, second_cds_id], Segments, Idx)
+        new_expr_list.extend(expr_list)
+        # third vertex
+        third_cds_id = int(back_vertex_pair.split(',')[1])
+        expr_list = get_exon_expr(gene, vertices[0, third_cds_id], vertices[1, third_cds_id], Segments, Idx)
+        new_expr_list.extend(expr_list)
+        return new_expr_list
+    vertices = gene.splicegraph.vertices
+    vertex_len = vertices[1,:]-vertices[0,:]
+    key_id_list = np.where(vertex_len < (k+1)*3)[0]
+
+    vertex_id_pair_list = [meta.split('\t')[15] for meta in output_metadata_list]
+    coord_pair_list = [meta.split('\t')[14] for meta in output_metadata_list]
+    concat_peptide_list = []
+    concat_expr_lists = []
+    for key_id in key_id_list:
+        front_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair.split(',')[1] == str(key_id)]
+        back_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair.split(',')[0] == str(key_id)]
+        for front_id in front_id_list:
+            for back_id in back_id_list:
+                back_peptide = output_peptide_list[back_id].split('\n')[-1]
+                front_peptide = output_peptide_list[front_id].split('\n')[-1]
+                back_coord_pair = coord_pair_list[back_id]
+                front_coord_pair = coord_pair_list[front_id]
+                concat_peptide = get_concat_peptide(front_coord_pair,back_coord_pair,front_peptide, back_peptide,gene.strand)
+                if len(concat_peptide) > 0 : # calculate expr list
+                    concat_expr_list = get_concat_expr_list(front_coord_pair,vertex_id_pair_list[back_id])
+                    concat_expr_lists.append(concat_expr_list)
+                    concat_peptide = str(vertex_id_pair_list[front_id])+'_'+str(vertex_id_pair_list[back_id])+'\n' + concat_peptide
+                    concat_peptide_list.append(concat_peptide)
+    return concat_peptide_list,concat_expr_lists
+
+
+
