@@ -570,32 +570,6 @@ def get_all_paths(gene, k):
     path_dict = filter_path(path_dict,vertices,gene.strand,k)
     return path_dict
 
-def get_all_paths_2(reading_frame_dict, strand, vertex_succ_list):
-    """
-    Get all possible paths according to reading frames and success vertex list
-    Parameters
-    ----------
-    gene: SpAddler gene object.
-
-    Returns
-    -------
-    path_dict: Dict. Key is vertex id, value is the list of paths that end with that vertex.
-
-    """
-    def add_v_to_list(_list,v):
-        return [_ilist + [v] for _ilist in _list]
-    path_dict = {i: [[i]] for i in range(len(reading_frame_dict)) if len(reading_frame_dict[i]) > 0}
-    for end_v,succ_vlist in enumerate(vertex_succ_list) if strand == '+' else reversed(list(enumerate(vertex_succ_list))):
-        if len(succ_vlist) > 0 and end_v in path_dict and len(path_dict[end_v]) > 0:
-            for succ_v in succ_vlist:
-                if succ_v not in path_dict:
-                    path_dict[succ_v] = add_v_to_list(path_dict[end_v],succ_v)
-                else:
-                    path_dict[succ_v].extend(add_v_to_list(path_dict[end_v],succ_v))
-            path_dict[end_v] = []
-    return path_dict
-
-
 def filter_path(all_path,vertex,strand,k):
     vertex_len = vertex[1,:]-vertex[0,:]
     key_id_list = np.where(vertex_len < (k+1)*3)[0]
@@ -674,8 +648,8 @@ def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segment
         back_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair.split(',')[0] == str(key_id)]
         for front_id in front_id_list:
             for back_id in back_id_list:
-                back_peptide = output_peptide_list[back_id].strip()
-                front_peptide = output_peptide_list[front_id].strip()
+                back_peptide = output_peptide_list[back_id].split('\n')[-1]
+                front_peptide = output_peptide_list[front_id].split('\n')[-1]
                 back_coord_pair = coord_pair_list[back_id]
                 front_coord_pair = coord_pair_list[front_id]
                 if len(back_peptide) > 0 and len(front_peptide) > 0: # filter out those empty string
