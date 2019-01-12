@@ -8,7 +8,7 @@ import pytest
 from immunopepper.immuno_mutation import apply_germline_mutation,construct_mut_seq_with_str_concat,get_mutation_mode_from_parser
 from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
     parse_mutation_from_vcf, parse_mutation_from_maf
-from immunopepper.utils import get_sub_mut_dna
+from immunopepper.utils import get_sub_mut_dna,get_concat_peptide
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.main_immuno import parse_arguments
 from immunopepper.immuno_model import create_output_kmer
@@ -178,4 +178,33 @@ def test_create_output_kmer():
     assert c == true_output
 
 
+def test_get_concat_peptide():
+    front_coord = '10;19;25;33'
+    back_coord = '27;36;44;53'
+    front_peptide = ''
+    back_peptide = 'MGF'
+    strand = '+'
+    concat_pep = get_concat_peptide(front_coord,back_coord,front_peptide,back_peptide,strand)
+    assert concat_pep == ''
+
+    front_peptide = 'MGF'
+    back_peptide = ''
+    strand = '+'
+    concat_pep = get_concat_peptide(front_coord,back_coord,front_peptide,back_peptide,strand)
+    assert concat_pep == ''
+
+    front_peptide = 'EDM'
+    back_peptide = 'DMF'
+    strand = '+'
+    concat_pep = get_concat_peptide(front_coord,back_coord,front_peptide,back_peptide,strand)
+    assert concat_pep == 'EDMF'
+
+    # neg case
+    front_coord = '35;43;20;29'
+    back_coord = '18;26;17;13'
+    strand = '-'
+    front_peptide = 'EDM'
+    back_peptide = 'DMF'
+    concat_pep = get_concat_peptide(front_coord,back_coord,front_peptide,back_peptide,strand)
+    assert concat_pep == 'EDMF'
 
