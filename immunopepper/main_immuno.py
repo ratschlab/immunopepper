@@ -126,6 +126,11 @@ def main(arg):
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
 
+    log_dir = os.path.join(arg.output_dir,'logfile')
+    logging.basicConfig(level=logging.DEBUG,
+                        filename=log_dir, filemode="a+",
+                        format="%(asctime)-15s %(levelname)-8s %(message)s")
+
     expr_distr_dict = {}
     expr_distr = []
     # process graph for each input sample
@@ -156,12 +161,12 @@ def main(arg):
                                       'exons_coor', 'vertex_idx','junction_expr','segment_expr'])
         meta_peptide_fp.write(meta_header_line + '\n')
         expr_distr_dict[sample] = []
+
         # go over each gene in splicegraph
         for gene_idx, gene in enumerate(graph_data[:num]):
             start_time = timeit.default_timer()
             print('%s %i/%i\n'%(sample, gene_idx, num))
             idx = get_idx(strain_idx_table,sample,gene_idx)
-
             # Genes not contained in the annotation...
             if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
                 gene.processed = False
