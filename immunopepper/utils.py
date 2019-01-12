@@ -531,7 +531,7 @@ def build_kmer_dict(kmer_file):
         items = line.strip().split('\t')
         if len(items) == 2: # ignore abnormal case
             kmer = items[0]
-            expr = float(items[1])
+            expr = float(items[1]) if NOT_EXIST not in items[1] else NOT_EXIST
             if kmer not in kmer_dict:
                 kmer_dict[kmer] = expr
             elif expr > kmer_dict[kmer]:
@@ -630,7 +630,6 @@ def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segment
             front_coord = int(front_coord_pair.split(';')[-2])
             back_coord = int(back_coord_pair.split(';')[1])
         if abs(front_coord-back_coord) % 3 == 0:
-            assert back_peptide[0] in front_peptide
             pep_common_num = get_longest_match_position(front_peptide,back_peptide,k)
             new_peptide = front_peptide + back_peptide[pep_common_num:]
             return new_peptide
@@ -673,7 +672,8 @@ def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segment
                 if len(concat_peptide) > 0 : # calculate expr list
                     concat_expr_list = get_concat_expr_list(front_coord_pair,vertex_id_pair_list[back_id])
                     concat_expr_lists.append(concat_expr_list)
-                    concat_peptide = str(vertex_id_pair_list[front_id])+'_'+str(vertex_id_pair_list[back_id])+'\n' + concat_peptide
+                    concat_peptide = 'Gene'+str(Idx.gene)+'_'+str(vertex_id_pair_list[front_id])+'_'+\
+                                     str(vertex_id_pair_list[back_id])+'\n' + concat_peptide
                     concat_peptide_list.append(concat_peptide)
     return concat_peptide_list,concat_expr_lists
 

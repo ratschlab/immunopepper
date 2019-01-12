@@ -7,13 +7,13 @@ import os
 import timeit
 import argparse
 import gzip
-import signal
+import logging
+
 # External libraries
 import Bio.SeqIO as BioIO
 import h5py
-import numpy as np
-# immuno module
 
+# immuno module
 from immunopepper.immuno_print import print_memory_diags
 from immunopepper.immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_junction_meta_info
 from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_mutation_tuple
@@ -128,7 +128,6 @@ def main(arg):
 
     expr_distr_dict = {}
     expr_distr = []
-    badid_list = []
     # process graph for each input sample
     output_libszie_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
     for sample in arg.samples:
@@ -186,11 +185,11 @@ def main(arg):
             if arg.filter_redundant:
                 output_metadata_list, output_peptide_list, expr_lists = get_filtered_output_list(output_metadata_list,output_peptide_list,expr_lists)
             try:
-                concat_peptide_list,concat_expr_list = concat_junction_kmer(gene,output_peptide_list,output_metadata_list,
+                concat_peptide_list, concat_expr_list = concat_junction_kmer(gene,output_peptide_list,output_metadata_list,
                                                                             segments,idx,arg.kmer)
-            except AssertionError:
+            except Exception as e:
                 concat_peptide_list,concat_expr_list = [],[]
-                badid_list.append(gene_idx)
+                logging.exception("Exception occured in gene %d" % gene_idx)
             if arg.kmer > 0:
                 junction_kmer_output_list = create_output_kmer(output_peptide_list, expr_lists, arg.kmer)
                 back_kmer_output_list = create_output_kmer(output_background_list, back_expr_lists, arg.kmer)
@@ -211,7 +210,6 @@ def main(arg):
 
         expr_distr_dict[sample] = expr_distr
     create_libsize(expr_distr_dict,output_libszie_fp)
-    np.save("badid",badid_list)
 
 def cmd_entry():
     arg = parse_arguments(sys.argv[1:])
