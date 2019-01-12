@@ -5,6 +5,7 @@ import numpy as np
 
 from collections import namedtuple
 import bisect
+import logging
 
 from constant import NOT_EXIST
 
@@ -617,25 +618,32 @@ def filter_path(all_path,vertex,strand,k):
     return all_path
 
 
-def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segments,Idx, k):
-    def get_longest_match_position(front_str,back_str,L):
+def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_peptide, strand,k=None):
+    def get_longest_match_position(front_str,back_str,L=None):
+        if L is None:
+            L = min(len(front_str),len(back_str))
         for i in reversed(range(L)):
             if front_str[-i:] == back_str[:i]:
                 return i
-    def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_peptide, strand):
-        if strand == '+':
-            front_coord = int(front_coord_pair.split(';')[-1])
-            back_coord = int(back_coord_pair.split(';')[0])
-        else:
-            front_coord = int(front_coord_pair.split(';')[-2])
-            back_coord = int(back_coord_pair.split(';')[1])
-        if abs(front_coord-back_coord) % 3 == 0:
-            pep_common_num = get_longest_match_position(front_peptide,back_peptide,k)
-            new_peptide = front_peptide + back_peptide[pep_common_num:]
-            return new_peptide
-        else:
-            return []
+    # if len(back_peptide) == 0:
+    #     return front_peptide
+    if strand == '+':
+        front_coord = int(front_coord_pair.split(';')[-1])
+        back_coord = int(back_coord_pair.split(';')[0])
+    else:
+        front_coord = int(front_coord_pair.split(';')[-2])
+        back_coord = int(back_coord_pair.split(';')[1])
+    if abs(front_coord-back_coord) % 3 == 0:
+        assert len(front_peptide) > 0
+        assert len(back_peptide) > 0
+        assert back_peptide[0] in front_peptide
+        pep_common_num = get_longest_match_position(front_peptide,back_peptide,L=k)
+        new_peptide = front_peptide + back_peptide[pep_common_num:]
+        return new_peptide
+    else:
+        return ''
 
+def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segments,Idx, k):
     def get_concat_expr_list(front_coord_pair,back_vertex_pair):
         new_expr_list = []
         # first vertex
@@ -668,7 +676,7 @@ def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segment
                 front_peptide = output_peptide_list[front_id].split('\n')[-1]
                 back_coord_pair = coord_pair_list[back_id]
                 front_coord_pair = coord_pair_list[front_id]
-                concat_peptide = get_concat_peptide(front_coord_pair,back_coord_pair,front_peptide, back_peptide,gene.strand)
+                concat_peptide = get_concat_peptide(front_coord_pair,back_coord_pair,front_peptide, back_peptide,gene.strand,k)
                 if len(concat_peptide) > 0 : # calculate expr list
                     concat_expr_list = get_concat_expr_list(front_coord_pair,vertex_id_pair_list[back_id])
                     concat_expr_lists.append(concat_expr_list)
