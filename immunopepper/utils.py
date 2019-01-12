@@ -625,8 +625,7 @@ def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_pep
         for i in reversed(range(L)):
             if front_str[-i:] == back_str[:i]:
                 return i
-    # if len(back_peptide) == 0:
-    #     return front_peptide
+        return None
     if strand == '+':
         front_coord = int(front_coord_pair.split(';')[-1])
         back_coord = int(back_coord_pair.split(';')[0])
@@ -634,11 +633,14 @@ def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_pep
         front_coord = int(front_coord_pair.split(';')[-2])
         back_coord = int(back_coord_pair.split(';')[1])
     if abs(front_coord-back_coord) % 3 == 0:
-        assert len(front_peptide) > 0
-        assert len(back_peptide) > 0
-        assert back_peptide[0] in front_peptide
-        pep_common_num = get_longest_match_position(front_peptide,back_peptide,L=k)
-        new_peptide = front_peptide + back_peptide[pep_common_num:]
+        if front_coord == back_coord:  # no intersection and we concatenate them directly
+            new_peptide = front_peptide + back_peptide
+        else:
+            pep_common_num = get_longest_match_position(front_peptide,back_peptide,L=k)
+            if pep_common_num is None:
+                new_peptide = ''
+            else:
+                new_peptide = front_peptide + back_peptide[pep_common_num:]
         return new_peptide
     else:
         return ''
@@ -672,17 +674,18 @@ def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segment
         back_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair.split(',')[0] == str(key_id)]
         for front_id in front_id_list:
             for back_id in back_id_list:
-                back_peptide = output_peptide_list[back_id].split('\n')[-1]
-                front_peptide = output_peptide_list[front_id].split('\n')[-1]
+                back_peptide = output_peptide_list[back_id].strip()
+                front_peptide = output_peptide_list[front_id].strip()
                 back_coord_pair = coord_pair_list[back_id]
                 front_coord_pair = coord_pair_list[front_id]
-                concat_peptide = get_concat_peptide(front_coord_pair,back_coord_pair,front_peptide, back_peptide,gene.strand,k)
-                if len(concat_peptide) > 0 : # calculate expr list
-                    concat_expr_list = get_concat_expr_list(front_coord_pair,vertex_id_pair_list[back_id])
-                    concat_expr_lists.append(concat_expr_list)
-                    concat_peptide = 'Gene'+str(Idx.gene)+'_'+str(vertex_id_pair_list[front_id])+'_'+\
-                                     str(vertex_id_pair_list[back_id])+'\n' + concat_peptide
-                    concat_peptide_list.append(concat_peptide)
+                if len(back_peptide) > 0 and len(front_peptide) > 0: # filter out those empty string
+                    concat_peptide = get_concat_peptide(front_coord_pair,back_coord_pair,front_peptide, back_peptide,gene.strand,k)
+                    if len(concat_peptide) > 0 : # calculate expr list
+                        concat_expr_list = get_concat_expr_list(front_coord_pair,vertex_id_pair_list[back_id])
+                        concat_expr_lists.append(concat_expr_list)
+                        concat_peptide = 'Gene'+str(Idx.gene)+'_'+str(vertex_id_pair_list[front_id])+'_'+\
+                                         str(vertex_id_pair_list[back_id])+'\n' + concat_peptide
+                        concat_peptide_list.append(concat_peptide)
     return concat_peptide_list,concat_expr_lists
 
 
