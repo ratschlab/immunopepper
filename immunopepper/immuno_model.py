@@ -82,7 +82,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
         n_read_frames = len(reading_frame_dict[v_id])
         if n_read_frames == 0:  # no cds start, skip the vertex
             continue
-        if gene.vertex_succ_list[v_id] == 0: # if no successive vertex, we add a flag NOT_EXIST, translate and output it
+        if len(gene.vertex_succ_list[v_id]) == 0: # if no successive vertex, we add a flag NOT_EXIST, translate and output it
             gene.vertex_succ_list[v_id].append(NOT_EXIST)
         for prop_vertex in gene.vertex_succ_list[v_id]:
             mut_seq_comb = get_mut_comb(exon_som_dict, v_id, prop_vertex)
@@ -181,29 +181,31 @@ def create_output_kmer(peptide_list, expr_lists, k):
     """
     def change_expr_lists_to_array(expr_list):
         array = []
-        for item in expr_list:
-            length = item[0]
-            expr = item[1]
-            array.extend([expr]*length)
+        if NOT_EXIST in expr_list:
+            array = [NOT_EXIST]
+        else:
+            for item in expr_list:
+                length = item[0]
+                expr = item[1]
+                array.extend([expr]*length)
         return np.array(array)
     assert len(peptide_list) == len(expr_lists)
     output_list = []
     for i in range(len(peptide_list)):
         peptide = peptide_list[i].split('\n')[1]
-        if NOT_EXIST in expr_lists[i]:
-            kmer_line = peptide+'\t'+ NOT_EXIST
-            output_list.append(kmer_line)
-        else:
-            expr_array = change_expr_lists_to_array(expr_lists[i])
-            if len(peptide) >= k:
-                for j in range(len(peptide)-k+1):
-                    kmer_peptide = peptide[j:j+k]
+        expr_array = change_expr_lists_to_array(expr_lists[i])
+        if len(peptide) >= k:
+            for j in range(len(peptide)-k+1):
+                kmer_peptide = peptide[j:j+k]
+                if NOT_EXIST in expr_array:
+                    kmer_peptide_expr = NOT_EXIST
+                else:
                     kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]),2)
-                    kmer_line = kmer_peptide+'\t'+str(kmer_peptide_expr)
-                    output_list.append(kmer_line)
-            else:
-                kmer_peptide = peptide
-                kmer_peptide_expr = np.round(np.mean(expr_array),2)
                 kmer_line = kmer_peptide+'\t'+str(kmer_peptide_expr)
                 output_list.append(kmer_line)
+        else:
+            kmer_peptide = peptide
+            kmer_peptide_expr = np.round(np.mean(expr_array),2)
+            kmer_line = kmer_peptide+'\t'+str(kmer_peptide_expr)
+            output_list.append(kmer_line)
     return output_list
