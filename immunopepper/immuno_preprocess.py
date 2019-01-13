@@ -66,7 +66,6 @@ def genes_preprocess(genes, gene_cds_begin_dict):
                 cds_right = int(line_elems[4])
 
                 #TODO: need to remove the redundance of (cds_start, cds_stop, item)
-                # It's ugly and not necessary
                 if gene.strand == "-":
                     cds_right_modi = cds_right - cds_phase
                     cds_left_modi = v_start
@@ -76,8 +75,6 @@ def genes_preprocess(genes, gene_cds_begin_dict):
                     cds_right_modi = v_stop
                     n_trailing_bases = cds_right_modi - cds_left_modi
 
-                if n_trailing_bases < 3:
-                    continue
                 read_phase = n_trailing_bases % 3
                 gene.splicegraph.reading_frames[idx].add((cds_left_modi, cds_right_modi, read_phase))
 
