@@ -205,7 +205,10 @@ def create_output_kmer(peptide_list, expr_lists, k):
                 output_list.append(kmer_line)
         else:
             kmer_peptide = peptide
-            kmer_peptide_expr = np.round(np.mean(expr_array),2)
+            if NOT_EXIST in expr_array:
+                kmer_peptide_expr = NOT_EXIST
+            else:
+                kmer_peptide_expr = np.round(np.mean(expr_array),2)
             kmer_line = kmer_peptide+'\t'+str(kmer_peptide_expr)
             output_list.append(kmer_line)
     return output_list
