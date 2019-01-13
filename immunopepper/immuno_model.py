@@ -82,7 +82,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
         n_read_frames = len(reading_frame_dict[v_id])
         if n_read_frames == 0:  # no cds start, skip the vertex
             continue
-        if is_isolated_cds(gene, v_id):  # if it is an isolated cds, we add a flag NOT_EXIST, translate and output it
+        if gene.vertex_succ_list[v_id] == 0: # if no successive vertex, we add a flag NOT_EXIST, translate and output it
             gene.vertex_succ_list[v_id].append(NOT_EXIST)
         for prop_vertex in gene.vertex_succ_list[v_id]:
             mut_seq_comb = get_mut_comb(exon_som_dict, v_id, prop_vertex)
