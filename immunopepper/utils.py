@@ -627,12 +627,16 @@ def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segment
         expr_list = get_exon_expr(gene, int(first_cds_id[0]), int(first_cds_id[1]), Segments, Idx)
         new_expr_list.extend(expr_list)
         # second vetex
-        second_cds_id = int(back_vertex_pair.split(',')[0])
+        back_start,back_end = back_vertex_pair.split(',')
+        second_cds_id = int(back_start)
         expr_list = get_exon_expr(gene, vertices[0, second_cds_id], vertices[1, second_cds_id], Segments, Idx)
         new_expr_list.extend(expr_list)
         # third vertex
-        third_cds_id = int(back_vertex_pair.split(',')[1])
-        expr_list = get_exon_expr(gene, vertices[0, third_cds_id], vertices[1, third_cds_id], Segments, Idx)
+        if back_end == '.':
+            expr_list = [(0,0)]
+        else:
+            third_cds_id = int(back_end)
+            expr_list = get_exon_expr(gene, vertices[0, third_cds_id], vertices[1, third_cds_id], Segments, Idx)
         new_expr_list.extend(expr_list)
         return new_expr_list
     vertices = gene.splicegraph.vertices
@@ -661,6 +665,3 @@ def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segment
                                          str(vertex_id_pair_list[back_id])+'\n' + concat_peptide
                         concat_peptide_list.append(concat_peptide)
     return concat_peptide_list,concat_expr_lists
-
-
-
