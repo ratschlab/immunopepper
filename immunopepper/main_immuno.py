@@ -165,55 +165,55 @@ def main(arg):
         # go over each gene in splicegraph
         gene_id_list = range(0,num)
         for gene_idx in gene_id_list:
-            gene = graph_data[gene_idx]
-            start_time = timeit.default_timer()
-            print('%s %i/%i\n'%(sample, gene_idx, num))
-            idx = get_idx(strain_idx_table,sample,gene_idx)
-            # Genes not contained in the annotation...
-            if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
-                gene.processed = False
-                continue
-
-            chrm = gene.chr.strip()
-            sub_mutation = get_sub_mutation_tuple(mutation,sample, chrm)
-            if not junction_dict is None and chrm in junction_dict:
-                junction_list = junction_dict[chrm]
-            else:
-                junction_list = None
-
-            output_peptide_list, output_metadata_list, output_background_list, expr_lists, back_expr_lists, total_expr = calculate_output_peptide(gene=gene,
-                              ref_seq=seq_dict[chrm],
-                              idx=idx, segments=segments, edges=edges,
-                              table=genetable, mutation=sub_mutation,
-                              junction_list=junction_list, debug=arg.debug
-                            )
-            expr_distr.append(total_expr)
-
-            if arg.filter_redundant:
-                output_metadata_list, output_peptide_list, expr_lists = get_filtered_output_list(output_metadata_list,output_peptide_list,expr_lists)
             try:
+                gene = graph_data[gene_idx]
+                start_time = timeit.default_timer()
+                print('%s %i/%i\n'%(sample, gene_idx, num))
+                idx = get_idx(strain_idx_table,sample,gene_idx)
+                # Genes not contained in the annotation...
+                if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
+                    gene.processed = False
+                    continue
+
+                chrm = gene.chr.strip()
+                sub_mutation = get_sub_mutation_tuple(mutation,sample, chrm)
+                if not junction_dict is None and chrm in junction_dict:
+                    junction_list = junction_dict[chrm]
+                else:
+                    junction_list = None
+
+                output_peptide_list, output_metadata_list, output_background_list, expr_lists, back_expr_lists, total_expr = calculate_output_peptide(gene=gene,
+                                  ref_seq=seq_dict[chrm],
+                                  idx=idx, segments=segments, edges=edges,
+                                  table=genetable, mutation=sub_mutation,
+                                  junction_list=junction_list, debug=arg.debug
+                                )
+                expr_distr.append(total_expr)
+
+                if arg.filter_redundant:
+                    output_metadata_list, output_peptide_list, expr_lists = get_filtered_output_list(output_metadata_list,output_peptide_list,expr_lists)
+
                 concat_peptide_list, concat_expr_list = concat_junction_kmer(gene,output_peptide_list,output_metadata_list,
-                                                                            segments,idx,arg.kmer)
+                                                                                segments,idx,arg.kmer)
+                if arg.kmer > 0:
+                    junction_kmer_output_list = create_output_kmer(output_peptide_list, expr_lists, arg.kmer)
+                    back_kmer_output_list = create_output_kmer(output_background_list, back_expr_lists, arg.kmer)
+                    concat_kmer_output_list = create_output_kmer(concat_peptide_list,concat_expr_list,arg.kmer)
+                    junction_kmer_peptide_fp.write('\n'.join(junction_kmer_output_list) + '\n')
+                    back_kmer_peptide_fp.write('\n'.join(back_kmer_output_list)+'\n')
+                    concat_kmer_peptide_fp.write('\n'.join(concat_kmer_output_list)+'\n')
+                assert len(output_metadata_list) == len(output_peptide_list)
+                if len(output_peptide_list) > 0:
+                    meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
+                    peptide_fp.write('\n'.join(output_peptide_list)+'\n')
+                if len(output_background_list) > 0:
+                    background_fp.write('\n'.join(output_background_list)+'\n')
+                if len(concat_peptide_list) >0:
+                    concat_peptide_fp.write('\n'.join(concat_peptide_list)+'\n')
+                end_time = timeit.default_timer()
+                print(gene_idx, end_time - start_time,'\n')
             except Exception as e:
-                concat_peptide_list,concat_expr_list = [],[]
                 logging.exception("Exception occured in gene %d" % gene_idx)
-            if arg.kmer > 0:
-                junction_kmer_output_list = create_output_kmer(output_peptide_list, expr_lists, arg.kmer)
-                back_kmer_output_list = create_output_kmer(output_background_list, back_expr_lists, arg.kmer)
-                concat_kmer_output_list = create_output_kmer(concat_peptide_list,concat_expr_list,arg.kmer)
-                junction_kmer_peptide_fp.write('\n'.join(junction_kmer_output_list) + '\n')
-                back_kmer_peptide_fp.write('\n'.join(back_kmer_output_list)+'\n')
-                concat_kmer_peptide_fp.write('\n'.join(concat_kmer_output_list)+'\n')
-            assert len(output_metadata_list) == len(output_peptide_list)
-            if len(output_peptide_list) > 0:
-                meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
-                peptide_fp.write('\n'.join(output_peptide_list)+'\n')
-            if len(output_background_list) > 0:
-                background_fp.write('\n'.join(output_background_list)+'\n')
-            if len(concat_peptide_list) >0:
-                concat_peptide_fp.write('\n'.join(concat_peptide_list)+'\n')
-            end_time = timeit.default_timer()
-            print(gene_idx, end_time - start_time,'\n')
 
         expr_distr_dict[sample] = expr_distr
     create_libsize(expr_distr_dict,output_libszie_fp)
