@@ -163,7 +163,9 @@ def main(arg):
         expr_distr_dict[sample] = []
 
         # go over each gene in splicegraph
-        for gene_idx, gene in enumerate(graph_data[:num]):
+        gene_id_list = range(0,num)
+        for gene_idx in gene_id_list:
+            gene = graph_data[gene_idx]
             start_time = timeit.default_timer()
             print('%s %i/%i\n'%(sample, gene_idx, num))
             idx = get_idx(strain_idx_table,sample,gene_idx)
