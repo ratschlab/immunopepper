@@ -481,7 +481,7 @@ def get_segment_expr(gene, coord, Segments, Idx):
         expr = item[1]
         expr_sum += length*expr
         seg_len += length
-    mean_expr = int(expr_sum/seg_len)
+    mean_expr = int(expr_sum/seg_len) if seg_len > 0 else 0
     return mean_expr,expr_list1
 
 def get_idx(sample_idx_table, sample, gene_idx):
