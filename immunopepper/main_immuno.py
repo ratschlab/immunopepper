@@ -126,11 +126,6 @@ def main(arg):
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
 
-    log_dir = os.path.join(arg.output_dir,'logfile')
-    logging.basicConfig(level=logging.DEBUG,
-                        filename=log_dir, filemode="a+",
-                        format="%(asctime)-15s %(levelname)-8s %(message)s")
-
     expr_distr_dict = {}
     expr_distr = []
     # process graph for each input sample
@@ -140,6 +135,11 @@ def main(arg):
         output_path = os.path.join(arg.output_dir, sample)
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
+        log_dir = os.path.join(output_path, 'logfile')
+        logging.basicConfig(level=logging.DEBUG,
+                            filename=log_dir, filemode="a+",
+                            format="%(asctime)-15s %(levelname)-8s %(message)s")
+
         peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa')
         meta_peptide_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz')
         background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa')
