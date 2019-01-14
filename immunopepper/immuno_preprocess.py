@@ -54,8 +54,7 @@ def genes_preprocess(genes, gene_cds_begin_dict):
             v_stop = gene.splicegraph.vertices[1, idx]
             cds_begins = find_overlapping_cds_simple(v_start, v_stop, gene_cds_begin_dict[gene.name], gene.strand)
             gene.vertex_len_dict[idx] = v_stop - v_start
-            if gene.vertex_len_dict[idx] < 3:
-                continue
+
             # Initialize reading regions from the CDS transcript annotations
             for cds_begin in cds_begins:
                 line_elems = cds_begin[2]

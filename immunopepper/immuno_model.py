@@ -88,8 +88,6 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
             mut_seq_comb = get_mut_comb(exon_som_dict, v_id, prop_vertex)
             for variant_comb in mut_seq_comb:  # go through each variant combination
                 # Skip de-generate exons that contain less than one codon
-                if gene.vertex_len_dict[v_id] < 3:
-                    continue
                 for read_frame_tuple in sorted(reading_frame_dict[v_id]):
                     if debug:
                         print(v_id, prop_vertex, variant_comb, read_frame_tuple)
