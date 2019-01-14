@@ -12,8 +12,9 @@ from constant import NOT_EXIST
 
 
 def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
-                      segments=None, edges=None, table=None,debug=False, size_factor=None, junction_list=None,
-                      mutation=None):
+                      segments=None, edges=None, mutation=None,
+                             table=None, debug=False, output_silence=False,
+                             size_factor=None, junction_list=None,):
     """Calculte the output peptide for every exon-pairs in the splicegraph
        Parameters
        ----------
@@ -27,6 +28,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
        table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
            from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
        debug: bool. More detailed information will be printed when debugging.
+       output_silence: bool. If set true, mutated peptide will be output even it is the same as referencd peptide
        size_factor: Scalar. To adjust the expression counts based on the external file `libsize.tsv`
        junction_list: List. Work as a filter to indicate some exon pair has certain
            ordinary intron which can be ignored further.
@@ -87,7 +89,6 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
         for prop_vertex in gene.vertex_succ_list[v_id]:
             mut_seq_comb = get_mut_comb(exon_som_dict, v_id, prop_vertex)
             for variant_comb in mut_seq_comb:  # go through each variant combination
-                # Skip de-generate exons that contain less than one codon
                 for read_frame_tuple in sorted(reading_frame_dict[v_id]):
                     if debug:
                         print(v_id, prop_vertex, variant_comb, read_frame_tuple)
@@ -102,7 +103,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                     # If cross junction peptide has a stop-codon in it, the frame
                     # will not be propagated because the read is truncated before it reaches the end of the exon.
                     # also in mutation mode, only output the case where ref is different from mutated
-                    if peptide.mut != peptide.ref or mutation.mode == 'ref':
+                    if peptide.mut != peptide.ref or mutation.mode == 'ref' or output_silence:
                         match_ts_list = peptide_match(background_pep_list, peptide.mut)
                         peptide_is_annotated = len(match_ts_list)
                         if not flag.is_isolated:
