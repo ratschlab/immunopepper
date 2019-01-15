@@ -522,24 +522,6 @@ def create_libsize(expr_distr_dict,output_fp):
             line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
             f.write(line)
 
-
-def build_kmer_dict(kmer_file):
-    f = open(kmer_file,'r')
-    kmer_dict = {}
-    for i,line in enumerate(f):
-        if i % 1000000 == 0:
-            print("Processed {} lines".format(i))
-        items = line.strip().split('\t')
-        if len(items) == 2: # ignore abnormal case
-            kmer = items[0]
-            expr = float(items[1]) if NOT_EXIST not in items[1] else NOT_EXIST
-            if kmer not in kmer_dict:
-                kmer_dict[kmer] = expr
-            elif expr > kmer_dict[kmer]:
-                kmer_dict[kmer] = expr
-    return kmer_dict
-
-
 def get_all_paths(gene, k):
     """
     Get all possible paths according to reading frames and success vertex list
