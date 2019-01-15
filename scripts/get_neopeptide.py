@@ -48,7 +48,7 @@ if __name__ == "__main__":
     arg = parse_arguments(sys.argv[1:])
 
     mutation_mode = arg.mutation_mode
-    data_dir = arg.data_path
+    data_dir = arg.data_dir
 
     back_kmer_file = data_dir+'{}_back_kmer.txt'.format(mutation_mode)
     junc_kmer_file = data_dir+'{}_junction_kmer.txt'.format(mutation_mode)
