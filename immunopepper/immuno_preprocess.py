@@ -1,10 +1,11 @@
 """Contain the functions to parse, preprocess information from the input file"""
 import sys
 from collections import namedtuple
-
+import os
 import numpy as np
 import h5py
 import scipy as sp
+import cPickle
 
 from utils import to_adj_succ_list,find_overlapping_cds_simple,leq_strand,encode_chromosome
 
@@ -369,40 +370,47 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, sample_list, heter_code=0):
     return mut_dict
 
 
-def parse_mutation_from_maf(maf_path):
+def parse_mutation_from_maf(maf_path,output_dir=''):
     """
     Extract somatic mutation information from given maf file.
 
     Parameters
     ----------
     maf_path: str, maf file path
-
+    output_dir: str, save a pickle for maf_dict to save preprocess time
     Returns
     -------
     mut_dict: with key (sample, chromo) and values (var_dict)
 
     """
-    f = open(maf_path)
-    lines = f.readlines()
-    mutation_dic = {}
-    for i,line in enumerate(lines[1:]):
-        print(i)
-        items = line.strip().split('\t')
-        if items[9] == 'SNP':  # only consider snp
-            sample_id = '-'.join(items[15].split('-')[:3])
-            chr = items[4]
-            pos = int(items[5])-1
-            var_dict = {}
-            var_dict['ref_base'] = items[10]
-            var_dict['mut_base'] = items[12]
-            var_dict['strand'] = items[7]
-            var_dict['variant_Classification'] = items[8]
-            var_dict['variant_Type'] = items[9]
-            if (sample_id,chr) in mutation_dic.keys():
-                mutation_dic[((sample_id,chr))][int(pos)] = var_dict
-            else:
-                mutation_dic[((sample_id, chr))] = {}
-                mutation_dic[((sample_id,chr))][int(pos)] = var_dict
+    maf_pkl_file = os.path.join(output_dir,'maf.pickle')
+    if os.path.exists(maf_pkl_file):
+        f = open(maf_pkl_file,'r')
+        mutation_dic = cPickle.load(f)
+    else:
+        f = open(maf_path)
+        lines = f.readlines()
+        mutation_dic = {}
+        for i,line in enumerate(lines[1:]):
+            print(i)
+            items = line.strip().split('\t')
+            if items[9] == 'SNP':  # only consider snp
+                sample_id = '-'.join(items[15].split('-')[:3])
+                chr = items[4]
+                pos = int(items[5])-1
+                var_dict = {}
+                var_dict['ref_base'] = items[10]
+                var_dict['mut_base'] = items[12]
+                var_dict['strand'] = items[7]
+                var_dict['variant_Classification'] = items[8]
+                var_dict['variant_Type'] = items[9]
+                if (sample_id,chr) in mutation_dic.keys():
+                    mutation_dic[((sample_id,chr))][int(pos)] = var_dict
+                else:
+                    mutation_dic[((sample_id, chr))] = {}
+                    mutation_dic[((sample_id,chr))][int(pos)] = var_dict
+        f_pkl =open(maf_pkl_file,'w')
+        cPickle.dump(mutation_dic,f_pkl)
     return mutation_dic
 
 

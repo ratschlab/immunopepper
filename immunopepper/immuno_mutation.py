@@ -108,10 +108,11 @@ def get_mutation_mode_from_parser(args):
     mutation_mode = args.mutation_mode
     maf_file_path = args.maf_path
     vcf_file_path = args.vcf_path
+    output_dir = args.output_dir
     is_error = True
     if mutation_mode == 'somatic_and_germline':
         if maf_file_path != '' and vcf_file_path != '':
-            mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
+            mutation_dic_maf = parse_mutation_from_maf(maf_file_path,output_dir)
             mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path,args.samples, args.heter_code)
             is_error = False
     elif mutation_mode == 'germline':
@@ -121,7 +122,7 @@ def get_mutation_mode_from_parser(args):
             is_error = False
     elif mutation_mode == 'somatic':
         if maf_file_path != '':
-            mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
+            mutation_dic_maf = parse_mutation_from_maf(maf_file_path,output_dir)
             mutation_dic_vcf = {}
             is_error = False
     elif mutation_mode == 'ref':
