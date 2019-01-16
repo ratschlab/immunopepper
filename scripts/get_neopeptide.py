@@ -1,6 +1,7 @@
 from immunopepper.constant import NOT_EXIST
 import argparse
 import sys
+import cPickle
 def parse_arguments(argv):
 
     parser = argparse.ArgumentParser()
@@ -49,7 +50,7 @@ if __name__ == "__main__":
 
     mutation_mode = arg.mutation_mode
     data_dir = arg.data_dir
-
+    f_dict = open(data_dir+'{}_kmer_dict'.format(mutation_mode),'w')
     back_kmer_file = data_dir+'{}_back_kmer.txt'.format(mutation_mode)
     junc_kmer_file = data_dir+'{}_junction_kmer.txt'.format(mutation_mode)
     concat_kmer_file = data_dir+'{}_concat_kmer.txt'.format(mutation_mode)
@@ -58,6 +59,7 @@ if __name__ == "__main__":
     back_kmer_dict = build_kmer_dict(back_kmer_file)
     junc_kmer_dict = build_kmer_dict(junc_kmer_file)
     concat_kmer_dict = build_kmer_dict(concat_kmer_file)
+    cPickle.dump((back_kmer_dict,junc_kmer_dict,concat_kmer_dict),f_dict)
 
     full_kmer_dict = union_kmer_dict(junc_kmer_dict,concat_kmer_dict)
     filter_full_kmer = filter_kmer_dict_with_threshold(full_kmer_dict,0)
