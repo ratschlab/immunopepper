@@ -13,8 +13,8 @@ from constant import NOT_EXIST
 
 def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                       segments=None, edges=None, mutation=None,
-                             table=None, debug=False, output_silence=False,
-                             size_factor=None, junction_list=None,):
+                             table=None, debug=False, output_silence=False,add_vid=False,
+                             size_factor=None, junction_list=None):
     """Calculte the output peptide for every exon-pairs in the splicegraph
        Parameters
        ----------
@@ -153,7 +153,10 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                         meta_header_line += "\t"+str(segment_expr)
 
                         output_metadata_list.append(meta_header_line)
-                        peptide_str_pretty = '>' + str(idx.gene) + '.' + str(output_id) + '\t' + gene.name + '\n' + peptide.mut
+                        if add_vid:
+                            peptide_str_pretty = '>' + str(idx.gene) + '.' + str(output_id) + '\t' + gene.name+'_'+str(v_id)+'_'+str(prop_vertex) + '\n' + peptide.mut
+                        else:
+                            peptide_str_pretty = '>' + str(idx.gene) + '.' + str(output_id) + '\t' + gene.name + '\n' + peptide.mut
                         output_peptide_list.append(peptide_str_pretty)
                         expr_lists.append(expr_list)
                         output_id += 1
@@ -191,6 +194,8 @@ def create_output_kmer(peptide_list, expr_lists, k):
     assert len(peptide_list) == len(expr_lists)
     output_list = []
     for i in range(len(peptide_list)):
+        peptide_headline = peptide_list[i].split('\n')[0]
+        peptide_head = peptide_headline.split('\t')[-1]
         peptide = peptide_list[i].split('\n')[1]
         expr_array = change_expr_lists_to_array(expr_lists[i])
         if len(peptide) >= k:
@@ -200,7 +205,7 @@ def create_output_kmer(peptide_list, expr_lists, k):
                     kmer_peptide_expr = NOT_EXIST
                 else:
                     kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]),2)
-                kmer_line = kmer_peptide+'\t'+str(kmer_peptide_expr)
+                kmer_line = kmer_peptide+'\t'+peptide_head+'\t'+str(kmer_peptide_expr)
                 output_list.append(kmer_line)
         else:
             kmer_peptide = peptide
@@ -208,6 +213,6 @@ def create_output_kmer(peptide_list, expr_lists, k):
                 kmer_peptide_expr = NOT_EXIST
             else:
                 kmer_peptide_expr = np.round(np.mean(expr_array),2)
-            kmer_line = kmer_peptide+'\t'+str(kmer_peptide_expr)
+            kmer_line = kmer_peptide+'\t'+peptide_head+'\t'+str(kmer_peptide_expr)
             output_list.append(kmer_line)
     return output_list

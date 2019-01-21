@@ -42,6 +42,7 @@ def parse_arguments(argv):
     parser.add_argument("--heter_code", type=int, help="if count expression data is provided in h5 format, specify the code for heterzygous", default=0)
     parser.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
     parser.add_argument("--output_silence",help="output mutated peptide even it is the same as reference peptide", action="store_true",default=False)
+    parser.add_argument("--add_vid",help="temperal argument. Add vertex id to peptide.fa. In the form of >GeneID_V1_V2", action="store_true",default=False)
     if len(argv) < 2:
         parser.print_help()
         sys.exit(1)
@@ -187,7 +188,7 @@ def main(arg):
                                   ref_seq=seq_dict[chrm],
                                   idx=idx, segments=segments, edges=edges,
                                   table=genetable, mutation=sub_mutation,
-                                  junction_list=junction_list, debug=arg.debug,output_silence=arg.output_silence
+                                  junction_list=junction_list, debug=arg.debug,output_silence=arg.output_silence,add_vid=arg.add_vid
                                 )
                 expr_distr.append(total_expr)
 
