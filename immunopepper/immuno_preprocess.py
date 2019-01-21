@@ -67,11 +67,11 @@ def genes_preprocess(genes, gene_cds_begin_dict):
 
                 #TODO: need to remove the redundance of (cds_start, cds_stop, item)
                 if gene.strand == "-":
-                    cds_right_modi = cds_right - cds_phase
+                    cds_right_modi = max(cds_right - cds_phase,v_start)
                     cds_left_modi = v_start
                     n_trailing_bases = cds_right_modi - cds_left_modi
                 else:
-                    cds_left_modi = cds_left + cds_phase
+                    cds_left_modi = min(cds_left + cds_phase,v_stop)
                     cds_right_modi = v_stop
                     n_trailing_bases = cds_right_modi - cds_left_modi
 
