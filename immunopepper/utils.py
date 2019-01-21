@@ -634,6 +634,7 @@ def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segment
         back_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair.split(',')[0] == str(key_id)]
         for front_id in front_id_list:
             for back_id in back_id_list:
+                triple_v = '_'.join([vertex_id_pair_list[front_id].split(',')[0],vertex_id_pair_list[front_id].split(',')[1],vertex_id_pair_list[back_id].split(',')[1]])
                 back_peptide = output_peptide_list[back_id].split('\n')[-1]
                 front_peptide = output_peptide_list[front_id].split('\n')[-1]
                 back_coord_pair = coord_pair_list[back_id]
@@ -643,7 +644,6 @@ def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segment
                     if len(concat_peptide) > 0 : # calculate expr list
                         concat_expr_list = get_concat_expr_list(front_coord_pair,vertex_id_pair_list[back_id])
                         concat_expr_lists.append(concat_expr_list)
-                        concat_peptide = 'Gene'+str(Idx.gene)+'_'+str(vertex_id_pair_list[front_id])+'_'+\
-                                         str(vertex_id_pair_list[back_id])+'\n' + concat_peptide
+                        concat_peptide = 'Gene'+str(Idx.gene)+'_'+triple_v+'\n' + concat_peptide
                         concat_peptide_list.append(concat_peptide)
     return concat_peptide_list,concat_expr_lists

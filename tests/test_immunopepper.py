@@ -170,11 +170,11 @@ def test_create_output_kmer():
     peptide_list = ['1\nMTHAW']
     expr_lists = [[(8,1000),(1,220),(6,0)]] # test 0 expression
     c = create_output_kmer(peptide_list, expr_lists, k)
-    true_output = ['MTH\t913.33', 'THA\t580.0', 'HAW\t246.67']
+    true_output = ['MTH\t1\t913.33', 'THA\t1\t580.0', 'HAW\t1\t246.67']
     assert c == true_output
     expr_lists = [[(8,1000),(1,220),(0,0)]] # test 0 expression
     c = create_output_kmer(peptide_list, expr_lists, k)
-    true_output = ['MTH\t913.33', 'THA\t870.0', 'HAW\t740.0']
+    true_output = ['MTH\t1\t913.33', 'THA\t1\t870.0', 'HAW\t1\t740.0']
     assert c == true_output
 
 
