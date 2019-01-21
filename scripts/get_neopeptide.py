@@ -2,6 +2,7 @@ from immunopepper.constant import NOT_EXIST
 import argparse
 import sys
 import cPickle
+import os
 def parse_arguments(argv):
 
     parser = argparse.ArgumentParser()
@@ -23,13 +24,14 @@ def build_kmer_dict(kmer_file):
         if i % 1000000 == 0:
             print("Processed {} lines".format(i))
         items = line.strip().split('\t')
-        if len(items) == 2: # ignore abnormal case
+        if len(items) == 3: # ignore abnormal case
             kmer = items[0]
-            expr = float(items[1]) if NOT_EXIST != items[1] else NOT_EXIST
+            location = items[1]
+            expr = float(items[2]) if NOT_EXIST != items[2] else NOT_EXIST
             if kmer not in kmer_dict:
-                kmer_dict[kmer] = expr
-            elif expr > kmer_dict[kmer]:
-                kmer_dict[kmer] = expr
+                kmer_dict[kmer] = [(location,expr)]
+            else:
+                kmer_dict[kmer].append((location,expr))
     return kmer_dict
 
 def union_kmer_dict(_dict1,_dict2):
@@ -37,12 +39,12 @@ def union_kmer_dict(_dict1,_dict2):
     new_dict = {}
     for key in union_key_set:
         if key in _dict1 and key in _dict2:
-            expr = max(_dict1[key],_dict2[key])
+            detail_list = _dict1[key]+_dict2[key]
         if key in _dict1 and key not in _dict2:
-            expr = _dict1[key]
+            detail_list = _dict1[key]
         if key not in _dict1 and key in _dict2:
-            expr = _dict2[key]
-        new_dict[key] = expr
+            detail_list = _dict2[key]
+        new_dict[key] = detail_list
     return new_dict
 
 if __name__ == "__main__":
@@ -50,10 +52,10 @@ if __name__ == "__main__":
 
     mutation_mode = arg.mutation_mode
     data_dir = arg.data_dir
-    f_dict = open(data_dir+'{}_kmer_dict'.format(mutation_mode),'w')
-    back_kmer_file = data_dir+'{}_back_kmer.txt'.format(mutation_mode)
-    junc_kmer_file = data_dir+'{}_junction_kmer.txt'.format(mutation_mode)
-    concat_kmer_file = data_dir+'{}_concat_kmer.txt'.format(mutation_mode)
+    f_dict = open(os.path.join(data_dir,'{}_kmer_dict.pickle'.format(mutation_mode)),'w')
+    back_kmer_file = os.path.join(data_dir,'{}_back_kmer.txt'.format(mutation_mode))
+    junc_kmer_file = os.path.join(data_dir,'{}_junction_kmer.txt'.format(mutation_mode))
+    concat_kmer_file = os.path.join(data_dir,'{}_concat_kmer.txt'.format(mutation_mode))
 
     # find kmer whose expression excess certain threshold
     back_kmer_dict = build_kmer_dict(back_kmer_file)
@@ -63,12 +65,18 @@ if __name__ == "__main__":
 
     full_kmer_dict = union_kmer_dict(junc_kmer_dict,concat_kmer_dict)
     filter_full_kmer = filter_kmer_dict_with_threshold(full_kmer_dict,0)
+    filter_back_kmer = filter_kmer_dict_with_threshold(back_kmer_dict,0)
     neo_kmer_dict = set(filter_full_kmer).difference(back_kmer_dict)
+    neo_kmer_dict2 = set(filter_full_kmer).difference(filter_back_kmer)
 
-    neo_kmer_file = data_dir+'{}_neo_kmer.txt'.format(mutation_mode)
+    neo_kmer_file = os.path.join(data_dir,'{}_neo_kmer.txt'. format(mutation_mode))
     neo_kmer_file_fp = open(neo_kmer_file,'w')
 
-    new_line_list = [neo_key + '\t'+str(full_kmer_dict[neo_key])+'\n' for neo_key in neo_kmer_dict]
-    neo_kmer_file_fp.writelines(new_line_list)
+    for neo_key in neo_kmer_dict:
+        detail_list = full_kmer_dict[neo_key]
+        detail_location = ';'.join([item[0] for item in detail_list])
+        detail_expr = ';'.join([str(item[1]) for item in detail_list])
+        new_line = '\t'.join([neo_key,detail_expr,detail_location])+'\n'
+        neo_kmer_file_fp.write(new_line)
 
 
