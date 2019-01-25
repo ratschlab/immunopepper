@@ -579,10 +579,30 @@ def filter_path(all_path,vertex,strand,k):
 
 
 def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_peptide, strand,k=None):
+    """
+    Get the concatenated peptide from possible match peptide.
+    Parameters
+    ----------
+    front_coord_pair: str. coordinate string for the front exon pair.
+    back_coord_pair: str. coordinate string for the back exon pair.
+    front_peptide: str. peptide translated from the front exon pair.
+    back_peptide: str. peptide translated from the back exon pair.
+    strand: str. '+' or '-'
+    k: k for k-mer.
+
+    Returns
+    -------
+    new_peptide: str. concatenated peptide. If none is found, return empty string
+
+    Examples
+    --------
+    front_pep: 'MKTT', back_pep: 'TTAC', concatenated_pep: 'MKTTAC'
+
+    """
     def get_longest_match_position(front_str,back_str,L=None):
         if L is None:
             L = min(len(front_str),len(back_str))
-        for i in reversed(range(L)):
+        for i in reversed(range(1,L+1)):
             if front_str[-i:] == back_str[:i]:
                 return i
         return None
@@ -605,7 +625,26 @@ def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_pep
     else:
         return ''
 
-def concat_junction_kmer(gene, output_peptide_list, output_metadata_list,Segments,Idx, k):
+def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list, Segments, Idx, k):
+    '''
+    Find all the match peptide and concatenate them, output the new peptide and its expression list
+
+    Parameters
+    ----------
+    gene: SplAdder object.
+    output_peptide_list: List[str]. Contain all the possible output peptide in the given splicegraph.
+    output_metadata_list: List[str]. Contain the correpsonding medata data for each output peptide.
+    Idx: Namedtuple Idx, has attribute idx.gene and idx.sample
+    Segments: Namedtuple Segments, store segment expression information from count.hdf5.
+           has attribute ['expr', 'lookup_table'].
+    k: k for k-mer. Positive k is required so that we can find key vertex
+
+    Returns
+    -------
+    concat_peptide_list: List[str]. Contain all the possible concatenated peptide in the given splicegraph.
+    concat_expr_list:List[List(Tuple(int,float))]. Contain the segment expression data for each concatenated peptide.
+
+    '''
     def get_concat_expr_list(front_coord_pair,back_vertex_pair):
         new_expr_list = []
         # first vertex
