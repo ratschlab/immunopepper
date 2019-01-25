@@ -20,7 +20,7 @@ from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_m
 from immunopepper.immuno_model import calculate_output_peptide, create_output_kmer
 from immunopepper.immuno_filter import get_filtered_output_list
 from immunopepper.io_utils import load_pickled_graph
-from immunopepper.utils import get_idx,create_libsize,concat_junction_kmer
+from immunopepper.utils import get_idx,create_libsize,get_concat_junction_peptide
 
 def parse_arguments(argv):
 
@@ -42,7 +42,6 @@ def parse_arguments(argv):
     parser.add_argument("--heter_code", type=int, help="if count expression data is provided in h5 format, specify the code for heterzygous", default=0)
     parser.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
     parser.add_argument("--output_silence",help="output mutated peptide even it is the same as reference peptide", action="store_true",default=False)
-    parser.add_argument("--add_vid",help="temperal argument. Add vertex id to peptide.fa. In the form of >GeneID_V1_V2", action="store_true",default=False)
     if len(argv) < 2:
         parser.print_help()
         sys.exit(1)
@@ -117,14 +116,8 @@ def main(arg):
     # add CDS starts and reading frames to the respective nodes
     print('Processing gene set ...')
     start_time = timeit.default_timer()
-    anno_pickle = os.path.join(arg.output_dir, 'annotation_preprop.pickle')
-    if os.path.exists(anno_pickle) and not arg.debug:
-        print('...loading from preprocessed dump: %s' % anno_pickle)
-        (graph_data, gene_cds_begin_dict) = cPickle.load(open(anno_pickle, 'r'))
-    else:
-        print('...computing from annotation')
-        genes_preprocess(graph_data, genetable.gene_to_cds_begin)
-        cPickle.dump((graph_data, genetable.gene_to_cds_begin), open(anno_pickle, 'w'), -1)
+    print('...computing from annotation')
+    genes_preprocess(graph_data, genetable.gene_to_cds_begin)
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
 
@@ -188,16 +181,17 @@ def main(arg):
                                   ref_seq=seq_dict[chrm],
                                   idx=idx, segments=segments, edges=edges,
                                   table=genetable, mutation=sub_mutation,
-                                  junction_list=junction_list, debug=arg.debug,output_silence=arg.output_silence,add_vid=arg.add_vid
+                                  junction_list=junction_list, debug=arg.debug,output_silence=arg.output_silence
                                 )
                 expr_distr.append(total_expr)
 
                 if arg.filter_redundant:
                     output_metadata_list, output_peptide_list, expr_lists = get_filtered_output_list(output_metadata_list,output_peptide_list,expr_lists)
 
-                concat_peptide_list, concat_expr_list = concat_junction_kmer(gene,output_peptide_list,output_metadata_list,
-                                                                                segments,idx,arg.kmer)
                 if arg.kmer > 0:
+                    concat_peptide_list, concat_expr_list = get_concat_junction_peptide(gene, output_peptide_list,
+                                                                                        output_metadata_list,
+                                                                                        segments, idx, arg.kmer)
                     junction_kmer_output_list = create_output_kmer(output_peptide_list, expr_lists, arg.kmer)
                     back_kmer_output_list = create_output_kmer(output_background_list, back_expr_lists, arg.kmer)
                     concat_kmer_output_list = create_output_kmer(concat_peptide_list,concat_expr_list,arg.kmer)
@@ -215,7 +209,7 @@ def main(arg):
                 end_time = timeit.default_timer()
                 print(gene_idx, end_time - start_time,'\n')
             except Exception as e:
-                logging.exception("Exception occured in gene %d" % gene_idx)
+                logging.exception("Exception occured in gene %d, %s mode, sample %s " % (gene_idx,arg.mutation_mode,sample))
 
         expr_distr_dict[sample] = expr_distr
     create_libsize(expr_distr_dict,output_libszie_fp)
