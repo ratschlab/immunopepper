@@ -13,7 +13,7 @@ from constant import NOT_EXIST
 
 def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                       segments=None, edges=None, mutation=None,
-                             table=None, debug=False, output_silence=False,add_vid=False,
+                             table=None, debug=False, output_silence=False,
                              size_factor=None, junction_list=None):
     """Calculte the output peptide for every exon-pairs in the splicegraph
        Parameters
@@ -153,10 +153,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                         meta_header_line += "\t"+str(segment_expr)
 
                         output_metadata_list.append(meta_header_line)
-                        if add_vid:
-                            peptide_str_pretty = '>' + str(idx.gene) + '.' + str(output_id) + '\t' + gene.name+'_'+str(v_id)+'_'+str(prop_vertex) + '\n' + peptide.mut
-                        else:
-                            peptide_str_pretty = '>' + str(idx.gene) + '.' + str(output_id) + '\t' + gene.name + '\n' + peptide.mut
+                        peptide_str_pretty = '>' + str(idx.gene) + '.' + str(output_id) + '\t' + gene.name+'_'+str(v_id)+'_'+str(prop_vertex) + '\n' + peptide.mut
                         output_peptide_list.append(peptide_str_pretty)
                         expr_lists.append(expr_list)
                         output_id += 1
