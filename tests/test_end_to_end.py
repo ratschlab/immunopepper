@@ -20,8 +20,6 @@ def _assert_files_equal(expected_path, actual_path):
         with o(actual_path) as a:
             assert e.read() == a.read()
 
-
-
 @pytest.mark.parametrize("test_id,case,mutation_mode", [
     ['1', 'pos', 'ref'],
     ['1', 'pos', 'germline'],
@@ -36,11 +34,11 @@ def _assert_files_equal(expected_path, actual_path):
 
 def test_end_to_end_ref(test_id, case, mutation_mode, tmpdir):
     data_dir = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id), 'data')
-    sample_dir = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id), 'test{}{}'.format(test_id,case))
-
     out_dir = str(tmpdir)
+    sample_dir_kmer = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'groundtruth_kmer','{}'.format(case),'test{}{}'.format(test_id,case))
+    sample_dir_junction = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'groundtruth_junction','{}'.format(case),'test{}{}'.format(test_id,case))
 
-    my_args = ['--samples', 'test{}{}'.format(test_id,case),
+    my_args_kmer = ['--samples', 'test{}{}'.format(test_id,case),
                '--output_dir', out_dir,
                '--splice_path',
                '{}/{}graph/spladder/genes_graph_conf3.merge_graphs.pickle'.format(
@@ -53,18 +51,32 @@ def test_end_to_end_ref(test_id, case, mutation_mode, tmpdir):
                '--vcf_path', '{}/test{}{}.vcf'.format(data_dir, test_id, case),
                '--maf_path', '{}/test{}{}.maf'.format(data_dir, test_id, case),
                '--mutation_mode', mutation_mode,
-               '--filter_redundant']
+               '--output_silence',
+                '--kmer', '4']
+    my_args_junction = my_args_kmer[:-2]+['--filter_redundant']
 
-    main_immuno.main(main_immuno.parse_arguments(my_args))
-
-    _assert_files_equal(
-        os.path.join(sample_dir, '{}_peptides_gt.fa'.format(mutation_mode)),
-        os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_peptides.fa'.format(mutation_mode)))
-
-    _assert_files_equal(
-        os.path.join(sample_dir, '{}_metadata_gt.tsv'.format(mutation_mode)),
-        os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_metadata.tsv.gz'.format(mutation_mode)))
-    _assert_files_equal(
-        os.path.join(sample_dir, '{}_back_peptides_gt.fa'.format(mutation_mode)),
-        os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_back_peptides.fa'.format(mutation_mode)))
-
+    for my_args,sample_dir in zip([my_args_kmer],[sample_dir_kmer]):
+        main_immuno.main(main_immuno.parse_arguments(my_args))
+        _assert_files_equal(
+            os.path.join(sample_dir, '{}_metadata.tsv.gz'.format(mutation_mode)),
+            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_metadata.tsv.gz'.format(mutation_mode)))
+        # peptide
+        _assert_files_equal(
+            os.path.join(sample_dir, '{}_peptides.fa'.format(mutation_mode)),
+            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_peptides.fa'.format(mutation_mode)))
+        _assert_files_equal(
+            os.path.join(sample_dir, '{}_back_peptides.fa'.format(mutation_mode)),
+            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_back_peptides.fa'.format(mutation_mode)))
+        _assert_files_equal(
+            os.path.join(sample_dir, '{}_concat_peptides.fa'.format(mutation_mode)),
+            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_concat_peptides.fa'.format(mutation_mode)))
+        #kmer
+        _assert_files_equal(
+            os.path.join(sample_dir, '{}_back_kmer.txt'.format(mutation_mode)),
+            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_back_kmer.txt'.format(mutation_mode)))
+        _assert_files_equal(
+            os.path.join(sample_dir, '{}_concat_kmer.txt'.format(mutation_mode)),
+            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_concat_kmer.txt'.format(mutation_mode)))
+        _assert_files_equal(
+            os.path.join(sample_dir, '{}_junction_kmer.txt'.format(mutation_mode)),
+            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_junction_kmer.txt'.format(mutation_mode)))
