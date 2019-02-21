@@ -64,8 +64,7 @@ if __name__ == "__main__":
     full_kmer_dict = union_kmer_dict(junc_kmer_dict,concat_kmer_dict)
     filter_full_kmer = filter_kmer_dict_with_threshold(full_kmer_dict,0)
     filter_back_kmer = filter_kmer_dict_with_threshold(back_kmer_dict,0)
-    neo_kmer_dict = set(filter_full_kmer).difference(back_kmer_dict)
-    neo_kmer_dict2 = set(filter_full_kmer).difference(filter_back_kmer)
+    neo_kmer_dict = set(filter_full_kmer).difference(filter_back_kmer)
 
     neo_kmer_file = os.path.join(data_dir,'{}_neo_kmer.txt'. format(mutation_mode))
     neo_kmer_file_fp = open(neo_kmer_file,'w')
