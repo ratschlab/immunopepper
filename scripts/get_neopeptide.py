@@ -6,7 +6,9 @@ import os
 def parse_arguments(argv):
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", help="specify the directory that output data is in", required=False, default='')
+    parser.add_argument("--back_kmer_dir", help="specify the directory that background kmer file is in", required=False, default='')
+    parser.add_argument("--junc_kmer_dir", help="specify the directory that junction kmer file is in, also where the neokmer file will save in", required=False, default='')
+    parser.add_argument("--concat_kmer_dir", help="specify the directory that concatenate kmer file is in", required=False, default='')
     parser.add_argument("--mutation_mode", help="specify the mutation mdoe", required=False, default='ref')
     if len(argv) < 2:
         parser.print_help()
@@ -51,10 +53,9 @@ if __name__ == "__main__":
     arg = parse_arguments(sys.argv[1:])
 
     mutation_mode = arg.mutation_mode
-    data_dir = arg.data_dir
-    back_kmer_file = os.path.join(data_dir,'{}_back_kmer.txt'.format(mutation_mode))
-    junc_kmer_file = os.path.join(data_dir,'{}_junction_kmer.txt'.format(mutation_mode))
-    concat_kmer_file = os.path.join(data_dir,'{}_concat_kmer.txt'.format(mutation_mode))
+    back_kmer_file = os.path.join(arg.back_kmer_dir,'{}_back_kmer.txt'.format(mutation_mode))
+    junc_kmer_file = os.path.join(arg.junc_kmer_dir,'{}_junction_kmer.txt'.format(mutation_mode))
+    concat_kmer_file = os.path.join(arg.concat_kmer_dir,'{}_concat_kmer.txt'.format(mutation_mode))
 
     # find kmer whose expression excess certain threshold
     back_kmer_dict = build_kmer_dict(back_kmer_file)
@@ -66,7 +67,7 @@ if __name__ == "__main__":
     filter_back_kmer = filter_kmer_dict_with_threshold(back_kmer_dict,0)
     neo_kmer_dict = set(filter_full_kmer).difference(filter_back_kmer)
 
-    neo_kmer_file = os.path.join(data_dir,'{}_neo_kmer.txt'. format(mutation_mode))
+    neo_kmer_file = os.path.join(arg.junc_kmer_dir,'{}_neo_kmer.txt'. format(mutation_mode))
     neo_kmer_file_fp = open(neo_kmer_file,'w')
 
     for neo_key in neo_kmer_dict:
