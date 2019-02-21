@@ -526,57 +526,6 @@ def create_libsize(expr_distr_dict,output_fp):
             line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
             f.write(line)
 
-def get_all_paths(gene, k):
-    """
-    Get all possible paths according to reading frames and success vertex list
-    Parameters
-    ----------
-    gene: SpAddler gene object.
-    k: the k for k-mer
-
-    Returns
-    -------
-    path_dict: Dict. Key is vertex id, value is the list of paths that end with that vertex.
-
-    """
-    def add_v_to_list(_list,v):
-        return [_ilist + [v] for _ilist in _list]
-    reading_frame = gene.splicegraph.reading_frames
-    succ_list = gene.vertex_succ_list
-    vertices = gene.splicegraph.vertices
-    path_dict = {i: [[i]] for i in range(len(reading_frame)) if len(reading_frame[i]) > 0}
-    for end_v,succ_vlist in enumerate(succ_list) if gene.strand == '+' else reversed(list(enumerate(succ_list))):
-        if len(succ_vlist) > 0 and end_v in path_dict and len(path_dict[end_v]) > 0:
-            for succ_v in succ_vlist:
-                if succ_v not in path_dict:
-                    path_dict[succ_v] = add_v_to_list(path_dict[end_v],succ_v)
-                else:
-                    path_dict[succ_v].extend(add_v_to_list(path_dict[end_v],succ_v))
-            path_dict[end_v] = []
-    path_dict = filter_path(path_dict,vertices,gene.strand,k)
-    return path_dict
-
-def filter_path(all_path,vertex,strand,k):
-    vertex_len = vertex[1,:]-vertex[0,:]
-    key_id_list = np.where(vertex_len < (k+1)*3)[0]
-    early_path_set = set()
-    for end_v in all_path:
-        if end_v not in key_id_list:
-            new_list = []
-            for path in all_path[end_v]:
-                commmon_key_id_set = set(key_id_list).intersection(path)
-                if len(commmon_key_id_set) > 0:  # only consider the path pass key_id vertex
-                    key_id = max(commmon_key_id_set) if strand == '+' else min(commmon_key_id_set)
-                    key_id_pos = path.index(key_id)
-                    early_path = tuple(path[:key_id_pos])
-                    if early_path not in early_path_set: #
-                        early_path_set.add(early_path)
-                        new_list.append(path)
-            all_path[end_v] = new_list
-        else:  # if end_v is the ending terminal of path, ignore the path
-            all_path[end_v] = []
-    return all_path
-
 
 def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_peptide, strand,k=None):
     """

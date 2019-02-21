@@ -18,20 +18,20 @@ def filter_kmer_dict_with_threshold(_dict,th=0):
     return {k:v for k,v in _dict.items() if v > th}
 
 def build_kmer_dict(kmer_file):
-    f = open(kmer_file,'r')
-    kmer_dict = {}
-    for i,line in enumerate(f):
-        if i % 1000000 == 0:
-            print("Processed {} lines".format(i))
-        items = line.strip().split('\t')
-        if len(items) == 3: # ignore abnormal case
-            kmer = items[0]
-            location = items[1]
-            expr = float(items[2]) if NOT_EXIST != items[2] else NOT_EXIST
-            if kmer not in kmer_dict:
-                kmer_dict[kmer] = [(location,expr)]
-            else:
-                kmer_dict[kmer].append((location,expr))
+    with open(kmer_file,'r') as f:
+        kmer_dict = {}
+        for i,line in enumerate(f):
+            if i % 1000000 == 0:
+                print("Processed {} lines".format(i))
+            items = line.strip().split('\t')
+            if len(items) == 3: # ignore abnormal case
+                kmer = items[0]
+                location = items[1]
+                expr = float(items[2]) if NOT_EXIST != items[2] else NOT_EXIST
+                if kmer not in kmer_dict:
+                    kmer_dict[kmer] = [(location,expr)]
+                else:
+                    kmer_dict[kmer].append((location,expr))
     return kmer_dict
 
 def union_kmer_dict(_dict1,_dict2):
@@ -52,7 +52,6 @@ if __name__ == "__main__":
 
     mutation_mode = arg.mutation_mode
     data_dir = arg.data_dir
-    f_dict = open(os.path.join(data_dir,'{}_kmer_dict.pickle'.format(mutation_mode)),'w')
     back_kmer_file = os.path.join(data_dir,'{}_back_kmer.txt'.format(mutation_mode))
     junc_kmer_file = os.path.join(data_dir,'{}_junction_kmer.txt'.format(mutation_mode))
     concat_kmer_file = os.path.join(data_dir,'{}_concat_kmer.txt'.format(mutation_mode))
@@ -61,7 +60,6 @@ if __name__ == "__main__":
     back_kmer_dict = build_kmer_dict(back_kmer_file)
     junc_kmer_dict = build_kmer_dict(junc_kmer_file)
     concat_kmer_dict = build_kmer_dict(concat_kmer_file)
-    cPickle.dump((back_kmer_dict,junc_kmer_dict,concat_kmer_dict),f_dict)
 
     full_kmer_dict = union_kmer_dict(junc_kmer_dict,concat_kmer_dict)
     filter_full_kmer = filter_kmer_dict_with_threshold(full_kmer_dict,0)

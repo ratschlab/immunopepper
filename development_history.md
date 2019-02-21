@@ -1,3 +1,11 @@
+### update 25/01/2019
+Add new features and fix bugs.
+1. Now can generate kmer output and their corresponding expression counts
+2. Now can deal with ill exons (exon with short length). Can output
+exon-triple and then split them into kmers. In this way, more possible neoantigen
+could be found.
+3. Can get neo-kmer with a independent script `get_neopeptide.py`.
+
 ### update 08/11/2018
 The [ImmunoPepper 1.0.0](https://github.com/ratschlab/projects2018_immunopepper/releases/tag/v1.0.0) is released!
 

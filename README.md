@@ -1,7 +1,8 @@
 # ImmunoPepper
 ImmunopPepper is a script which predicts the pepetide sequency from the RNA sequence splicegraph. You can specify the sample and output using the command line below.
-
+#### Output all the kmers:
 ```
+python immunopeppet/main_immuno.py
 --output_dir
 ./tests/test1
 --ann_path
@@ -21,7 +22,18 @@ test1pos
 --mutation_mode
 somatic_and_germline
 --debug
---filter_redundant
+--kmer
+4
+--output_silence
+```
+
+#### Find neo-kmers
+```
+python scripts/get_neopeptide.py
+--data_dir
+./tests/test1/groundtruth_kmer/pos/test1pos
+--mutation_mode
+ref
 ```
 ### Immunopepper Installation
 
