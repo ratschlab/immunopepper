@@ -5,7 +5,7 @@ import re
 import scipy as sp
 
 from utils import complementary_seq,translate_dna_to_peptide,get_exon_expr
-
+from immuno_nametuple import Output_background
 
 def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_table):
     """ Indicate whether exon pair also appears in transcript given by .gtf file
@@ -170,14 +170,14 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
     expr_lists = []
     # Generate a background peptide for every variant transcript
     for ts in gene_transcripts:
-
         # No CDS entries for transcript in annotation file...
         if ts not in transcript_cds_table:
             #print("WARNING: Transcript not in CDS table")
             continue
         cds_list = transcript_cds_table[ts]
         cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode='back')
-        peptide_list.append((ts,cds_peptide))
+        peptide = Output_background(ts,cds_peptide)
+        peptide_list.append(peptide)
         expr_lists.append(cds_expr_list)
     gene.processed = True
     return peptide_list, expr_lists

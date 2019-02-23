@@ -9,7 +9,7 @@ from immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_ex
 from utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr
 from immuno_preprocess import search_edge_metadata_segmentgraph
 from constant import NOT_EXIST
-from immuno_nametuple import Output_background,Output_metadata,Output_peptide
+from immuno_nametuple import Output_metadata,Output_junc_peptide
 
 def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                       segments=None, edges=None, mutation=None,
@@ -74,7 +74,6 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
     # if no germline mutation is applies, germline key still exists, equals to reference.
     # return the list of the background peptide for each transcript
     background_pep_list, back_expr_lists = find_background_peptides(gene, ref_mut_seq['background'], table.gene_to_ts, table.ts_to_cds, segments, idx)
-    output_background_pep_list = ['\n'.join(back_pep_tuple) for back_pep_tuple in background_pep_list]
 
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
@@ -161,8 +160,8 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                                                           segment_expr=segment_expr
                         )
                         output_metadata_list.append(output_metadata)
-                        output_peptide = Output_peptide(output_id='>'+str(idx.gene)+'.'+str(output_id),
-                                                        vertex_pair_id=gene.name+'_'+str(v_id)+'_'+str(prop_vertex),
+                        output_peptide = Output_junc_peptide(output_id='>'+str(idx.gene)+'.'+str(output_id),
+                                                        id=gene.name+'_'+str(v_id)+'_'+str(prop_vertex),
                                                         peptide=peptide.mut)
                         output_peptide_list.append(output_peptide)
                         expr_lists.append(expr_list)
@@ -171,7 +170,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
         gene.to_sparse()
 
     gene.processed = True
-    return output_peptide_list,output_metadata_list,output_background_pep_list,expr_lists,back_expr_lists,total_expr
+    return output_peptide_list,output_metadata_list,background_pep_list,expr_lists,back_expr_lists,total_expr
 
 
 def create_output_kmer(peptide_list, expr_lists, k):
@@ -201,9 +200,8 @@ def create_output_kmer(peptide_list, expr_lists, k):
     assert len(peptide_list) == len(expr_lists)
     output_list = []
     for i in range(len(peptide_list)):
-        peptide_headline = peptide_list[i].split('\n')[0]
-        peptide_head = peptide_headline.split('\t')[-1]
-        peptide = peptide_list[i].split('\n')[1]
+        peptide = peptide_list[i].peptide
+        peptide_head = peptide_list[i].id
         expr_array = change_expr_lists_to_array(expr_lists[i])
         if len(peptide) >= k:
             for j in range(len(peptide)-k+1):

@@ -65,9 +65,10 @@ def write_namedtuple_list(fp, namedtuple_list, field_list):
         line = ''
         for field in field_list:
             if field == 'new_line':
-                line += '\n'
+                line = line.strip()+'\n'
+                continue
             # should first check if field in namedtuple
-            item = _namedtuple.field
+            item = getattr(_namedtuple, field)
             if isinstance(item,(list,tuple)):
                 line += convert_list_to_str(item)+'\t'
             else:
@@ -183,7 +184,7 @@ def main(arg):
         meta_header_list = ['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
                                     'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','variant_seg_expr',
                                       'exons_coor', 'vertex_idx','junction_expr','segment_expr']
-        pep_header_list = ['output_id', 'vertex_pair_id', 'new_line', 'peptide']
+        pep_header_list = ['output_id', 'id', 'new_line', 'peptide']
         meta_peptide_fp.write('\t'.join(meta_header_list) + '\n')
         expr_distr_dict[sample] = []
 
@@ -234,12 +235,13 @@ def main(arg):
                     write_namedtuple_list(meta_peptide_fp, output_metadata_list, field_list=meta_header_list)
                     write_namedtuple_list(peptide_fp, output_peptide_list, field_list=pep_header_list)
                 if len(output_background_list) > 0:
-                    write_list(background_fp,output_background_list)
+                    write_namedtuple_list(background_fp,output_background_list,field_list=['id', 'new_line', 'peptide'])
                 if len(concat_peptide_list) > 0:
-                    write_list(concat_peptide_fp,concat_peptide_list)
+                    write_namedtuple_list(concat_peptide_fp,concat_peptide_list,field_list=['id', 'new_line', 'peptide'])
                 end_time = timeit.default_timer()
                 print(gene_idx, end_time - start_time,'\n')
             except Exception as e:
+                # should also print the error
                 logging.exception("Exception occured in gene %d, %s mode, sample %s " % (gene_idx,arg.mutation_mode,sample))
 
         expr_distr_dict[sample] = expr_distr

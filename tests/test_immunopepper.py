@@ -12,7 +12,7 @@ from immunopepper.utils import get_sub_mut_dna,get_concat_peptide
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.main_immuno import parse_arguments
 from immunopepper.immuno_model import create_output_kmer
-
+from immunopepper.immuno_nametuple import Coord,Output_background
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 
 
@@ -160,14 +160,14 @@ def test_get_mutation_mode_from_parser():
 
 
 def test_create_output_kmer():
-    peptide_list = ['1\nRTHDGLRSTYI','2\nMTHAW']
+    peptide_list = [Output_background('1','RTHDGLRSTYI'),Output_background('2','MTHAW')]
     expr_lists = [[(8,1000),(1,220),(0,0)]]
     k = 3
     try:
         c = create_output_kmer(peptide_list,expr_lists,k)
     except AssertionError: # make sure len(peptide) == len(expr_lists)
         assert 1
-    peptide_list = ['1\nMTHAW']
+    peptide_list = [Output_background('1','MTHAW')]
     expr_lists = [[(8,1000),(1,220),(6,0)]] # test 0 expression
     c = create_output_kmer(peptide_list, expr_lists, k)
     true_output = ['MTH\t1\t913.33', 'THA\t1\t580.0', 'HAW\t1\t246.67']
@@ -179,8 +179,8 @@ def test_create_output_kmer():
 
 
 def test_get_concat_peptide():
-    front_coord = '10;19;25;33'
-    back_coord = '27;36;44;53'
+    front_coord = Coord(10,19,25,33)
+    back_coord = Coord(27,36,44,53)
     front_peptide = ''
     back_peptide = 'MGF'
     strand = '+'
@@ -200,8 +200,8 @@ def test_get_concat_peptide():
     assert concat_pep == 'EDMF'
 
     # neg case
-    front_coord = '35;43;20;29'
-    back_coord = '18;26;17;13'
+    front_coord = Coord(35,43,20,29)
+    back_coord = Coord(18,26,17,13)
     strand = '-'
     front_peptide = 'EDM'
     back_peptide = 'DMF'

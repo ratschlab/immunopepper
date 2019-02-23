@@ -8,6 +8,7 @@ import bisect
 import logging
 
 from constant import NOT_EXIST
+from immuno_nametuple import Output_background
 
 Peptide = namedtuple('Peptide', ['mut', 'ref'])
 Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
@@ -556,11 +557,11 @@ def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_pep
                 return i
         return None
     if strand == '+':
-        front_coord = int(front_coord_pair.split(';')[-1])
-        back_coord = int(back_coord_pair.split(';')[0])
+        front_coord = front_coord_pair.stop_v2
+        back_coord = back_coord_pair.start_v1
     else:
-        front_coord = int(front_coord_pair.split(';')[-2])
-        back_coord = int(back_coord_pair.split(';')[1])
+        front_coord = front_coord_pair.start_v2
+        back_coord = back_coord_pair.stop_v1
     if abs(front_coord-back_coord) % 3 == 0:
         if front_coord == back_coord:  # no intersection and we concatenate them directly
             new_peptide = front_peptide + back_peptide
@@ -597,8 +598,8 @@ def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list,
     def get_concat_expr_list(front_coord_pair,back_vertex_pair):
         new_expr_list = []
         # first vertex
-        first_cds_id = front_coord_pair.split(';')[:2]
-        expr_list = get_exon_expr(gene, int(first_cds_id[0]), int(first_cds_id[1]), Segments, Idx)
+
+        expr_list = get_exon_expr(gene, front_coord_pair.start_v1, front_coord_pair.stop_v1, Segments, Idx)
         new_expr_list.extend(expr_list)
         # second vetex
         back_start,back_end = back_vertex_pair.split(',')
@@ -636,6 +637,7 @@ def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list,
                     if len(concat_peptide) > 0 : # calculate expr list
                         concat_expr_list = get_concat_expr_list(front_coord_pair,vertex_id_pair_list[back_id])
                         concat_expr_lists.append(concat_expr_list)
-                        concat_peptide = 'Gene'+str(Idx.gene)+'_'+triple_v+'\n' + concat_peptide
+                        concat_peptide = Output_background(id='Gene'+str(Idx.gene)+'_'+triple_v,
+                                                           peptide=concat_peptide)
                         concat_peptide_list.append(concat_peptide)
     return concat_peptide_list,concat_expr_lists
