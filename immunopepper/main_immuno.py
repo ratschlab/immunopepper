@@ -181,11 +181,13 @@ def main(arg):
         back_kmer_peptide_fp = open(back_kmer_peptide_file_path, 'w')
         concat_kmer_peptide_fp = open(concat_kmer_peptide_file_path, 'w')
 
-        meta_header_list = ['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
+        meta_field_list = ['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
                                     'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','variant_seg_expr',
                                       'exons_coor', 'vertex_idx','junction_expr','segment_expr']
-        pep_header_list = ['output_id', 'id', 'new_line', 'peptide']
-        meta_peptide_fp.write('\t'.join(meta_header_list) + '\n')
+        junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
+        other_pep_field_list = ['id', 'new_line', 'peptide']
+        kmer_field_list = ['kmer','id','expr']
+        meta_peptide_fp.write('\t'.join(meta_field_list) + '\n')
         expr_distr_dict[sample] = []
 
         # go over each gene in splicegraph
@@ -226,14 +228,14 @@ def main(arg):
                     junction_kmer_output_list = create_output_kmer(output_peptide_list, expr_lists, arg.kmer)
                     back_kmer_output_list = create_output_kmer(output_background_list, back_expr_lists, arg.kmer)
                     concat_kmer_output_list = create_output_kmer(concat_peptide_list,concat_expr_list,arg.kmer)
-                    write_list(junction_kmer_peptide_fp, junction_kmer_output_list)
-                    write_list(back_kmer_peptide_fp, back_kmer_output_list)
-                    write_list(concat_kmer_peptide_fp, concat_kmer_output_list)
+                    write_namedtuple_list(junction_kmer_peptide_fp, junction_kmer_output_list,kmer_field_list)
+                    write_namedtuple_list(back_kmer_peptide_fp, back_kmer_output_list,kmer_field_list)
+                    write_namedtuple_list(concat_kmer_peptide_fp, concat_kmer_output_list,kmer_field_list)
 
                 assert len(output_metadata_list) == len(output_peptide_list)
                 if len(output_peptide_list) > 0:
-                    write_namedtuple_list(meta_peptide_fp, output_metadata_list, field_list=meta_header_list)
-                    write_namedtuple_list(peptide_fp, output_peptide_list, field_list=pep_header_list)
+                    write_namedtuple_list(meta_peptide_fp, output_metadata_list, field_list=meta_field_list)
+                    write_namedtuple_list(peptide_fp, output_peptide_list, field_list=junc_pep_field_list)
                 if len(output_background_list) > 0:
                     write_namedtuple_list(background_fp,output_background_list,field_list=['id', 'new_line', 'peptide'])
                 if len(concat_peptide_list) > 0:

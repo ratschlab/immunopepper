@@ -9,7 +9,7 @@ from immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_ex
 from utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr
 from immuno_preprocess import search_edge_metadata_segmentgraph
 from constant import NOT_EXIST
-from immuno_nametuple import Output_metadata,Output_junc_peptide
+from immuno_nametuple import Output_metadata, Output_junc_peptide, Output_kmer
 
 def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                       segments=None, edges=None, mutation=None,
@@ -210,14 +210,16 @@ def create_output_kmer(peptide_list, expr_lists, k):
                     kmer_peptide_expr = NOT_EXIST
                 else:
                     kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]),2)
-                kmer_line = kmer_peptide+'\t'+peptide_head+'\t'+str(kmer_peptide_expr)
-                output_list.append(kmer_line)
+                kmer = Output_kmer(kmer_peptide,peptide_head,kmer_peptide_expr)
+                #kmer_line = kmer_peptide+'\t'+peptide_head+'\t'+str(kmer_peptide_expr)
+                output_list.append(kmer)
         else:
             kmer_peptide = peptide
             if NOT_EXIST in expr_array:
                 kmer_peptide_expr = NOT_EXIST
             else:
                 kmer_peptide_expr = np.round(np.mean(expr_array),2)
-            kmer_line = kmer_peptide+'\t'+peptide_head+'\t'+str(kmer_peptide_expr)
-            output_list.append(kmer_line)
+            kmer = Output_kmer(kmer_peptide, peptide_head, kmer_peptide_expr)
+            #kmer_line = kmer_peptide+'\t'+peptide_head+'\t'+str(kmer_peptide_expr)
+            output_list.append(kmer)
     return output_list

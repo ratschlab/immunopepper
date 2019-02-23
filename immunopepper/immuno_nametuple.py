@@ -9,6 +9,7 @@ Output_metadata = namedtuple('Output_metadata', ['output_id', 'read_frame', 'gen
                                                  'exons_coor',	'vertex_idx',	'junction_expr',
                                                  'segment_expr'])
 Output_background = namedtuple('Output_background', ['id', 'peptide'])
+Output_kmer= namedtuple('Output_kmer', ['kmer','id','expr'])
 Peptide = namedtuple('Peptide', ['mut', 'ref'])
 Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
 Flag = namedtuple('Flag', ['has_stop', 'is_isolated'])

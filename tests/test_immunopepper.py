@@ -12,7 +12,7 @@ from immunopepper.utils import get_sub_mut_dna,get_concat_peptide
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.main_immuno import parse_arguments
 from immunopepper.immuno_model import create_output_kmer
-from immunopepper.immuno_nametuple import Coord,Output_background
+from immunopepper.immuno_nametuple import Coord,Output_background,Output_kmer
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 
 
@@ -170,11 +170,11 @@ def test_create_output_kmer():
     peptide_list = [Output_background('1','MTHAW')]
     expr_lists = [[(8,1000),(1,220),(6,0)]] # test 0 expression
     c = create_output_kmer(peptide_list, expr_lists, k)
-    true_output = ['MTH\t1\t913.33', 'THA\t1\t580.0', 'HAW\t1\t246.67']
+    true_output = [Output_kmer('MTH','1',913.33), Output_kmer('THA','1',580.0), Output_kmer('HAW','1',246.67)]
     assert c == true_output
     expr_lists = [[(8,1000),(1,220),(0,0)]] # test 0 expression
     c = create_output_kmer(peptide_list, expr_lists, k)
-    true_output = ['MTH\t1\t913.33', 'THA\t1\t870.0', 'HAW\t1\t740.0']
+    true_output = [Output_kmer('MTH','1',913.33), Output_kmer('THA','1',870.0), Output_kmer('HAW','1',740.0)]
     assert c == true_output
 
 
