@@ -581,8 +581,8 @@ def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list,
     Parameters
     ----------
     gene: SplAdder object.
-    output_peptide_list: List[str]. Contain all the possible output peptide in the given splicegraph.
-    output_metadata_list: List[str]. Contain the correpsonding medata data for each output peptide.
+    output_peptide_list: List[namedtuple]. Contain all the possible output peptide in the given splicegraph.
+    output_metadata_list: List[namedtuple]. Contain the correpsonding medata data for each output peptide.
     Idx: Namedtuple Idx, has attribute idx.gene and idx.sample
     Segments: Namedtuple Segments, store segment expression information from count.hdf5.
            has attribute ['expr', 'lookup_table'].
@@ -617,8 +617,8 @@ def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list,
     vertex_len = vertices[1,:]-vertices[0,:]
     key_id_list = np.where(vertex_len < (k+1)*3)[0]
 
-    vertex_id_pair_list = [meta.split('\t')[15] for meta in output_metadata_list]
-    coord_pair_list = [meta.split('\t')[14] for meta in output_metadata_list]
+    vertex_id_pair_list = [metadata.vertex_idx for metadata in output_metadata_list]
+    coord_pair_list = [metadata.exons_coor for metadata in output_metadata_list]
     concat_peptide_list = []
     concat_expr_lists = []
     for key_id in key_id_list:
@@ -627,8 +627,8 @@ def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list,
         for front_id in front_id_list:
             for back_id in back_id_list:
                 triple_v = '_'.join([vertex_id_pair_list[front_id].split(',')[0],vertex_id_pair_list[front_id].split(',')[1],vertex_id_pair_list[back_id].split(',')[1]])
-                back_peptide = output_peptide_list[back_id].split('\n')[-1]
-                front_peptide = output_peptide_list[front_id].split('\n')[-1]
+                back_peptide = output_peptide_list[back_id].peptide
+                front_peptide = output_peptide_list[front_id].peptide
                 back_coord_pair = coord_pair_list[back_id]
                 front_coord_pair = coord_pair_list[front_id]
                 if len(back_peptide) > 0 and len(front_peptide) > 0 and back_coord_pair[-1] != NOT_EXIST: # filter out those empty string

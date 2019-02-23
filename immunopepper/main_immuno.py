@@ -50,6 +50,35 @@ def parse_arguments(argv):
     return pargs
 
 
+def write_namedtuple_list(fp, namedtuple_list, field_list):
+    """ Write namedtuple_list to the given file pointer"""
+    def convert_list_to_str(_list):
+        if len(_list) == 0:
+            return ''
+        elif isinstance(_list[0],str): # we only check the first item here
+            return ';'.join(_list)
+        else:
+            new_list = [str(_item) for _item in _list]
+            return ';'.join(new_list)
+
+    def convert_namedtuple_to_str(_namedtuple):
+        line = ''
+        for field in field_list:
+            if field == 'new_line':
+                line += '\n'
+            # should first check if field in namedtuple
+            item = _namedtuple.field
+            if isinstance(item,(list,tuple)):
+                line += convert_list_to_str(item)+'\t'
+            else:
+                line += str(item)+'\t'
+        return line.strip() # remove the last '\t'
+
+    fp.writelines(convert_namedtuple_to_str(_namedtuple)+'\n' for _namedtuple in namedtuple_list)
+
+def write_list(fp, _list):
+    fp.writelines([l+'\n' for l in _list])
+
 def main(arg):
 
     # load genome sequence data
@@ -151,10 +180,11 @@ def main(arg):
         back_kmer_peptide_fp = open(back_kmer_peptide_file_path, 'w')
         concat_kmer_peptide_fp = open(concat_kmer_peptide_file_path, 'w')
 
-        meta_header_line = "\t".join(['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
+        meta_header_list = ['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
                                     'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','variant_seg_expr',
-                                      'exons_coor', 'vertex_idx','junction_expr','segment_expr'])
-        meta_peptide_fp.write(meta_header_line + '\n')
+                                      'exons_coor', 'vertex_idx','junction_expr','segment_expr']
+        pep_header_list = ['output_id', 'vertex_pair_id', 'new_line', 'peptide']
+        meta_peptide_fp.write('\t'.join(meta_header_list) + '\n')
         expr_distr_dict[sample] = []
 
         # go over each gene in splicegraph
@@ -195,17 +225,18 @@ def main(arg):
                     junction_kmer_output_list = create_output_kmer(output_peptide_list, expr_lists, arg.kmer)
                     back_kmer_output_list = create_output_kmer(output_background_list, back_expr_lists, arg.kmer)
                     concat_kmer_output_list = create_output_kmer(concat_peptide_list,concat_expr_list,arg.kmer)
-                    junction_kmer_peptide_fp.write('\n'.join(junction_kmer_output_list) + '\n')
-                    back_kmer_peptide_fp.write('\n'.join(back_kmer_output_list)+'\n')
-                    concat_kmer_peptide_fp.write('\n'.join(concat_kmer_output_list)+'\n')
+                    write_list(junction_kmer_peptide_fp, junction_kmer_output_list)
+                    write_list(back_kmer_peptide_fp, back_kmer_output_list)
+                    write_list(concat_kmer_peptide_fp, concat_kmer_output_list)
+
                 assert len(output_metadata_list) == len(output_peptide_list)
                 if len(output_peptide_list) > 0:
-                    meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
-                    peptide_fp.write('\n'.join(output_peptide_list)+'\n')
+                    write_namedtuple_list(meta_peptide_fp, output_metadata_list, field_list=meta_header_list)
+                    write_namedtuple_list(peptide_fp, output_peptide_list, field_list=pep_header_list)
                 if len(output_background_list) > 0:
-                    background_fp.write('\n'.join(output_background_list)+'\n')
-                if len(concat_peptide_list) >0:
-                    concat_peptide_fp.write('\n'.join(concat_peptide_list)+'\n')
+                    write_list(background_fp,output_background_list)
+                if len(concat_peptide_list) > 0:
+                    write_list(concat_peptide_fp,concat_peptide_list)
                 end_time = timeit.default_timer()
                 print(gene_idx, end_time - start_time,'\n')
             except Exception as e:

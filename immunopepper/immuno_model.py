@@ -6,10 +6,10 @@ import scipy as sp
 
 from immuno_filter import junction_is_annotated, peptide_match, find_background_peptides, get_full_peptide_list
 from immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
-from utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr,get_all_paths
+from utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr
 from immuno_preprocess import search_edge_metadata_segmentgraph
 from constant import NOT_EXIST
-
+from immuno_nametuple import Output_background,Output_metadata,Output_peptide
 
 def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                       segments=None, edges=None, mutation=None,
@@ -131,16 +131,8 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                         else:
                             segment_expr, expr_list = NOT_EXIST, NOT_EXIST
 
-                        meta_header_line = "\t".join(
-                            [str(idx.gene) + '.' + str(output_id), str(read_frame_tuple[2]), gene.name, gene.chr, gene.strand,
-                             mutation.mode, "{:.3f}".format(peptide_weight), str(peptide_is_annotated), str(junction_anno_flag),
-                             str(int(flag.has_stop)), str(junctionOI_flag), str(int(flag.is_isolated)),
-                             ';'.join(str_variant_comb), ';'.join(seg_exp_variant_comb)])
-
-                        meta_header_line += ('\t' + str(coord.start_v1) + ";" + str(coord.stop_v1))
-                        meta_header_line += (';' + str(coord.start_v2) + ";" + str(coord.stop_v2) + '\t')
-                        meta_header_line += (str(v_id) + ',' + str(prop_vertex) + '\t')
-
+                        # create namedtuple
+                        gene_outputid = str(idx.gene)+'.'+str(output_id)
                         # deal with expression data
                         if edges is not None and not flag.is_isolated:
                             sorted_pos = sp.sort(np.array([coord.start_v1, coord.stop_v1, coord.start_v2, coord.stop_v2]))
@@ -149,12 +141,30 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                             #edge_expr = edge_expr*size_factor
                         else:
                             edge_expr = NOT_EXIST
-                        meta_header_line += ("\t" .join([str(edge_expr)]))
-                        meta_header_line += "\t"+str(segment_expr)
-
-                        output_metadata_list.append(meta_header_line)
-                        peptide_str_pretty = '>' + str(idx.gene) + '.' + str(output_id) + '\t' + gene.name+'_'+str(v_id)+'_'+str(prop_vertex) + '\n' + peptide.mut
-                        output_peptide_list.append(peptide_str_pretty)
+                        output_metadata = Output_metadata(output_id=gene_outputid,
+                                                          read_frame=read_frame_tuple[2],
+                                                          gene_name=gene.name,
+                                                          gene_chr=gene.chr,
+                                                          gene_strand=gene.strand,
+                                                          mutation_mode=mutation.mode,
+                                                          peptide_weight="{:.3f}".format(peptide_weight),
+                                                          peptide_annotated=peptide_is_annotated,
+                                                          junction_annotated=junction_anno_flag,
+                                                          has_stop_codon=int(flag.has_stop),
+                                                          is_in_junction_list=junctionOI_flag,
+                                                          is_isolated=int(flag.is_isolated),
+                                                          variant_comb=str_variant_comb,
+                                                          variant_seg_expr=seg_exp_variant_comb,
+                                                          exons_coor=coord,
+                                                          vertex_idx=str(v_id) + ',' + str(prop_vertex),
+                                                          junction_expr=edge_expr,
+                                                          segment_expr=segment_expr
+                        )
+                        output_metadata_list.append(output_metadata)
+                        output_peptide = Output_peptide(output_id='>'+str(idx.gene)+'.'+str(output_id),
+                                                        vertex_pair_id=gene.name+'_'+str(v_id)+'_'+str(prop_vertex),
+                                                        peptide=peptide.mut)
+                        output_peptide_list.append(output_peptide)
                         expr_lists.append(expr_list)
                         output_id += 1
     if not sg.edges is None:

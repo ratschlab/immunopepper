@@ -276,11 +276,10 @@ def get_filtered_output_list(metadata_list,peptide_list,expr_lists):
     filtered_meta_list = []
     filtered_peptide_list = []
     filtered_expr_lists = []
-    for i,imeta_line in enumerate(metadata_list):
-        items = imeta_line.strip().split('\t')
-        idx = items[0]
+    for i,metadata in enumerate(metadata_list):
+        idx = metadata.output_id
         if idx not in remove_id_list:
-            filtered_meta_list.append(imeta_line)
+            filtered_meta_list.append(metadata)
             filtered_peptide_list.append(peptide_list[i])
             filtered_expr_lists.append(expr_lists[i])
     return filtered_meta_list, filtered_peptide_list,filtered_expr_lists
