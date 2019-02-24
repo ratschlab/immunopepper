@@ -36,9 +36,9 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
            has the attribute ['mode', 'maf_dict', 'vcf_dict']
        Returns
        -------
-       output_peptide_list: List[str]. Contain all the possible output peptide in the given splicegraph.
-       output_metadata_list: List[str]. Contain the correpsonding medata data for each output peptide.
-       output_background_pep_list: List[str]. Contain the background peptide for each transcript.
+       output_peptide_list: List[Output_junc_peptide]. Contain all the possible output peptide in the given splicegraph.
+       output_metadata_list: List[Output_metadata]. Contain the correpsonding medata data for each output peptide.
+       output_background_pep_list: List[Output_background]. Contain the background peptide for each transcript.
        expr_lists: List[List(Tuple(int,float))]. Contain the segment expression data for each output peptide.
        back_expr_lists: List[List(Tuple(int,float))]. Contain the segment expression data for background output.
        total_expr: Float. The sum of all the expression counts which will be used for generating libsize.tsv
@@ -141,7 +141,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                         else:
                             edge_expr = NOT_EXIST
                         output_metadata = Output_metadata(output_id=gene_outputid,
-                                                          read_frame=read_frame_tuple[2],
+                                                          read_frame=read_frame_tuple.read_phase,
                                                           gene_name=gene.name,
                                                           gene_chr=gene.chr,
                                                           gene_strand=gene.strand,

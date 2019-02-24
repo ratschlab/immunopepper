@@ -14,8 +14,12 @@ Peptide = namedtuple('Peptide', ['mut', 'ref'])
 Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
 Flag = namedtuple('Flag', ['has_stop', 'is_isolated'])
 Idx = namedtuple('Idx', ['gene', 'sample'])
+Reading_frame_tuple = namedtuple('reading_frame_tuple',['cds_left_modi','cds_right_modi','read_phase'])
+GeneTable = namedtuple('GeneTable', ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_ts'])
+Segments = namedtuple('Segments', ['expr', 'lookup_table'])
+Edges = namedtuple('Edges', ['expr', 'lookup_table'])
+CountInfo = namedtuple('CountInfo', ['segments', 'edges', 'strain_idx_table'])
 
-#expr = namedtuple('expr', [])
 
 
 

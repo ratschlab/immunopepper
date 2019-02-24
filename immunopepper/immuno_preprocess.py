@@ -1,6 +1,5 @@
 """Contain the functions to parse, preprocess information from the input file"""
 import sys
-from collections import namedtuple
 import os
 import numpy as np
 import h5py
@@ -8,12 +7,7 @@ import scipy as sp
 import cPickle
 
 from utils import to_adj_succ_list,find_overlapping_cds_simple,leq_strand,encode_chromosome
-
-GeneTable = namedtuple('GeneTable', ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_ts'])
-Segments = namedtuple('Segments', ['expr', 'lookup_table'])
-Edges = namedtuple('Edges', ['expr', 'lookup_table'])
-CountInfo = namedtuple('CountInfo', ['segments', 'edges', 'strain_idx_table'])
-
+from immuno_nametuple import Reading_frame_tuple,GeneTable,Segments,Edges,CountInfo
 
 def genes_preprocess(genes, gene_cds_begin_dict):
     """ Preprocess the gene and generate new attributes under gene object
@@ -76,7 +70,7 @@ def genes_preprocess(genes, gene_cds_begin_dict):
                     n_trailing_bases = cds_right_modi - cds_left_modi
 
                 read_phase = n_trailing_bases % 3
-                gene.splicegraph.reading_frames[idx].add((cds_left_modi, cds_right_modi, read_phase))
+                gene.splicegraph.reading_frames[idx].add(Reading_frame_tuple(cds_left_modi, cds_right_modi, read_phase))
 
         gene.to_sparse()
 

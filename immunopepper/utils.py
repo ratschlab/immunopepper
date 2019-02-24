@@ -5,15 +5,11 @@ import numpy as np
 
 from collections import namedtuple
 import bisect
-import logging
 
 from constant import NOT_EXIST
 from immuno_nametuple import Output_background
+from immuno_nametuple import Peptide,Coord,Flag,Idx,Reading_frame_tuple
 
-Peptide = namedtuple('Peptide', ['mut', 'ref'])
-Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
-Flag = namedtuple('Flag', ['has_stop', 'is_isolated'])
-Idx = namedtuple('Idx', ['gene', 'sample'])
 
 
 def to_adj_list(adj_matrix):
@@ -214,7 +210,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
 
     Parameters
     ----------
-    read_frame: Tuple. (read_start_codon, read_stop_codon, emitting_frame)
+    read_frame: NamedTuple. (read_start_codon, read_stop_codon, emitting_frame)
     strand: str. '+' or '-'
     variant_comb: List(int).
     mutation_sub_dic_maf: Dict. variant position -> variant details.
@@ -233,7 +229,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     next_reading_frame: Tuple. The reading frame to be propogated to the next vertex.
 
     """
-    cds_left_modi, cds_right_modi, emitting_frame = read_frame
+    cds_left_modi, cds_right_modi, emitting_frame = read_frame.cds_left_modi,read_frame.cds_right_modi,read_frame.read_phase
     next_emitting_frame = (peptide_accept_coord[1] - peptide_accept_coord[0] + emitting_frame) % 3
     start_v1 = cds_left_modi
     stop_v1 = cds_right_modi
@@ -266,7 +262,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
         next_start_v1 = peptide_accept_coord[0]
         next_stop_v1 = max(stop_v2 - accepting_frame,peptide_accept_coord[0])
 
-    next_reading_frame = (next_start_v1, next_stop_v1, next_emitting_frame)
+    next_reading_frame = Reading_frame_tuple(next_start_v1, next_stop_v1, next_emitting_frame)
     assert (len(peptide_dna_str_mut) == len(peptide_dna_str_ref))
     if len(peptide_dna_str_mut) % 3 != 0:
         print("Applied mutations have changed the length of the DNA fragment - no longer divisible by 3")
@@ -307,11 +303,8 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
     flag: NamedTuple. has attribute ['has_stop', 'is_isolated']
 
     """
-    Peptide = namedtuple('Peptide',['mut','ref'])
-    Coord = namedtuple('Coord',['start_v1','stop_v1','start_v2','stop_v2'])
-    Flag = namedtuple('Flag', ['has_stop', 'is_isolated'])
 
-    start_v1, stop_v1, emitting_frame = read_frame
+    start_v1, stop_v1, emitting_frame = read_frame.cds_left_modi,read_frame.cds_right_modi,read_frame.read_phase
     start_v2 = NOT_EXIST
     stop_v2 = NOT_EXIST
 
