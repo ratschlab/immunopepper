@@ -102,52 +102,6 @@ def get_full_peptide(gene, seq, cds_list, Segments, Idx, mode):
     return cds_expr_list, cds_string, cds_peptide
 
 
-def get_full_peptide_list(gene, ref_seq, all_path_dict, Segments, Idx):
-    """
-    Output all peptides and corresponding expression list given all possible paths
-    """
-    def re_arrange_dict(all_path_dict):
-        """Index path with start vertices"""
-        new_dict = {}
-        for path_list in all_path_dict.values():
-            for path in path_list:
-                if path[0] not in new_dict:
-                    new_dict[path[0]] = [path]
-                else:
-                    new_dict[path[0]].append(path)
-        return new_dict
-
-    def convert_to_cds_list(new_dict,gene):
-        """Change vertex index to cds tuple"""
-        all_cds_list = []
-        vlist = gene.splicegraph.vertices
-        for start_point,path_list in new_dict.items():
-            reading_frame_list = list(gene.splicegraph.reading_frames[start_point])
-            for reading_frame_tuple in reading_frame_list:
-                for path in path_list:
-                    cds_list = []
-                    cds_list.append(reading_frame_tuple)
-                    for succ_point in path[1:]:
-                        cds_list.append((vlist[0][succ_point],vlist[1][succ_point],0))
-                    all_cds_list.append(cds_list)
-        return all_cds_list
-
-    def convert_cds_list_to_string(cds_list):
-        """For the header line in the output"""
-        cds_str_list = [str(cds_item) for cds_item in cds_list]
-        return '_'.join(cds_str_list)
-
-    new_path_dict = re_arrange_dict(all_path_dict)
-    all_cds_list = convert_to_cds_list(new_path_dict,gene)
-    peptide_list = []
-    expr_lists = []
-    for i,cds_list in enumerate(all_cds_list):
-        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_seq, cds_list, Segments, Idx, mode='full')
-        peptide_list.append((convert_cds_list_to_string(cds_list),cds_peptide))
-        expr_lists.append(cds_expr_list)
-    return peptide_list, expr_lists
-
-
 def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript_cds_table, Segments, Idx):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
@@ -217,25 +171,24 @@ def get_exon_dict(metadata_list):
         -> List[Tuple(output_idx, pos_start, pos_end,)]
     """
     exon_dict = {}
-    for line in metadata_list:
-        items = line.strip().split('\t')
+    for metadata in metadata_list:
         ## TODO: need to come up with a new way to index the exon list
-        exon_list = items[-4].split(';')
-        idx = items[0]
-        read_frame = items[1]
-        strand = items[4]
+        coord = metadata.exons_coor
+        idx = metadata.output_id
+        read_frame = metadata.read_frame
+        strand = metadata.gene_strand
         if strand == '+':
-            key = (read_frame,exon_list[1],exon_list[2])
+            key = (read_frame,coord.stop_v1,coord.start_v2)
             if key in exon_dict:
-                exon_dict[key].append((idx, exon_list[0],exon_list[3]))
+                exon_dict[key].append((idx, coord.start_v1, coord.stop_v2))
             else:
-                exon_dict[key] = [(idx, exon_list[0],exon_list[3])]
+                exon_dict[key] = [(idx, coord.start_v1, coord.stop_v2)]
         else:
-            key = (read_frame,exon_list[3], exon_list[0])
+            key = (read_frame, coord.stop_v2, coord.start_v1)
             if key in exon_dict:
-                exon_dict[key].append((idx, exon_list[2], exon_list[1]))
+                exon_dict[key].append((idx, coord.start_v2, coord.stop_v1))
             else:
-                exon_dict[key] = [(idx, exon_list[2], exon_list[1])]
+                exon_dict[key] = [(idx, coord.start_v2, coord.stop_v1)]
     return exon_dict
 
 
