@@ -18,6 +18,8 @@ def _assert_files_equal(expected_path, actual_path):
 
     with o(expected_path) as e:
         with o(actual_path) as a:
+            afile = a.read()
+            efile = e.read()
             assert e.read() == a.read()
 
 @pytest.mark.parametrize("test_id,case,mutation_mode", [
@@ -51,11 +53,11 @@ def test_end_to_end_ref(test_id, case, mutation_mode, tmpdir):
                '--vcf_path', '{}/test{}{}.vcf'.format(data_dir, test_id, case),
                '--maf_path', '{}/test{}{}.maf'.format(data_dir, test_id, case),
                '--mutation_mode', mutation_mode,
-               '--output_silence',
                 '--kmer', '4']
     my_args_junction = my_args_kmer[:-2]+['--filter_redundant']
 
-    for my_args,sample_dir in zip([my_args_kmer],[sample_dir_kmer]):
+
+    for my_args,sample_dir in zip([my_args_kmer,my_args_junction],[sample_dir_kmer,sample_dir_junction]):
         main_immuno.main(main_immuno.parse_arguments(my_args))
         _assert_files_equal(
             os.path.join(sample_dir, '{}_metadata.tsv.gz'.format(mutation_mode)),
