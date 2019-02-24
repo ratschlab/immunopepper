@@ -249,12 +249,12 @@ def parse_gene_metadata_info(h5f, sample_list):
     edge_expr_info = h5f["/edges"]
     edge_idx_info = h5f["/edge_idx"]
     assert (strain_expr_info.size == segment_expr_info.shape[1])
-    strain_idx_table = {}
+    sample_idx_table = {}
 
     for sample in sample_list:
         for i, strain in enumerate(strain_expr_info):
             if strain.startswith(sample):
-                strain_idx_table[sample] = i
+                sample_idx_table[sample] = i
                 continue
 
     gene_names = h5f["/gene_names"]
@@ -280,7 +280,7 @@ def parse_gene_metadata_info(h5f, sample_list):
 
     segments = Segments(segment_expr_info,seg_lookup_table)
     edges = Edges(edge_expr_info,edge_lookup_table)
-    countinfo = CountInfo(segments,edges,strain_idx_table)
+    countinfo = CountInfo(segments,edges,sample_idx_table)
     return countinfo
 
 

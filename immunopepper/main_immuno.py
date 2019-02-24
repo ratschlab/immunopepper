@@ -124,7 +124,7 @@ def main(arg):
         print('Loading count data ...')
         h5f = h5py.File(arg.count_path, 'r')
         countinfo = parse_gene_metadata_info(h5f, arg.samples)
-        edges, segments, strain_idx_table = countinfo.edges,countinfo.segments,countinfo.strain_idx_table
+        edges, segments, sample_idx_table = countinfo.edges,countinfo.segments,countinfo.sample_idx_table
         end_time = timeit.default_timer()
         print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
         print_memory_diags()
@@ -196,7 +196,7 @@ def main(arg):
                 gene = graph_data[gene_idx]
                 start_time = timeit.default_timer()
                 print('%s %i/%i\n'%(sample, gene_idx, num))
-                idx = get_idx(strain_idx_table,sample,gene_idx)
+                idx = get_idx(sample_idx_table,sample,gene_idx)
                 # Genes not contained in the annotation...
                 if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
                     gene.processed = False

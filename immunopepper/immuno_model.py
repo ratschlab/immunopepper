@@ -178,7 +178,7 @@ def create_output_kmer(peptide_list, expr_lists, k):
 
     Parameters
     ----------
-    peptide_list: List(str). Filtered output_peptide_list.
+    peptide_list: List(Output_junc_peptide). Filtered output_peptide_list.
     expr_lists: List(List(Tuple)). Filtered expr_list.
     k: int. Specify k-mer length
 
@@ -211,7 +211,6 @@ def create_output_kmer(peptide_list, expr_lists, k):
                 else:
                     kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]),2)
                 kmer = Output_kmer(kmer_peptide,peptide_head,kmer_peptide_expr)
-                #kmer_line = kmer_peptide+'\t'+peptide_head+'\t'+str(kmer_peptide_expr)
                 output_list.append(kmer)
         else:
             kmer_peptide = peptide
@@ -220,6 +219,5 @@ def create_output_kmer(peptide_list, expr_lists, k):
             else:
                 kmer_peptide_expr = np.round(np.mean(expr_array),2)
             kmer = Output_kmer(kmer_peptide, peptide_head, kmer_peptide_expr)
-            #kmer_line = kmer_peptide+'\t'+peptide_head+'\t'+str(kmer_peptide_expr)
             output_list.append(kmer)
     return output_list

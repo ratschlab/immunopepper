@@ -137,12 +137,12 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
     return peptide_list, expr_lists
 
 
-def peptide_match(ref_peptides, peptide):
-    """ Find if the translated exon-pair peptide also appear in the annotation file.
+def peptide_match(background_peptide_list, peptide):
+    """ Find if the translated exon-pair peptide also appear in the background peptide translated from annotation file.
 
     Parameters
     ----------
-    background_peptide_list: List(str) All the peptide translated from transcripts in annotation file
+    background_peptide_list: List(Output_background) All the peptide translated from transcripts in annotation file
     peptide: str. peptide translated from certain exon-pairs
 
     Returns
@@ -150,11 +150,11 @@ def peptide_match(ref_peptides, peptide):
     count: int. Count how many matches exist between background peptide and given peptide
     """
     match_ts_list = []
-    for ref in ref_peptides:
-        ref_peptide = ref[1]
-        transcript = ref[0]
+    for background_peptide in background_peptide_list:
+        ref_peptide = background_peptide.peptide
+        transcript_id = background_peptide.id
         if not re.search(peptide, ref_peptide) is None:
-            match_ts_list.append(transcript)
+            match_ts_list.append(transcript_id)
     return match_ts_list
 
 
@@ -163,7 +163,7 @@ def get_exon_dict(metadata_list):
 
     Parameters
     ----------
-    metadata_list: List(str). Returned by `calculate_output_peptide`
+    metadata_list: List(Output_metadata).
 
     Returns
     -------
@@ -172,7 +172,7 @@ def get_exon_dict(metadata_list):
     """
     exon_dict = {}
     for metadata in metadata_list:
-        ## TODO: need to come up with a new way to index the exon list
+        ## TODO: need to come up with a new way to index the exon dict
         coord = metadata.exons_coor
         idx = metadata.output_id
         read_frame = metadata.read_frame
@@ -218,14 +218,16 @@ def get_filtered_output_list(metadata_list,peptide_list,expr_lists):
 
     Parameters
     ----------
-    metadata_dict: Dict. Returned by get_exon_dict
+    metadata_list: List[Output_metadata].
+    peptide_list: List[Output_junc_peptide]
+    expr_lists:: List[List(tuple)]
 
     Returns
     -------
     remove_id_list: List[str]. The list of id to be removed.
     """
-    exon_list = get_exon_dict(metadata_list)
-    remove_id_list = get_remove_id(exon_list)
+    exon_dict = get_exon_dict(metadata_list)
+    remove_id_list = get_remove_id(exon_dict)
     filtered_meta_list = []
     filtered_peptide_list = []
     filtered_expr_lists = []
