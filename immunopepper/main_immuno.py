@@ -53,13 +53,7 @@ def parse_arguments(argv):
 def write_namedtuple_list(fp, namedtuple_list, field_list):
     """ Write namedtuple_list to the given file pointer"""
     def convert_list_to_str(_list):
-        if len(_list) == 0:
-            return ''
-        elif isinstance(_list[0],str): # we only check the first item here
-            return ';'.join(_list)
-        else:
-            new_list = [str(_item) for _item in _list]
-            return ';'.join(new_list)
+        return ';'.join([str(_item) for _item in _list])
 
     def convert_namedtuple_to_str(_namedtuple):
         line = ''
@@ -159,7 +153,7 @@ def main(arg):
         output_path = os.path.join(arg.output_dir, sample)
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
-        log_dir = os.path.join(output_path, 'logfile')
+        log_dir = os.path.join(output_path, 'error.log')
         logging.basicConfig(level=logging.DEBUG,
                             filename=log_dir, filemode="a+",
                             format="%(asctime)-15s %(levelname)-8s %(message)s")

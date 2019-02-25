@@ -107,6 +107,3 @@ ENV/
 # intermediate test data
 tests/data/genome/
 /scripts/generate_gt_file.py
-
-# log file
-immunopepper/logfile
