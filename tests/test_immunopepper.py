@@ -13,6 +13,7 @@ from immunopepper.io_utils import load_pickled_graph
 from immunopepper.main_immuno import parse_arguments
 from immunopepper.immuno_model import create_output_kmer
 from immunopepper.immuno_nametuple import Coord,Output_background,Output_kmer
+from immunopepper.constant import NOT_EXIST
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 
 
@@ -170,11 +171,11 @@ def test_create_output_kmer():
     peptide_list = [Output_background('1','MTHAW')]
     expr_lists = [[(8,1000),(1,220),(6,0)]] # test 0 expression
     c = create_output_kmer(peptide_list, expr_lists, k)
-    true_output = [Output_kmer('MTH','1',913.33), Output_kmer('THA','1',580.0), Output_kmer('HAW','1',246.67)]
+    true_output = [Output_kmer('MTH','1',913.33,NOT_EXIST), Output_kmer('THA','1',580.0,NOT_EXIST), Output_kmer('HAW','1',246.67,NOT_EXIST)]
     assert c == true_output
     expr_lists = [[(8,1000),(1,220),(0,0)]] # test 0 expression
     c = create_output_kmer(peptide_list, expr_lists, k)
-    true_output = [Output_kmer('MTH','1',913.33), Output_kmer('THA','1',870.0), Output_kmer('HAW','1',740.0)]
+    true_output = [Output_kmer('MTH','1',913.33,NOT_EXIST), Output_kmer('THA','1',870.0,NOT_EXIST), Output_kmer('HAW','1',740.0,NOT_EXIST)]
     assert c == true_output
 
 
