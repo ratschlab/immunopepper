@@ -162,7 +162,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                         output_metadata_list.append(output_metadata)
                         output_peptide = Output_junc_peptide(output_id='>'+str(idx.gene)+'.'+str(output_id),
                                                         id=gene.name+'_'+str(v_id)+'_'+str(prop_vertex),
-                                                        peptide=peptide.mut)
+                                                        peptide=peptide.mut,exons_coor=coord)
                         output_peptide_list.append(output_peptide)
                         expr_lists.append(expr_list)
                         output_id += 1
@@ -197,11 +197,32 @@ def create_output_kmer(peptide_list, expr_lists, k):
                 expr = item[1]
                 array.extend([expr]*length)
         return np.array(array)
+
+    def get_spanning_index(coord, k):
+        L1 = coord.stop_v1-coord.start_v1
+        if coord.start_v2 == NOT_EXIST:
+            spanning_id_range  = NOT_EXIST
+            return spanning_id_range
+        else:
+            L2 = coord.stop_v2-coord.start_v2
+        m = L1 / 3
+        if L1%3 == 0:
+            spanning_id_range = range(max(m-k+1,0),m)
+        else:
+            spanning_id_range = range(max(m-k+1,0),m+1)
+        return spanning_id_range
+
     assert len(peptide_list) == len(expr_lists)
     output_list = []
     for i in range(len(peptide_list)):
         peptide = peptide_list[i].peptide
         peptide_head = peptide_list[i].id
+        if hasattr(peptide_list[i],'exons_coor'):
+            coord = peptide_list[i].exons_coor
+            spanning_index = get_spanning_index(coord,k)
+        else:
+            spanning_index = NOT_EXIST
+        # decide the kmer that spans over the cross junction
         expr_array = change_expr_lists_to_array(expr_lists[i])
         if len(peptide) >= k:
             for j in range(len(peptide)-k+1):
@@ -210,14 +231,22 @@ def create_output_kmer(peptide_list, expr_lists, k):
                     kmer_peptide_expr = NOT_EXIST
                 else:
                     kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]),2)
-                kmer = Output_kmer(kmer_peptide,peptide_head,kmer_peptide_expr)
+                if spanning_index is NOT_EXIST:
+                    is_in_junction = NOT_EXIST
+                else:
+                    is_in_junction = j in spanning_index
+                kmer = Output_kmer(kmer_peptide,peptide_head,kmer_peptide_expr,is_in_junction)
                 output_list.append(kmer)
         else:
             kmer_peptide = peptide
+            if spanning_index is NOT_EXIST:
+                is_in_junction = False
+            else:
+                is_in_junction = True
             if NOT_EXIST in expr_array:
                 kmer_peptide_expr = NOT_EXIST
             else:
                 kmer_peptide_expr = np.round(np.mean(expr_array),2)
-            kmer = Output_kmer(kmer_peptide, peptide_head, kmer_peptide_expr)
+            kmer = Output_kmer(kmer_peptide, peptide_head, kmer_peptide_expr,is_in_junction)
             output_list.append(kmer)
     return output_list

@@ -1,5 +1,13 @@
 from collections import namedtuple
 
+
+"""
+Coord namedtuple
+start and stop position of the junction pairs (two exons). If it only consists of one exon,
+start_v2 and stop_v2 is NOT_EXIST.
+"""
+Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
+
 """
 Output_junc_peptide namedtuple
 - output_id: (gene_id).(junction_id). gene_id is the index of given gene in the splicegraph array.
@@ -7,8 +15,9 @@ Output_junc_peptide namedtuple
 - id: (gene_name)_(first_vertex_id)_(second_vertex_id). Detail information of output_id. 
     We can know clearly from which gene and which vertex pair the given peptide is translated.
 - peptide: (peptide_string). The peptide translated from junction pairs.
+- exons_coor: Coord namedtuple
 """
-Output_junc_peptide = namedtuple('Output_junc_peptide', ['output_id','id','peptide'])
+Output_junc_peptide = namedtuple('Output_junc_peptide', ['output_id','id','peptide','exons_coor'])
 
 
 """
@@ -59,8 +68,9 @@ Output_kmer namedtuple.
 - kmer: output kmer
 - id: transcript id(generated from background peptide) or gene_vertex_id (generated from concat peptide)
 - expr: float. length-weighted sum of expression of the kmer
+- is_cross_junction: boolen. indicate if the kmer spans over the cross junction
 """
-Output_kmer= namedtuple('Output_kmer', ['kmer','id','expr'])
+Output_kmer= namedtuple('Output_kmer', ['kmer','id','expr','is_cross_junction'])
 
 
 """
@@ -69,14 +79,6 @@ Peptide namedtuple
 - ref: peptide translated from original dna string
 """
 Peptide = namedtuple('Peptide', ['mut', 'ref'])
-
-
-"""
-Coord namedtuple
-start and stop position of the junction pairs (two exons). If it only consists of one exon,
-start_v2 and stop_v2 is NOT_EXIST.
-"""
-Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
 
 
 """
