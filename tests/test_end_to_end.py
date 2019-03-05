@@ -20,7 +20,7 @@ def _assert_files_equal(expected_path, actual_path):
         with o(actual_path) as a:
             afile = a.read()
             efile = e.read()
-            assert e.read() == a.read()
+            assert afile == efile
 
 @pytest.mark.parametrize("test_id,case,mutation_mode", [
     ['1', 'pos', 'ref'],
@@ -53,8 +53,9 @@ def test_end_to_end_ref(test_id, case, mutation_mode, tmpdir):
                '--vcf_path', '{}/test{}{}.vcf'.format(data_dir, test_id, case),
                '--maf_path', '{}/test{}{}.maf'.format(data_dir, test_id, case),
                '--mutation_mode', mutation_mode,
-                '--kmer', '4']
-    my_args_junction = my_args_kmer[:-2]+['--filter_redundant']
+                '--kmer', '4',
+                '--output_silence']
+    my_args_junction = my_args_kmer[:-3]+['--filter_redundant']
 
 
     for my_args,sample_dir in zip([my_args_kmer,my_args_junction],[sample_dir_kmer,sample_dir_junction]):
