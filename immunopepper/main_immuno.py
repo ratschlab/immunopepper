@@ -129,7 +129,7 @@ def main(arg):
     else:
         segments = None
         edges = None
-        strain_idx_table = None
+        sample_idx_table = None
         size_factor = None
 
     # read the intron of interest file gtex_junctions.hdf5
