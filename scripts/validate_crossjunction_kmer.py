@@ -3,61 +3,8 @@
 import numpy as np
 import gzip
 import cPickle
-
-sample_name = 'TCGA-13-1489'
-mutation_mode = 'germline'
-
-immunopepper_file = '/cluster/work/grlab/projects/TCGA/immunopepper_rerun/{}/{}_junction_kmer.txt'.format(sample_name,mutation_mode)
-nora_result_file = '/cluster/work/grlab/projects/TCGA/PanCanAtlas/peptides_neoantigen/analysis_pancan/' \
-                   'ccell_rerun_2018/output/peptides.clean/split/cj_kmers/{}.cj.{}.cj_kmers_9.fa'.format(sample_name,mutation_mode)
-mutation_meta_gz_file = '/cluster/work/grlab/projects/TCGA/immunopepper_rerun/{}/{}_metadata.tsv.gz'.format(sample_name,mutation_mode)
-
-
-########
-# Part 0:  load some auxillary function and data
-########
-'''
-# load graph
-import cPickle
-anno_pickle_path = open('/cluster/work/grlab/projects/immunopepper/annotation_preprop.pickle','r')
-graph,cds_dict = cPickle.load(anno_pickle_path)
-
-# load genetable
-from immunopepper.immuno_preprocess import preprocess_ann
-ann_path = '/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/annotation/gencode.v19.annotation.hs37d5_chr.gff'
-genetable = preprocess_ann(ann_path)
-
-gene_id_dict = {}
-for i,gene in enumerate(graph):
-    gene_id_dict[gene.name] = i
-ENSG00000076344.11_12_11
-# load sequence file
-import Bio.SeqIO as BioIO
-ref_path = '/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/sequence/genome.fa'
-seq_dict = {}
-interesting_chr = map(str, range(1, 23)) + ["X", "Y", "MT"]
-print('Parsing genome sequence ...')
-for record in BioIO.parse(ref_path, "fasta"):
-    if record.id in interesting_chr:
-        seq_dict[record.id] = str(record.seq).strip()
-'''
-
-f = open('ref_cause_dict.pkl','rb')
-ref_kmer_set,imm_gene_coord_dict,mat_gene_coord_dict,unique_imm_coord_dict,unique_gene_name_list = cPickle.load(f)
-
-
-def get_kmer_list(_str,k):
-    if len(_str) < k:
-        return [_str]
-    else:
-        kmer_list = [_str[i:i+k] for i in range(0,max(0,len(_str)-k+1))]
-        return kmer_list
-def new_or_append_value_to_dict_key(_dict,key,value):
-    if key in _dict:
-        _dict[key].append(value)
-    else:
-        _dict[key] = [value]
-    return _dict
+import argparse
+import sys
 
 from immunopepper.constant import NOT_EXIST
 def get_immunopepper_meta_dict(meta_file):
@@ -91,15 +38,105 @@ def get_immunopepper_meta_dict(meta_file):
         stop_v1 = coord_str_tuple[1]
         is_less_than3_flag = int((int(stop_v1) - int(start_v1)) < 3)
         flag_tuple = (stop_flag, isolated_flag, is_less_than3_flag,som_variant_comb_num)
-        #meta_flag_dict_key_with_coord = new_or_append_value_to_dict_key(meta_flag_dict_key_with_coord,key_with_coord,flag_tuple)
-        meta_flag_dict_key_with_coord[key_with_coord].append(flag_tuple)
+        meta_flag_dict_key_with_coord = new_or_append_value_to_dict_key(meta_flag_dict_key_with_coord,key_with_coord,flag_tuple)
         meta_flag_dict_key_without_coord = new_or_append_value_to_dict_key(meta_flag_dict_key_without_coord,key_without_coord,flag_tuple)
         imm_gene_coord_dict = new_or_append_value_to_dict_key(imm_gene_coord_dict,gene_name,(coord_str_tuple, vertex_id))
     return meta_flag_dict_key_with_coord, meta_flag_dict_key_without_coord, imm_gene_coord_dict
 
+def parse_arguments(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--samples", nargs='+', help="the sample names(can be string or ), can specify more than one sample", required=False, default='')
+    parser.add_argument("--mutation_mode", help="specify the mutation mdoe", required=False, default='germline')
+    if len(argv) < 2:
+        parser.print_help()
+        sys.exit(1)
+
+    pargs = parser.parse_args(argv)
+    return pargs
+
+
+def get_kmer_list(_str,k):
+    if len(_str) < k:
+        return [_str]
+    else:
+        kmer_list = [_str[i:i+k] for i in range(0,max(0,len(_str)-k+1))]
+        return kmer_list
+
+def new_or_append_value_to_dict_key(_dict,key,value):
+    if key in _dict:
+        _dict[key].append(value)
+    else:
+        _dict[key] = [value]
+    return _dict
+
+def merge_two_dicts(x, y):
+    z = x.copy()   # start with x's keys and values
+    z.update(y)    # modifies z with y's keys and values & returns None
+    return z
+
+arg = parse_arguments(sys.argv[1:])
+
+
+#sample_name = arg.samples
+#mutation_mode = arg.mutation_mode
+
+sample_name = 'TCGA-13-1489'
+mutation_mode = 'somatic_and_germline'
+immunopepper_file = '/cluster/work/grlab/projects/TCGA/immunopepper_rerun/{}/{}_junction_kmer.txt'.format(sample_name,mutation_mode)
+nora_result_file = '/cluster/work/grlab/projects/TCGA/PanCanAtlas/peptides_neoantigen/analysis_pancan/' \
+                   'ccell_rerun_2018/output/peptides.clean/split/cj_kmers/{}.cj.{}.cj_kmers_9.fa'.format(sample_name,mutation_mode)
+mutation_meta_gz_file = '/cluster/work/grlab/projects/TCGA/immunopepper_rerun/{}/{}_metadata.tsv.gz'.format(sample_name,mutation_mode)
+
+if mutation_mode == 'somatic_and_germline':
+    nora_result_file = '/cluster/work/grlab/projects/TCGA/PanCanAtlas/peptides_neoantigen/analysis_pancan/' \
+                       'ccell_rerun_2018/output/peptides.clean/split/cj_kmers/{}.cj.{}.cj_kmers_9.fa'.format(
+        sample_name, 'germline_somatic')
+    aux_germ_immunopepper_file = '/cluster/work/grlab/projects/TCGA/immunopepper_rerun/{}/{}_junction_kmer.txt'.format(
+        sample_name, 'germline')
+    aux_germ_immunopepper_dict = {line.split('\t')[0]:line.split('\t')[1] for line in open(aux_germ_immunopepper_file,'r') if line.strip().split('\t')[-1] == 'True'}
+    aux_germ_meta_gz_file = '/cluster/work/grlab/projects/TCGA/immunopepper_rerun/{}/{}_metadata.tsv.gz'.format(sample_name,'germline')
+    _, aux_mut_meta_flag_dict_without_coord, _ = get_immunopepper_meta_dict(aux_germ_meta_gz_file)
+
+else:
+    aux_immunopepper_dict = {}
+    aux_mut_meta_flag_dict_without_coord = {}
+
+########
+# Part 0:  load some auxillary function and data
+########
+'''
+# load graph
+import cPickle
+anno_pickle_path = open('/cluster/work/grlab/projects/immunopepper/annotation_preprop.pickle','r')
+graph,cds_dict = cPickle.load(anno_pickle_path)
+
+# load genetable
+from immunopepper.immuno_preprocess import preprocess_ann
+ann_path = '/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/annotation/gencode.v19.annotation.hs37d5_chr.gff'
+genetable = preprocess_ann(ann_path)
+
+gene_id_dict = {}
+for i,gene in enumerate(graph):
+    gene_id_dict[gene.name] = i
+ENSG00000076344.11_12_11
+# load sequence file
+import Bio.SeqIO as BioIO
+ref_path = '/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/sequence/genome.fa'
+seq_dict = {}
+interesting_chr = map(str, range(1, 23)) + ["X", "Y", "MT"]
+print('Parsing genome sequence ...')
+for record in BioIO.parse(ref_path, "fasta"):
+    if record.id in interesting_chr:
+        seq_dict[record.id] = str(record.seq).strip()
+'''
+
+f = open('ref_cause_dict.pkl','rb')
+ref_kmer_set,imm_gene_coord_dict,mat_gene_coord_dict,unique_imm_coord_dict,unique_gene_name_list = cPickle.load(f)
+
 _,mut_meta_flag_dict_without_coord,_ = get_immunopepper_meta_dict(mutation_meta_gz_file)
-# parse nora's result
-# from 17mer to 9mer
+mut_meta_flag_dict_without_coord = merge_two_dicts(mut_meta_flag_dict_without_coord,aux_mut_meta_flag_dict_without_coord)
+
+# parse nora's result from 17mer to 9mer
 nora_pep_lines = open(nora_result_file,'r').readlines()
 i = 0
 pep_dict = {}
@@ -121,14 +158,18 @@ nora_kmer_set = set(nora_kmer_list)
 # construct immuno_pepper dict, only focus on the cross junction part
 # kmer: -> immuno_pepper name
 immunopepper_dict = {line.split('\t')[0]:line.split('\t')[1] for line in open(immunopepper_file,'r') if line.strip().split('\t')[-1] == 'True'}
+immunopepper_dict = merge_two_dicts(immunopepper_dict,aux_immunopepper_dict)
 
 # get all kmer returned by immunopepper
 immunopepper_kmer = set(immunopepper_dict.keys())
 common_kmer_set = nora_kmer_set.intersection(immunopepper_kmer)
 additional_kmer_list = list(immunopepper_kmer.difference(nora_kmer_set))
 miss_kmer_list = list(nora_kmer_set.difference(immunopepper_kmer))
-s_summary = "Comparison overview. additional kmer means imm-mat, miss kmer means mat-imm.\n" \
-            " {} common kmers, {} additional kmers and {} miss kmers".format(len(common_kmer_set),len(additional_kmer_list),len(miss_kmer_list))
+num_common_kmer = len(common_kmer_set)
+num_additional_kmer = len(additional_kmer_list)
+num_miss_kmer = len(miss_kmer_list)
+s_summary = "Comparison overview. additional kmer means imm subtracts mat, miss kmer means mat subtracts imm.\n" \
+            " {} common kmers, {} additional kmers and {} miss kmers".format(num_common_kmer,num_common_kmer,num_miss_kmer)
 print(s_summary)
 
 # check missing kmer
@@ -140,11 +181,12 @@ immunopepper_ref_file = '/cluster/work/grlab/projects/TCGA/immunopepper_rerun/TC
 ref_kmer_dict = {line.split('\t')[0]:line.split('\t')[1] for line in open(immunopepper_ref_file,'r') if line.strip().split('\t')[-1] == 'True'}
 ref_kmer_set = set(ref_kmer_dict.keys())
 '''
+num_can_not_explained_miss_kmer = len(set(miss_kmer_list).intersection(ref_kmer_set))
 s_explain_missing = "Explain the {} miss kmers, ideally they can all be found in reference kmer list.\n" \
-                    "{} kmers can not be found in reference kmer".format(len(miss_kmer_list),len(set(miss_kmer_list).intersection(ref_kmer_set)))
+                    "{} kmers can not be found in reference kmer".format(num_miss_kmer,num_can_not_explained_miss_kmer)
 print(s_explain_missing)
 
-problem_id_list = list(set([immunopepper_dict[_kmer] for _kmer in additional_kmer_list]))
+problem_id_list = list(set([immunopepper_dict[_kmer] if _kmer in immunopepper_dict else aux_immunopepper_dict[_kmer] for _kmer in additional_kmer_list]))
 
 '''
 # Some examples
@@ -160,14 +202,6 @@ print(translate_dna_to_peptide(complementary_seq(seq7[2854510:2854564][::-1]))) 
 seq = seq_dict['6']
 print(translate_dna_to_peptide(complementary_seq(seq[79787745:79787953][::-1]))) # ('LSSLLDCRSADWLPP', True) Matthias implementation (start from extrapolation)
 print(translate_dna_to_peptide(complementary_seq(seq[79787745:79787785][::-1]))) # ('MKRRMFPRPCLARMPGSR', False) immunopepper implementation (start from cds)
-
-seq = seq_dict['10']
-print(translate_dna_to_peptide(seq[133918174:133918447])) # ('MKRRMFPRPCLARMPGSR', False) immunopepper implementation (start from cds)
-print(translate_dna_to_peptide(seq[133918312:133918447])) # ('LSSLLDCRSADWLPP', True) Matthias implementation (start from extrapolation)
-
-seq = seq_dict['17']
-print(translate_dna_to_peptide(seq[48539544:48539663])) # ('MKRRMFPRPCLARMPGSR', False) immunopepper implementation (start from cds)
-print(translate_dna_to_peptide(seq[48539546:48539663])) # ('LSSLLDCRSADWLPP', True) Matthias implementation (start from extrapolation)
 
 # example 3 (one of the special 58)
 seq = seq_dict['8']
@@ -280,7 +314,7 @@ s_explain_addition = "Explain the {} additional kmers. Remember one junction out
                      " 9 kmers. We can see how many difference " \
                      "attribute to reference kmer and how many to mutatation-specific kmer.\n" \
                      "{} caused by ref and {} caused by mut in the total {} " \
-                     "additional junction output".format(len(additional_kmer_list),len(ref_cause),len(mut_cause),len(problem_id_list))
+                     "additional junction output".format(num_additional_kmer,len(ref_cause),len(mut_cause),len(problem_id_list))
 print(s_explain_addition)
 
 #
@@ -302,6 +336,19 @@ print(s_explain_addition)
 #   But we can see, this case is very rare for single sample+mutation type.
 
 explainable_num = np.sum([np.sum(mut_meta_flag_dict_without_coord[item]) > 0 for item in mut_cause])
-a = [mut_meta_flag_dict_without_coord[item] for item in mut_cause]
+addition_flag_tuple = np.array([reduce((lambda x,y: np.logical_or(x,y)),mut_meta_flag_dict_without_coord[item]) for item in problem_id_list])
+flag_explain = np.sum(addition_flag_tuple,axis=0)
+num_extrapolation_explain = np.sum(np.sum(addition_flag_tuple,axis=1) == 0)
 s_explain_mut_cause = "See how many mut cause cases we can explain: {}/{} can be further explained".format(explainable_num,len(mut_cause))
 print(s_explain_mut_cause)
+num_can_not_explained_additional_kmer = len(mut_cause)-explainable_num
+
+s_final_conclusion = ">>>>>>>>>>>>>>>>>>Valiadtion Summary for {} {}\nThere are {} common kmers, {} missing kmers only appear " \
+                     "in Matthias's result" \
+                     ", {} additional kmers only appear in Immunopepper's result. {} missing kmers and {} can not be easily " \
+                     "explained.\n For the {} concerned additional junction, {} are caused by stop codon, " \
+                     "{} by isolated, {} by short vertices, {} by somatic variant combination, {} by extrapolation.".format(
+                    sample_name,mutation_mode,num_common_kmer,num_miss_kmer,num_additional_kmer,
+                                        num_can_not_explained_miss_kmer,num_can_not_explained_additional_kmer,
+                    len(problem_id_list), flag_explain[0], flag_explain[1], flag_explain[2],flag_explain[3],num_extrapolation_explain)
+print(s_final_conclusion)
