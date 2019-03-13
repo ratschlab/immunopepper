@@ -188,7 +188,7 @@ s_explain_missing = "Explain the {} miss kmers, ideally they can all be found in
                     ">> {} kmers can not be found in reference kmer".format(num_miss_kmer,num_can_not_explained_miss_kmer)
 print(s_explain_missing)
 
-problem_id_list = list(set([immunopepper_dict[_kmer] if _kmer in immunopepper_dict else aux_immunopepper_dict[_kmer] for _kmer in additional_kmer_list]))
+problem_id_list = list(set([immunopepper_dict[_kmer] for _kmer in additional_kmer_list]))
 
 '''
 # Some examples
@@ -344,7 +344,7 @@ num_can_not_explained_additional_kmer = len(mut_cause)-explainable_num
 
 s_final_conclusion = "\n\n>>>>>>>>>>>>>>>>>>Valiadtion Summary for {} {}\nThere are {} common kmers, {} missing kmers only appear " \
                      "in Matthias's result" \
-                     ", {} additional kmers only appear in Immunopepper's result. {} missing kmers and {} can not be easily " \
+                     ", {} additional kmers only appear in Immunopepper's result. {} missing kmers and{} can not be easily " \
                      "explained.\n For the {} concerned additional junction, {} are caused by stop codon, " \
                      "{} by isolated, {} by short vertices, {} by somatic variant combination, {} by extrapolation.".format(
                     sample_name,mutation_mode,num_common_kmer,num_miss_kmer,num_additional_kmer,
