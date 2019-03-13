@@ -47,7 +47,7 @@ def get_immunopepper_meta_dict(meta_file):
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--samples", nargs='+', help="the sample names(can be string or ), can specify more than one sample", required=False, default='TCGA-13-1489')
+    parser.add_argument("--samples", help="the sample names(can be string or ), can specify more than one sample", required=False, default='TCGA-13-1489')
     parser.add_argument("--mutation_mode", help="specify the mutation mdoe", required=False, default='germline')
     if len(argv) < 2:
         parser.print_help()
