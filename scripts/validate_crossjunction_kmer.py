@@ -7,6 +7,7 @@ import argparse
 import sys
 
 from immunopepper.constant import NOT_EXIST
+
 def get_immunopepper_meta_dict(meta_file):
     """
     Why we have with_coord and without_coord?
@@ -43,9 +44,10 @@ def get_immunopepper_meta_dict(meta_file):
         imm_gene_coord_dict = new_or_append_value_to_dict_key(imm_gene_coord_dict,gene_name,(coord_str_tuple, vertex_id))
     return meta_flag_dict_key_with_coord, meta_flag_dict_key_without_coord, imm_gene_coord_dict
 
+
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--samples", nargs='+', help="the sample names(can be string or ), can specify more than one sample", required=False, default='')
+    parser.add_argument("--samples", nargs='+', help="the sample names(can be string or ), can specify more than one sample", required=False, default='TCGA-13-1489')
     parser.add_argument("--mutation_mode", help="specify the mutation mdoe", required=False, default='germline')
     if len(argv) < 2:
         parser.print_help()
@@ -62,6 +64,7 @@ def get_kmer_list(_str,k):
         kmer_list = [_str[i:i+k] for i in range(0,max(0,len(_str)-k+1))]
         return kmer_list
 
+
 def new_or_append_value_to_dict_key(_dict,key,value):
     if key in _dict:
         _dict[key].append(value)
@@ -69,19 +72,15 @@ def new_or_append_value_to_dict_key(_dict,key,value):
         _dict[key] = [value]
     return _dict
 
+
 def merge_two_dicts(x, y):
     z = x.copy()   # start with x's keys and values
     z.update(y)    # modifies z with y's keys and values & returns None
     return z
 
 arg = parse_arguments(sys.argv[1:])
-
-
-#sample_name = arg.samples
-#mutation_mode = arg.mutation_mode
-
-sample_name = 'TCGA-13-1489'
-mutation_mode = 'somatic_and_germline'
+sample_name = arg.samples
+mutation_mode = arg.mutation_mode
 immunopepper_file = '/cluster/work/grlab/projects/TCGA/immunopepper_rerun/{}/{}_junction_kmer.txt'.format(sample_name,mutation_mode)
 nora_result_file = '/cluster/work/grlab/projects/TCGA/PanCanAtlas/peptides_neoantigen/analysis_pancan/' \
                    'ccell_rerun_2018/output/peptides.clean/split/cj_kmers/{}.cj.{}.cj_kmers_9.fa'.format(sample_name,mutation_mode)
@@ -98,6 +97,11 @@ if mutation_mode == 'somatic_and_germline':
     _, aux_mut_meta_flag_dict_without_coord, _ = get_immunopepper_meta_dict(aux_germ_meta_gz_file)
 
 else:
+    # In Immunopepper's implementation, in the somatic_and_germline mode (in germline_somatic Immunopepper),
+    # the reference peptide is the germline-applied while in Matthias', the reference peptide is just the reference.
+    # Therefore, quite a lot of kmers are already included in 'germline_junction_kmer' and not included in
+    # 'somatic_germline_junction_kmer'. In Matthias' output, those germline kmers are also included in 'germline_somatic_cj_kmers'
+    # To compare the two, we need the auxillary dict generated from germline mode.
     aux_immunopepper_dict = {}
     aux_mut_meta_flag_dict_without_coord = {}
 
