@@ -146,8 +146,6 @@ i = 0
 pep_dict = {}
 nora_kmer_list = []
 while i < len(nora_pep_lines):
-    if i % 100000 == 0:
-        print(i)
     line = nora_pep_lines[i]
     gene_name = line.strip().split('_')[2]
     i += 1
@@ -172,8 +170,8 @@ miss_kmer_list = list(nora_kmer_set.difference(immunopepper_kmer))
 num_common_kmer = len(common_kmer_set)
 num_additional_kmer = len(additional_kmer_list)
 num_miss_kmer = len(miss_kmer_list)
-s_summary = "Comparison overview. additional kmer means imm subtracts mat, miss kmer means mat subtracts imm.\n" \
-            " {} common kmers, {} additional kmers and {} miss kmers".format(num_common_kmer,num_common_kmer,num_miss_kmer)
+s_summary = ">>>>>>>>Validation Start\n\nComparison overview. (additional kmer means imm subtracts mat, miss kmer means mat subtracts imm).\n" \
+            ">> {} common kmers, {} additional kmers and {} miss kmers".format(num_common_kmer,num_common_kmer,num_miss_kmer)
 print(s_summary)
 
 # check missing kmer
@@ -187,7 +185,7 @@ ref_kmer_set = set(ref_kmer_dict.keys())
 '''
 num_can_not_explained_miss_kmer = len(set(miss_kmer_list).intersection(ref_kmer_set))
 s_explain_missing = "Explain the {} miss kmers, ideally they can all be found in reference kmer list.\n" \
-                    "{} kmers can not be found in reference kmer".format(num_miss_kmer,num_can_not_explained_miss_kmer)
+                    ">> {} kmers can not be found in reference kmer".format(num_miss_kmer,num_can_not_explained_miss_kmer)
 print(s_explain_missing)
 
 problem_id_list = list(set([immunopepper_dict[_kmer] if _kmer in immunopepper_dict else aux_immunopepper_dict[_kmer] for _kmer in additional_kmer_list]))
@@ -313,7 +311,7 @@ mut_cause = list(set(problem_id_list).difference(set(unique_gene_name_list)))
 s_explain_addition = "Explain the {} additional kmers. Remember one junction output can generate" \
                      " 9 kmers. We can see how many difference " \
                      "attribute to reference kmer and how many to mutatation-specific kmer.\n" \
-                     "{} caused by ref and {} caused by mut in the total {} " \
+                     ">> {} caused by ref and {} caused by mut in the total {} " \
                      "additional junction output".format(num_additional_kmer,len(ref_cause),len(mut_cause),len(problem_id_list))
 print(s_explain_addition)
 
@@ -339,11 +337,12 @@ explainable_num = np.sum([np.sum(mut_meta_flag_dict_without_coord[item]) > 0 for
 addition_flag_tuple = np.array([reduce((lambda x,y: np.logical_or(x,y)),mut_meta_flag_dict_without_coord[item]) for item in problem_id_list])
 flag_explain = np.sum(addition_flag_tuple,axis=0)
 num_extrapolation_explain = np.sum(np.sum(addition_flag_tuple,axis=1) == 0)
-s_explain_mut_cause = "See how many mut cause cases we can explain: {}/{} can be further explained".format(explainable_num,len(mut_cause))
+s_explain_mut_cause = "Explain the mut causes:\n" \
+                      ">> {}/{} can be further explained".format(explainable_num,len(mut_cause))
 print(s_explain_mut_cause)
 num_can_not_explained_additional_kmer = len(mut_cause)-explainable_num
 
-s_final_conclusion = ">>>>>>>>>>>>>>>>>>Valiadtion Summary for {} {}\nThere are {} common kmers, {} missing kmers only appear " \
+s_final_conclusion = "\n\n>>>>>>>>>>>>>>>>>>Valiadtion Summary for {} {}\nThere are {} common kmers, {} missing kmers only appear " \
                      "in Matthias's result" \
                      ", {} additional kmers only appear in Immunopepper's result. {} missing kmers and {} can not be easily " \
                      "explained.\n For the {} concerned additional junction, {} are caused by stop codon, " \
