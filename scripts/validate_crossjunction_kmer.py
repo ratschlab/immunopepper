@@ -171,7 +171,7 @@ num_common_kmer = len(common_kmer_set)
 num_additional_kmer = len(additional_kmer_list)
 num_miss_kmer = len(miss_kmer_list)
 s_summary = ">>>>>>>>Validation Start\n\nComparison overview. (additional kmer means imm subtracts mat, miss kmer means mat subtracts imm).\n" \
-            ">> {} common kmers, {} additional kmers and {} miss kmers".format(num_common_kmer,num_common_kmer,num_miss_kmer)
+            ">> {} common kmers, {} additional kmers and {} miss kmers".format(num_common_kmer,num_additional_kmer,num_miss_kmer)
 print(s_summary)
 
 # check missing kmer
@@ -280,7 +280,7 @@ unique_imm_coord_dict = find_diff_coord(imm_gene_coord_dict,mat_gene_coord_dict)
 # do a simple analysis of the result
 miss_junc_pair_num = np.sum([len(item) for item in unique_imm_coord_dict.values()]) # 1103270
 total_junc_pair_num = np.sum([len(item) for item in imm_gene_coord_dict.values()]) # 1622126
-total_mat_junc_pair_num = np.sum([len(item) for item in mat_gene_coord_dict.values()]) # 5255539
+total_mat_junc_pair_num = np.sum([len(item) for item in mat_gene_coord_dict.values()]) # 525539
 print("{} missing junc pair in {} immuno total junc pairs and {} mat junc pairs".format(miss_junc_pair_num,total_junc_pair_num,total_mat_junc_pair_num))
 
 # see detail information
