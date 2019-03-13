@@ -194,20 +194,16 @@ problem_id_list = list(set([immunopepper_dict[_kmer] if _kmer in immunopepper_di
 
 '''
 # Some examples
-# example 1
 from immunopepper.utils import translate_dna_to_peptide
 from immunopepper.utils import complementary_seq
-
+# example 1
+# Extrapolation introduce stop codon
 seq7 = seq_dict['7']
 print(translate_dna_to_peptide(complementary_seq(seq7[2854510:2854891][::-1]))) # ('LSSLLDCRSADWLPP', True) Matthias implementation (start from extrapolation)
 print(translate_dna_to_peptide(complementary_seq(seq7[2854510:2854564][::-1]))) # ('MKRRMFPRPCLARMPGSR', False) immunopepper implementation (start from cds)
 
-# example 2
-seq = seq_dict['6']
-print(translate_dna_to_peptide(complementary_seq(seq[79787745:79787953][::-1]))) # ('LSSLLDCRSADWLPP', True) Matthias implementation (start from extrapolation)
-print(translate_dna_to_peptide(complementary_seq(seq[79787745:79787785][::-1]))) # ('MKRRMFPRPCLARMPGSR', False) immunopepper implementation (start from cds)
-
-# example 3 (one of the special 58)
+# example 2 (one of the special 58)
+# Mutation introduce stop codon
 seq = seq_dict['8']
 print(translate_dna_to_peptide(complementary_seq(seq[101724589:101724685][::-1]+seq[101721686:101721947][::-1]))) # ('LSSLLDCRSADWLPP', True) Matthias implementation (start from extrapolation)
 print(translate_dna_to_peptide(complementary_seq(seq[101724589:101724685][::-1]))) # ('LSSLLDCRSADWLPP', True) Matthias implementation (start from extrapolation)
