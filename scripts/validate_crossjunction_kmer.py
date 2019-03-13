@@ -102,7 +102,7 @@ else:
     # Therefore, quite a lot of kmers are already included in 'germline_junction_kmer' and not included in
     # 'somatic_germline_junction_kmer'. In Matthias' output, those germline kmers are also included in 'germline_somatic_cj_kmers'
     # To compare the two, we need the auxillary dict generated from germline mode.
-    aux_immunopepper_dict = {}
+    aux_germ_immunopepper_dict = {}
     aux_mut_meta_flag_dict_without_coord = {}
 
 ########
@@ -160,7 +160,7 @@ nora_kmer_set = set(nora_kmer_list)
 # construct immuno_pepper dict, only focus on the cross junction part
 # kmer: -> immuno_pepper name
 immunopepper_dict = {line.split('\t')[0]:line.split('\t')[1] for line in open(immunopepper_file,'r') if line.strip().split('\t')[-1] == 'True'}
-immunopepper_dict = merge_two_dicts(immunopepper_dict,aux_immunopepper_dict)
+immunopepper_dict = merge_two_dicts(immunopepper_dict,aux_germ_immunopepper_dict)
 
 # get all kmer returned by immunopepper
 immunopepper_kmer = set(immunopepper_dict.keys())
