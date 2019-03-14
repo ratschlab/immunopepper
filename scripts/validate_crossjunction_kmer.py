@@ -76,9 +76,8 @@ def get_cancercell_kmer_dict(cancercell_result_file):
     cancercell_pep_lines = open(cancercell_result_file, 'r').readlines()
     i = 0
     cancercell_kmer_dict = {}
+    print("Parsing cancercell kmer result file. Need around 1 minute.")
     while i < len(cancercell_pep_lines):
-        if i % 10000 == 0:
-            print(i)
         line = cancercell_pep_lines[i]
         gene_name = line.strip().split('_')[2]
         i += 1
