@@ -135,7 +135,7 @@ for record in BioIO.parse(ref_path, "fasta"):
 '''
 
 f = open('ref_cause_dict.pkl','rb')
-ref_kmer_set,imm_gene_coord_dict,mat_gene_coord_dict,unique_imm_coord_dict,unique_gene_name_list = cPickle.load(f)
+ref_kmer_set,imm_gene_coord_dict,mat_gene_coord_dict,unique_imm_coord_dict,unique_gene_name_list,unique_mat_gene_coord_dict = cPickle.load(f)
 
 _,mut_meta_flag_dict_without_coord,_ = get_immunopepper_meta_dict(mutation_meta_gz_file)
 mut_meta_flag_dict_without_coord = merge_two_dicts(mut_meta_flag_dict_without_coord,aux_mut_meta_flag_dict_without_coord)
@@ -145,12 +145,18 @@ nora_pep_lines = open(nora_result_file,'r').readlines()
 i = 0
 pep_dict = {}
 nora_kmer_list = []
+nora_kmer_dict = {}
 while i < len(nora_pep_lines):
+    if i % 10000 == 0:
+        print(i)
     line = nora_pep_lines[i]
     gene_name = line.strip().split('_')[2]
     i += 1
     pep = nora_pep_lines[i].strip()
-    nora_kmer_list.extend(get_kmer_list(pep,9))
+    kmer_list = get_kmer_list(pep,9)
+    new_dict = {kmer:gene_name for kmer in kmer_list}
+    nora_kmer_dict = merge_two_dicts(nora_kmer_dict,new_dict)
+    nora_kmer_list.extend(kmer_list)
     i += 1
 nora_kmer_set = set(nora_kmer_list)
 
@@ -175,15 +181,19 @@ s_summary = ">>>>>>>>Validation Start\n\nComparison overview. (additional kmer m
 print(s_summary)
 
 # check missing kmer
-# mutations occur at the extrapolation part
-# so the whole peptide is kept alghough they are the same with ref peptide near the cross junction place
-# these missing kmers are not important because they will be (hopefully) covered by the ref_kmer_set
+# case 1: Mutations occur at the extrapolation part
+#   so the whole peptide is kept alghough they are the same with ref peptide near the cross junction place
+#   these missing kmers are not important because they will be (hopefully) covered by the ref_kmer_set
+# case 2: Extrapolation put forward the promotor and thus might generate more kmers. These missing kmer
+#   actually come from the unique_mat_gene_coord_dict.
 '''
 immunopepper_ref_file = '/cluster/work/grlab/projects/TCGA/immunopepper_rerun/TCGA-13-1489/ref_junction_kmer.txt'
 ref_kmer_dict = {line.split('\t')[0]:line.split('\t')[1] for line in open(immunopepper_ref_file,'r') if line.strip().split('\t')[-1] == 'True'}
 ref_kmer_set = set(ref_kmer_dict.keys())
 '''
-num_can_not_explained_miss_kmer = len(set(miss_kmer_list).intersection(ref_kmer_set))
+unexplained_miss_kmer_list = list(set(miss_kmer_list).difference(ref_kmer_set))
+num_can_not_explained_miss_kmer = np.sum([nora_kmer_dict[miss_kmer] not in unique_mat_gene_coord_dict for miss_kmer in unexplained_miss_kmer_list])
+
 s_explain_missing = "Explain the {} miss kmers, ideally they can all be found in reference kmer list.\n" \
                     ">> {} kmers can not be found in reference kmer".format(num_miss_kmer,num_can_not_explained_miss_kmer)
 print(s_explain_missing)
@@ -229,14 +239,11 @@ def get_matthias_ref_junction_dict(f_gt):
         i += 1
         peptide = gt_lines[i].strip()
         ref_junction_dict[(gene_name,coord_str_tuple)] = peptide
-        if gene_name not in mat_gene_coord_dict:
-            mat_gene_coord_dict[gene_name] = [coord_str_tuple]
-        else:
-            mat_gene_coord_dict[gene_name].append(coord_str_tuple)
+        new_or_append_value_to_dict_key(mat_gene_coord_dict,gene_name,coord_str_tuple)
         i += 1
     return ref_junction_dict,mat_gene_coord_dict
 
-ref_meta_file = '/cluster/work/grlab/projects/TCGA/immunopepper_rerun/TCGA-13-1489/ref_metadata.tsv'
+ref_meta_file = '/cluster/work/grlab/projects/TCGA/immunopepper_rerun/TCGA-13-1489/ref_metadata.tsv.gz'
 
 def find_diff_coord(imm_gene_coord_dict,mat_gene_coord_dict):
     def fuzzy_comp_str2str(query_coord,another_coord):
@@ -267,27 +274,34 @@ def find_diff_coord(imm_gene_coord_dict,mat_gene_coord_dict):
             similar_result,found = fuzzy_comp_str2list(coord,mat_coord_set)
             if not found:
                 gene_name_coord_str = gene_name+'_'+'_'.join([str(icoord) for icoord in coord])+'_'+vertex_id
-                if gene_name not in unique_imm_coord_dict:
-                    unique_imm_coord_dict[gene_name] = [gene_name_coord_str]
-                else:
-                    unique_imm_coord_dict[gene_name].append(gene_name_coord_str)
+                new_or_append_value_to_dict_key(unique_imm_coord_dict,gene_name,gene_name_coord_str)
     return unique_imm_coord_dict
 
 ref_meta_flag_dict_with_coord,ref_meta_flag_dict_without_coord, imm_gene_coord_dict = get_immunopepper_meta_dict(ref_meta_file)
 ref_junction_dict, mat_gene_coord_dict = get_matthias_ref_junction_dict(f_gt)
 unique_imm_coord_dict = find_diff_coord(imm_gene_coord_dict,mat_gene_coord_dict)
 
+# explore the missing junction
+# ideally all of them are caused by extrapolation
+imm_gene_coord_dict_without_vid = {gene_name:[coord_vid[0] for coord_vid in filter((lambda x: x[0][2] != NOT_EXIST),coord_vid_tuple_list)]for gene_name, coord_vid_tuple_list in imm_gene_coord_dict.items()}
+unique_mat_gene_coord_dict = {gene_name:filter((lambda x: x in imm_gene_coord_dict_without_vid[gene_name]),coord_tuple_list) for gene_name,coord_tuple_list in mat_gene_coord_dict.items()}
+unique_mat_gene_explain_dict = {gene_name:[3 in np.sum((np.array(coord_tuple)-np.array(imm_gene_coord_dict_without_vid[gene_name])) == 0,axis=1) for coord_tuple in coord_tuple_list] for gene_name,coord_tuple_list in unique_mat_gene_coord_dict.items()}
+miss_explain_num = np.sum([sum(item) for item in unique_mat_gene_explain_dict.values()]) # 65360/65360
+
 # do a simple analysis of the result
-miss_junc_pair_num = np.sum([len(item) for item in unique_imm_coord_dict.values()]) # 1103270
+addition_junc_pair_num = np.sum([len(item) for item in unique_imm_coord_dict.values()]) # 1103270
+miss_junc_pair_num = np.sum([len(item) for item in unique_mat_gene_coord_dict.values()]) # 65360
 total_junc_pair_num = np.sum([len(item) for item in imm_gene_coord_dict.values()]) # 1622126
 total_mat_junc_pair_num = np.sum([len(item) for item in mat_gene_coord_dict.values()]) # 525539
-print("{} missing junc pair in {} immuno total junc pairs and {} mat junc pairs".format(miss_junc_pair_num,total_junc_pair_num,total_mat_junc_pair_num))
+
+print("{} additional junc pair and {} miss junc pair in {} immuno total junc pairs"
+      " and {} mat junc pairs. {} miss kmer are caused by extrapolation".format(addition_junc_pair_num,miss_junc_pair_num,total_junc_pair_num,total_mat_junc_pair_num,miss_explain_num))
 
 # see detail information
 unique_flag_list = []
-unique_gene_name_list = []
+#unique_gene_name_list = []
 for gene_name, miss_junc_list in unique_imm_coord_dict.items():
-    unique_flag_list.extend([ref_meta_flag_dict_with_coord[miss_junc] for miss_junc in miss_junc_list])
+    unique_flag_list.extend([reduce((lambda x,y: np.logical_or(x,y)),ref_meta_flag_dict_with_coord[miss_junc]) for miss_junc in miss_junc_list])
     for miss_junc in miss_junc_list:
         items = miss_junc.split('_')
         vertex_id = items[-1].split(',')
@@ -295,15 +309,15 @@ for gene_name, miss_junc_list in unique_imm_coord_dict.items():
         gene_name_str = '_'.join((gene_name,vertex_id[0],vertex_id[1]))
         unique_gene_name_list.append(gene_name_str)
 
-with open('ref_cause_dict.pkl','wb') as f:
-    cPickle.dump((ref_kmer_set,imm_gene_coord_dict,mat_gene_coord_dict,unique_imm_coord_dict,unique_gene_name_list),f)
+with open('ref_cause_dict2.pkl','wb') as f:
+    cPickle.dump((ref_kmer_set,imm_gene_coord_dict,mat_gene_coord_dict,unique_imm_coord_dict,unique_gene_name_list,unique_mat_gene_coord_dict),f)
 unique_flag_array = np.array(unique_flag_list)
 flag_explain_result = np.sum(unique_flag_array, axis=0)
 print("stop codon constributes to {}, isolated contributes to {}, short vertices contributes to {}".format(
     flag_explain_result[0],flag_explain_result[1],flag_explain_result[2])) # 826039, 199362, 3224
 print("{} can not be explained by the three".format(sum(np.sum(unique_flag_array,axis=1)==0)))# 204994
-
 '''
+
 
 # check how many miss belongs to basic missing set
 ref_cause = list(set(problem_id_list).intersection(set(unique_gene_name_list)))
@@ -344,7 +358,7 @@ num_can_not_explained_additional_kmer = len(mut_cause)-explainable_num
 
 s_final_conclusion = "\n\n>>>>>>>>>>>>>>>>>>Valiadtion Summary for {} {}\nThere are {} common kmers, {} missing kmers only appear " \
                      "in Matthias's result" \
-                     ", {} additional kmers only appear in Immunopepper's result. {} missing kmers and{} can not be easily " \
+                     ", {} additional kmers only appear in Immunopepper's result. {} missing kmers and {} can not be easily " \
                      "explained.\n For the {} concerned additional junction, {} are caused by stop codon, " \
                      "{} by isolated, {} by short vertices, {} by somatic variant combination, {} by extrapolation.".format(
                     sample_name,mutation_mode,num_common_kmer,num_miss_kmer,num_additional_kmer,
