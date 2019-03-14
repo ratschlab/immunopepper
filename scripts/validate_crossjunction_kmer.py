@@ -11,6 +11,7 @@ import sys
 import os
 
 import numpy as np
+import pandas as pd
 from immunopepper.constant import NOT_EXIST
 
 
@@ -100,20 +101,19 @@ def get_immunopepper_meta_dict(meta_file):
     In summary, to generate reference comparison result, we need with_coord dict;
     for validating other samples and mutation types, we only need without_coord_dict
     """
-    f_meta = gzip.open(meta_file, 'r')
-    f_meta.readline()
+    meta_df = pd.read_csv(meta_file,sep='\t')
     meta_flag_dict_key_with_coord = {}  # (geneName_fourCoords_vertexId) |-> flag_tuple
     meta_flag_dict_key_without_coord = {}
     imm_gene_coord_dict = {}  # gene_name |->List[(coord_str_tuple,vertex_id)], since one gene_name can have multuple lines
-    for line in f_meta:
-        items = line.strip().split('\t')
-        gene_name = items[2]
-        stop_flag = int(items[9])
-        isolated_flag = int(items[11])
-        som_variant_comb_num = int(len(items[12].split(';')) > 1)
-        coord_str_tuple = tuple([int(coord) if coord != NOT_EXIST else NOT_EXIST for coord in items[14].split(';')])
-        vertex_id = items[15]
-        key_with_coord = gene_name + '_' + '_'.join(items[14].split(';')) + '_' + vertex_id
+    for i in range(len(meta_df)):
+        gene_name = meta_df['gene_name'][i]
+        stop_flag = int(meta_df['has_stop_codon'][i])
+        isolated_flag = int(meta_df['is_isolated'][i])
+        som_variant_comb_num = int(len(meta_df['variant_comb'][i].split(';')) > 1)
+        exon_coord = meta_df['exons_coor'][i]
+        coord_str_tuple = tuple([int(coord) if coord != NOT_EXIST else NOT_EXIST for coord in exon_coord.split(';')])
+        vertex_id = meta_df['vertex_idx'][i]
+        key_with_coord = gene_name + '_' + '_'.join(exon_coord.split(';')) + '_' + vertex_id
         key_without_coord = gene_name+'_'+vertex_id.split(',')[0]+'_'+vertex_id.split(',')[1]
         start_v1 = coord_str_tuple[0]
         stop_v1 = coord_str_tuple[1]
