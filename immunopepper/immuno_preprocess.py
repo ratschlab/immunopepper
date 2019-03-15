@@ -1,18 +1,13 @@
 """Contain the functions to parse, preprocess information from the input file"""
 import sys
-from collections import namedtuple
-
+import os
 import numpy as np
 import h5py
 import scipy as sp
+import cPickle
 
 from utils import to_adj_succ_list,find_overlapping_cds_simple,leq_strand,encode_chromosome
-
-GeneTable = namedtuple('GeneTable', ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_ts'])
-Segments = namedtuple('Segments', ['expr', 'lookup_table'])
-Edges = namedtuple('Edges', ['expr', 'lookup_table'])
-CountInfo = namedtuple('CountInfo', ['segments', 'edges', 'strain_idx_table'])
-
+from immuno_nametuple import Reading_frame_tuple,GeneTable,Segments,Edges,CountInfo
 
 def genes_preprocess(genes, gene_cds_begin_dict):
     """ Preprocess the gene and generate new attributes under gene object
@@ -54,8 +49,7 @@ def genes_preprocess(genes, gene_cds_begin_dict):
             v_stop = gene.splicegraph.vertices[1, idx]
             cds_begins = find_overlapping_cds_simple(v_start, v_stop, gene_cds_begin_dict[gene.name], gene.strand)
             gene.vertex_len_dict[idx] = v_stop - v_start
-            if gene.vertex_len_dict[idx] < 3:
-                continue
+
             # Initialize reading regions from the CDS transcript annotations
             for cds_begin in cds_begins:
                 line_elems = cds_begin[2]
@@ -66,20 +60,17 @@ def genes_preprocess(genes, gene_cds_begin_dict):
                 cds_right = int(line_elems[4])
 
                 #TODO: need to remove the redundance of (cds_start, cds_stop, item)
-                # It's ugly and not necessary
                 if gene.strand == "-":
-                    cds_right_modi = cds_right - cds_phase
+                    cds_right_modi = max(cds_right - cds_phase,v_start)
                     cds_left_modi = v_start
                     n_trailing_bases = cds_right_modi - cds_left_modi
                 else:
-                    cds_left_modi = cds_left + cds_phase
+                    cds_left_modi = min(cds_left + cds_phase,v_stop)
                     cds_right_modi = v_stop
                     n_trailing_bases = cds_right_modi - cds_left_modi
 
-                if n_trailing_bases < 3:
-                    continue
                 read_phase = n_trailing_bases % 3
-                gene.splicegraph.reading_frames[idx].add((cds_left_modi, cds_right_modi, read_phase))
+                gene.splicegraph.reading_frames[idx].add(Reading_frame_tuple(cds_left_modi, cds_right_modi, read_phase))
 
         gene.to_sparse()
 
@@ -130,7 +121,7 @@ def preprocess_ann(ann_path):
             parent_ts = attribute_dict['transcript_id']
             strand_mode = item[6]
             cds_left = int(item[3])-1
-            cds_right = int(item[4])-1
+            cds_right = int(item[4])
             frameshift = int(item[7])
             if parent_ts in transcript_to_cds_dict:
                 transcript_to_cds_dict[parent_ts].append((cds_left, cds_right, frameshift))
@@ -258,12 +249,12 @@ def parse_gene_metadata_info(h5f, sample_list):
     edge_expr_info = h5f["/edges"]
     edge_idx_info = h5f["/edge_idx"]
     assert (strain_expr_info.size == segment_expr_info.shape[1])
-    strain_idx_table = {}
+    sample_idx_table = {}
 
     for sample in sample_list:
         for i, strain in enumerate(strain_expr_info):
             if strain.startswith(sample):
-                strain_idx_table[sample] = i
+                sample_idx_table[sample] = i
                 continue
 
     gene_names = h5f["/gene_names"]
@@ -289,7 +280,7 @@ def parse_gene_metadata_info(h5f, sample_list):
 
     segments = Segments(segment_expr_info,seg_lookup_table)
     edges = Edges(edge_expr_info,edge_lookup_table)
-    countinfo = CountInfo(segments,edges,strain_idx_table)
+    countinfo = CountInfo(segments,edges,sample_idx_table)
     return countinfo
 
 
@@ -300,7 +291,9 @@ def parse_mutation_from_vcf(vcf_path, sample_list=None, heter_code=0):
     ----------
     vcf_path: str, vcf file path
     sample_list: list, list of samples
-
+    heter_code: int (0 or 2). specify which number represents heter alle.
+        0: 0-> homozygous alternative(1|1), 1-> heterozygous(0|1,1|0) 2->homozygous reference(0|0)
+        2: 0-> homozygous reference(0|0), 1-> heterozygous(0|1,1|0) 2->homozygous alternative(1|1)
     Returns
     -------
     mut_dict: with key (sample, chromo) and values (var_dict)
@@ -371,40 +364,47 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, sample_list, heter_code=0):
     return mut_dict
 
 
-def parse_mutation_from_maf(maf_path):
+def parse_mutation_from_maf(maf_path,output_dir=''):
     """
     Extract somatic mutation information from given maf file.
 
     Parameters
     ----------
     maf_path: str, maf file path
-
+    output_dir: str, save a pickle for maf_dict to save preprocess time
     Returns
     -------
     mut_dict: with key (sample, chromo) and values (var_dict)
 
     """
-    f = open(maf_path)
-    lines = f.readlines()
-    mutation_dic = {}
-    for i,line in enumerate(lines[1:]):
-        print(i)
-        items = line.strip().split('\t')
-        if items[9] == 'SNP':  # only consider snp
-            sample_id = '-'.join(items[15].split('-')[:3])
-            chr = items[4]
-            pos = int(items[5])-1
-            var_dict = {}
-            var_dict['ref_base'] = items[10]
-            var_dict['mut_base'] = items[12]
-            var_dict['strand'] = items[7]
-            var_dict['variant_Classification'] = items[8]
-            var_dict['variant_Type'] = items[9]
-            if (sample_id,chr) in mutation_dic.keys():
-                mutation_dic[((sample_id,chr))][int(pos)] = var_dict
-            else:
-                mutation_dic[((sample_id, chr))] = {}
-                mutation_dic[((sample_id,chr))][int(pos)] = var_dict
+    maf_pkl_file = os.path.join(output_dir,'maf.pickle')
+    if os.path.exists(maf_pkl_file):
+        f = open(maf_pkl_file,'r')
+        mutation_dic = cPickle.load(f)
+    else:
+        f = open(maf_path)
+        lines = f.readlines()
+        mutation_dic = {}
+        for i,line in enumerate(lines[1:]):
+            print(i)
+            items = line.strip().split('\t')
+            if items[9] == 'SNP':  # only consider snp
+                sample_id = '-'.join(items[15].split('-')[:3])
+                chr = items[4]
+                pos = int(items[5])-1
+                var_dict = {}
+                var_dict['ref_base'] = items[10]
+                var_dict['mut_base'] = items[12]
+                var_dict['strand'] = items[7]
+                var_dict['variant_Classification'] = items[8]
+                var_dict['variant_Type'] = items[9]
+                if (sample_id,chr) in mutation_dic.keys():
+                    mutation_dic[((sample_id,chr))][int(pos)] = var_dict
+                else:
+                    mutation_dic[((sample_id, chr))] = {}
+                    mutation_dic[((sample_id,chr))][int(pos)] = var_dict
+        f_pkl =open(maf_pkl_file,'w')
+        cPickle.dump(mutation_dic,f_pkl)
     return mutation_dic
 
 

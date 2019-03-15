@@ -39,6 +39,30 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_v
     return output_seq
 
 
+def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_maf):
+    """Apply somatic mutation on the reference sequence
+
+    Parameters
+    ----------
+    ref_sequence: str. reference sequence of certain chromosome.
+    pos_start: int. start position of sequence for applying somatic mutation.
+    pos_end: int. Ending position of sequence for applying somatic mutation.
+    mutation_sub_dic_maf: dict. (position) -> variant details
+
+    Returns
+    -------
+    output_seq: dict. (sequence_type) -> list[char]. output['ref'] is the original
+    reference sequence output['background'] is the germline-mutation-applied sequence
+    if .maf file (somatic mutation) exists while is original sequence if no somatic
+    information is available.
+    """
+    if mutation_sub_dic_maf is not None:
+        mut_seq = construct_mut_seq_with_str_concat(ref_sequence, pos_start, pos_end, mutation_sub_dic_maf)
+    else:
+        mut_seq = ref_sequence
+    return mut_seq
+
+
 def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     """ Applying germline mutation on given range and get mutated sequence
 
@@ -53,7 +77,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     -------
     mut_seq: str. mutation sequence
     """
-    variant_pos_candi = [ipos for ipos in mut_dict.keys() if ipos > pos_start and ipos < pos_end]
+    variant_pos_candi = [ipos for ipos in mut_dict.keys() if ipos >= pos_start and ipos < pos_end]
     if len(variant_pos_candi) > 0:
         variant_pos_sorted = np.sort(variant_pos_candi)
         mut_seq_list = [ref_seq[:variant_pos_sorted[0]]]
@@ -84,10 +108,11 @@ def get_mutation_mode_from_parser(args):
     mutation_mode = args.mutation_mode
     maf_file_path = args.maf_path
     vcf_file_path = args.vcf_path
+    output_dir = args.output_dir
     is_error = True
     if mutation_mode == 'somatic_and_germline':
         if maf_file_path != '' and vcf_file_path != '':
-            mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
+            mutation_dic_maf = parse_mutation_from_maf(maf_file_path,output_dir)
             mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path,args.samples, args.heter_code)
             is_error = False
     elif mutation_mode == 'germline':
@@ -97,7 +122,7 @@ def get_mutation_mode_from_parser(args):
             is_error = False
     elif mutation_mode == 'somatic':
         if maf_file_path != '':
-            mutation_dic_maf = parse_mutation_from_maf(maf_file_path)
+            mutation_dic_maf = parse_mutation_from_maf(maf_file_path,output_dir)
             mutation_dic_vcf = {}
             is_error = False
     elif mutation_mode == 'ref':

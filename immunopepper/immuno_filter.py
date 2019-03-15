@@ -4,8 +4,8 @@ import re
 
 import scipy as sp
 
-from utils import complementary_seq,translate_dna_to_peptide
-
+from utils import complementary_seq,translate_dna_to_peptide,get_exon_expr
+from immuno_nametuple import Output_background
 
 def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_table):
     """ Indicate whether exon pair also appears in transcript given by .gtf file
@@ -40,82 +40,69 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
                                 curr_ts.ravel()[1:-1].reshape(curr_ts.shape[0] - 1, 2).astype('str')]
 
         for x in sp.array(sp.where(sp.triu(edges))).T:
-            if '%i:%i' % (vertices[1, x[0]] - 1, vertices[0, x[1]]) in transcript_junctions:
+            if '%i:%i' % (vertices[1, x[0]], vertices[0, x[1]]) in transcript_junctions:
                 junction_flag[x[0], x[1]] = 1
                 junction_flag[x[1], x[0]] = 1
 
     return junction_flag
 
 
-def find_background_transcript(gene, ref_seq, gene_to_transcript_table, transcript_cds_table):
-    """Calculate the transcript derived from the annotation file.
-    It is used for generating artificial reads.
-
+def get_full_peptide(gene, seq, cds_list, Segments, Idx, mode):
+    """
+    Output translated peptide and segment expression list given cds_list
     Parameters
     ----------
-    gene: Object. Created by SplAdder
-    ref_seq: List(str). Reference sequence of certain chromosome.
-    gene_to_transcript_table: Dict. "Gene" -> "transcript"
-    transcript_to_cds_table: Dict. "transcript" -> "cds"
+    gene: Object, created by SplAdder.
+    seq: str. Gene sequence.
+    cds_list: List[Tuple(v_start,v_stop,reading_frame)]
+    Segments: Namedtuple Segments, store segment expression information from count.hdf5.
+           has attribute ['expr', 'lookup_table'].
+    Idx: Namedtuple Idx, has attribute idx.gene and idx.sample
+    mode: [temporal argument]. Due to the different meaning of cds_tuple in gene.splicegraph.reading_frame
+        and that in gene_to_cds dict (the formal v_start and v_stop has already considered reading_frame and
+        do not need additional modified), we need to deal with them differently. So for now there are two modes
+        'full' and 'background', indicating full-kmer and background. Will remove it in the future version.
 
     Returns
     -------
-    ts_list: List[str]. List of all the peptide translated from the given
-    splicegraph and annotation.
+    cds_expr_list: List[Tuple(segment_length,segment_expression)]
+    cds_string: str. Concatenated sequence string according to cds_list
+    cds_peptide: str. Translated peptide string according to cds_list
+
     """
-    gene_transcripts = gene_to_transcript_table[gene.name]
-    ts_list = []
+    if gene.strand.strip() == "-" and mode=='back':
+        cds_list = cds_list[::-1]
 
-    # Generate a background peptide for every variant transcript
-    for ts in gene_transcripts:
+    cds_string = ""
+    first_cds = True
+    cds_expr_list = []
+    # Append transcribed CDS regions to the output
+    for coord_left, coord_right, frameshift in cds_list:
 
-        # No CDS entries for transcript in annotation file...
-        if ts not in transcript_cds_table:
-            # print("WARNING: Transcript not in CDS table")
-            continue
-
-        cds_list = transcript_cds_table[ts]
-
-        # Reverse CDS in reverse strand transcription...
-        # add 3 bases to the last cds part to account for non-annotated stops
-        if gene.strand.strip() == "-":
-            cds_list = cds_list[::-1]
-            cds_list[-1] = (cds_list[-1][0] - 3, cds_list[-1][1], cds_list[-1][2])
-        else:
-            cds_list[-1] = (cds_list[-1][0], cds_list[-1][1] + 3, cds_list[-1][2])
-
-        cds_string = ""
-        first_cds = True
-
-        # Append transcribed CDS regions to the output
-        for coord_left, coord_right, frameshift in cds_list:
-
-            # Apply initial frameshift on the first CDS of the transcript
-            if first_cds:
-                if gene.strand.strip() == "+":
-                    coord_left += frameshift
-                else:
-                    coord_right -= frameshift
-                first_cds = False
-
-            nuc_seq = ref_seq[coord_left:coord_right + 1]
-
-            # Accumulate new DNA sequence...
+        # Apply initial frameshift on the first CDS of the transcript
+        if first_cds and mode != 'full':
             if gene.strand.strip() == "+":
-                cds_string += nuc_seq
-            elif gene.strand.strip() == "-":
-                cds_string += complementary_seq(nuc_seq[::-1])
+                coord_left += frameshift
             else:
-                print("ERROR: Invalid strand...")
-                sys.exit(1)
-        ts_list.append(cds_string)
-        #aa_str_mutated = translate_dna_to_peptide(cds_string)
-        #peptide_list.append((aa_str_mutated, ts))
-    gene.processed = True
-    return ts_list
+                coord_right -= frameshift
+            first_cds = False
+        cds_expr = get_exon_expr(gene, coord_left, coord_right, Segments, Idx)
+        cds_expr_list.extend(cds_expr)
+        nuc_seq = seq[coord_left:coord_right]
+
+        # Accumulate new DNA sequence...
+        if gene.strand.strip() == "+":
+            cds_string += nuc_seq
+        elif gene.strand.strip() == "-":
+            cds_string += complementary_seq(nuc_seq[::-1])
+        else:
+            print("ERROR: Invalid strand. Got %s but expect + or -" % gene.strand.strip())
+            sys.exit(1)
+    cds_peptide, is_stop_flag = translate_dna_to_peptide(cds_string)
+    return cds_expr_list, cds_string, cds_peptide
 
 
-def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript_cds_table):
+def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript_cds_table, Segments, Idx):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
     Parameters
@@ -129,65 +116,33 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
     -------
     peptide_list: List[str]. List of all the peptide translated from the given
        splicegraph and annotation.
+    (ts_list): List[str]. List of all the transcript indicated by the  annotation file
+        can be used to generate artifical reads.
     """
     gene_transcripts = gene_to_transcript_table[gene.name]
     peptide_list = []
-
+    expr_lists = []
     # Generate a background peptide for every variant transcript
     for ts in gene_transcripts:
-
         # No CDS entries for transcript in annotation file...
         if ts not in transcript_cds_table:
             #print("WARNING: Transcript not in CDS table")
             continue
-
         cds_list = transcript_cds_table[ts]
-
-        # Reverse CDS in reverse strand transcription...
-        # add 3 bases to the last cds part to account for non-annotated stops
-        if gene.strand.strip() == "-":
-            cds_list = cds_list[::-1]
-            cds_list[-1] = (cds_list[-1][0] - 3, cds_list[-1][1], cds_list[-1][2])
-        else:
-            cds_list[-1] = (cds_list[-1][0], cds_list[-1][1] + 3, cds_list[-1][2])
-
-        cds_string = ""
-        first_cds = True
-
-        # Append transcribed CDS regions to the output
-        for coord_left, coord_right, frameshift in cds_list:
-
-            # Apply initial frameshift on the first CDS of the transcript
-            if first_cds:
-                if gene.strand.strip() == "+":
-                    coord_left += frameshift
-                else:
-                    coord_right -= frameshift
-                first_cds = False
-
-            nuc_seq = ref_seq[coord_left:coord_right+1]
-
-            # Accumulate new DNA sequence...
-            if gene.strand.strip() == "+":
-                cds_string += nuc_seq
-            elif gene.strand.strip() == "-":
-                cds_string += complementary_seq(nuc_seq[::-1])
-            else:
-                print("ERROR: Invalid strand...")
-                sys.exit(1)
-
-        aa_str_mutated = translate_dna_to_peptide(cds_string)
-        peptide_list.append((aa_str_mutated, ts))
+        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode='back')
+        peptide = Output_background(ts,cds_peptide)
+        peptide_list.append(peptide)
+        expr_lists.append(cds_expr_list)
     gene.processed = True
-    return peptide_list
+    return peptide_list, expr_lists
 
 
-def peptide_match(ref_peptides, peptide):
-    """ Find if the translated exon-pair peptide also appear in the annotation file.
+def peptide_match(background_peptide_list, peptide):
+    """ Find if the translated exon-pair peptide also appear in the background peptide translated from annotation file.
 
     Parameters
     ----------
-    background_peptide_list: List(str) All the peptide translated from transcripts in annotation file
+    background_peptide_list: List(Output_background) All the peptide translated from transcripts in annotation file
     peptide: str. peptide translated from certain exon-pairs
 
     Returns
@@ -195,11 +150,11 @@ def peptide_match(ref_peptides, peptide):
     count: int. Count how many matches exist between background peptide and given peptide
     """
     match_ts_list = []
-    for ref in ref_peptides:
-        ref_peptide = ref[0][0]
-        transcript = ref[1]
+    for background_peptide in background_peptide_list:
+        ref_peptide = background_peptide.peptide
+        transcript_id = background_peptide.id
         if not re.search(peptide, ref_peptide) is None:
-            match_ts_list.append(transcript)
+            match_ts_list.append(transcript_id)
     return match_ts_list
 
 
@@ -208,7 +163,7 @@ def get_exon_dict(metadata_list):
 
     Parameters
     ----------
-    metadata_list: List(str). Returned by `calculate_output_peptide`
+    metadata_list: List(Output_metadata).
 
     Returns
     -------
@@ -216,30 +171,29 @@ def get_exon_dict(metadata_list):
         -> List[Tuple(output_idx, pos_start, pos_end,)]
     """
     exon_dict = {}
-    for line in metadata_list:
-        items = line.strip().split('\t')
-        ## TODO: need to come up with a new way to index the exon list
-        exon_list = items[-4].split(';')
-        idx = items[0]
-        read_frame = items[1]
-        strand = items[4]
+    for metadata in metadata_list:
+        ## TODO: need to come up with a new way to index the exon dict
+        coord = metadata.exons_coor
+        idx = metadata.output_id
+        read_frame = metadata.read_frame
+        strand = metadata.gene_strand
         if strand == '+':
-            key = (read_frame,exon_list[1],exon_list[2])
+            key = (read_frame,coord.stop_v1,coord.start_v2)
             if key in exon_dict:
-                exon_dict[key].append((idx, exon_list[0],exon_list[3]))
+                exon_dict[key].append((idx, coord.start_v1, coord.stop_v2))
             else:
-                exon_dict[key] = [(idx, exon_list[0],exon_list[3])]
+                exon_dict[key] = [(idx, coord.start_v1, coord.stop_v2)]
         else:
-            key = (read_frame,exon_list[3], exon_list[0])
+            key = (read_frame, coord.stop_v2, coord.start_v1)
             if key in exon_dict:
-                exon_dict[key].append((idx, exon_list[2], exon_list[1]))
+                exon_dict[key].append((idx, coord.start_v2, coord.stop_v1))
             else:
-                exon_dict[key] = [(idx, exon_list[2], exon_list[1])]
+                exon_dict[key] = [(idx, coord.start_v2, coord.stop_v1)]
     return exon_dict
 
 
 def get_remove_id(metadata_dict):
-    # Todo: [Warning!] if two output lines have identical
+    # TODO: [Warning!] if two output lines have identical
     # coordinates and readframe
     # both of them will be removed. Need to fix.
     remove_id_list = []
@@ -259,28 +213,31 @@ def get_remove_id(metadata_dict):
     return remove_id_list
 
 
-def get_filtered_output_list(metadata_list,peptide_list):
+def get_filtered_output_list(metadata_list,peptide_list,expr_lists):
     """ Get all redundant output id.
 
     Parameters
     ----------
-    metadata_dict: Dict. Returned by get_exon_dict
+    metadata_list: List[Output_metadata].
+    peptide_list: List[Output_junc_peptide]
+    expr_lists:: List[List(tuple)]
 
     Returns
     -------
     remove_id_list: List[str]. The list of id to be removed.
     """
-    exon_list = get_exon_dict(metadata_list)
-    remove_id_list = get_remove_id(exon_list)
+    exon_dict = get_exon_dict(metadata_list)
+    remove_id_list = get_remove_id(exon_dict)
     filtered_meta_list = []
     filtered_peptide_list = []
-    for i,imeta_line in enumerate(metadata_list):
-        items = imeta_line.strip().split('\t')
-        idx = items[0]
+    filtered_expr_lists = []
+    for i,metadata in enumerate(metadata_list):
+        idx = metadata.output_id
         if idx not in remove_id_list:
-            filtered_meta_list.append(imeta_line)
+            filtered_meta_list.append(metadata)
             filtered_peptide_list.append(peptide_list[i])
-    return filtered_meta_list, filtered_peptide_list
+            filtered_expr_lists.append(expr_lists[i])
+    return filtered_meta_list, filtered_peptide_list,filtered_expr_lists
 
 
 

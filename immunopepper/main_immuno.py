@@ -7,21 +7,20 @@ import os
 import timeit
 import argparse
 import gzip
+import logging
 
 # External libraries
 import Bio.SeqIO as BioIO
 import h5py
 
 # immuno module
-
 from immunopepper.immuno_print import print_memory_diags
 from immunopepper.immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_junction_meta_info
 from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_mutation_tuple
-from immunopepper.immuno_model import calculate_output_peptide
+from immunopepper.immuno_model import calculate_output_peptide, create_output_kmer
 from immunopepper.immuno_filter import get_filtered_output_list
 from immunopepper.io_utils import load_pickled_graph
-from immunopepper.utils import get_idx,create_libsize
-
+from immunopepper.utils import get_idx,create_libsize,get_concat_junction_peptide
 
 def parse_arguments(argv):
 
@@ -41,6 +40,8 @@ def parse_arguments(argv):
     parser.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
     parser.add_argument("--mutation_mode", help="specify the mutation mdoe", required=False, default='ref')
     parser.add_argument("--heter_code", type=int, help="if count expression data is provided in h5 format, specify the code for heterzygous", default=0)
+    parser.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
+    parser.add_argument("--output_silence",help="output mutated peptide even it is the same as reference peptide", action="store_true",default=False)
     if len(argv) < 2:
         parser.print_help()
         sys.exit(1)
@@ -49,8 +50,31 @@ def parse_arguments(argv):
     return pargs
 
 
-def main(arg):
+def write_namedtuple_list(fp, namedtuple_list, field_list):
+    """ Write namedtuple_list to the given file pointer"""
+    def convert_list_to_str(_list):
+        return ';'.join([str(_item) for _item in _list])
 
+    def convert_namedtuple_to_str(_namedtuple):
+        line = ''
+        for field in field_list:
+            if field == 'new_line':
+                line = line.strip()+'\n'
+                continue
+            # should first check if field in namedtuple
+            item = getattr(_namedtuple, field)
+            if isinstance(item,(list,tuple)):
+                line += convert_list_to_str(item)+'\t'
+            else:
+                line += str(item)+'\t'
+        return line.strip() # remove the last '\t'
+
+    fp.writelines(convert_namedtuple_to_str(_namedtuple)+'\n' for _namedtuple in namedtuple_list)
+
+def write_list(fp, _list):
+    fp.writelines([l+'\n' for l in _list])
+
+def main(arg):
     # load genome sequence data
     seq_dict = {}
     start_time = timeit.default_timer()
@@ -94,7 +118,7 @@ def main(arg):
         print('Loading count data ...')
         h5f = h5py.File(arg.count_path, 'r')
         countinfo = parse_gene_metadata_info(h5f, arg.samples)
-        edges, segments, strain_idx_table = countinfo.edges,countinfo.segments,countinfo.strain_idx_table
+        edges, segments, sample_idx_table = countinfo.edges,countinfo.segments,countinfo.sample_idx_table
         end_time = timeit.default_timer()
         print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
         print_memory_diags()
@@ -105,7 +129,7 @@ def main(arg):
     else:
         segments = None
         edges = None
-        strain_idx_table = None
+        sample_idx_table = None
         size_factor = None
 
     # read the intron of interest file gtex_junctions.hdf5
@@ -115,14 +139,8 @@ def main(arg):
     # add CDS starts and reading frames to the respective nodes
     print('Processing gene set ...')
     start_time = timeit.default_timer()
-    anno_pickle = os.path.join(arg.output_dir, 'annotation_preprop.pickle')
-    if os.path.exists(anno_pickle) and not arg.debug:
-        print('...loading from preprocessed dump: %s' % anno_pickle)
-        (graph_data, gene_cds_begin_dict) = cPickle.load(open(anno_pickle, 'r'))
-    else:
-        print('...computing from annotation')
-        genes_preprocess(graph_data, genetable.gene_to_cds_begin)
-        cPickle.dump((graph_data, genetable.gene_to_cds_begin), open(anno_pickle, 'w'), -1)
+    print('...computing from annotation')
+    genes_preprocess(graph_data, genetable.gene_to_cds_begin)
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
 
@@ -135,51 +153,90 @@ def main(arg):
         output_path = os.path.join(arg.output_dir, sample)
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
+        log_dir = os.path.join(output_path, 'error.log')
+        logging.basicConfig(level=logging.DEBUG,
+                            filename=log_dir, filemode="a+",
+                            format="%(asctime)-15s %(levelname)-8s %(message)s")
+
         peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa')
         meta_peptide_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz')
+        background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa')
+        concat_peptide_file_path = os.path.join(output_path, mutation.mode + '_concat_peptides.fa')
+        junction_kmer_peptide_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.txt')
+        back_kmer_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.txt')
+        concat_kmer_peptide_file_path = os.path.join(output_path, mutation.mode + '_concat_kmer.txt')
+
         peptide_fp = open(peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')
-        meta_header_line = "\t".join(['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
+        background_fp = open(background_peptide_file_path,'w')
+        concat_peptide_fp = open(concat_peptide_file_path, 'w')
+        junction_kmer_peptide_fp = open(junction_kmer_peptide_file_path, 'w')
+        back_kmer_peptide_fp = open(back_kmer_peptide_file_path, 'w')
+        concat_kmer_peptide_fp = open(concat_kmer_peptide_file_path, 'w')
+
+        meta_field_list = ['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
                                     'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','variant_seg_expr',
-                                      'exons_coor', 'vertex_idx','junction_expr','segment_expr'])
-        meta_peptide_fp.write(meta_header_line + '\n')
+                                      'exons_coor', 'vertex_idx','junction_expr','segment_expr']
+        junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
+        other_pep_field_list = ['id', 'new_line', 'peptide']
+        kmer_field_list = ['kmer','id','expr','is_cross_junction']
+        meta_peptide_fp.write('\t'.join(meta_field_list) + '\n')
         expr_distr_dict[sample] = []
+
         # go over each gene in splicegraph
-        for gene_idx, gene in enumerate(graph_data[:num]):
-            start_time = timeit.default_timer()
-            print('%s %i/%i\n'%(sample, gene_idx, num))
-            idx = get_idx(strain_idx_table,sample,gene_idx)
+        gene_id_list = range(0,num)
+        for gene_idx in gene_id_list:
+            try:
+                gene = graph_data[gene_idx]
+                start_time = timeit.default_timer()
+                print('%s %i/%i\n'%(sample, gene_idx, num))
+                idx = get_idx(sample_idx_table,sample,gene_idx)
+                # Genes not contained in the annotation...
+                if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
+                    gene.processed = False
+                    continue
 
-            # Genes not contained in the annotation...
-            if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
-                gene.processed = False
-                continue
+                chrm = gene.chr.strip()
+                sub_mutation = get_sub_mutation_tuple(mutation,sample, chrm)
+                if not junction_dict is None and chrm in junction_dict:
+                    junction_list = junction_dict[chrm]
+                else:
+                    junction_list = None
 
-            chrm = gene.chr.strip()
-            sub_mutation = get_sub_mutation_tuple(mutation,sample, chrm)
-            if not junction_dict is None and chrm in junction_dict:
-                junction_list = junction_dict[chrm]
-            else:
-                junction_list = None
+                output_peptide_list, output_metadata_list, output_background_list, expr_lists, back_expr_lists, total_expr = calculate_output_peptide(gene=gene,
+                                  ref_seq=seq_dict[chrm],
+                                  idx=idx, segments=segments, edges=edges,
+                                  table=genetable, mutation=sub_mutation,
+                                  junction_list=junction_list, debug=arg.debug,output_silence=arg.output_silence
+                                )
+                expr_distr.append(total_expr)
 
-            output_peptide_list, output_metadata_list, total_expr = calculate_output_peptide(gene=gene,
-                              ref_seq=seq_dict[chrm],
-                              idx=idx, segments=segments, edges=edges,
-                              table=genetable, mutation=sub_mutation,
-                              junction_list=junction_list, debug=arg.debug
-                            )
-            expr_distr.append(total_expr)
-            if arg.filter_redundant:
-                output_metadata_list, output_peptide_list = get_filtered_output_list(output_metadata_list,output_peptide_list)
-            assert len(output_metadata_list) == len(output_peptide_list)
-            if len(output_peptide_list) > 0:
-                meta_peptide_fp.write('\n'.join(output_metadata_list)+'\n')
-                peptide_fp.write('\n'.join(output_peptide_list)+'\n')
-            end_time = timeit.default_timer()
-            print(gene_idx, end_time - start_time,'\n')
+                if arg.filter_redundant:
+                    output_metadata_list, output_peptide_list, expr_lists = get_filtered_output_list(output_metadata_list,output_peptide_list,expr_lists)
+
+                if arg.kmer > 0:
+                    concat_peptide_list, concat_expr_list = get_concat_junction_peptide(gene, output_peptide_list,
+                                                                                        output_metadata_list,
+                                                                                        segments, idx, arg.kmer)
+                    junction_kmer_output_list = create_output_kmer(output_peptide_list, expr_lists, arg.kmer)
+                    back_kmer_output_list = create_output_kmer(output_background_list, back_expr_lists, arg.kmer)
+                    concat_kmer_output_list = create_output_kmer(concat_peptide_list,concat_expr_list,arg.kmer)
+                    write_namedtuple_list(junction_kmer_peptide_fp, junction_kmer_output_list,kmer_field_list)
+                    write_namedtuple_list(back_kmer_peptide_fp, back_kmer_output_list,kmer_field_list)
+                    write_namedtuple_list(concat_kmer_peptide_fp, concat_kmer_output_list,kmer_field_list)
+                    write_namedtuple_list(concat_peptide_fp, concat_peptide_list, field_list=other_pep_field_list)
+                assert len(output_metadata_list) == len(output_peptide_list)
+                write_namedtuple_list(meta_peptide_fp, output_metadata_list, field_list=meta_field_list)
+                write_namedtuple_list(peptide_fp, output_peptide_list, field_list=junc_pep_field_list)
+                write_namedtuple_list(background_fp,output_background_list,field_list=other_pep_field_list)
+                end_time = timeit.default_timer()
+                print(gene_idx, end_time - start_time,'\n')
+            except Exception as e:
+                # should also print the error
+                logging.exception("Exception occured in gene %d, %s mode, sample %s " % (gene_idx,arg.mutation_mode,sample))
+
         expr_distr_dict[sample] = expr_distr
     create_libsize(expr_distr_dict,output_libszie_fp)
-
 
 def cmd_entry():
     arg = parse_arguments(sys.argv[1:])

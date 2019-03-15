@@ -8,10 +8,12 @@ import pytest
 from immunopepper.immuno_mutation import apply_germline_mutation,construct_mut_seq_with_str_concat,get_mutation_mode_from_parser
 from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
     parse_mutation_from_vcf, parse_mutation_from_maf
-from immunopepper.utils import get_sub_mut_dna
+from immunopepper.utils import get_sub_mut_dna,get_concat_peptide
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.main_immuno import parse_arguments
-
+from immunopepper.immuno_model import create_output_kmer
+from immunopepper.immuno_nametuple import Coord,Output_background,Output_kmer
+from immunopepper.constant import NOT_EXIST
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 
 
@@ -97,8 +99,8 @@ def test_reading_gtf_and_gff3_file():
     gene_table_gff = preprocess_ann(gff3_path)
     assert gene_table_gff.gene_to_ts == gene_table_gtf.gene_to_ts
     assert gene_table_gtf.ts_to_cds.keys() == gene_table_gff.ts_to_cds.keys()
-    assert gene_table_gtf.ts_to_cds['ENST00000335137.4'] == [(69090, 70004, 0)]
-    assert gene_table_gff.ts_to_cds['ENST00000335137.4'] == [(69090, 70007, 0)] # include stop codon in gff3
+    assert gene_table_gtf.ts_to_cds['ENST00000335137.4'] == [(69090, 70005, 0)]
+    assert gene_table_gff.ts_to_cds['ENST00000335137.4'] == [(69090, 70008, 0)] # include stop codon in gff3
 
 
 def test_reading_gtf_and_gff_file():
@@ -108,8 +110,8 @@ def test_reading_gtf_and_gff_file():
     gene_table_gff = preprocess_ann(gff_path)
     assert gene_table_gff.gene_to_ts == gene_table_gtf.gene_to_ts
     assert gene_table_gtf.ts_to_cds.keys() == gene_table_gff.ts_to_cds.keys()
-    assert gene_table_gff.ts_to_cds['ENST00000335137.3'] == [(69090, 70005, 0)]
-    assert gene_table_gtf.ts_to_cds['ENST00000335137.3'] == [(69090, 70004, 0)]
+    assert gene_table_gff.ts_to_cds['ENST00000335137.3'] == [(69090, 70006, 0)]
+    assert gene_table_gtf.ts_to_cds['ENST00000335137.3'] == [(69090, 70005, 0)]
 
 
 def test_reading_vcf_h5():
@@ -125,21 +127,19 @@ def test_reading_vcf_h5():
 
 def test_construct_mut_seq_with_str_concat():
     ref_seq = 'GTAATGTGTAAGATGACGCACGCATGGTGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
-    gt_mut_seq1 = 'GTAATGTGTAGGATGACGCACGCATACTGGTATTGGAGATGGTTTGCGGAGTAAGTTCGAGTTC'
-    gt_mut_seq2 = 'GTAATGTGTAAGATGACGCACGCATGCTGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
+    gt_mut_seq2 = 'GTAATGTGTAAGATGACGCACGCATA'+'C'+'TGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
+    gt_mut_seq3 = 'GTAATGTGTAAGATGACGCACGCATA'+'G'+'TGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
     mut_dict = {}
-    mut_dict[10] = {'mut_base':'G','ref_base':'A'}
+    mut_dict[10] = {'mut_base':'*','ref_base':'A'}
     mut_dict[25] = {'mut_base':'A','ref_base':'G'}
     mut_dict[26] = {'mut_base':'C','ref_base':'G'}
-    mut_dict[28] = {'mut_base':'*','ref_base':'G'}
-    mut_dict[42] = {'mut_base':'T','ref_base':'G'}
-    mut_dict[45] = {'mut_base':'*','ref_base':'G'}
-    mut_seq1 = construct_mut_seq_with_str_concat(ref_seq,0,len(ref_seq),mut_dict)
-    assert mut_seq1 == gt_mut_seq1
-    mut_seq2 = construct_mut_seq_with_str_concat(ref_seq,25,27,mut_dict) # (25,27) open in two side, only include 26
+    mut_seq1 = construct_mut_seq_with_str_concat(ref_seq, 45, 46, mut_dict) # test unclear mut_base
+    assert mut_seq1 == ref_seq
+    mut_seq2 = construct_mut_seq_with_str_concat(ref_seq, 25, 27, mut_dict) # [25,27) include 26
     assert mut_seq2 == gt_mut_seq2
-    mut_seq3 = construct_mut_seq_with_str_concat(ref_seq,25,26,mut_dict)
-    assert mut_seq3 == ref_seq
+    mut_seq3 = construct_mut_seq_with_str_concat(ref_seq, 25, 26, mut_dict) # [25,26) not include 26
+    assert mut_seq3 == gt_mut_seq3
+
 
 
 def test_get_mutation_mode_from_parser():
@@ -158,3 +158,54 @@ def test_get_mutation_mode_from_parser():
         get_mutation_mode_from_parser(args)
     except SystemExit:
         assert 1
+
+
+def test_create_output_kmer():
+    peptide_list = [Output_background('1','RTHDGLRSTYI'),Output_background('2','MTHAW')]
+    expr_lists = [[(8,1000),(1,220),(0,0)]]
+    k = 3
+    try:
+        c = create_output_kmer(peptide_list,expr_lists,k)
+    except AssertionError: # make sure len(peptide) == len(expr_lists)
+        assert 1
+    peptide_list = [Output_background('1','MTHAW')]
+    expr_lists = [[(8,1000),(1,220),(6,0)]] # test 0 expression
+    c = create_output_kmer(peptide_list, expr_lists, k)
+    true_output = [Output_kmer('MTH','1',913.33,NOT_EXIST), Output_kmer('THA','1',580.0,NOT_EXIST), Output_kmer('HAW','1',246.67,NOT_EXIST)]
+    assert c == true_output
+    expr_lists = [[(8,1000),(1,220),(0,0)]] # test 0 expression
+    c = create_output_kmer(peptide_list, expr_lists, k)
+    true_output = [Output_kmer('MTH','1',913.33,NOT_EXIST), Output_kmer('THA','1',870.0,NOT_EXIST), Output_kmer('HAW','1',740.0,NOT_EXIST)]
+    assert c == true_output
+
+
+def test_get_concat_peptide():
+    front_coord = Coord(10,19,25,33)
+    back_coord = Coord(27,36,44,53)
+    front_peptide = ''
+    back_peptide = 'MGF'
+    strand = '+'
+    concat_pep = get_concat_peptide(front_coord,back_coord,front_peptide,back_peptide,strand)
+    assert concat_pep == ''
+
+    front_peptide = 'MGF'
+    back_peptide = ''
+    strand = '+'
+    concat_pep = get_concat_peptide(front_coord,back_coord,front_peptide,back_peptide,strand)
+    assert concat_pep == ''
+
+    front_peptide = 'EDM'
+    back_peptide = 'DMF'
+    strand = '+'
+    concat_pep = get_concat_peptide(front_coord,back_coord,front_peptide,back_peptide,strand)
+    assert concat_pep == 'EDMF'
+
+    # neg case
+    front_coord = Coord(35,43,20,29)
+    back_coord = Coord(18,26,17,13)
+    strand = '-'
+    front_peptide = 'EDM'
+    back_peptide = 'DMF'
+    concat_pep = get_concat_peptide(front_coord,back_coord,front_peptide,back_peptide,strand)
+    assert concat_pep == 'EDMF'
+
