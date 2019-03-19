@@ -6,9 +6,9 @@ import numpy as np
 from collections import namedtuple
 import bisect
 
-from .constant import NOT_EXIST
-from .immuno_nametuple import Output_background
-from .immuno_nametuple import Peptide,Coord,Flag,Idx,Reading_frame_tuple
+from constant import NOT_EXIST
+from immuno_nametuple import Output_background
+from immuno_nametuple import Peptide,Coord,Flag,Idx,Reading_frame_tuple
 
 
 
@@ -58,9 +58,9 @@ def find_overlapping_cds_simple(v_start, v_stop, cds_begins, strand):
     """
     # cds_start = cds_begin[0]
     if strand == '+':
-        return [cds_begin for cds_begin in cds_begins if cds_begin[0] >= v_start and cds_begin[0] < v_stop]
+        return filter(lambda cds_begin: cds_begin[0] >= v_start and cds_begin[0] < v_stop, cds_begins)
     else:
-        return [cds_begin for cds_begin in cds_begins if cds_begin[0] > v_start and cds_begin[0] <= v_stop]
+        return filter(lambda cds_begin: cds_begin[0] > v_start and cds_begin[0] <= v_stop, cds_begins)
 
 
 
@@ -77,8 +77,8 @@ def complementary_seq(dna_seq):
     Otherwise remain the same.
     """
     comp_dict = {"A": "T", "T": "A", "C": "G", "G": "C"}
-    comp_dict_keys = list(comp_dict.keys())
-    return "".join([comp_dict[nuc] if nuc in comp_dict_keys else nuc for nuc in dna_seq])
+    comp_dict_keys = comp_dict.keys()
+    return "".join(map(lambda nuc: comp_dict[nuc] if nuc in comp_dict_keys else nuc, dna_seq))
 
 
 def encode_chromosome(in_num):
@@ -86,7 +86,7 @@ def encode_chromosome(in_num):
     Encodes chromosome to same cn
     """
     convert_dict = {23: "X", 24: "Y", 25: "MT"}
-    return convert_dict[in_num] if in_num in list(convert_dict.keys()) else str(in_num)
+    return convert_dict[in_num] if in_num in convert_dict.keys() else str(in_num)
 
 
 def translate_dna_to_peptide(dna_str):
@@ -513,10 +513,10 @@ def create_libsize(expr_distr_dict,output_fp):
     output_fp: file pointer. library_size text
 
     """
-    libsize_count = {sample:(np.percentile(expr_list,75),np.sum(expr_list)) for sample,expr_list in list(expr_distr_dict.items())}
+    libsize_count = {sample:(np.percentile(expr_list,75),np.sum(expr_list)) for sample,expr_list in expr_distr_dict.items()}
     with open(output_fp,'w') as f:
         f.write('\t'.join(['sample','libsize_75percent','libsize_total_count'])+'\n')
-        for sample,count_tuple in list(libsize_count.items()):
+        for sample,count_tuple in libsize_count.items():
             line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
             f.write(line)
 
@@ -545,7 +545,7 @@ def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_pep
     def get_longest_match_position(front_str,back_str,L=None):
         if L is None:
             L = min(len(front_str),len(back_str))
-        for i in reversed(list(range(1,L+1))):
+        for i in reversed(range(1,L+1)):
             if front_str[-i:] == back_str[:i]:
                 return i
         return None

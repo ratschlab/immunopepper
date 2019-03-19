@@ -1,8 +1,8 @@
-
+from __future__ import print_function
 
 # Python libraries
 import sys
-import pickle
+import cPickle
 import os
 import timeit
 import argparse
@@ -78,8 +78,7 @@ def main(arg):
     # load genome sequence data
     seq_dict = {}
     start_time = timeit.default_timer()
-    interesting_chr = list(map(str, list(range(1, 23)))) + ["X", "Y", "MT"]
-    interesting_chr=[ 'chr' + x for x in interesting_chr] #TODO uuse only for mouse data
+    interesting_chr = map(str, range(1, 23)) + ["X", "Y", "MT"]
     print('Parsing genome sequence ...')
     for record in BioIO.parse(arg.ref_path, "fasta"):
         if record.id in interesting_chr:
@@ -102,8 +101,8 @@ def main(arg):
     # load splicegraph
     print('Loading splice graph ...')
     start_time = timeit.default_timer()
-    with open(arg.splice_path, 'rb') as graph_fp:
-        (graph_data, graph_meta) = pickle.load(graph_fp)  # both graph data and meta data
+    with open(arg.splice_path, 'r') as graph_fp:
+        (graph_data, graph_meta) = load_pickled_graph(graph_fp)  # both graph data and meta data
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
@@ -185,7 +184,7 @@ def main(arg):
         expr_distr_dict[sample] = []
 
         # go over each gene in splicegraph
-        gene_id_list = list(range(0,num))
+        gene_id_list = range(0,num)
         for gene_idx in gene_id_list:
             try:
                 gene = graph_data[gene_idx]

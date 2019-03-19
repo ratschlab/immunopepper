@@ -1,7 +1,7 @@
 from immunopepper.constant import NOT_EXIST
 import argparse
 import sys
-import pickle
+import cPickle
 import os
 def parse_arguments(argv):
 
@@ -17,14 +17,14 @@ def parse_arguments(argv):
     return pargs
 
 def filter_kmer_dict_with_threshold(_dict,th=0):
-    return {k:v for k,v in list(_dict.items()) if v > th}
+    return {k:v for k,v in _dict.items() if v > th}
 
 def build_kmer_dict(kmer_file):
     with open(kmer_file,'r') as f:
         kmer_dict = {}
         for i,line in enumerate(f):
             if i % 1000000 == 0:
-                print(("Processed {} lines".format(i)))
+                print("Processed {} lines".format(i))
             items = line.strip().split('\t')
             if len(items) == 3: # ignore abnormal case
                 kmer = items[0]
