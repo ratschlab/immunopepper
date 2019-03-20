@@ -213,7 +213,7 @@ def search_edge_metadata_segmentgraph(gene, sorted_pos, edges, Idx):
     """
     gene_name = gene.name
     segmentgraph = gene.segmentgraph
-    edge_idxs = edges.lookup_table[gene_name]
+    edge_idxs = edges.lookup_table[gene_name.encode('utf-8')]
 
     a = sp.where(segmentgraph.segments[1, :] == sorted_pos[1])[0]
     b = sp.where(segmentgraph.segments[0, :] == sorted_pos[2])[0]
@@ -431,9 +431,7 @@ def parse_junction_meta_info(h5f_path):
 
         for i,ichr in enumerate(chrms):
             try:
-                import pdb 
-                pdb.set_trace()
-                junction_dict[ichr].add(':'.join([pos[i, 0], pos[i, 1], strand[i]]))
+                junction_dict[ichr].add(':'.join([pos[i, 0], pos[i, 1], strand[i].decode('utf-8')]))
             except KeyError:
-                junction_dict[ichr] = set([':'.join([pos[i, 0], pos[i, 1], strand[i]])])
+                junction_dict[ichr] = set([':'.join([pos[i, 0], pos[i, 1], strand[i].decode('utf-8')])])
     return junction_dict

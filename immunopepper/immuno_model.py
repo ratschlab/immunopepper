@@ -205,7 +205,7 @@ def create_output_kmer(peptide_list, expr_lists, k):
             return spanning_id_range
         else:
             L2 = coord.stop_v2-coord.start_v2
-        m = L1 / 3
+        m = int(L1 / 3)
         if L1%3 == 0:
             spanning_id_range = list(range(max(m-k+1,0),m))
         else:
