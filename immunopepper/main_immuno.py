@@ -168,7 +168,7 @@ def main(arg):
         concat_kmer_peptide_file_path = os.path.join(output_path, mutation.mode + '_concat_kmer.txt')
 
         peptide_fp = open(peptide_file_path, 'w')
-        meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')
+        meta_peptide_fp = gzip.open(meta_peptide_file_path, 'wt')
         background_fp = open(background_peptide_file_path,'w')
         concat_peptide_fp = open(concat_peptide_file_path, 'w')
         junction_kmer_peptide_fp = open(junction_kmer_peptide_file_path, 'w')
@@ -181,7 +181,7 @@ def main(arg):
         junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
         other_pep_field_list = ['id', 'new_line', 'peptide']
         kmer_field_list = ['kmer','id','expr','is_cross_junction']
-        meta_peptide_fp.write(('\t'.join(meta_field_list) + '\n').encode('utf-8'))
+        meta_peptide_fp.write(('\t'.join(meta_field_list) + '\n'))
         expr_distr_dict[sample] = []
 
         # go over each gene in splicegraph
@@ -236,11 +236,6 @@ def main(arg):
             except Exception as e:
                 # should also print the error
                 logging.exception("Exception occured in gene %d, %s mode, sample %s " % (gene_idx,arg.mutation_mode,sample))
-                import traceback
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                traceback.print_exception(exc_type, exc_value, exc_traceback,limit=2, file=sys.stdout)
-                import pdb
-                pdb.set_trace()
 
         expr_distr_dict[sample] = expr_distr
     create_libsize(expr_distr_dict,output_libszie_fp)
