@@ -49,27 +49,25 @@ def parse_arguments(argv):
     pargs = parser.parse_args(argv)
     return pargs
 
+def convert_namedtuple_to_str(_namedtuple,field_list):
+    def convert_list_to_str(_list):
+        return ';'.join([str(_item) for _item in _list])
+    line = ''
+    for field in field_list:
+        if field == 'new_line':
+            line = line.strip()+'\n'
+            continue
+        # should first check if field in namedtuple
+        item = getattr(_namedtuple, field)
+        if isinstance(item,(list,tuple)):
+            line += convert_list_to_str(item)+'\t'
+        else:
+            line += str(item)+'\t'
+    return line[:-1] # remove the last '\t'
 
 def write_namedtuple_list(fp, namedtuple_list, field_list):
     """ Write namedtuple_list to the given file pointer"""
-    def convert_list_to_str(_list):
-        return ';'.join([str(_item) for _item in _list])
-
-    def convert_namedtuple_to_str(_namedtuple):
-        line = ''
-        for field in field_list:
-            if field == 'new_line':
-                line = line.strip()+'\n'
-                continue
-            # should first check if field in namedtuple
-            item = getattr(_namedtuple, field)
-            if isinstance(item,(list,tuple)):
-                line += convert_list_to_str(item)+'\t'
-            else:
-                line += str(item)+'\t'
-        return line.strip() # remove the last '\t'
-
-    fp.writelines(convert_namedtuple_to_str(_namedtuple)+'\n' for _namedtuple in namedtuple_list)
+    fp.writelines(convert_namedtuple_to_str(_namedtuple,field_list)+'\n' for _namedtuple in namedtuple_list)
 
 def write_list(fp, _list):
     fp.writelines([l+'\n' for l in _list])
