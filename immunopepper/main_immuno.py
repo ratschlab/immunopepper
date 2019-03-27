@@ -79,7 +79,6 @@ def main(arg):
     seq_dict = {}
     start_time = timeit.default_timer()
     interesting_chr = list(map(str, list(range(1, 23)))) + ["X", "Y", "MT"]
-    interesting_chr=[ 'chr' + x for x in interesting_chr] #TODO uuse only for mouse data
     print('Parsing genome sequence ...')
     for record in BioIO.parse(arg.ref_path, "fasta"):
         if record.id in interesting_chr:
