@@ -102,7 +102,7 @@ def main(arg):
     print('Loading splice graph ...')
     start_time = timeit.default_timer()
     with open(arg.splice_path, 'rb') as graph_fp:
-        (graph_data, graph_meta) = pickle.load(graph_fp)  # both graph data and meta data
+        (graph_data, graph_meta) = pickle.load(graph_fp, encoding='latin1')  # both graph data and meta data
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
