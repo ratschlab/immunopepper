@@ -20,13 +20,13 @@ data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 @pytest.fixture
 def load_gene_data():
     f = open(os.path.join(data_dir, 'posgraph','spladder',
-                          'genes_graph_conf3.merge_graphs.pickle'), 'r')
+                          'genes_graph_conf3.merge_graphs.pickle'), 'rb')
     ann_path = os.path.join(data_dir, 'test1pos.gtf')
     ref_path = os.path.join(data_dir, 'test1pos.fa')
 
     (graph_data, graph_meta) = load_pickled_graph(f)  # cPickle.load(f)
     genetable = preprocess_ann(ann_path)
-    interesting_chr = map(str, range(1, 23)) + ["X", "Y", "MT"]
+    interesting_chr = list(map(str, range(1, 23))) + ["X", "Y", "MT"]
     seq_dict = {}
     for record in BioIO.parse(ref_path, "fasta"):
         if record.id in interesting_chr:
