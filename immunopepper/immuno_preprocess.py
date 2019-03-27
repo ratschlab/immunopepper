@@ -111,10 +111,10 @@ def preprocess_ann(ann_path):
                 continue
             assert (transcript_id not in transcript_to_gene_dict)
             transcript_to_gene_dict[transcript_id] = gene_id
-            if gene_id in gene_to_transcript_dict:
-                gene_to_transcript_dict[gene_id].add(transcript_id)
+            if gene_id in gene_to_transcript_dict and transcript_id not in gene_to_transcript_dict[gene_id]:
+                gene_to_transcript_dict[gene_id].append(transcript_id)
             else:
-                gene_to_transcript_dict[gene_id] = {transcript_id}
+                gene_to_transcript_dict[gene_id] = [transcript_id]
 
         # Todo python is 0-based while gene annotation file(.gtf, .vcf, .maf) is one based
         elif feature_type == "CDS":
