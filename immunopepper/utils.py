@@ -8,7 +8,7 @@ import bisect
 
 from .constant import NOT_EXIST
 from .immuno_nametuple import Output_background
-from .immuno_nametuple import Peptide,Coord,Flag,Idx,Reading_frame_tuple
+from immunopepper.immuno_nametuple import Peptide,Coord,Flag,Idx,Reading_frame_tuple
 
 
 
@@ -229,7 +229,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     next_reading_frame: Tuple. The reading frame to be propogated to the next vertex.
 
     """
-    cds_left_modi, cds_right_modi, emitting_frame = read_frame.cds_left_modi,read_frame.cds_right_modi,read_frame.read_phase
+    cds_left_modi, cds_right_modi, emitting_frame = read_frame[0],read_frame[1],read_frame[2]
     next_emitting_frame = (peptide_accept_coord[1] - peptide_accept_coord[0] + emitting_frame) % 3
     start_v1 = cds_left_modi
     stop_v1 = cds_right_modi

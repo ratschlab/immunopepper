@@ -24,7 +24,7 @@ def build_kmer_dict(kmer_file):
         kmer_dict = {}
         for i,line in enumerate(f):
             if i % 1000000 == 0:
-                print(("Processed {} lines".format(i)))
+                print("Processed {} lines".format(i))
             items = line.strip().split('\t')
             if len(items) == 3: # ignore abnormal case
                 kmer = items[0]

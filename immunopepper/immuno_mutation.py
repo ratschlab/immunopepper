@@ -130,7 +130,7 @@ def get_mutation_mode_from_parser(args):
         mutation_dic_vcf = {}
         is_error = False
     else:
-        print(('Mutation mode "%s" not recognized' % mutation_mode))
+        print('Mutation mode "%s" not recognized' % mutation_mode)
 
     if is_error:
          print("The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")

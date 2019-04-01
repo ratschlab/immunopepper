@@ -96,7 +96,7 @@ def get_full_peptide(gene, seq, cds_list, Segments, Idx, mode):
         elif gene.strand.strip() == "-":
             cds_string += complementary_seq(nuc_seq[::-1])
         else:
-            print(("ERROR: Invalid strand. Got %s but expect + or -" % gene.strand.strip()))
+            print("ERROR: Invalid strand. Got %s but expect + or -" % gene.strand.strip())
             sys.exit(1)
     cds_peptide, is_stop_flag = translate_dna_to_peptide(cds_string)
     return cds_expr_list, cds_string, cds_peptide

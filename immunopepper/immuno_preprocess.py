@@ -213,7 +213,7 @@ def search_edge_metadata_segmentgraph(gene, sorted_pos, edges, Idx):
     """
     gene_name = gene.name
     segmentgraph = gene.segmentgraph
-    edge_idxs = edges.lookup_table[gene_name]
+    edge_idxs = edges.lookup_table[gene_name] # (idx_in_expr_data, 1d_idx_for_seg_pair)
 
     a = sp.where(segmentgraph.segments[1, :] == sorted_pos[1])[0]
     b = sp.where(segmentgraph.segments[0, :] == sorted_pos[2])[0]

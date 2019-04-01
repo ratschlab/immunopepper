@@ -4,12 +4,12 @@
 import numpy as np
 import scipy as sp
 
-from .immuno_filter import junction_is_annotated, peptide_match, find_background_peptides
-from .immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
-from .utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr
-from .immuno_preprocess import search_edge_metadata_segmentgraph
-from .constant import NOT_EXIST
-from .immuno_nametuple import Output_metadata, Output_junc_peptide, Output_kmer
+from immunopepper.immuno_filter import junction_is_annotated, peptide_match, find_background_peptides
+from immunopepper.immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
+from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr
+from immunopepper.immuno_preprocess import search_edge_metadata_segmentgraph
+from immunopepper.constant import NOT_EXIST
+from immunopepper.immuno_nametuple import Output_metadata, Output_junc_peptide, Output_kmer
 
 def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                       segments=None, edges=None, mutation=None,

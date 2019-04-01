@@ -175,13 +175,12 @@ def create_reference_cause_data():
     total_junc_pair_num = np.sum([len(item) for item in list(imm_gene_coord_dict.values())])  # 1622126
     total_cancercell_junc_pair_num = np.sum([len(item) for item in list(cancercell_gene_coord_dict.values())])  # 525539
 
-    print(("{} additional junc pair and {} miss junc pair in {} immuno total junc pairs"
+    print("{} additional junc pair and {} miss junc pair in {} immuno total junc pairs"
           " and {} cancercell junc pairs. {} miss kmer are caused by extrapolation".format(additional_junc_pair_num,
                                                                                     missing_junc_pair_num,
                                                                                     total_junc_pair_num,
                                                                                     total_cancercell_junc_pair_num,
-                                                                                    missing_explain_num)))
-
+                                                                                    missing_explain_num))
     # try to explain the additional output
     additional_flag_list = []
     additional_gene_name_list = []
@@ -197,9 +196,9 @@ def create_reference_cause_data():
             additional_gene_name_list.append(gene_name_str)
 
     flag_explain_result = np.sum(np.array(additional_flag_list), axis=0)
-    print(("stop codon constributes to {}, isolated contributes to {}, short vertices contributes to {}".format(
-        flag_explain_result[0], flag_explain_result[1], flag_explain_result[2])))  # 826039, 199362, 3224
-    print(("{} can not be explained by the three".format(sum(np.sum(np.array(additional_flag_list), axis=1) == 0))))  # 204994
+    print("stop codon constributes to {}, isolated contributes to {}, short vertices contributes to {}".format(
+        flag_explain_result[0], flag_explain_result[1], flag_explain_result[2]))  # 826039, 199362, 3224
+    print("{} can not be explained by the three".format(sum(np.sum(np.array(additional_flag_list), axis=1) == 0)))  # 204994
 
     # load and parse reference junction kmer for further use
     # It can be used to explain some missing kmers.
