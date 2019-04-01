@@ -5,7 +5,7 @@
 
 # validate 2019/03/07
 import gzip
-import cPickle
+import pickle
 import argparse
 import sys
 import os
@@ -13,6 +13,7 @@ import os
 import numpy as np
 import pandas as pd
 from immunopepper.constant import NOT_EXIST
+from functools import reduce
 
 
 def find_diff_coord(imm_gene_coord_dict,cancercell_gene_coord_dict):
@@ -152,12 +153,12 @@ def create_reference_cause_data():
     # remove isolated case and only keep coord_str_tuple for further use
     imm_gene_coord_dict_without_vid = {
     gene_name: [coord_vid[0] for coord_vid in filter((lambda x: x[0][2] != NOT_EXIST), coord_vid_tuple_list)] for
-    gene_name, coord_vid_tuple_list in imm_gene_coord_dict.items()}
+    gene_name, coord_vid_tuple_list in list(imm_gene_coord_dict.items())}
 
     # get the missing kmer dict (only appear in cancercell paper result)
     missing_cancercell_gene_coord_dict = {
-    gene_name: filter((lambda x: x in imm_gene_coord_dict_without_vid[gene_name]), coord_tuple_list) for
-    gene_name, coord_tuple_list in cancercell_gene_coord_dict.items()}
+    gene_name: list(filter((lambda x: x in imm_gene_coord_dict_without_vid[gene_name]), coord_tuple_list)) for
+    gene_name, coord_tuple_list in list(cancercell_gene_coord_dict.items())}
 
     # we know some of the missing kmers are due to extrapolation
     # which means there are 3 identical coords and only one coord is different.
@@ -165,14 +166,14 @@ def create_reference_cause_data():
     unique_cancercell_gene_explain_dict = {
     gene_name: [3 in np.sum((np.array(coord_tuple) - np.array(imm_gene_coord_dict_without_vid[gene_name])) == 0, axis=1)
                 for coord_tuple in coord_tuple_list] for gene_name, coord_tuple_list in
-    missing_cancercell_gene_coord_dict.items()}
-    missing_explain_num = np.sum([sum(item) for item in unique_cancercell_gene_explain_dict.values()])  # 65360/65360
+    list(missing_cancercell_gene_coord_dict.items())}
+    missing_explain_num = np.sum([sum(item) for item in list(unique_cancercell_gene_explain_dict.values())])  # 65360/65360
 
     # do a simple analysis of the result
-    additional_junc_pair_num = np.sum([len(item) for item in additional_imm_coord_dict.values()])  # 1103270
-    missing_junc_pair_num = np.sum([len(item) for item in missing_cancercell_gene_coord_dict.values()])  # 65360
-    total_junc_pair_num = np.sum([len(item) for item in imm_gene_coord_dict.values()])  # 1622126
-    total_cancercell_junc_pair_num = np.sum([len(item) for item in cancercell_gene_coord_dict.values()])  # 525539
+    additional_junc_pair_num = np.sum([len(item) for item in list(additional_imm_coord_dict.values())])  # 1103270
+    missing_junc_pair_num = np.sum([len(item) for item in list(missing_cancercell_gene_coord_dict.values())])  # 65360
+    total_junc_pair_num = np.sum([len(item) for item in list(imm_gene_coord_dict.values())])  # 1622126
+    total_cancercell_junc_pair_num = np.sum([len(item) for item in list(cancercell_gene_coord_dict.values())])  # 525539
 
     print("{} additional junc pair and {} miss junc pair in {} immuno total junc pairs"
           " and {} cancercell junc pairs. {} miss kmer are caused by extrapolation".format(additional_junc_pair_num,
@@ -180,11 +181,10 @@ def create_reference_cause_data():
                                                                                     total_junc_pair_num,
                                                                                     total_cancercell_junc_pair_num,
                                                                                     missing_explain_num))
-
     # try to explain the additional output
     additional_flag_list = []
     additional_gene_name_list = []
-    for gene_name, additional_junc_coord_list in additional_imm_coord_dict.items():
+    for gene_name, additional_junc_coord_list in list(additional_imm_coord_dict.items()):
         additional_flag_list.extend(
             [reduce((lambda x, y: np.logical_or(x, y)), ref_meta_flag_dict_with_coord[additional_junc_coord]) for additional_junc_coord in
              additional_junc_coord_list])
@@ -207,7 +207,7 @@ def create_reference_cause_data():
     ref_kmer_set = set(ref_kmer_dict.keys())
 
     with open('ref_cause_dict2.pkl', 'wb') as f:
-        cPickle.dump((ref_kmer_set, imm_gene_coord_dict, cancercell_gene_coord_dict, additional_imm_coord_dict,
+        pickle.dump((ref_kmer_set, imm_gene_coord_dict, cancercell_gene_coord_dict, additional_imm_coord_dict,
                       additional_gene_name_list, missing_cancercell_gene_coord_dict), f)
 
 
@@ -270,7 +270,7 @@ if not os.path.exists('ref_cause_dict.pkl'):
     print("Reference cause dictionary does not exist. Begin generating and might take 20 minutes...\n")
     create_reference_cause_data()
 f = open('ref_cause_dict.pkl','rb')
-ref_kmer_set,imm_gene_coord_dict,cancercell_gene_coord_dict,additional_imm_coord_dict,additional_gene_name_list,missing_cancercell_gene_coord_dict = cPickle.load(f)
+ref_kmer_set,imm_gene_coord_dict,cancercell_gene_coord_dict,additional_imm_coord_dict,additional_gene_name_list,missing_cancercell_gene_coord_dict = pickle.load(f)
 
 # get immunopepper junction metadata dict
 _,mut_meta_flag_dict_without_coord,_ = get_immunopepper_meta_dict(mutation_meta_gz_file)

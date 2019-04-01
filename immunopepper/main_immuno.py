@@ -1,8 +1,8 @@
-from __future__ import print_function
+
 
 # Python libraries
 import sys
-import cPickle
+import pickle
 import os
 import timeit
 import argparse
@@ -49,27 +49,25 @@ def parse_arguments(argv):
     pargs = parser.parse_args(argv)
     return pargs
 
+def convert_namedtuple_to_str(_namedtuple,field_list):
+    def convert_list_to_str(_list):
+        return ';'.join([str(_item) for _item in _list])
+    line = ''
+    for field in field_list:
+        if field == 'new_line':
+            line = line.strip()+'\n'
+            continue
+        # should first check if field in namedtuple
+        item = getattr(_namedtuple, field)
+        if isinstance(item,(list,tuple)):
+            line += convert_list_to_str(item)+'\t'
+        else:
+            line += str(item)+'\t'
+    return line[:-1] # remove the last '\t'
 
 def write_namedtuple_list(fp, namedtuple_list, field_list):
     """ Write namedtuple_list to the given file pointer"""
-    def convert_list_to_str(_list):
-        return ';'.join([str(_item) for _item in _list])
-
-    def convert_namedtuple_to_str(_namedtuple):
-        line = ''
-        for field in field_list:
-            if field == 'new_line':
-                line = line.strip()+'\n'
-                continue
-            # should first check if field in namedtuple
-            item = getattr(_namedtuple, field)
-            if isinstance(item,(list,tuple)):
-                line += convert_list_to_str(item)+'\t'
-            else:
-                line += str(item)+'\t'
-        return line.strip() # remove the last '\t'
-
-    fp.writelines(convert_namedtuple_to_str(_namedtuple)+'\n' for _namedtuple in namedtuple_list)
+    fp.writelines(convert_namedtuple_to_str(_namedtuple,field_list)+'\n' for _namedtuple in namedtuple_list)
 
 def write_list(fp, _list):
     fp.writelines([l+'\n' for l in _list])
@@ -78,7 +76,7 @@ def main(arg):
     # load genome sequence data
     seq_dict = {}
     start_time = timeit.default_timer()
-    interesting_chr = map(str, range(1, 23)) + ["X", "Y", "MT"]
+    interesting_chr = list(map(str, list(range(1, 23)))) + ["X", "Y", "MT"]
     print('Parsing genome sequence ...')
     for record in BioIO.parse(arg.ref_path, "fasta"):
         if record.id in interesting_chr:
@@ -101,8 +99,8 @@ def main(arg):
     # load splicegraph
     print('Loading splice graph ...')
     start_time = timeit.default_timer()
-    with open(arg.splice_path, 'r') as graph_fp:
-        (graph_data, graph_meta) = load_pickled_graph(graph_fp)  # both graph data and meta data
+    with open(arg.splice_path, 'rb') as graph_fp:
+        (graph_data, graph_meta) = pickle.load(graph_fp, encoding='latin1')  # both graph data and meta data
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
@@ -167,7 +165,7 @@ def main(arg):
         concat_kmer_peptide_file_path = os.path.join(output_path, mutation.mode + '_concat_kmer.txt')
 
         peptide_fp = open(peptide_file_path, 'w')
-        meta_peptide_fp = gzip.open(meta_peptide_file_path, 'w')
+        meta_peptide_fp = gzip.open(meta_peptide_file_path, 'wt')
         background_fp = open(background_peptide_file_path,'w')
         concat_peptide_fp = open(concat_peptide_file_path, 'w')
         junction_kmer_peptide_fp = open(junction_kmer_peptide_file_path, 'w')
@@ -180,12 +178,13 @@ def main(arg):
         junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
         other_pep_field_list = ['id', 'new_line', 'peptide']
         kmer_field_list = ['kmer','id','expr','is_cross_junction']
-        meta_peptide_fp.write('\t'.join(meta_field_list) + '\n')
+        meta_peptide_fp.write(('\t'.join(meta_field_list) + '\n'))
         expr_distr_dict[sample] = []
 
         # go over each gene in splicegraph
-        gene_id_list = range(0,num)
+        gene_id_list = list(range(0,num))
         for gene_idx in gene_id_list:
+            #if 1:
             try:
                 gene = graph_data[gene_idx]
                 start_time = timeit.default_timer()

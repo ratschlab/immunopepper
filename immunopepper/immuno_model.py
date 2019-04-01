@@ -1,15 +1,15 @@
 """Contains all the output computation based on gene splicegraph"""
-from __future__ import print_function
+
 
 import numpy as np
 import scipy as sp
 
-from immuno_filter import junction_is_annotated, peptide_match, find_background_peptides
-from immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
-from utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr
-from immuno_preprocess import search_edge_metadata_segmentgraph
-from constant import NOT_EXIST
-from immuno_nametuple import Output_metadata, Output_junc_peptide, Output_kmer
+from immunopepper.immuno_filter import junction_is_annotated, peptide_match, find_background_peptides
+from immunopepper.immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
+from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr
+from immunopepper.immuno_preprocess import search_edge_metadata_segmentgraph
+from immunopepper.constant import NOT_EXIST
+from immunopepper.immuno_nametuple import Output_metadata, Output_junc_peptide, Output_kmer
 
 def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                       segments=None, edges=None, mutation=None,
@@ -66,9 +66,9 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
     # exon_som_dict: (exon_id) |-> (mutation_postion)
     som_exp_dict, exon_som_dict = None,None
     if mutation.maf_dict is not None:
-        exon_som_dict = get_exon_som_dict(gene, mutation.maf_dict.keys())
+        exon_som_dict = get_exon_som_dict(gene, list(mutation.maf_dict.keys()))
         if segments is not None:
-            som_exp_dict = get_som_expr_dict(gene, mutation.maf_dict.keys(), segments, idx)
+            som_exp_dict = get_som_expr_dict(gene, list(mutation.maf_dict.keys()), segments, idx)
 
     # find background peptide
     # if no germline mutation is applies, germline key still exists, equals to reference.
@@ -205,11 +205,11 @@ def create_output_kmer(peptide_list, expr_lists, k):
             return spanning_id_range
         else:
             L2 = coord.stop_v2-coord.start_v2
-        m = L1 / 3
+        m = int(L1 / 3)
         if L1%3 == 0:
-            spanning_id_range = range(max(m-k+1,0),m)
+            spanning_id_range = list(range(max(m-k+1,0),m))
         else:
-            spanning_id_range = range(max(m-k+1,0),m+1)
+            spanning_id_range = list(range(max(m-k+1,0),m+1))
         return spanning_id_range
 
     assert len(peptide_list) == len(expr_lists)

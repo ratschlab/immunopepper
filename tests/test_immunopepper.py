@@ -14,19 +14,20 @@ from immunopepper.main_immuno import parse_arguments
 from immunopepper.immuno_model import create_output_kmer
 from immunopepper.immuno_nametuple import Coord,Output_background,Output_kmer
 from immunopepper.constant import NOT_EXIST
+from immunopepper.main_immuno import convert_namedtuple_to_str
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 
 
 @pytest.fixture
 def load_gene_data():
     f = open(os.path.join(data_dir, 'posgraph','spladder',
-                          'genes_graph_conf3.merge_graphs.pickle'), 'r')
+                          'genes_graph_conf3.merge_graphs.pickle'), 'rb')
     ann_path = os.path.join(data_dir, 'test1pos.gtf')
     ref_path = os.path.join(data_dir, 'test1pos.fa')
 
     (graph_data, graph_meta) = load_pickled_graph(f)  # cPickle.load(f)
     genetable = preprocess_ann(ann_path)
-    interesting_chr = map(str, range(1, 23)) + ["X", "Y", "MT"]
+    interesting_chr = list(map(str, range(1, 23))) + ["X", "Y", "MT"]
     seq_dict = {}
     for record in BioIO.parse(ref_path, "fasta"):
         if record.id in interesting_chr:
@@ -209,3 +210,20 @@ def test_get_concat_peptide():
     concat_pep = get_concat_peptide(front_coord,back_coord,front_peptide,back_peptide,strand)
     assert concat_pep == 'EDMF'
 
+def test_convert_namedtuple_to_str():
+    other_pep_field_list = ['id', 'new_line', 'peptide']
+    back_pep1 = Output_background(1,'EDMHG')
+    back_pep2 = Output_background(2,'')
+    back_pep3 = Output_background(3,'KKQ')
+    back_pep_list = [back_pep1,back_pep2,back_pep3]
+    result = [convert_namedtuple_to_str(back_pep,other_pep_field_list)+'\n' for back_pep in back_pep_list]
+    expected_result = ['1\nEDMHG\n', '2\n\n', '3\nKKQ\n']
+    assert result == expected_result
+
+    other_pep_field_list = ['kmer','id','expr','is_cross_junction']
+    kmer_pep1 = Output_kmer('','GENE0_1_2',NOT_EXIST,False)
+    kmer_pep2 = Output_kmer('AQEB','GENE0_1_3',20,True)
+    kmer_pep_list = [kmer_pep1,kmer_pep2]
+    result = [convert_namedtuple_to_str(kmer_pep,other_pep_field_list)+'\n' for kmer_pep in kmer_pep_list]
+    expected_result = ['\tGENE0_1_2\t.\tFalse\n', 'AQEB\tGENE0_1_3\t20\tTrue\n']
+    assert result == expected_result

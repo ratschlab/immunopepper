@@ -3,9 +3,9 @@ import bisect
 import sys
 from collections import namedtuple
 
-from constant import NOT_EXIST
-from immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
-from utils import get_all_comb
+from .constant import NOT_EXIST
+from .immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
+from .utils import get_all_comb
 
 import numpy as np
 
@@ -77,7 +77,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     -------
     mut_seq: str. mutation sequence
     """
-    variant_pos_candi = [ipos for ipos in mut_dict.keys() if ipos >= pos_start and ipos < pos_end]
+    variant_pos_candi = [ipos for ipos in list(mut_dict.keys()) if ipos >= pos_start and ipos < pos_end]
     if len(variant_pos_candi) > 0:
         variant_pos_sorted = np.sort(variant_pos_candi)
         mut_seq_list = [ref_seq[:variant_pos_sorted[0]]]
@@ -192,11 +192,11 @@ def get_mut_comb(exon_som_dict, idx, prop_vertex):
 
 def get_sub_mutation_tuple(mutation, sample, chrm):
     """ Get sub mutation namedtuple on given sample and chromosome """
-    if (sample, chrm) in mutation.vcf_dict.keys():
+    if (sample, chrm) in list(mutation.vcf_dict.keys()):
         mutation_sub_dict_vcf = mutation.vcf_dict[(sample, chrm)]
     else:
         mutation_sub_dict_vcf = None
-    if (sample, chrm) in mutation.maf_dict.keys():
+    if (sample, chrm) in list(mutation.maf_dict.keys()):
         mutation_sub_dict_maf = mutation.maf_dict[(sample, chrm)]
     else:
         mutation_sub_dict_maf = None

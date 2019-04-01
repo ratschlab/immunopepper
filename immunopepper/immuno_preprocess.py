@@ -4,10 +4,10 @@ import os
 import numpy as np
 import h5py
 import scipy as sp
-import cPickle
+import pickle
 
-from utils import to_adj_succ_list,find_overlapping_cds_simple,leq_strand,encode_chromosome
-from immuno_nametuple import Reading_frame_tuple,GeneTable,Segments,Edges,CountInfo
+from .utils import to_adj_succ_list,find_overlapping_cds_simple,leq_strand,encode_chromosome
+from .immuno_nametuple import Reading_frame_tuple,GeneTable,Segments,Edges,CountInfo
 
 def genes_preprocess(genes, gene_cds_begin_dict):
     """ Preprocess the gene and generate new attributes under gene object
@@ -30,7 +30,7 @@ def genes_preprocess(genes, gene_cds_begin_dict):
         assert (len(gene.transcripts) == len(gene.exons))
 
         # Ignore genes that have no CDS annotated...
-        if gene.name not in gene_cds_begin_dict.keys():
+        if gene.name not in list(gene_cds_begin_dict.keys()):
             continue
 
         gene.nvertices = gene.splicegraph.vertices.shape[1]
@@ -111,10 +111,10 @@ def preprocess_ann(ann_path):
                 continue
             assert (transcript_id not in transcript_to_gene_dict)
             transcript_to_gene_dict[transcript_id] = gene_id
-            if gene_id in gene_to_transcript_dict:
-                gene_to_transcript_dict[gene_id].add(transcript_id)
+            if gene_id in gene_to_transcript_dict and transcript_id not in gene_to_transcript_dict[gene_id]:
+                gene_to_transcript_dict[gene_id].append(transcript_id)
             else:
-                gene_to_transcript_dict[gene_id] = {transcript_id}
+                gene_to_transcript_dict[gene_id] = [transcript_id]
 
         # Todo python is 0-based while gene annotation file(.gtf, .vcf, .maf) is one based
         elif feature_type == "CDS":
@@ -213,7 +213,7 @@ def search_edge_metadata_segmentgraph(gene, sorted_pos, edges, Idx):
     """
     gene_name = gene.name
     segmentgraph = gene.segmentgraph
-    edge_idxs = edges.lookup_table[gene_name]
+    edge_idxs = edges.lookup_table[gene_name] # (idx_in_expr_data, 1d_idx_for_seg_pair)
 
     a = sp.where(segmentgraph.segments[1, :] == sorted_pos[1])[0]
     b = sp.where(segmentgraph.segments[0, :] == sorted_pos[2])[0]
@@ -221,7 +221,7 @@ def search_edge_metadata_segmentgraph(gene, sorted_pos, edges, Idx):
         idx = sp.ravel_multi_index([a, b], segmentgraph.seg_edges.shape)
     else:
         idx = sp.ravel_multi_index([b, a], segmentgraph.seg_edges.shape)
-    cidxs = list(filter(lambda elem: elem[1] == idx, edge_idxs))
+    cidxs = list([elem for elem in edge_idxs if elem[1] == idx])
     assert (len(cidxs) == 1)
     cidx = cidxs[0]
     count = edges.expr[cidx[0], Idx.sample]
@@ -253,7 +253,7 @@ def parse_gene_metadata_info(h5f, sample_list):
 
     for sample in sample_list:
         for i, strain in enumerate(strain_expr_info):
-            if strain.startswith(sample):
+            if strain.decode('utf-8').startswith(sample):
                 sample_idx_table[sample] = i
                 continue
 
@@ -267,13 +267,13 @@ def parse_gene_metadata_info(h5f, sample_list):
 
     #print(gene_ids_segs.shape)
     for seg_idx in np.arange(gene_ids_segs.shape[0]):
-        gene_id = gene_names[gene_ids_segs[seg_idx, 0]]
+        gene_id = gene_names[gene_ids_segs[seg_idx, 0]].decode('utf-8')
         if gene_id not in seg_lookup_table:
             seg_lookup_table[gene_id] = []
         seg_lookup_table[gene_id].append(seg_idx)
 
     for edge_idx in np.arange(gene_ids_edges.shape[0]):
-        gene_id = gene_names[gene_ids_edges[edge_idx, 0]]
+        gene_id = gene_names[gene_ids_edges[edge_idx, 0]].decode('utf-8')
         if gene_id not in edge_lookup_table:
             edge_lookup_table[gene_id] = []
         edge_lookup_table[gene_id].append((edge_idx, edge_idx_info[edge_idx]))
@@ -323,7 +323,7 @@ def parse_mutation_from_vcf(vcf_path, sample_list=None, heter_code=0):
         if len(var_dict['ref_base']) == len(var_dict['mut_base']):  # only consider snp for now
             for i, sample_id in enumerate(sample_list):
                 if items[9+i].split(':')[0] in {'1|1' ,'1|0', '0|1'}:
-                    if (sample_id,chr) in mutation_dic.keys():
+                    if (sample_id,chr) in list(mutation_dic.keys()):
                         mutation_dic[(sample_id,chr)][int(pos)] = var_dict
                     else:
                         mutation_dic[(sample_id,chr)] = {}
@@ -348,13 +348,13 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, sample_list, heter_code=0):
     a = h5py.File(h5_vcf_path,'r')
     mut_dict = {}
     for sample in sample_list:
-        col_id = [i for (i, item) in enumerate(a['gtid']) if item.startswith(sample)][0]
+        col_id = [i for (i, item) in enumerate(a['gtid']) if item.decode('utf-8').startswith(sample)][0]
         row_id = sp.where(sp.logical_or(a['gt'][:,col_id] == heter_code,a['gt'][:,col_id] == 1))[0]
         for irow in row_id:
             chromo = encode_chromosome(a['pos'][irow,0])
             pos = a['pos'][irow,1]-1
-            mut_base = a['allele_alt'][irow]
-            ref_base = a['allele_ref'][irow]
+            mut_base = a['allele_alt'][irow].decode('utf-8')
+            ref_base = a['allele_ref'][irow].decode('utf-8')
             var_dict = {"mut_base":mut_base,"ref_base":ref_base}
             if (sample,chromo)  in mut_dict:
                 mut_dict[(sample,chromo)][pos] = var_dict
@@ -379,8 +379,8 @@ def parse_mutation_from_maf(maf_path,output_dir=''):
     """
     maf_pkl_file = os.path.join(output_dir,'maf.pickle')
     if os.path.exists(maf_pkl_file):
-        f = open(maf_pkl_file,'r')
-        mutation_dic = cPickle.load(f)
+        f = open(maf_pkl_file,'rb')
+        mutation_dic = pickle.load(f)
     else:
         f = open(maf_path)
         lines = f.readlines()
@@ -398,13 +398,13 @@ def parse_mutation_from_maf(maf_path,output_dir=''):
                 var_dict['strand'] = items[7]
                 var_dict['variant_Classification'] = items[8]
                 var_dict['variant_Type'] = items[9]
-                if (sample_id,chr) in mutation_dic.keys():
+                if (sample_id,chr) in list(mutation_dic.keys()):
                     mutation_dic[((sample_id,chr))][int(pos)] = var_dict
                 else:
                     mutation_dic[((sample_id, chr))] = {}
                     mutation_dic[((sample_id,chr))][int(pos)] = var_dict
-        f_pkl =open(maf_pkl_file,'w')
-        cPickle.dump(mutation_dic,f_pkl)
+        f_pkl =open(maf_pkl_file,'wb')
+        pickle.dump(mutation_dic,f_pkl)
     return mutation_dic
 
 
@@ -431,7 +431,7 @@ def parse_junction_meta_info(h5f_path):
 
         for i,ichr in enumerate(chrms):
             try:
-                junction_dict[ichr].add(':'.join([pos[i, 0], pos[i, 1], strand[i]]))
+                junction_dict[ichr.decode('utf-8')].add(':'.join([pos[i, 0], pos[i, 1], strand[i].decode('utf-8')]))
             except KeyError:
-                junction_dict[ichr] = set([':'.join([pos[i, 0], pos[i, 1], strand[i]])])
+                junction_dict[ichr.decode('utf-8')] = set([':'.join([pos[i, 0], pos[i, 1], strand[i].decode('utf-8')])])
     return junction_dict

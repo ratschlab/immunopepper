@@ -4,8 +4,8 @@ import re
 
 import scipy as sp
 
-from utils import complementary_seq,translate_dna_to_peptide,get_exon_expr
-from immuno_nametuple import Output_background
+from .utils import complementary_seq,translate_dna_to_peptide,get_exon_expr
+from .immuno_nametuple import Output_background
 
 def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_table):
     """ Indicate whether exon pair also appears in transcript given by .gtf file
@@ -197,7 +197,7 @@ def get_remove_id(metadata_dict):
     # coordinates and readframe
     # both of them will be removed. Need to fix.
     remove_id_list = []
-    for exon_pair_list in metadata_dict.values():
+    for exon_pair_list in list(metadata_dict.values()):
         L = len(exon_pair_list)
         if L < 2:
             continue
