@@ -143,7 +143,6 @@ def main(arg):
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
 
     expr_distr_dict = {}
-    expr_distr = []
     # process graph for each input sample
     output_libszie_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
     for sample in arg.samples:
@@ -179,8 +178,7 @@ def main(arg):
         other_pep_field_list = ['id', 'new_line', 'peptide']
         kmer_field_list = ['kmer','id','expr','is_cross_junction']
         meta_peptide_fp.write(('\t'.join(meta_field_list) + '\n'))
-        expr_distr_dict[sample] = []
-
+        expr_distr = []
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
         for gene_idx in gene_id_list:
