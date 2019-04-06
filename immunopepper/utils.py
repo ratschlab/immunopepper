@@ -630,7 +630,7 @@ def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list,
                     if len(concat_peptide) > 0 : # calculate expr list
                         concat_expr_list = get_concat_expr_list(front_coord_pair,vertex_id_pair_list[back_id])
                         concat_expr_lists.append(concat_expr_list)
-                        concat_peptide = Output_background(id='Gene'+str(Idx.gene)+'_'+triple_v,
+                        concat_peptide = Output_background(id=gene.name+'_'+triple_v,
                                                            peptide=concat_peptide)
                         concat_peptide_list.append(concat_peptide)
     return concat_peptide_list,concat_expr_lists

@@ -162,7 +162,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                         output_metadata_list.append(output_metadata)
                         output_peptide = Output_junc_peptide(output_id='>'+str(idx.gene)+'.'+str(output_id),
                                                         id=gene.name+'_'+str(v_id)+'_'+str(prop_vertex),
-                                                        peptide=peptide.mut,exons_coor=coord)
+                                                        peptide=peptide.mut,exons_coor=coord,junction_count=edge_expr)
                         output_peptide_list.append(output_peptide)
                         expr_lists.append(expr_list)
                         output_id += 1
@@ -222,6 +222,10 @@ def create_output_kmer(peptide_list, expr_lists, k):
             spanning_index = get_spanning_index(coord,k)
         else:
             spanning_index = NOT_EXIST
+        if hasattr(peptide_list[i],'junction_count'):
+            junction_count = peptide_list[i].junction_count
+        else:
+            junction_count = NOT_EXIST
         # decide the kmer that spans over the cross junction
         expr_array = change_expr_lists_to_array(expr_lists[i])
         if len(peptide) >= k: # ignore short peptide
@@ -235,6 +239,6 @@ def create_output_kmer(peptide_list, expr_lists, k):
                     is_in_junction = False
                 else:
                     is_in_junction = j in spanning_index
-                kmer = Output_kmer(kmer_peptide,peptide_head,kmer_peptide_expr,is_in_junction)
+                kmer = Output_kmer(kmer_peptide,peptide_head,kmer_peptide_expr,is_in_junction,junction_count)
                 output_list.append(kmer)
     return output_list

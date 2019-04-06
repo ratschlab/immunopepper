@@ -177,7 +177,7 @@ def main(arg):
                                       'exons_coor', 'vertex_idx','junction_expr','segment_expr']
         junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
         other_pep_field_list = ['id', 'new_line', 'peptide']
-        kmer_field_list = ['kmer','id','expr','is_cross_junction']
+        kmer_field_list = ['kmer','id','expr','is_cross_junction','junction_count']
         meta_peptide_fp.write(('\t'.join(meta_field_list) + '\n'))
         expr_distr_dict[sample] = []
 
