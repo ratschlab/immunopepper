@@ -102,7 +102,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                     # If cross junction peptide has a stop-codon in it, the frame
                     # will not be propagated because the read is truncated before it reaches the end of the exon.
                     # also in mutation mode, only output the case where ref is different from mutated
-                    if peptide.mut != peptide.ref or mutation.mode == 'ref' or output_silence:
+                    if peptide.mut != '' and peptide.mut != peptide.ref or mutation.mode == 'ref' or output_silence:
                         match_ts_list = peptide_match(background_pep_list, peptide.mut)
                         peptide_is_annotated = len(match_ts_list)
                         if not flag.is_isolated:
