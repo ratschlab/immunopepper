@@ -19,6 +19,17 @@ Output_junc_peptide namedtuple
 """
 Output_junc_peptide = namedtuple('Output_junc_peptide', ['output_id','id','peptide','exons_coor','junction_count'])
 
+"""
+(temporary use)
+Output_concat_peptide namedtuple
+- output_id: (gene_id).(junction_id). gene_id is the index of given gene in the splicegraph array.
+    junction_id is the index of given junction pair in all junction pair (in descending or ascending order)
+- id: (gene_name)_(first_vertex_id)_(second_vertex_id). Detail information of output_id. 
+    We can know clearly from which gene and which vertex pair the given peptide is translated.
+- peptide: (peptide_string). The peptide translated from junction pairs.
+- exons_coor: Coord namedtuple
+"""
+Output_concat_peptide = namedtuple('Output_junc_peptide', ['id','peptide','junction_count'])
 
 """
 Output_metadata namedtuple. 

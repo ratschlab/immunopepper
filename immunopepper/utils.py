@@ -7,7 +7,7 @@ from collections import namedtuple
 import bisect
 
 from .constant import NOT_EXIST
-from .immuno_nametuple import Output_background
+from .immuno_nametuple import Output_background,Output_concat_peptide
 from immunopepper.immuno_nametuple import Peptide,Coord,Flag,Idx,Reading_frame_tuple
 
 
@@ -613,6 +613,8 @@ def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list,
 
     vertex_id_pair_list = [metadata.vertex_idx for metadata in output_metadata_list]
     coord_pair_list = [metadata.exons_coor for metadata in output_metadata_list]
+    junction_count_list = [metadata.junction_expr for metadata in output_metadata_list]
+
     concat_peptide_list = []
     concat_expr_lists = []
     for key_id in key_id_list:
@@ -630,7 +632,8 @@ def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list,
                     if len(concat_peptide) > 0 : # calculate expr list
                         concat_expr_list = get_concat_expr_list(front_coord_pair,vertex_id_pair_list[back_id])
                         concat_expr_lists.append(concat_expr_list)
-                        concat_peptide = Output_background(id=gene.name+'_'+triple_v,
-                                                           peptide=concat_peptide)
+                        mean_junction_count = np.mean((junction_count_list[front_id],junction_count_list[back_id]))
+                        concat_peptide = Output_concat_peptide(id=gene.name+'_'+triple_v,
+                                                           peptide=concat_peptide,junction_count=mean_junction_count)
                         concat_peptide_list.append(concat_peptide)
     return concat_peptide_list,concat_expr_lists
