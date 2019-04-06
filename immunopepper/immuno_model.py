@@ -224,7 +224,7 @@ def create_output_kmer(peptide_list, expr_lists, k):
             spanning_index = NOT_EXIST
         # decide the kmer that spans over the cross junction
         expr_array = change_expr_lists_to_array(expr_lists[i])
-        if len(peptide) >= k:
+        if len(peptide) >= k: # ignore short peptide
             for j in range(len(peptide)-k+1):
                 kmer_peptide = peptide[j:j+k]
                 if NOT_EXIST in expr_array:
@@ -232,21 +232,9 @@ def create_output_kmer(peptide_list, expr_lists, k):
                 else:
                     kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]),2)
                 if spanning_index is NOT_EXIST:
-                    is_in_junction = NOT_EXIST
+                    is_in_junction = False
                 else:
                     is_in_junction = j in spanning_index
                 kmer = Output_kmer(kmer_peptide,peptide_head,kmer_peptide_expr,is_in_junction)
                 output_list.append(kmer)
-        else:
-            kmer_peptide = peptide
-            if spanning_index is NOT_EXIST:
-                is_in_junction = False
-            else:
-                is_in_junction = True
-            if NOT_EXIST in expr_array:
-                kmer_peptide_expr = NOT_EXIST
-            else:
-                kmer_peptide_expr = np.round(np.mean(expr_array),2)
-            kmer = Output_kmer(kmer_peptide, peptide_head, kmer_peptide_expr,is_in_junction)
-            output_list.append(kmer)
     return output_list
