@@ -172,11 +172,11 @@ def test_create_output_kmer():
     peptide_list = [Output_background('1','MTHAW')]
     expr_lists = [[(8,1000),(1,220),(6,0)]] # test 0 expression
     c = create_output_kmer(peptide_list, expr_lists, k)
-    true_output = [Output_kmer('MTH','1',913.33,NOT_EXIST), Output_kmer('THA','1',580.0,NOT_EXIST), Output_kmer('HAW','1',246.67,NOT_EXIST)]
+    true_output = [Output_kmer('MTH','1',913.33,False,NOT_EXIST), Output_kmer('THA','1',580.0,False,NOT_EXIST), Output_kmer('HAW','1',246.67,False,NOT_EXIST)]
     assert c == true_output
     expr_lists = [[(8,1000),(1,220),(0,0)]] # test 0 expression
     c = create_output_kmer(peptide_list, expr_lists, k)
-    true_output = [Output_kmer('MTH','1',913.33,NOT_EXIST), Output_kmer('THA','1',870.0,NOT_EXIST), Output_kmer('HAW','1',740.0,NOT_EXIST)]
+    true_output = [Output_kmer('MTH','1',913.33,False,NOT_EXIST), Output_kmer('THA','1',870.0,False,NOT_EXIST), Output_kmer('HAW','1',740.0,False,NOT_EXIST)]
     assert c == true_output
 
 
@@ -221,8 +221,8 @@ def test_convert_namedtuple_to_str():
     assert result == expected_result
 
     other_pep_field_list = ['kmer','id','expr','is_cross_junction']
-    kmer_pep1 = Output_kmer('','GENE0_1_2',NOT_EXIST,False)
-    kmer_pep2 = Output_kmer('AQEB','GENE0_1_3',20,True)
+    kmer_pep1 = Output_kmer('','GENE0_1_2',NOT_EXIST,False,1.0)
+    kmer_pep2 = Output_kmer('AQEB','GENE0_1_3',20,True,10)
     kmer_pep_list = [kmer_pep1,kmer_pep2]
     result = [convert_namedtuple_to_str(kmer_pep,other_pep_field_list)+'\n' for kmer_pep in kmer_pep_list]
     expected_result = ['\tGENE0_1_2\t.\tFalse\n', 'AQEB\tGENE0_1_3\t20\tTrue\n']
