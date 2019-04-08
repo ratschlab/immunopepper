@@ -629,7 +629,7 @@ def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list,
                 front_coord_pair = coord_pair_list[front_id]
                 back_junction = junction_count_list[back_id]
                 front_junction = junction_count_list[front_id]
-                if len(back_peptide) > 0 and len(front_peptide) > 0 and  back_junction != NOT_EXIST and front_junction != NOT_EXIST: # filter out those empty string
+                if back_peptide and front_peptide and  back_junction != NOT_EXIST and front_junction != NOT_EXIST: # filter out those empty string
                     concat_peptide = get_concat_peptide(front_coord_pair,back_coord_pair,front_peptide, back_peptide,gene.strand,k)
                     if len(concat_peptide) > 0 : # calculate expr list
                         concat_expr_list = get_concat_expr_list(front_coord_pair,vertex_id_pair_list[back_id])
