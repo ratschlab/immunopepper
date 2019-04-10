@@ -142,7 +142,7 @@ def translate_dna_to_peptide(dna_str):
     return "".join(aa_str),has_stop_codon
 
 
-def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand):
+def get_sub_mut_dna(background_seq, coord,variant_comb, mutation_sub_dic_maf, strand):
     """ Get the mutated dna sub-sequence according to mutation specified by the variant_comb.
 
     Parameters
@@ -161,49 +161,37 @@ def get_sub_mut_dna(background_seq, start_v1, stop_v1, start_v2, stop_v2, varian
     final_dna: str. dna when applied somatic mutation.
 
     """
-    if start_v2 != NOT_EXIST:
-        if strand == '-':
-            sub_dna_list = list(background_seq[start_v1:stop_v1][::-1] + background_seq[start_v2:stop_v2][::-1])
-        else:
-            sub_dna_list = list(background_seq[start_v1:stop_v1] + background_seq[start_v2:stop_v2])
-    else:
-        if strand == '-':
-            sub_dna_list = list(background_seq[start_v1:stop_v1][::-1])
-        else:
-            sub_dna_list = list(background_seq[start_v1:stop_v1])
+    def get_variant_pos_offset(variant_pos,coord_pair_list,strand):
+        offset = 0
+        for coord_pair in coord_pair_list:
+            if variant_pos in range(coord_pair[0],coord_pair[1]):
+                if strand == '+':
+                    offset += variant_pos - coord_pair[0]
+                else:
+                    offset += coord_pair[1]-variant_pos-1
+            else:
+                offset = coord_pair[1]-coord_pair[0]
+        return offset
+
+    real_coord = list(filter(lambda x: x != NOT_EXIST and x != None, coord))
+    assert len(real_coord)%2 == 0
+    coord_pair_list = [(real_coord[2*i], real_coord[2*i+1]) for i in range(len(real_coord)//2)]
+
+    sub_dna = ''.join([background_seq[coord_pair[0]:coord_pair[1]] if strand == '+'
+                       else background_seq[coord_pair[0]:coord_pair[1]][::-1] for coord_pair in coord_pair_list])
 
     if variant_comb == NOT_EXIST : # no mutation exist
-        return ''.join(sub_dna_list)
-    for variant_ipos in variant_comb:
+        return sub_dna
+    relative_variant_pos = [get_variant_pos_offset(variant_ipos,coord_pair_list,strand) for variant_ipos in variant_comb]
+    for i,variant_ipos in enumerate(variant_comb):
         mut_base = mutation_sub_dic_maf[variant_ipos]['mut_base']
         ref_base = mutation_sub_dic_maf[variant_ipos]['ref_base']
+        pos = relative_variant_pos[i]
         # strand = mutation_sub_dic_maf[variant_ipos]['strand']
+        assert (sub_dna[pos] == ref_base)
+        sub_dna = sub_dna[:pos]+mut_base+sub_dna[pos+1:]
 
-        # decide mutation happens in which exon vertice
-        # it may falls out of the two ranges due to readframe shift
-        if variant_ipos in range(start_v1, stop_v1):
-
-            if strand == '-':
-                pos = stop_v1-variant_ipos-1
-                assert (sub_dna_list[pos] == ref_base)
-                sub_dna_list[pos] = mut_base
-            else:
-                pos = variant_ipos - start_v1
-                assert (sub_dna_list[pos] == ref_base)
-                sub_dna_list[pos] = mut_base
-
-        elif start_v2 != NOT_EXIST and variant_ipos in range(start_v2, stop_v2):
-            if strand == '-':
-                pos = stop_v2-variant_ipos+stop_v1-start_v1-1
-                assert (sub_dna_list[pos] == ref_base)
-                sub_dna_list[pos] = mut_base
-            else:
-                pos = variant_ipos-start_v2+stop_v1-start_v1
-                assert (sub_dna_list[pos] == ref_base)
-                sub_dna_list[pos] = mut_base
-
-    final_dna = ''.join(sub_dna_list)
-    return final_dna
+    return sub_dna
 
 def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, peptide_accept_coord):
     """ Get translated peptide from the given exon pairs.
@@ -249,14 +237,16 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     if strand == "+":
         start_v2 = peptide_accept_coord[0]
         stop_v2 = peptide_accept_coord[1] - next_emitting_frame
-        peptide_dna_str_mut = get_sub_mut_dna(ref_mut_seq['background'], start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand)
+        coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
+        peptide_dna_str_mut = get_sub_mut_dna(ref_mut_seq['background'], coord, variant_comb, mutation_sub_dic_maf, strand)
         peptide_dna_str_ref = ref_seq[start_v1:stop_v1] + ref_seq[start_v2:stop_v2]
         next_start_v1 = min(start_v2 + accepting_frame,peptide_accept_coord[1])
         next_stop_v1 = peptide_accept_coord[1]
     else:  # strand == "-"
         start_v2 = peptide_accept_coord[0] + next_emitting_frame
         stop_v2 = peptide_accept_coord[1]
-        mut_seq = get_sub_mut_dna(ref_mut_seq['background'], start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand)
+        coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
+        mut_seq = get_sub_mut_dna(ref_mut_seq['background'], coord, variant_comb, mutation_sub_dic_maf, strand)
         peptide_dna_str_mut = complementary_seq(mut_seq)
         peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1] + ref_seq[start_v2:stop_v2][::-1])
         next_start_v1 = peptide_accept_coord[0]
@@ -315,10 +305,12 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
     mut_seq = ref_mut_seq['background']
 
     if strand == '+':
-        peptide_dna_str_mut = get_sub_mut_dna(mut_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand)
+        coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
+        peptide_dna_str_mut = get_sub_mut_dna(mut_seq, coord, variant_comb, mutation_sub_dic_maf, strand)
         peptide_dna_str_ref = ref_seq[start_v1:stop_v1]
     else:
-        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, start_v1, stop_v1, start_v2, stop_v2, variant_comb, mutation_sub_dic_maf, strand))
+        coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
+        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, coord, variant_comb, mutation_sub_dic_maf, strand))
         peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1])
 
     peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut)
@@ -332,6 +324,28 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
 
     return peptide, coord, flag
 
+
+def get_peptide_result(simple_meta_data,strand,variant_comb, mutation_sub_dic_maf, ref_mut_seq):
+    if mutation_sub_dic_maf is None:  # no somatic mutation, the germline mutation will be the spotlight
+        ref_seq = ref_mut_seq['ref']
+    else:
+        ref_seq = ref_mut_seq['background']  # we focus on somatic mutation in this case
+    mut_seq = ref_mut_seq['background']
+
+    if strand == "+":
+        peptide_dna_str_mut = get_sub_mut_dna(mut_seq,simple_meta_data.exons_coor, variant_comb, mutation_sub_dic_maf, strand)
+        peptide_dna_str_ref = get_sub_mut_dna(ref_seq,simple_meta_data.exons_coor, NOT_EXIST, mutation_sub_dic_maf, strand)
+    else:  # strand == "-"
+        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, simple_meta_data.exons_coor, variant_comb, mutation_sub_dic_maf, strand))
+        peptide_dna_str_ref = complementary_seq(get_sub_mut_dna(ref_seq, simple_meta_data.exons_coor, NOT_EXIST, mutation_sub_dic_maf, strand))
+    peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut)
+    peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref)
+
+    # if the stop codon appears before translating the second exon, mark 'single'
+    is_isolated = False
+    peptide = Peptide(peptide_mut,peptide_ref)
+    flag = Flag(mut_has_stop_codon,is_isolated)
+    return peptide,flag
 
 def get_size_factor(strains, lib_file_path):
     """ Get the expression adjustment parameter for certain samples.
