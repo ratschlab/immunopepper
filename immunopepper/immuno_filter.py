@@ -6,6 +6,7 @@ import scipy as sp
 
 from .utils import complementary_seq,translate_dna_to_peptide,get_exon_expr
 from .immuno_nametuple import Output_background
+from functools import reduce
 
 def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_table):
     """ Indicate whether exon pair also appears in transcript given by .gtf file
@@ -46,6 +47,12 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
 
     return junction_flag
 
+def get_junction_anno_flag(junction_flag, vertex_id_tuple):
+    junction_list = [(vertex_id_tuple[i], vertex_id_tuple[i+1]) for i in range(len(vertex_id_tuple)-1)]
+    if len(junction_list) > 1:
+        return reduce(lambda junction1,junction2: junction_flag[junction1[0],junction1[1]]+junction_flag[junction2[0],junction2[1]],junction_list)
+    else:
+        return int(junction_flag[vertex_id_tuple[0],vertex_id_tuple[1]])
 
 def get_full_peptide(gene, seq, cds_list, Segments, Idx, mode):
     """

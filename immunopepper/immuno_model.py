@@ -4,7 +4,7 @@
 import numpy as np
 import scipy as sp
 
-from immunopepper.immuno_filter import junction_is_annotated, peptide_match, find_background_peptides
+from immunopepper.immuno_filter import junction_is_annotated, peptide_match, find_background_peptides,get_junction_anno_flag
 from immunopepper.immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
 from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr
 from immunopepper.immuno_preprocess import search_edge_metadata_segmentgraph
@@ -86,6 +86,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
         if len(gene.vertex_succ_list[v_id]) == 0: # if no successive vertex, we add a flag NOT_EXIST, translate and output it
             gene.vertex_succ_list[v_id].append(NOT_EXIST)
         for prop_vertex in gene.vertex_succ_list[v_id]:
+            vertex_tuple = (v_id,prop_vertex)
             mut_seq_comb = get_mut_comb(exon_som_dict, v_id, prop_vertex)
             for variant_comb in mut_seq_comb:  # go through each variant combination
                 for read_frame_tuple in sorted(reading_frame_dict[v_id]):
@@ -106,7 +107,8 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                         match_ts_list = peptide_match(background_pep_list, peptide.mut)
                         peptide_is_annotated = len(match_ts_list)
                         if not flag.is_isolated:
-                            junction_anno_flag = int(junction_flag[v_id, prop_vertex])
+                            #junction_anno_flag = int(junction_flag[v_id, prop_vertex])
+                            junction_anno_flag = get_junction_anno_flag(junction_flag,vertex_tuple)
                             if junction_list is not None:
                                 if gene.strand == '+':
                                     junctionOI_flag = is_in_junction_list(sg.vertices[:, v_id], sg.vertices[:, prop_vertex], gene.strand, junction_list)
