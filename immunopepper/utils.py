@@ -8,7 +8,7 @@ import bisect
 
 from .constant import NOT_EXIST
 from .immuno_nametuple import Output_background
-from immunopepper.immuno_nametuple import Peptide,Coord,Flag,Idx,Reading_frame_tuple
+from immunopepper.immuno_nametuple import Peptide,Flag,Idx,Reading_frame_tuple,init_part_coord
 
 
 
@@ -277,7 +277,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     else:
         jpos = float(stop_v1 - start_v1) / 3.0
     peptide = Peptide(peptide_mut,peptide_ref)
-    coord = Coord(start_v1,stop_v1,start_v2,stop_v2)
+    coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
     flag = Flag(mut_has_stop_codon,is_isolated)
     return peptide, coord, flag, next_reading_frame
 
@@ -327,7 +327,7 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
     is_isolated = True
 
     peptide = Peptide(peptide_mut,peptide_ref)
-    coord = Coord(start_v1,stop_v1,start_v2,stop_v2)
+    coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
     flag = Flag(mut_has_stop_codon,is_isolated)
 
     return peptide, coord, flag
@@ -472,6 +472,9 @@ def get_segment_expr(gene, coord, Segments, Idx):
     expr_list1 = get_exon_expr(gene,coord.start_v1,coord.stop_v1,Segments,Idx)
     expr_list2 = get_exon_expr(gene,coord.start_v2,coord.stop_v2,Segments,Idx)
     expr_list1.extend(expr_list2)
+    if coord.start_v3 is not None:
+        expr_list3 = get_exon_expr(gene,coord.start_v3,coord.stop_v3,Segments,Idx)
+        expr_list1.extend(expr_list3)
     expr_sum = 0
     seg_len = 0
     for item in expr_list1:

@@ -51,7 +51,8 @@ def parse_arguments(argv):
 
 def convert_namedtuple_to_str(_namedtuple,field_list):
     def convert_list_to_str(_list):
-        return ';'.join([str(_item) for _item in _list])
+        remove_none_list = filter(lambda x:x is not None, _list)
+        return ';'.join([str(_item) for _item in remove_none_list])
     line = ''
     for field in field_list:
         if field == 'new_line':

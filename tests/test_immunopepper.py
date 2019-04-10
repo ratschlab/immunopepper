@@ -13,7 +13,7 @@ from immunopepper.utils import get_sub_mut_dna,get_concat_peptide
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.main_immuno import parse_arguments
 from immunopepper.immuno_model import create_output_kmer
-from immunopepper.immuno_nametuple import Coord,Output_background,Output_kmer
+from immunopepper.immuno_nametuple import init_part_coord,Output_background,Output_kmer
 from immunopepper.constant import NOT_EXIST
 from immunopepper.main_immuno import convert_namedtuple_to_str
 from immunopepper.immuno_filter import get_junction_anno_flag
@@ -183,8 +183,8 @@ def test_create_output_kmer():
 
 
 def test_get_concat_peptide():
-    front_coord = Coord(10,19,25,33)
-    back_coord = Coord(27,36,44,53)
+    front_coord = init_part_coord(10,19,25,33)
+    back_coord = init_part_coord(27,36,44,53)
     front_peptide = ''
     back_peptide = 'MGF'
     strand = '+'
@@ -204,8 +204,8 @@ def test_get_concat_peptide():
     assert concat_pep == 'EDMF'
 
     # neg case
-    front_coord = Coord(35,43,20,29)
-    back_coord = Coord(18,26,17,13)
+    front_coord = init_part_coord(35,43,20,29)
+    back_coord = init_part_coord(18,26,17,13)
     strand = '-'
     front_peptide = 'EDM'
     back_peptide = 'DMF'

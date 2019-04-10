@@ -136,8 +136,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                         gene_outputid = str(idx.gene)+'.'+str(output_id)
                         # deal with expression data
                         if edges is not None and not flag.is_isolated:
-                            sorted_pos = sp.sort(np.array([coord.start_v1, coord.stop_v1, coord.start_v2, coord.stop_v2]))
-                            edge_expr = search_edge_metadata_segmentgraph(gene, sorted_pos, edges, idx)
+                            edge_expr = search_edge_metadata_segmentgraph(gene, coord, edges, idx)
                             total_expr += edge_expr
                             #edge_expr = edge_expr*size_factor
                         else:

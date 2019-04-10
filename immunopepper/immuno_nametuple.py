@@ -6,7 +6,10 @@ Coord namedtuple
 start and stop position of the junction pairs (two exons). If it only consists of one exon,
 start_v2 and stop_v2 is NOT_EXIST.
 """
-Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
+Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2', 'start_v3', 'stop_v3'])
+
+def init_part_coord(start_v1, stop_v1, start_v2, stop_v2, start_v3=None, stop_v3=None):
+    return Coord(start_v1,stop_v1,start_v2,stop_v2,start_v3,stop_v3)
 
 """
 Output_junc_peptide namedtuple
