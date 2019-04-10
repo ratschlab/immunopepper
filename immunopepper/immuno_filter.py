@@ -184,14 +184,15 @@ def get_exon_dict(metadata_list):
         idx = metadata.output_id
         read_frame = metadata.read_frame
         strand = metadata.gene_strand
+        variant_comb = metadata.variant_comb
         if strand == '+':
-            key = (read_frame,coord.stop_v1,coord.start_v2)
+            key = (read_frame,coord.stop_v1,coord.start_v2,variant_comb)
             if key in exon_dict:
                 exon_dict[key].append((idx, coord.start_v1, coord.stop_v2))
             else:
                 exon_dict[key] = [(idx, coord.start_v1, coord.stop_v2)]
         else:
-            key = (read_frame, coord.stop_v2, coord.start_v1)
+            key = (read_frame, coord.stop_v2, coord.start_v1,variant_comb)
             if key in exon_dict:
                 exon_dict[key].append((idx, coord.start_v2, coord.stop_v1))
             else:
@@ -218,6 +219,12 @@ def get_remove_id(metadata_dict):
                     remove_id_list.append(exon_pair[0])
                     break
     return remove_id_list
+
+def get_filtered_metadata_list(metadata_list):
+    exon_dict = get_exon_dict(metadata_list)
+    remove_id_list = get_remove_id(exon_dict)
+    filtered_meta_list = list(filter(lambda metadata: metadata.output_id not in remove_id_list,metadata_list))
+    return filtered_meta_list
 
 
 def get_filtered_output_list(metadata_list,peptide_list,expr_lists):

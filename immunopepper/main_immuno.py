@@ -207,7 +207,7 @@ def main(arg):
                                   ref_seq=seq_dict[chrm],
                                   idx=idx, segments=segments, edges=edges,
                                   table=genetable, mutation=sub_mutation,
-                                  junction_list=junction_list, debug=arg.debug,output_silence=arg.output_silence
+                                  junction_list=junction_list, debug=arg.debug,output_silence=arg.output_silence,k=arg.kmer
                                 )
                 expr_distr.append(total_expr)
 
