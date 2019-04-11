@@ -89,8 +89,8 @@ def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
     variant_comb = [(38,), (38, 41), '.']
     strand = ['+', '+', '+']
     for i, vlist in enumerate(test_list):
-        sub_dna = get_sub_mut_dna(ref_seq, vlist[0], vlist[1], vlist[2],
-                                  vlist[3], variant_comb[i],
+        coord = init_part_coord(vlist[0], vlist[1], vlist[2], vlist[3])
+        sub_dna = get_sub_mut_dna(ref_seq, coord, variant_comb[i],
                                   mutation_sub_dic_maf, strand[i])
         assert sub_dna == groundtruth[i]
 

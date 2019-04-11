@@ -163,15 +163,20 @@ def get_sub_mut_dna(background_seq, coord,variant_comb, mutation_sub_dic_maf, st
     """
     def get_variant_pos_offset(variant_pos,coord_pair_list,strand):
         offset = 0
+        take_effect_flag = False
         for coord_pair in coord_pair_list:
             if variant_pos in range(coord_pair[0],coord_pair[1]):
                 if strand == '+':
                     offset += variant_pos - coord_pair[0]
                 else:
                     offset += coord_pair[1]-variant_pos-1
+                take_effect_flag = True
+                break
             else:
                 offset = coord_pair[1]-coord_pair[0]
-        return offset
+
+        return offset if take_effect_flag else NOT_EXIST
+
 
     real_coord = list(filter(lambda x: x != NOT_EXIST and x != None, coord))
     assert len(real_coord)%2 == 0
@@ -187,9 +192,10 @@ def get_sub_mut_dna(background_seq, coord,variant_comb, mutation_sub_dic_maf, st
         mut_base = mutation_sub_dic_maf[variant_ipos]['mut_base']
         ref_base = mutation_sub_dic_maf[variant_ipos]['ref_base']
         pos = relative_variant_pos[i]
+        if pos != NOT_EXIST:
         # strand = mutation_sub_dic_maf[variant_ipos]['strand']
-        assert (sub_dna[pos] == ref_base)
-        sub_dna = sub_dna[:pos]+mut_base+sub_dna[pos+1:]
+            assert (sub_dna[pos] == ref_base)
+            sub_dna = sub_dna[:pos]+mut_base+sub_dna[pos+1:]
 
     return sub_dna
 
