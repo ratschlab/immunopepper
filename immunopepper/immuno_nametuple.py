@@ -146,5 +146,17 @@ CountInfo namedtuple
 CountInfo = namedtuple('CountInfo', ['segments', 'edges', 'sample_idx_table'])
 
 
+"""
+Option namedtuple
+namedtuple that contain all the argument needed in calculating output peptide 
+- output_silence: 
+- debug: 
+- filter_redundant: 
+- kmer:
+"""
+Option = namedtuple('Option', ['output_silence', 'debug', 'filter_redundant', 'kmer'])
+
+
+
 
 
