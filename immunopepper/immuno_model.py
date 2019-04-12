@@ -13,8 +13,8 @@ from immunopepper.immuno_nametuple import Output_metadata, Output_junc_peptide, 
 
 def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                       segments=None, edges=None, mutation=None,
-                             table=None, debug=False, output_silence=False,
-                             size_factor=None, junction_list=None,k=None):
+                             table=None,option=None,
+                             size_factor=None, junction_list=None):
     """Calculte the output peptide for every exon-pairs in the splicegraph
        Parameters
        ----------
@@ -27,8 +27,6 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
            has attribute ['expr','lookup_table']
        table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
            from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
-       debug: bool. More detailed information will be printed when debugging.
-       output_silence: bool. If set true, mutated peptide will be output even it is the same as referencd peptide
        size_factor: Scalar. To adjust the expression counts based on the external file `libsize.tsv`
        junction_list: List. Work as a filter to indicate some exon pair has certain
            ordinary intron which can be ignored further.
@@ -110,6 +108,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                                                   has_stop_codon=has_stop_flag,
                                                   peptide_weight="{:.3f}".format(1/n_read_frames))
                 simple_metadata_list.append(simple_metadata)
+                output_id += 1
 
     concat_simple_meta = get_concat_metadata(gene, simple_metadata_list, k)
     filtered_simple_meta = get_filtered_metadata_list(simple_metadata_list,gene.strand)
@@ -122,7 +121,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
         vertex_list = simple_metadata.vertex_idx
         read_frame_tuple = simple_metadata.read_frame
         peptide_weight = simple_metadata.peptide_weight
-
+        variant_id = 0
         for variant_comb in mut_seq_comb:  # go through each variant combination
             peptide,flag = get_peptide_result(simple_metadata, gene.strand, variant_comb, mutation.maf_dict, ref_mut_seq)
 
@@ -130,6 +129,8 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
             # will not be propagated because the read is truncated before it reaches the end of the exon.
             # also in mutation mode, only output the case where ref is different from mutated
             if peptide.mut != peptide.ref or mutation.mode == 'ref' or output_silence:
+                new_output_id = gene_outputid+'.'+str(variant_id)
+                detail_id = gene.name+'.'+'_'.join([str(v) for v in vertex_list])+'.'+str(variant_id)
                 match_ts_list = peptide_match(background_pep_list, peptide.mut)
                 peptide_is_annotated = len(match_ts_list)
                 junction_anno_flag = get_junction_anno_flag(junction_flag, vertex_list)
@@ -153,7 +154,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                     #edge_expr = edge_expr*size_factor
                 else:
                     edge_expr = NOT_EXIST
-                output_metadata = Output_metadata(output_id=gene_outputid,
+                output_metadata = Output_metadata(output_id=new_output_id,
                                                   read_frame=read_frame_tuple.read_phase,
                                                   gene_name=gene.name,
                                                   gene_chr=gene.chr,
@@ -172,13 +173,13 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                                                   junction_expr=edge_expr,
                                                   segment_expr=segment_expr
                 )
+                variant_id += 1
                 output_metadata_list.append(output_metadata)
-                output_peptide = Output_junc_peptide(output_id='>'+str(idx.gene)+'.'+str(output_id),
-                                                id=gene.name+'_'+str(v_id)+'_'+str(prop_vertex),
+                output_peptide = Output_junc_peptide(output_id='>'+new_output_id,
+                                                id=detail_id,
                                                 peptide=peptide.mut,exons_coor=coord)
                 output_peptide_list.append(output_peptide)
                 expr_lists.append(expr_list)
-                output_id += 1
     if not sg.edges is None:
         gene.to_sparse()
 
@@ -268,7 +269,7 @@ def get_concat_metadata(gene,output_metadata_list,k):
     concat_simple_meta_list = []
     vertices = gene.splicegraph.vertices
     vertex_len = vertices[1,:]-vertices[0,:]
-    key_id_list = np.where(vertex_len < (k+1)*3)[0]
+    key_id_list = np.where(vertex_len < k*3)[0]
     vertex_id_pair_list = [metadata.vertex_idx for metadata in output_metadata_list]
     stop_codon_list = [metadata.has_stop_codon for metadata in output_metadata_list]
     for key_id in key_id_list:
@@ -288,7 +289,7 @@ def get_concat_metadata(gene,output_metadata_list,k):
                                                stop_v2=middle_exon_coord[1],
                                                start_v3=back_meta.exons_coor.start_v2,
                                                stop_v3=back_meta.exons_coor.stop_v2)
-                triple_output_id = front_meta.output_id+back_meta.output_id.split('.')[-1]
+                triple_output_id = front_meta.output_id+'_'+back_meta.output_id.split('.')[-1]
                 triple_frame = front_meta.read_frame
                 triple_vertex_idx = front_meta.vertex_idx+[back_meta.vertex_idx[-1]]
                 triple_has_stop = back_meta.has_stop_codon
