@@ -6,7 +6,7 @@ import scipy as sp
 
 from immunopepper.immuno_filter import junction_is_annotated, peptide_match, find_background_peptides,get_junction_anno_flag,get_filtered_metadata_list
 from immunopepper.immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
-from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr
+from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr,get_peptide_result
 from immunopepper.immuno_preprocess import search_edge_metadata_segmentgraph
 from immunopepper.constant import NOT_EXIST
 from immunopepper.immuno_nametuple import Output_metadata, Output_junc_peptide, Output_kmer, Simple_metadata, init_part_coord
@@ -87,8 +87,8 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
         if len(gene.vertex_succ_list[v_id]) == 0: # if no successive vertex, we add a flag NOT_EXIST, translate and output it
             gene.vertex_succ_list[v_id].append(NOT_EXIST)
         for prop_vertex in gene.vertex_succ_list[v_id]:
-            vertex_tuple = (v_id,prop_vertex)
-            mut_seq_comb = get_mut_comb(exon_som_dict, v_id, prop_vertex)
+            vertex_list = [v_id,prop_vertex]
+            mut_seq_comb = get_mut_comb(exon_som_dict,vertex_list)
             for read_frame_tuple in sorted(reading_frame_dict[v_id]):
                 has_stop_flag = True
                 for variant_comb in mut_seq_comb:  # go through each variant combination
@@ -106,89 +106,83 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                 simple_metadata = Simple_metadata(output_id=gene_outputid,
                                                   read_frame=read_frame_tuple,
                                                   exons_coor=coord,
-                                                  vertex_idx=vertex_tuple,
+                                                  vertex_idx=vertex_list,
                                                   has_stop_codon=has_stop_flag,
-                                                  peptide_weight="{:.3f}".format(1/len(read_frame_tuple)))
+                                                  peptide_weight="{:.3f}".format(1/n_read_frames))
                 simple_metadata_list.append(simple_metadata)
 
     concat_simple_meta = get_concat_metadata(gene, simple_metadata_list, k)
     filtered_simple_meta = get_filtered_metadata_list(simple_metadata_list,gene.strand)
     final_simple_meta = filtered_simple_meta+concat_simple_meta
 
-    # for simple_meta in final_simple_meta:
-    #
-    #
-    #                 # If cross junction peptide has a stop-codon in it, the frame
-    #                 # will not be propagated because the read is truncated before it reaches the end of the exon.
-    #                 # also in mutation mode, only output the case where ref is different from mutated
-    #                 if peptide.mut != peptide.ref or mutation.mode == 'ref' or output_silence:
-    #                     match_ts_list = peptide_match(background_pep_list, peptide.mut)
-    #                     peptide_is_annotated = len(match_ts_list)
-    #                     if not flag.is_isolated:
-    #                         #junction_anno_flag = int(junction_flag[v_id, prop_vertex])
-    #                         junction_anno_flag = get_junction_anno_flag(junction_flag,vertex_tuple)
-    #                         if junction_list is not None:
-    #                             if gene.strand == '+':
-    #                                 junctionOI_flag = is_in_junction_list(sg.vertices[:, v_id], sg.vertices[:, prop_vertex], gene.strand, junction_list)
-    #                             else:
-    #                                 junctionOI_flag = is_in_junction_list(sg.vertices[:, prop_vertex], sg.vertices[:, v_id], gene.strand, junction_list)
-    #                         else:
-    #                             junctionOI_flag = NOT_EXIST
-    #                     else:
-    #                         junction_anno_flag = NOT_EXIST
-    #                         junctionOI_flag = NOT_EXIST
-    #                     # Write the variant gene into the FASTA FP together with the donor ID
-    #                     str_variant_comb = [str(ipos) for ipos in variant_comb]
-    #
-    #                     if variant_comb != NOT_EXIST and som_exp_dict is not None:  # which means there do exist some mutation
-    #                         seg_exp_variant_comb = [str(int(som_exp_dict[ipos])) for ipos in variant_comb]
-    #                     else:
-    #                         seg_exp_variant_comb = NOT_EXIST  # if no mutation or no count file,  the segment expression is .
-    #
-    #                     if segments is not None:
-    #                         segment_expr, expr_list = get_segment_expr(gene, coord, segments, idx)
-    #                     else:
-    #                         segment_expr, expr_list = NOT_EXIST, NOT_EXIST
-    #
-    #                     # create namedtuple
-    #                     gene_outputid = str(idx.gene)+'.'+str(output_id)
-    #                     # deal with expression data
-    #                     if edges is not None and not flag.is_isolated:
-    #                         edge_expr = search_edge_metadata_segmentgraph(gene, coord, edges, idx)
-    #                         total_expr += edge_expr
-    #                         #edge_expr = edge_expr*size_factor
-    #                     else:
-    #                         edge_expr = NOT_EXIST
-    #                     output_metadata = Output_metadata(output_id=gene_outputid,
-    #                                                       read_frame=read_frame_tuple.read_phase,
-    #                                                       gene_name=gene.name,
-    #                                                       gene_chr=gene.chr,
-    #                                                       gene_strand=gene.strand,
-    #                                                       mutation_mode=mutation.mode,
-    #                                                       peptide_weight="{:.3f}".format(peptide_weight),
-    #                                                       peptide_annotated=peptide_is_annotated,
-    #                                                       junction_annotated=junction_anno_flag,
-    #                                                       has_stop_codon=int(flag.has_stop),
-    #                                                       is_in_junction_list=junctionOI_flag,
-    #                                                       is_isolated=int(flag.is_isolated),
-    #                                                       variant_comb=str_variant_comb,
-    #                                                       variant_seg_expr=seg_exp_variant_comb,
-    #                                                       exons_coor=coord,
-    #                                                       vertex_idx=str(v_id) + ',' + str(prop_vertex),
-    #                                                       junction_expr=edge_expr,
-    #                                                       segment_expr=segment_expr
-    #                     )
-    #                     output_metadata_list.append(output_metadata)
-    #                     output_peptide = Output_junc_peptide(output_id='>'+str(idx.gene)+'.'+str(output_id),
-    #                                                     id=gene.name+'_'+str(v_id)+'_'+str(prop_vertex),
-    #                                                     peptide=peptide.mut,exons_coor=coord)
-    #                     output_peptide_list.append(output_peptide)
-    #                     expr_lists.append(expr_list)
-    #                     output_id += 1
-    # if not sg.edges is None:
-    #     gene.to_sparse()
-    #
-    # gene.processed = True
+    for simple_metadata in final_simple_meta:
+        mut_seq_comb = get_mut_comb(exon_som_dict,simple_metadata.vertex_idx)
+        gene_outputid = simple_metadata.output_id
+        coord = simple_metadata.exons_coor
+        vertex_list = simple_metadata.vertex_idx
+        read_frame_tuple = simple_metadata.read_frame
+        peptide_weight = simple_metadata.peptide_weight
+
+        for variant_comb in mut_seq_comb:  # go through each variant combination
+            peptide,flag = get_peptide_result(simple_metadata, gene.strand, variant_comb, mutation.maf_dict, ref_mut_seq)
+
+            # If cross junction peptide has a stop-codon in it, the frame
+            # will not be propagated because the read is truncated before it reaches the end of the exon.
+            # also in mutation mode, only output the case where ref is different from mutated
+            if peptide.mut != peptide.ref or mutation.mode == 'ref' or output_silence:
+                match_ts_list = peptide_match(background_pep_list, peptide.mut)
+                peptide_is_annotated = len(match_ts_list)
+                junction_anno_flag = get_junction_anno_flag(junction_flag, vertex_list)
+                junctionOI_flag = is_in_junction_list(sg,vertex_list, gene.strand, junction_list) # need re-write
+
+                if variant_comb != NOT_EXIST and som_exp_dict is not None:  # which means there do exist some mutation
+                    seg_exp_variant_comb = [int(som_exp_dict[ipos]) for ipos in variant_comb]
+                else:
+                    seg_exp_variant_comb = NOT_EXIST  # if no mutation or no count file,  the segment expression is .
+
+                if segments is not None:
+                    segment_expr, expr_list = get_segment_expr(gene, coord, segments, idx)
+                else:
+                    segment_expr, expr_list = NOT_EXIST, NOT_EXIST
+
+
+                # deal with expression data
+                if edges is not None and not flag.is_isolated:
+                    edge_expr = search_edge_metadata_segmentgraph(gene, coord, edges, idx)
+                    total_expr += edge_expr
+                    #edge_expr = edge_expr*size_factor
+                else:
+                    edge_expr = NOT_EXIST
+                output_metadata = Output_metadata(output_id=gene_outputid,
+                                                  read_frame=read_frame_tuple.read_phase,
+                                                  gene_name=gene.name,
+                                                  gene_chr=gene.chr,
+                                                  gene_strand=gene.strand,
+                                                  mutation_mode=mutation.mode,
+                                                  peptide_weight=peptide_weight,
+                                                  peptide_annotated=peptide_is_annotated,
+                                                  junction_annotated=junction_anno_flag,
+                                                  has_stop_codon=int(flag.has_stop),
+                                                  is_in_junction_list=junctionOI_flag,
+                                                  is_isolated=int(flag.is_isolated),
+                                                  variant_comb=variant_comb,
+                                                  variant_seg_expr=seg_exp_variant_comb,
+                                                  exons_coor=coord,
+                                                  vertex_idx=vertex_list,
+                                                  junction_expr=edge_expr,
+                                                  segment_expr=segment_expr
+                )
+                output_metadata_list.append(output_metadata)
+                output_peptide = Output_junc_peptide(output_id='>'+str(idx.gene)+'.'+str(output_id),
+                                                id=gene.name+'_'+str(v_id)+'_'+str(prop_vertex),
+                                                peptide=peptide.mut,exons_coor=coord)
+                output_peptide_list.append(output_peptide)
+                expr_lists.append(expr_list)
+                output_id += 1
+    if not sg.edges is None:
+        gene.to_sparse()
+
+    gene.processed = True
     return output_peptide_list,output_metadata_list,background_pep_list,expr_lists,back_expr_lists,total_expr
 
 
@@ -276,28 +270,28 @@ def get_concat_metadata(gene,output_metadata_list,k):
     vertex_len = vertices[1,:]-vertices[0,:]
     key_id_list = np.where(vertex_len < (k+1)*3)[0]
     vertex_id_pair_list = [metadata.vertex_idx for metadata in output_metadata_list]
-    stop_codon_list = [metadata.has_stop for metadata in output_metadata_list]
+    stop_codon_list = [metadata.has_stop_codon for metadata in output_metadata_list]
     for key_id in key_id_list:
-        front_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair.split(',')[1] == str(key_id)
+        front_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair[1] == key_id
                         and not stop_codon_list[i]]
-        back_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair.split(',')[0] == str(key_id)
-                       and vert_pair.split(',')[1] != NOT_EXIST]
+        back_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair[0] == key_id
+                       and vert_pair[1] != NOT_EXIST]
         for front_id in front_id_list:
             for back_id in back_id_list:
-                middle_exon_coord = gene.splicegraph.vertices[:,front_vertex_id[1]]
                 front_meta = output_metadata_list[front_id]
                 back_meta = output_metadata_list[back_id]
                 front_vertex_id = front_meta.vertex_idx
-                triple_coord = init_part_coord(start_v1=front_meta.coord.start_v1,
-                                               stop_v1=front_meta.coord.stop_v1,
+                middle_exon_coord = gene.splicegraph.vertices[:,front_vertex_id[1]]
+                triple_coord = init_part_coord(start_v1=front_meta.exons_coor.start_v1,
+                                               stop_v1=front_meta.exons_coor.stop_v1,
                                                start_v2=middle_exon_coord[0],
                                                stop_v2=middle_exon_coord[1],
-                                               start_v3=back_meta.coord.start_v2,
-                                               stop_v3=back_meta.coord.stop_v2)
-                triple_output_id = front_meta.gene_outputid+back_meta.gene_outputid.split('.')[-1]
+                                               start_v3=back_meta.exons_coor.start_v2,
+                                               stop_v3=back_meta.exons_coor.stop_v2)
+                triple_output_id = front_meta.output_id+back_meta.output_id.split('.')[-1]
                 triple_frame = front_meta.read_frame
                 triple_vertex_idx = front_meta.vertex_idx+[back_meta.vertex_idx[-1]]
-                triple_has_stop = back_meta.flag.has_stop
+                triple_has_stop = back_meta.has_stop_codon
                 new_simple_metadata = Simple_metadata(output_id=triple_output_id,
                                                       read_frame=triple_frame,
                                                       exons_coor=triple_coord,
