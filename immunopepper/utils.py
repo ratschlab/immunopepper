@@ -331,7 +331,7 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
     return peptide, coord, flag
 
 
-def get_peptide_result(simple_meta_data,strand,variant_comb, mutation_sub_dic_maf, ref_mut_seq):
+def get_peptide_result(simple_meta_data, strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq):
     if mutation_sub_dic_maf is None:  # no somatic mutation, the germline mutation will be the spotlight
         ref_seq = ref_mut_seq['ref']
     else:
@@ -348,7 +348,13 @@ def get_peptide_result(simple_meta_data,strand,variant_comb, mutation_sub_dic_ma
     peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref)
 
     # if the stop codon appears before translating the second exon, mark 'single'
-    is_isolated = False
+    stop_v1 = simple_meta_data.exons_coor.stop_v1
+    start_v1 = simple_meta_data.exons_coor.start_v1
+    start_v2 = simple_meta_data.exons_coor.start_v2
+    if start_v2 == NOT_EXIST or len(peptide_mut)*3 <= abs(stop_v1 - start_v1) + 1:
+        is_isolated = True
+    else:
+        is_isolated = False
     peptide = Peptide(peptide_mut,peptide_ref)
     flag = Flag(mut_has_stop_codon,is_isolated)
     return peptide,flag
@@ -424,7 +430,10 @@ def is_isolated_cds(gene, idx):
 
 def is_in_junction_list(v1,v2,strand,junction_list):
     """Check if the intron is in concerned junction list"""
-    return int(':'.join([str(v1[1]),  str(v2[0]), strand]) in junction_list)
+    if junction_list is not None:
+        return int(':'.join([str(v1[1]),  str(v2[0]), strand]) in junction_list)
+    else:
+        return NOT_EXIST
 
 
 def get_exon_expr(gene,vstart,vstop,Segments,Idx):
@@ -639,11 +648,11 @@ def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list,
     concat_peptide_list = []
     concat_expr_lists = []
     for key_id in key_id_list:
-        front_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair.split(',')[1] == str(key_id)]
-        back_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair.split(',')[0] == str(key_id)]
+        front_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair[1] == str(key_id)]
+        back_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair[0] == str(key_id)]
         for front_id in front_id_list:
             for back_id in back_id_list:
-                triple_v = '_'.join([vertex_id_pair_list[front_id].split(',')[0],vertex_id_pair_list[front_id].split(',')[1],vertex_id_pair_list[back_id].split(',')[1]])
+                triple_v = '_'.join([vertex_id_pair_list[front_id][0],vertex_id_pair_list[front_id][1],vertex_id_pair_list[back_id][1]])
                 back_peptide = output_peptide_list[back_id].peptide
                 front_peptide = output_peptide_list[front_id].peptide
                 back_coord_pair = coord_pair_list[back_id]
