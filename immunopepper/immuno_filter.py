@@ -53,7 +53,8 @@ def get_junction_anno_flag(junction_flag, vertex_id_tuple):
         return NOT_EXIST
     junction_list = [(vertex_id_tuple[i], vertex_id_tuple[i+1]) for i in range(len(vertex_id_tuple)-1)]
     if len(junction_list) > 1:
-        return reduce(lambda junction1,junction2: junction_flag[junction1[0],junction1[1]]+junction_flag[junction2[0],junction2[1]],junction_list)
+        #return reduce(lambda junction1,junction2: junction_flag[junction1[0],junction1[1]]+junction_flag[junction2[0],junction2[1]],junction_list)
+        return list(map(lambda junction: int(junction_flag[junction[0],junction[1]]),junction_list))
     else:
         return int(junction_flag[vertex_id_tuple[0],vertex_id_tuple[1]])
 
@@ -185,7 +186,7 @@ def get_exon_dict(metadata_list,strand):
         ## TODO: need to come up with a new way to index the exon dict
         coord = metadata.exons_coor
         idx = metadata.output_id
-        read_frame = metadata.read_frame
+        read_frame = metadata.read_frame.read_phase
         if strand == '+':
             key = (read_frame,coord.stop_v1,coord.start_v2)
             if key in exon_dict:
