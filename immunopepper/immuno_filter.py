@@ -165,7 +165,7 @@ def peptide_match(background_peptide_list, peptide):
     return match_ts_list
 
 
-def get_exon_dict(metadata_list):
+def get_exon_dict(metadata_list,strand):
     """ Get an auxiliary dictionary used for filtering
 
     Parameters
@@ -183,16 +183,14 @@ def get_exon_dict(metadata_list):
         coord = metadata.exons_coor
         idx = metadata.output_id
         read_frame = metadata.read_frame
-        strand = metadata.gene_strand
-        variant_comb = metadata.variant_comb
         if strand == '+':
-            key = (read_frame,coord.stop_v1,coord.start_v2,variant_comb)
+            key = (read_frame,coord.stop_v1,coord.start_v2)
             if key in exon_dict:
                 exon_dict[key].append((idx, coord.start_v1, coord.stop_v2))
             else:
                 exon_dict[key] = [(idx, coord.start_v1, coord.stop_v2)]
         else:
-            key = (read_frame, coord.stop_v2, coord.start_v1,variant_comb)
+            key = (read_frame, coord.stop_v2, coord.start_v1)
             if key in exon_dict:
                 exon_dict[key].append((idx, coord.start_v2, coord.stop_v1))
             else:
@@ -220,8 +218,8 @@ def get_remove_id(metadata_dict):
                     break
     return remove_id_list
 
-def get_filtered_metadata_list(metadata_list):
-    exon_dict = get_exon_dict(metadata_list)
+def get_filtered_metadata_list(metadata_list,strand):
+    exon_dict = get_exon_dict(metadata_list,strand)
     remove_id_list = get_remove_id(exon_dict)
     filtered_meta_list = list(filter(lambda metadata: metadata.output_id not in remove_id_list,metadata_list))
     return filtered_meta_list

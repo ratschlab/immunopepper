@@ -57,8 +57,7 @@ Output_metadata = namedtuple('Output_metadata', ['output_id', 'read_frame', 'gen
                                                  'exons_coor',	'vertex_idx',	'junction_expr',
                                                  'segment_expr'])
 
-Simple_metadata = namedtuple('Small_metadata', ['output_id', 'read_frame','has_stop_codon',
-                                                 'variant_comb','exons_coor','vertex_idx'])
+Simple_metadata = namedtuple('Small_metadata', ['output_id', 'read_frame','has_stop_codon','exons_coor','vertex_idx','peptide_weight'])
 
 
 """

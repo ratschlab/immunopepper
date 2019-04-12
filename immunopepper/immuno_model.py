@@ -89,27 +89,30 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
         for prop_vertex in gene.vertex_succ_list[v_id]:
             vertex_tuple = (v_id,prop_vertex)
             mut_seq_comb = get_mut_comb(exon_som_dict, v_id, prop_vertex)
-            for variant_comb in mut_seq_comb:  # go through each variant combination
-                for read_frame_tuple in sorted(reading_frame_dict[v_id]):
+            for read_frame_tuple in sorted(reading_frame_dict[v_id]):
+                has_stop_flag = True
+                for variant_comb in mut_seq_comb:  # go through each variant combination
                     if debug:
                         print(v_id, prop_vertex, variant_comb, read_frame_tuple)
-                    peptide_weight = 1.0 / n_read_frames
                     if prop_vertex != NOT_EXIST:
                         peptide, coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.maf_dict, ref_mut_seq, sg.vertices[:, prop_vertex])
                         if not flag.has_stop:
                             reading_frame_dict[prop_vertex].add(next_reading_frame)
                     else:
+
                         peptide, coord, flag = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.maf_dict,ref_mut_seq)
-                    gene_outputid = str(idx.gene)+'.'+str(output_id)
-                    simple_metadata = Simple_metadata(output_id=gene_outputid,
-                                                      read_frame=read_frame_tuple,
-                                                      exons_coor=coord,
-                                                      vertex_idx=[v_id,prop_vertex],
-                                                      has_stop_codon=flag.has_stop,
-                                                      variant_comb=variant_comb)
-                    simple_metadata_list.append(simple_metadata)
-    concat_simple_meta = get_concat_metadata(gene, simple_metadata_list,k)
-    filtered_simple_meta = get_filtered_metadata_list(simple_metadata_list)
+                    has_stop_flag = has_stop_flag and flag.has_stop
+                gene_outputid = str(idx.gene) + '.' + str(output_id)
+                simple_metadata = Simple_metadata(output_id=gene_outputid,
+                                                  read_frame=read_frame_tuple,
+                                                  exons_coor=coord,
+                                                  vertex_idx=vertex_tuple,
+                                                  has_stop_codon=has_stop_flag,
+                                                  peptide_weight="{:.3f}".format(1/len(read_frame_tuple)))
+                simple_metadata_list.append(simple_metadata)
+
+    concat_simple_meta = get_concat_metadata(gene, simple_metadata_list, k)
+    filtered_simple_meta = get_filtered_metadata_list(simple_metadata_list,gene.strand)
     final_simple_meta = filtered_simple_meta+concat_simple_meta
 
     # for simple_meta in final_simple_meta:
@@ -268,20 +271,12 @@ def create_output_kmer(peptide_list, expr_lists, k):
     return output_list
 
 def get_concat_metadata(gene,output_metadata_list,k):
-    def has_the_same_somatic_variant(front_variant_comb,back_variant_comb,exon_coord):
-        front_middle_variant = list(filter(lambda variant: variant in range(exon_coord[0],exon_coord[1]), front_variant_comb))
-        back_middle_variant = list(filter(lambda variant: variant in range(exon_coord[0],exon_coord[1]),back_variant_comb))
-        is_variant_match = front_middle_variant == back_middle_variant
-        triple_variant_comb = tuple(set(front_variant_comb).union(back_variant_comb))
-        return is_variant_match,triple_variant_comb
-
     concat_simple_meta_list = []
     vertices = gene.splicegraph.vertices
     vertex_len = vertices[1,:]-vertices[0,:]
     key_id_list = np.where(vertex_len < (k+1)*3)[0]
     vertex_id_pair_list = [metadata.vertex_idx for metadata in output_metadata_list]
     stop_codon_list = [metadata.has_stop for metadata in output_metadata_list]
-    variant_comb_list = [metadata.variant_comb for metadata in output_metadata_list]
     for key_id in key_id_list:
         front_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair.split(',')[1] == str(key_id)
                         and not stop_codon_list[i]]
@@ -289,12 +284,7 @@ def get_concat_metadata(gene,output_metadata_list,k):
                        and vert_pair.split(',')[1] != NOT_EXIST]
         for front_id in front_id_list:
             for back_id in back_id_list:
-                front_variant_comb = variant_comb_list[front_id]
-                back_variant_comb = variant_comb_list[back_id]
                 middle_exon_coord = gene.splicegraph.vertices[:,front_vertex_id[1]]
-                is_variant_match, triple_variant_comb = has_the_same_somatic_variant(front_variant_comb,back_variant_comb,middle_exon_coord)
-                if not is_variant_match:
-                    continue
                 front_meta = output_metadata_list[front_id]
                 back_meta = output_metadata_list[back_id]
                 front_vertex_id = front_meta.vertex_idx
@@ -313,6 +303,6 @@ def get_concat_metadata(gene,output_metadata_list,k):
                                                       exons_coor=triple_coord,
                                                       vertex_idx=triple_vertex_idx,
                                                       has_stop_codon=triple_has_stop,
-                                                      variant_comb=triple_variant_comb)
+                                                      peptide_weight=front_meta.peptide_weight)
                 concat_simple_meta_list.append(new_simple_metadata)
     return concat_simple_meta_list
