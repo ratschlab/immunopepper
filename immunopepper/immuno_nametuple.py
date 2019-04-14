@@ -166,7 +166,7 @@ namedtuple that contain all the filepointers
 - background_kmer_fp:
 - junction_kmer_fp:
 """
-Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp','background_peptide_fp','background_kmer_fp','junction_kmer_fp'])
+Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp','background_peptide_fp','junction_kmer_fp','background_kmer_fp'])
 
 
 
