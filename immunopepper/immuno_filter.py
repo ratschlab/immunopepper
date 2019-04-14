@@ -113,15 +113,15 @@ def get_full_peptide(gene, seq, cds_list, Segments, Idx, mode):
     return cds_expr_list, cds_string, cds_peptide
 
 
-def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript_cds_table, Segments, Idx):
+def find_background_peptides(gene, ref_seq, table, Segments, Idx):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
     Parameters
     ----------
     gene: Object. Created by SplAdder
     ref_seq: List(str). Reference sequence of certain chromosome.
-    gene_to_transcript_table: Dict. "Gene" -> "transcript"
-    transcript_to_cds_table: Dict. "transcript" -> "cds"
+    table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
+       from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
 
     Returns
     -------
@@ -130,6 +130,7 @@ def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript
     (ts_list): List[str]. List of all the transcript indicated by the  annotation file
         can be used to generate artifical reads.
     """
+    gene_to_transcript_table,transcript_cds_table = table.gtable.gene_to_ts, table.ts_to_cds,
     gene_transcripts = gene_to_transcript_table[gene.name]
     peptide_list = []
     expr_lists = []

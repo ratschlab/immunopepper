@@ -19,6 +19,7 @@ from immunopepper.immuno_preprocess import genes_preprocess,preprocess_ann,parse
 from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_mutation_tuple
 from immunopepper.immuno_model import calculate_output_peptide, create_output_kmer
 from immunopepper.immuno_nametuple import Option
+from immunopepper.immuno_filter import find_background_peptides
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.utils import get_idx,create_libsize
 
@@ -206,6 +207,9 @@ def main(arg):
                                   table=genetable, mutation=sub_mutation,
                                   junction_list=junction_list,option=option
                                 )
+                background_pep_list, back_expr_lists = find_background_peptides(gene, ref_mut_seq['background'],genetable,
+                                                                                segments, idx)
+
                 expr_distr.append(total_expr)
 
                 if arg.kmer > 0:

@@ -68,11 +68,6 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
         if segments is not None:
             som_exp_dict = get_som_expr_dict(gene, list(mutation.maf_dict.keys()), segments, idx)
 
-    # find background peptide
-    # if no germline mutation is applies, germline key still exists, equals to reference.
-    # return the list of the background peptide for each transcript
-    background_pep_list, back_expr_lists = find_background_peptides(gene, ref_mut_seq['background'], table.gene_to_ts, table.ts_to_cds, segments, idx)
-
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
