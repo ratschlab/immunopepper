@@ -4,17 +4,14 @@
 import numpy as np
 import scipy as sp
 
-from immunopepper.immuno_filter import junction_is_annotated, peptide_match, find_background_peptides,get_junction_anno_flag,get_filtered_metadata_list
+from immunopepper.immuno_filter import junction_is_annotated, peptide_match,get_junction_anno_flag,get_filtered_metadata_list,get_full_peptide
 from immunopepper.immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
-from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr,get_peptide_result
+from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr,get_peptide_result,convert_namedtuple_to_str,write_namedtuple_list
 from immunopepper.immuno_preprocess import search_edge_metadata_segmentgraph
 from immunopepper.constant import NOT_EXIST
-from immunopepper.immuno_nametuple import Output_metadata, Output_junc_peptide, Output_kmer, Simple_metadata, init_part_coord
+from immunopepper.immuno_nametuple import Output_metadata, Output_junc_peptide, Output_kmer, Simple_metadata, init_part_coord,Output_background
 
-def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
-                      segments=None, edges=None, mutation=None,
-                             table=None,option=None,
-                             size_factor=None, junction_list=None):
+def get_simple_metadata(gene=None, ref_seq=None, idx=None,mutation=None, option=None):
     """Calculte the output peptide for every exon-pairs in the splicegraph
        Parameters
        ----------
@@ -32,24 +29,20 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
            ordinary intron which can be ignored further.
        mutation: Namedtuple Mutation, store the mutation information of specific chromosome and sample.
            has the attribute ['mode', 'maf_dict', 'vcf_dict']
+
        Returns
        -------
-       output_peptide_list: List[Output_junc_peptide]. Contain all the possible output peptide in the given splicegraph.
-       output_metadata_list: List[Output_metadata]. Contain the correpsonding medata data for each output peptide.
-       output_background_pep_list: List[Output_background]. Contain the background peptide for each transcript.
-       expr_lists: List[List(Tuple(int,float))]. Contain the segment expression data for each output peptide.
-       back_expr_lists: List[List(Tuple(int,float))]. Contain the segment expression data for background output.
-       total_expr: Float. The sum of all the expression counts which will be used for generating libsize.tsv
+       final_simple_meta:
+       ref_mut_seq:
+       exon_som_dict:
+
        """
 
     sg = gene.splicegraph
     gene.from_sparse()
-    total_expr = 0
 
     output_id = 0
-    output_peptide_list = []
-    output_metadata_list = []
-    expr_lists = []
+
 
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
@@ -65,12 +58,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
     som_exp_dict, exon_som_dict = None,None
     if mutation.maf_dict is not None:
         exon_som_dict = get_exon_som_dict(gene, list(mutation.maf_dict.keys()))
-        if segments is not None:
-            som_exp_dict = get_som_expr_dict(gene, list(mutation.maf_dict.keys()), segments, idx)
 
-    # check whether the junction (specific combination of vertices) also is annotated
-    # as a  junction of a protein coding transcript
-    junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
     simple_metadata_list = []
     reading_frame_dict = dict(sg.reading_frames)
     for v_id in gene.vertex_order:
@@ -105,9 +93,53 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                 simple_metadata_list.append(simple_metadata)
                 output_id += 1
 
-    concat_simple_meta = get_concat_metadata(gene, simple_metadata_list, k)
-    filtered_simple_meta = get_filtered_metadata_list(simple_metadata_list,gene.strand)
-    final_simple_meta = filtered_simple_meta+concat_simple_meta
+    concat_simple_meta_list = get_concat_metadata(gene, simple_metadata_list, option.kmer)
+    if option.filter_redundant:
+        filtered_simple_meta_list = get_filtered_metadata_list(simple_metadata_list,gene.strand)
+    else:
+        filtered_simple_meta_list = simple_metadata_list
+    final_simple_meta = filtered_simple_meta_list+concat_simple_meta_list
+    return final_simple_meta,ref_mut_seq,exon_som_dict
+
+def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background_pep_list=None,ref_mut_seq=None, idx=None,
+                         exon_som_dict=None,segments=None, edges=None, mutation=None,table=None,option=None,
+                         size_factor=None, junction_list=None, filepointer=None):
+    """
+
+    Parameters
+    ----------
+    gene: Object, returned by SplAdder.
+    final_simple_meta: Str, reference sequnce of specific chromosome
+    idx: Namedtuple Idx, has attribute idx.gene and idx.sample
+    segments: Namedtuple Segments, store segment expression information from count.hdf5.
+       has attribute ['expr', 'lookup_table'].
+    edges: Namedtuple Edges, store edges expression information from count.hdf5.
+       has attribute ['expr','lookup_table']
+    table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
+       from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
+    size_factor: Scalar. To adjust the expression counts based on the external file `libsize.tsv`
+    junction_list: List. Work as a filter to indicate some exon pair has certain
+       ordinary intron which can be ignored further.
+    mutation: Namedtuple Mutation, store the mutation information of specific chromosome and sample.
+       has the attribute ['mode', 'maf_dict', 'vcf_dict']
+    filepointer:
+
+    Returns
+    -------
+
+    """
+    # check whether the junction (specific combination of vertices) also is annotated
+    # as a  junction of a protein coding transcript
+    junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
+    total_expr = 0
+    som_exp_dict = get_som_expr_dict(gene, list(mutation.maf_dict.keys()), segments, idx)
+    meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode',
+                       'peptide_weight', 'peptide_annotated',
+                       'junction_annotated', 'has_stop_codon', 'is_in_junction_list', 'is_isolated', 'variant_comb',
+                       'variant_seg_expr',
+                       'exons_coor', 'vertex_idx', 'junction_expr', 'segment_expr']
+    junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
+    kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction']
 
     for simple_metadata in final_simple_meta:
         mut_seq_comb = get_mut_comb(exon_som_dict,simple_metadata.vertex_idx)
@@ -129,7 +161,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                 match_ts_list = peptide_match(background_pep_list, peptide.mut)
                 peptide_is_annotated = len(match_ts_list)
                 junction_anno_flag = get_junction_anno_flag(junction_flag, vertex_list)
-                junctionOI_flag = is_in_junction_list(sg,vertex_list, gene.strand, junction_list) # need re-write
+                junctionOI_flag = is_in_junction_list(gene.splicegraph,vertex_list, gene.strand, junction_list) # need re-write
 
                 if variant_comb != NOT_EXIST and som_exp_dict is not None:  # which means there do exist some mutation
                     seg_exp_variant_comb = [int(som_exp_dict[ipos]) for ipos in variant_comb]
@@ -169,26 +201,70 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
                                                   segment_expr=segment_expr
                 )
                 variant_id += 1
-                output_metadata_list.append(output_metadata)
                 output_peptide = Output_junc_peptide(output_id='>'+new_output_id,
                                                 id=detail_id,
                                                 peptide=peptide.mut,exons_coor=coord)
-                output_peptide_list.append(output_peptide)
-                expr_lists.append(expr_list)
-    if not sg.edges is None:
+
+                if option.kmer > 0:
+                    output_kmer_list = create_output_kmer(output_peptide,expr_list,option.kmer)
+                    write_namedtuple_list(filepointer.junction_kmer_fp, output_kmer_list, kmer_field_list)
+
+                filepointer.junction_meta_fp.write(convert_namedtuple_to_str(output_metadata,meta_field_list)+'\n')
+                filepointer.junction_peptide_fp.write(convert_namedtuple_to_str(output_peptide,junc_pep_field_list)+'\n')
+
+    if not gene.splicegraph.edges is None:
         gene.to_sparse()
-
     gene.processed = True
-    return output_peptide_list,output_metadata_list,background_pep_list,expr_lists,back_expr_lists,total_expr
+    return total_expr
+
+def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, table, Segments, Idx,filepointer,option):
+    """Calculate the peptide translated from the complete transcript instead of single exon pairs
+
+    Parameters
+    ----------
+    gene: Object. Created by SplAdder
+    ref_seq: List(str). Reference sequence of certain chromosome.
+    table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
+       from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
+
+    Returns
+    -------
+    peptide_list: List[str]. List of all the peptide translated from the given
+       splicegraph and annotation.
+    (ts_list): List[str]. List of all the transcript indicated by the  annotation file
+        can be used to generate artifical reads.
+    """
+    ref_seq = ref_mut_seq['background']
+    gene_to_transcript_table,transcript_cds_table = table.gene_to_ts, table.ts_to_cds,
+    gene_transcripts = gene_to_transcript_table[gene.name]
+    back_pep_field_list = ['id', 'new_line', 'peptide']
+    kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction']
+    background_peptide_list = []
+    # Generate a background peptide for every variant transcript
+    for ts in gene_transcripts:
+        # No CDS entries for transcript in annotation file...
+        if ts not in transcript_cds_table:
+            #print("WARNING: Transcript not in CDS table")
+            continue
+        cds_list = transcript_cds_table[ts]
+        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode='back')
+        peptide = Output_background(ts,cds_peptide)
+        background_peptide_list.append(peptide)
+        filepointer.background_peptide_fp.write(convert_namedtuple_to_str(peptide,back_pep_field_list)+'\n')
+        if option.kmer > 0:
+            output_kmer_list = create_output_kmer(peptide, cds_expr_list, option.kmer)
+            write_namedtuple_list(filepointer.background_kmer_fp,output_kmer_list,kmer_field_list)
+    gene.processed = True
+    return background_peptide_list
 
 
-def create_output_kmer(peptide_list, expr_lists, k):
+def create_output_kmer(output_peptide, expr_list, k):
     """Calculate the output kmer and the corresponding expression based on output peptide
 
     Parameters
     ----------
-    peptide_list: List(Output_junc_peptide). Filtered output_peptide_list.
-    expr_lists: List(List(Tuple)). Filtered expr_list.
+    peptide_list: Output_junc_peptide. Filtered output_peptide_list.
+    expr_lists: List(Tuple). Filtered expr_list.
     k: int. Specify k-mer length
 
     Returns
@@ -221,44 +297,42 @@ def create_output_kmer(peptide_list, expr_lists, k):
             spanning_id_range = list(range(max(m-k+1,0),m+1))
         return spanning_id_range
 
-    assert len(peptide_list) == len(expr_lists)
-    output_list = []
-    for i in range(len(peptide_list)):
-        peptide = peptide_list[i].peptide
-        peptide_head = peptide_list[i].id
-        if hasattr(peptide_list[i],'exons_coor'):
-            coord = peptide_list[i].exons_coor
-            spanning_index = get_spanning_index(coord,k)
-        else:
-            spanning_index = NOT_EXIST
-        # decide the kmer that spans over the cross junction
-        expr_array = change_expr_lists_to_array(expr_lists[i])
-        if len(peptide) >= k:
-            for j in range(len(peptide)-k+1):
-                kmer_peptide = peptide[j:j+k]
-                if NOT_EXIST in expr_array:
-                    kmer_peptide_expr = NOT_EXIST
-                else:
-                    kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]),2)
-                if spanning_index is NOT_EXIST:
-                    is_in_junction = NOT_EXIST
-                else:
-                    is_in_junction = j in spanning_index
-                kmer = Output_kmer(kmer_peptide,peptide_head,kmer_peptide_expr,is_in_junction)
-                output_list.append(kmer)
-        else:
-            kmer_peptide = peptide
-            if spanning_index is NOT_EXIST:
-                is_in_junction = False
-            else:
-                is_in_junction = True
+    output_kmer_list = []
+    peptide = output_peptide.peptide
+    peptide_head = output_peptide.id
+    if hasattr(output_peptide,'exons_coor'):
+        coord = output_peptide.exons_coor
+        spanning_index = get_spanning_index(coord,k)
+    else:
+        spanning_index = NOT_EXIST
+    # decide the kmer that spans over the cross junction
+    expr_array = change_expr_lists_to_array(expr_list)
+    if len(peptide) >= k:
+        for j in range(len(peptide)-k+1):
+            kmer_peptide = peptide[j:j+k]
             if NOT_EXIST in expr_array:
                 kmer_peptide_expr = NOT_EXIST
             else:
-                kmer_peptide_expr = np.round(np.mean(expr_array),2)
-            kmer = Output_kmer(kmer_peptide, peptide_head, kmer_peptide_expr,is_in_junction)
-            output_list.append(kmer)
-    return output_list
+                kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]),2)
+            if spanning_index is NOT_EXIST:
+                is_in_junction = NOT_EXIST
+            else:
+                is_in_junction = j in spanning_index
+            kmer = Output_kmer(kmer_peptide,peptide_head,kmer_peptide_expr,is_in_junction)
+            output_kmer_list.append(kmer)
+    else:
+        kmer_peptide = peptide
+        if spanning_index is NOT_EXIST:
+            is_in_junction = False
+        else:
+            is_in_junction = True
+        if NOT_EXIST in expr_array:
+            kmer_peptide_expr = NOT_EXIST
+        else:
+            kmer_peptide_expr = np.round(np.mean(expr_array),2)
+        kmer = Output_kmer(kmer_peptide, peptide_head, kmer_peptide_expr,is_in_junction)
+        output_kmer_list.append(kmer)
+    return output_kmer_list
 
 def get_concat_metadata(gene,output_metadata_list,k):
     concat_simple_meta_list = []
