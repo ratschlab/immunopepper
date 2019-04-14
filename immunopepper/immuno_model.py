@@ -90,7 +90,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
             for read_frame_tuple in sorted(reading_frame_dict[v_id]):
                 has_stop_flag = True
                 for variant_comb in mut_seq_comb:  # go through each variant combination
-                    if debug:
+                    if option.debug:
                         print(v_id, prop_vertex, variant_comb, read_frame_tuple)
                     if prop_vertex != NOT_EXIST:
                         peptide, coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.maf_dict, ref_mut_seq, sg.vertices[:, prop_vertex])
@@ -128,7 +128,7 @@ def calculate_output_peptide(gene=None, ref_seq=None, idx=None,
             # If cross junction peptide has a stop-codon in it, the frame
             # will not be propagated because the read is truncated before it reaches the end of the exon.
             # also in mutation mode, only output the case where ref is different from mutated
-            if peptide.mut != peptide.ref or mutation.mode == 'ref' or output_silence:
+            if peptide.mut != peptide.ref or mutation.mode == 'ref' or option.output_silence:
                 new_output_id = gene_outputid+'.'+str(variant_id)
                 detail_id = gene.name+'.'+'_'.join([str(v) for v in vertex_list])+'.'+str(variant_id)
                 match_ts_list = peptide_match(background_pep_list, peptide.mut)

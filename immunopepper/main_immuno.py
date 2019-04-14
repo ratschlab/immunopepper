@@ -18,9 +18,9 @@ from immunopepper.immuno_print import print_memory_diags
 from immunopepper.immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_junction_meta_info
 from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_mutation_tuple
 from immunopepper.immuno_model import calculate_output_peptide, create_output_kmer
-from immunopepper.immuno_filter import get_filtered_output_list
+from immunopepper.immuno_nametuple import Option
 from immunopepper.io_utils import load_pickled_graph
-from immunopepper.utils import get_idx,create_libsize,get_concat_junction_peptide
+from immunopepper.utils import get_idx,create_libsize
 
 def parse_arguments(argv):
 
@@ -147,6 +147,7 @@ def main(arg):
     expr_distr = []
     # process graph for each input sample
     output_libszie_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
+    option = Option(output_silence=arg.output_silence,debug=arg.debug,filter_redundant=arg.filter_redudant,kmer=arg.kmer)
     for sample in arg.samples:
         # prepare for the output file
         output_path = os.path.join(arg.output_dir, sample)
@@ -160,18 +161,14 @@ def main(arg):
         peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa')
         meta_peptide_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz')
         background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa')
-        concat_peptide_file_path = os.path.join(output_path, mutation.mode + '_concat_peptides.fa')
         junction_kmer_peptide_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.txt')
         back_kmer_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.txt')
-        concat_kmer_peptide_file_path = os.path.join(output_path, mutation.mode + '_concat_kmer.txt')
 
         peptide_fp = open(peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(meta_peptide_file_path, 'wt')
         background_fp = open(background_peptide_file_path,'w')
-        concat_peptide_fp = open(concat_peptide_file_path, 'w')
         junction_kmer_peptide_fp = open(junction_kmer_peptide_file_path, 'w')
         back_kmer_peptide_fp = open(back_kmer_peptide_file_path, 'w')
-        concat_kmer_peptide_fp = open(concat_kmer_peptide_file_path, 'w')
 
         meta_field_list = ['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
                                     'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','variant_seg_expr',
@@ -207,24 +204,15 @@ def main(arg):
                                   ref_seq=seq_dict[chrm],
                                   idx=idx, segments=segments, edges=edges,
                                   table=genetable, mutation=sub_mutation,
-                                  junction_list=junction_list, debug=arg.debug,output_silence=arg.output_silence,k=arg.kmer
+                                  junction_list=junction_list,option=option
                                 )
                 expr_distr.append(total_expr)
 
-                if arg.filter_redundant:
-                    output_metadata_list, output_peptide_list, expr_lists = get_filtered_output_list(output_metadata_list,output_peptide_list,expr_lists)
-
                 if arg.kmer > 0:
-                    concat_peptide_list, concat_expr_list = get_concat_junction_peptide(gene, output_peptide_list,
-                                                                                        output_metadata_list,
-                                                                                        segments, idx, arg.kmer)
                     junction_kmer_output_list = create_output_kmer(output_peptide_list, expr_lists, arg.kmer)
                     back_kmer_output_list = create_output_kmer(output_background_list, back_expr_lists, arg.kmer)
-                    concat_kmer_output_list = create_output_kmer(concat_peptide_list,concat_expr_list,arg.kmer)
                     write_namedtuple_list(junction_kmer_peptide_fp, junction_kmer_output_list,kmer_field_list)
                     write_namedtuple_list(back_kmer_peptide_fp, back_kmer_output_list,kmer_field_list)
-                    write_namedtuple_list(concat_kmer_peptide_fp, concat_kmer_output_list,kmer_field_list)
-                    write_namedtuple_list(concat_peptide_fp, concat_peptide_list, field_list=other_pep_field_list)
                 assert len(output_metadata_list) == len(output_peptide_list)
                 write_namedtuple_list(meta_peptide_fp, output_metadata_list, field_list=meta_field_list)
                 write_namedtuple_list(peptide_fp, output_peptide_list, field_list=junc_pep_field_list)
