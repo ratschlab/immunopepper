@@ -158,6 +158,8 @@ def get_som_expr_dict(gene, mutation_pos, segments, Idx):
     """
     Build somatic mutation position(key) to expression data(value) dictionary.
     """
+    if segments is None:
+        return None
     seg_mat = gene.segmentgraph.segments[0]
     som_expr_dict = {}
 
