@@ -666,3 +666,27 @@ def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list,
                                                            peptide=concat_peptide)
                         concat_peptide_list.append(concat_peptide)
     return concat_peptide_list,concat_expr_lists
+
+def convert_namedtuple_to_str(_namedtuple,field_list):
+    def convert_list_to_str(_list):
+        remove_none_list = filter(lambda x:x is not None, _list)
+        return ';'.join([str(_item) for _item in remove_none_list])
+    line = ''
+    for field in field_list:
+        if field == 'new_line':
+            line = line.strip()+'\n'
+            continue
+        # should first check if field in namedtuple
+        item = getattr(_namedtuple, field)
+        if isinstance(item,(list,tuple)):
+            line += convert_list_to_str(item)+'\t'
+        else:
+            line += str(item)+'\t'
+    return line[:-1] # remove the last '\t'
+
+def write_namedtuple_list(fp, namedtuple_list, field_list):
+    """ Write namedtuple_list to the given file pointer"""
+    fp.writelines(convert_namedtuple_to_str(_namedtuple,field_list)+'\n' for _namedtuple in namedtuple_list)
+
+def write_list(fp, _list):
+    fp.writelines([l+'\n' for l in _list])
