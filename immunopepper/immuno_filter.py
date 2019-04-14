@@ -113,42 +113,6 @@ def get_full_peptide(gene, seq, cds_list, Segments, Idx, mode):
     return cds_expr_list, cds_string, cds_peptide
 
 
-def find_background_peptides(gene, ref_seq, table, Segments, Idx):
-    """Calculate the peptide translated from the complete transcript instead of single exon pairs
-
-    Parameters
-    ----------
-    gene: Object. Created by SplAdder
-    ref_seq: List(str). Reference sequence of certain chromosome.
-    table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
-       from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
-
-    Returns
-    -------
-    peptide_list: List[str]. List of all the peptide translated from the given
-       splicegraph and annotation.
-    (ts_list): List[str]. List of all the transcript indicated by the  annotation file
-        can be used to generate artifical reads.
-    """
-    gene_to_transcript_table,transcript_cds_table = table.gtable.gene_to_ts, table.ts_to_cds,
-    gene_transcripts = gene_to_transcript_table[gene.name]
-    peptide_list = []
-    expr_lists = []
-    # Generate a background peptide for every variant transcript
-    for ts in gene_transcripts:
-        # No CDS entries for transcript in annotation file...
-        if ts not in transcript_cds_table:
-            #print("WARNING: Transcript not in CDS table")
-            continue
-        cds_list = transcript_cds_table[ts]
-        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode='back')
-        peptide = Output_background(ts,cds_peptide)
-        peptide_list.append(peptide)
-        expr_lists.append(cds_expr_list)
-    gene.processed = True
-    return peptide_list, expr_lists
-
-
 def peptide_match(background_peptide_list, peptide):
     """ Find if the translated exon-pair peptide also appear in the background peptide translated from annotation file.
 
