@@ -335,12 +335,21 @@ def create_output_kmer(output_peptide, expr_list, k):
     return output_kmer_list
 
 def get_concat_metadata(gene,output_metadata_list,k):
+    def in_the_same_read_frame(front_coord, back_coord, strand):
+        if strand == '+':
+            print(front_coord.stop_v2-back_coord.start_v1)
+            a =  (front_coord.stop_v2-back_coord.start_v1)%3 == 0
+            return a
+        else:
+            a =  (back_coord.stop_v1-front_coord.start_v2)%3 == 0
+            return a
     concat_simple_meta_list = []
     vertices = gene.splicegraph.vertices
     vertex_len = vertices[1,:]-vertices[0,:]
-    key_id_list = np.where(vertex_len < k*3)[0]
+    key_id_list = np.where(vertex_len < (k+1)*3)[0]
     vertex_id_pair_list = [metadata.vertex_idx for metadata in output_metadata_list]
     stop_codon_list = [metadata.has_stop_codon for metadata in output_metadata_list]
+    strand = gene.strand
     for key_id in key_id_list:
         front_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair[1] == key_id
                         and not stop_codon_list[i]]
@@ -350,6 +359,10 @@ def get_concat_metadata(gene,output_metadata_list,k):
             for back_id in back_id_list:
                 front_meta = output_metadata_list[front_id]
                 back_meta = output_metadata_list[back_id]
+                front_coord = front_meta.exons_coor
+                back_coord = back_meta.exons_coor
+                if not in_the_same_read_frame(front_coord,back_coord,strand):
+                    continue
                 front_vertex_id = front_meta.vertex_idx
                 middle_exon_coord = gene.splicegraph.vertices[:,front_vertex_id[1]]
                 triple_coord = init_part_coord(start_v1=front_meta.exons_coor.start_v1,
