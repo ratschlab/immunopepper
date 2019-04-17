@@ -155,7 +155,7 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
             # If cross junction peptide has a stop-codon in it, the frame
             # will not be propagated because the read is truncated before it reaches the end of the exon.
             # also in mutation mode, only output the case where ref is different from mutated
-            if peptide.mut != peptide.ref or mutation.mode == 'ref' or option.output_silence:
+            if peptide.mut and (peptide.mut != peptide.ref or mutation.mode == 'ref' or option.output_silence):
                 new_output_id = gene_outputid+'.'+str(variant_id)
                 detail_id = gene.name+'.'+'_'.join([str(v) for v in vertex_list])+'.'+str(variant_id)
                 match_ts_list = peptide_match(background_pep_list, peptide.mut)
