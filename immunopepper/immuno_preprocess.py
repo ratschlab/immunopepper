@@ -229,7 +229,7 @@ def search_edge_metadata_segmentgraph(gene, coord, edges, Idx):
     sorted_pos = sp.sort(np.array([coord.start_v1, coord.stop_v1, coord.start_v2, coord.stop_v2]))
     count = get_segmentgraph_edge_expr(sorted_pos)
     if coord.start_v3 is None:
-        return (count)
+        return (count,)
     else:
         sorted_pos = sp.sort(np.array([coord.start_v2, coord.stop_v2, coord.start_v3, coord.stop_v3]))
         count2 = get_segmentgraph_edge_expr(sorted_pos)
