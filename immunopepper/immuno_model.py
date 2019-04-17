@@ -337,12 +337,9 @@ def create_output_kmer(output_peptide, expr_list, k):
 def get_concat_metadata(gene,output_metadata_list,k):
     def in_the_same_read_frame(front_coord, back_coord, strand):
         if strand == '+':
-            print(front_coord.stop_v2-back_coord.start_v1)
-            a =  (front_coord.stop_v2-back_coord.start_v1)%3 == 0
-            return a
+            return (front_coord.stop_v2-back_coord.start_v1)%3 == 0
         else:
-            a =  (back_coord.stop_v1-front_coord.start_v2)%3 == 0
-            return a
+            return (back_coord.stop_v1-front_coord.start_v2)%3 == 0
     concat_simple_meta_list = []
     vertices = gene.splicegraph.vertices
     vertex_len = vertices[1,:]-vertices[0,:]

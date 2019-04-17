@@ -199,10 +199,10 @@ def get_sub_mutation_tuple(mutation, sample, chrm):
     if (sample, chrm) in list(mutation.vcf_dict.keys()):
         mutation_sub_dict_vcf = mutation.vcf_dict[(sample, chrm)]
     else:
-        mutation_sub_dict_vcf = None
+        mutation_sub_dict_vcf = {}
     if (sample, chrm) in list(mutation.maf_dict.keys()):
         mutation_sub_dict_maf = mutation.maf_dict[(sample, chrm)]
     else:
-        mutation_sub_dict_maf = None
+        mutation_sub_dict_maf = {}
     submutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation.mode)
     return submutation

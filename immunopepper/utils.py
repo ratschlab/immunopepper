@@ -234,17 +234,18 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     # emitting_frame + accepting_frame = 3
     accepting_frame = (3 - emitting_frame) % 3
 
-    if mutation_sub_dic_maf is None:
-        ref_seq = ref_mut_seq['ref']
-    else:
+    if mutation_sub_dic_maf:  # exist maf dictionary, so we use germline mutation-applied seq as the background seq
         ref_seq = ref_mut_seq['background']
+    else:
+        ref_seq = ref_mut_seq['ref']
+    mut_seq = ref_mut_seq['background']
     # python is 0-based while gene annotation file(.gtf) is one based
     # so we need to do a little modification
     if strand == "+":
         start_v2 = peptide_accept_coord[0]
         stop_v2 = peptide_accept_coord[1] - next_emitting_frame
         coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
-        peptide_dna_str_mut = get_sub_mut_dna(ref_mut_seq['background'], coord, variant_comb, mutation_sub_dic_maf, strand)
+        peptide_dna_str_mut = get_sub_mut_dna(mut_seq, coord, variant_comb, mutation_sub_dic_maf, strand)
         peptide_dna_str_ref = ref_seq[start_v1:stop_v1] + ref_seq[start_v2:stop_v2]
         next_start_v1 = min(start_v2 + accepting_frame,peptide_accept_coord[1])
         next_stop_v1 = peptide_accept_coord[1]
@@ -252,8 +253,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
         start_v2 = peptide_accept_coord[0] + next_emitting_frame
         stop_v2 = peptide_accept_coord[1]
         coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
-        mut_seq = get_sub_mut_dna(ref_mut_seq['background'], coord, variant_comb, mutation_sub_dic_maf, strand)
-        peptide_dna_str_mut = complementary_seq(mut_seq)
+        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, coord, variant_comb, mutation_sub_dic_maf, strand))
         peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1] + ref_seq[start_v2:stop_v2][::-1])
         next_start_v1 = peptide_accept_coord[0]
         next_stop_v1 = max(stop_v2 - accepting_frame,peptide_accept_coord[0])
@@ -304,10 +304,10 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
     start_v2 = NOT_EXIST
     stop_v2 = NOT_EXIST
 
-    if mutation_sub_dic_maf is None:  # no somatic mutation, the germline mutation will be the spotlight
-        ref_seq = ref_mut_seq['ref']
+    if mutation_sub_dic_maf:  # exist maf dictionary, so we use germline mutation-applied seq as the background seq
+        ref_seq = ref_mut_seq['background']
     else:
-        ref_seq = ref_mut_seq['background']  # we focus on somatic mutation in this case
+        ref_seq = ref_mut_seq['ref']
     mut_seq = ref_mut_seq['background']
 
     if strand == '+':
@@ -332,10 +332,10 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
 
 
 def get_peptide_result(simple_meta_data, strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq):
-    if mutation_sub_dic_maf is None:  # no somatic mutation, the germline mutation will be the spotlight
-        ref_seq = ref_mut_seq['ref']
+    if mutation_sub_dic_maf:  # exist maf dictionary, so we use germline mutation-applied seq as the background seq
+        ref_seq = ref_mut_seq['background']
     else:
-        ref_seq = ref_mut_seq['background']  # we focus on somatic mutation in this case
+        ref_seq = ref_mut_seq['ref']
     mut_seq = ref_mut_seq['background']
 
     if strand == "+":

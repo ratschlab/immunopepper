@@ -182,7 +182,7 @@ def main(arg):
 
                 total_expr = get_and_write_peptide_and_kmer(gene=gene, final_simple_meta=final_simple_meta, background_pep_list=background_pep_list,
                                                ref_mut_seq=ref_mut_seq, idx=idx, exon_som_dict=exon_som_dict, segments=segments,
-                                               edges=edges, mutation=mutation,table=genetable,option=option,size_factor=None,
+                                               edges=edges, mutation=sub_mutation,table=genetable,option=option,size_factor=None,
                                                junction_list=junction_list, filepointer=filepointer)
                 expr_distr.append(total_expr)
                 end_time = timeit.default_timer()
