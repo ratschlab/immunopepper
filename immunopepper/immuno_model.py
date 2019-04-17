@@ -6,7 +6,7 @@ import scipy as sp
 
 from immunopepper.immuno_filter import junction_is_annotated, peptide_match,get_junction_anno_flag,get_filtered_metadata_list,get_full_peptide
 from immunopepper.immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
-from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr,get_peptide_result,convert_namedtuple_to_str,write_namedtuple_list
+from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr,get_peptide_result,convert_namedtuple_to_str,write_namedtuple_list,get_total_gene_expr
 from immunopepper.immuno_preprocess import search_edge_metadata_segmentgraph
 from immunopepper.constant import NOT_EXIST
 from immunopepper.immuno_nametuple import Output_metadata, Output_junc_peptide, Output_kmer, Simple_metadata, init_part_coord,Output_background
@@ -131,7 +131,7 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
-    total_expr = 0
+    total_expr = get_total_gene_expr(gene,segments,idx)
     som_exp_dict = get_som_expr_dict(gene, list(mutation.maf_dict.keys()), segments, idx)
     meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode',
                        'peptide_weight', 'peptide_annotated',
@@ -177,7 +177,6 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
                 # deal with expression data
                 if edges is not None and not flag.is_isolated:
                     edge_expr = search_edge_metadata_segmentgraph(gene, coord, edges, idx)
-                    total_expr += edge_expr
                     #edge_expr = edge_expr*size_factor
                 else:
                     edge_expr = NOT_EXIST

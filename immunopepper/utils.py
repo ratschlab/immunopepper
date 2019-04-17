@@ -514,6 +514,14 @@ def get_segment_expr(gene, coord, Segments, Idx):
     mean_expr = int(expr_sum/seg_len) if seg_len > 0 else 0
     return mean_expr,expr_list1
 
+def get_total_gene_expr(gene, Segments, Idx):
+    if Segments is None:
+        return NOT_EXIST
+    seg_len = gene.segmentgraph.segments[1]-gene.segmentgraph.segments[0]
+    seg_expr = Segments.expr[:,Idx.sample]
+    total_expr = np.sum(seg_len*seg_expr)
+    return total_expr
+
 def get_idx(sample_idx_table, sample, gene_idx):
     """ Create a aggregated Index with nametuple idx
     Combine the gene_idx, sample_idx
