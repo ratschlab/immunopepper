@@ -314,23 +314,11 @@ def create_output_kmer(output_peptide, expr_list, k):
             else:
                 kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]),2)
             if spanning_index is NOT_EXIST:
-                is_in_junction = NOT_EXIST
+                is_in_junction = False
             else:
                 is_in_junction = j in spanning_index
             kmer = Output_kmer(kmer_peptide,peptide_head,kmer_peptide_expr,is_in_junction)
             output_kmer_list.append(kmer)
-    else:
-        kmer_peptide = peptide
-        if spanning_index is NOT_EXIST:
-            is_in_junction = False
-        else:
-            is_in_junction = True
-        if NOT_EXIST in expr_array:
-            kmer_peptide_expr = NOT_EXIST
-        else:
-            kmer_peptide_expr = np.round(np.mean(expr_array),2)
-        kmer = Output_kmer(kmer_peptide, peptide_head, kmer_peptide_expr,is_in_junction)
-        output_kmer_list.append(kmer)
     return output_kmer_list
 
 def get_concat_metadata(gene,output_metadata_list,k):
