@@ -514,11 +514,17 @@ def get_segment_expr(gene, coord, Segments, Idx):
     mean_expr = int(expr_sum/seg_len) if seg_len > 0 else 0
     return mean_expr,expr_list1
 
+
 def get_total_gene_expr(gene, Segments, Idx):
+    """ get total reads count for the given sample and the given gene
+    actually total_expr = reads_length*total_reads_counts
+    """
+
     if Segments is None:
         return NOT_EXIST
+    count_segments = Segments.lookup_table[gene.name]
     seg_len = gene.segmentgraph.segments[1]-gene.segmentgraph.segments[0]
-    seg_expr = Segments.expr[:,Idx.sample]
+    seg_expr = Segments.expr[count_segments,Idx.sample]
     total_expr = np.sum(seg_len*seg_expr)
     return total_expr
 
