@@ -260,8 +260,8 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
 
     next_reading_frame = Reading_frame_tuple(next_start_v1, next_stop_v1, next_emitting_frame)
     assert (len(peptide_dna_str_mut) == len(peptide_dna_str_ref))
-    if len(peptide_dna_str_mut) % 3 != 0:
-        print("Applied mutations have changed the length of the DNA fragment - no longer divisible by 3")
+    # if len(peptide_dna_str_mut) % 3 != 0:
+    #     print("Applied mutations have changed the length of the DNA fragment - no longer divisible by 3")
     peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut)
     peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref)
 
