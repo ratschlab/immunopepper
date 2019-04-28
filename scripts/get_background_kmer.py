@@ -39,15 +39,17 @@ def generate_unique_kmer_and_write(data_dir,mode='variant'):
     f = open(result_file,'w')
     for kmer in kmer_df_set:
         f.write(kmer+'\n')
+    return kmer_df_set
 
 # create background kmer set
+total_kmer_set = set()
 TCGA_reference = '/cluster/work/grlab/projects/TCGA/immunopepper_rerun/ref'
 Gtex_reference = '/cluster/work/grlab/projects/TCGA/immunopepper_gtex_rerun/TCGA-A2-A0D0'
 ref_annotation = '/cluster/work/grlab/projects/TCGA/immunopepper_gtex_rerun/ref_annotation'
 
-generate_unique_kmer_and_write(TCGA_reference,'ref')
-generate_unique_kmer_and_write(Gtex_reference,'ref')
-generate_unique_kmer_and_write(ref_annotation,'ref')
+total_kmer_set = total_kmer_set.union(generate_unique_kmer_and_write(TCGA_reference,'ref'))
+total_kmer_set = total_kmer_set.union(generate_unique_kmer_and_write(Gtex_reference,'ref'))
+total_kmer_set = total_kmer_set.union(generate_unique_kmer_and_write(ref_annotation,'ref'))
 
 
 result_dir = '/cluster/work/grlab/projects/TCGA/immunopepper_gtex_rerun'
@@ -56,4 +58,10 @@ all_dir = list(filter(lambda dir_name: dir_name.startswith('TCGA'),os.listdir(re
 for dir_name in all_dir:
     print(dir_name)
     data_dir = os.path.join(result_dir,dir_name)
-    generate_unique_kmer_and_write(data_dir,'variant')
+    total_kmer_set = total_kmer_set.union(generate_unique_kmer_and_write(data_dir,'variant'))
+
+result_file = os.path.join('/cluster/work/grlab/projects/TCGA/immunopepper_rerun/','integrate_kmer_without_any_filter')
+f = open(result_file,'w')
+for kmer in total_kmer_set:
+    f.write(kmer+'\n')
+
