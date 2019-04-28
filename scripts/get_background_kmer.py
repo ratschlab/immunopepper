@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import numpy as np
+import sys
+from immunopepper.immuno_print import print_memory_diags
 
 def get_unique_kmer(file,zero_filter=True,cross_junction=True):
     kmer_df = pd.read_csv(file,header=None,names=['kmer','gene_name','expr','flag'],sep='\t')
@@ -59,6 +61,8 @@ for dir_name in all_dir:
     print(dir_name)
     data_dir = os.path.join(result_dir,dir_name)
     total_kmer_set = total_kmer_set.union(generate_unique_kmer_and_write(data_dir,'variant'))
+    print_memory_diags()
+    sys.stdout.flush()
 
 result_file = os.path.join('/cluster/work/grlab/projects/TCGA/immunopepper_rerun/','integrate_kmer_without_any_filter')
 f = open(result_file,'w')
