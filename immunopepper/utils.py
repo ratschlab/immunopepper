@@ -461,17 +461,19 @@ def get_exon_expr(gene,vstart,vstop,Segments,Idx):
     if Segments is None:
         expr_list = [NOT_EXIST]
         return expr_list
+    count_segments = Segments.lookup_table[gene.name]
     segments = gene.segmentgraph.segments
+    seg_count = Segments.expr[count_segments,Idx.sample]
     sv1_id = bisect.bisect(segments[0], vstart)-1
     sv2_id = bisect.bisect(segments[0], vstop)-1
     expr_list = []
     if sv1_id == sv2_id:
-        expr_list.append((vstop - vstart, Segments.expr[sv1_id, Idx.sample]))
+        expr_list.append((vstop - vstart, seg_count[sv1_id]))
     else:
-        expr_list.append((segments[1, sv1_id] - vstart, Segments.expr[sv1_id,Idx.sample]))
+        expr_list.append((segments[1, sv1_id] - vstart, seg_count[sv1_id]))
         for i in range(sv1_id + 1, sv2_id):
-            expr_list.append((segments[1, i] - segments[0, i], Segments.expr[i,Idx.sample]))
-        expr_list.append((vstop-segments[0, sv2_id], Segments.expr[sv2_id, Idx.sample]))
+            expr_list.append((segments[1, i] - segments[0, i], seg_count[i]))
+        expr_list.append((vstop-segments[0, sv2_id], seg_count[sv2_id]))
         if gene.strand == '-': # need to reverse epression list to match the order of translation
             expr_list = expr_list[::-1]
     return expr_list
