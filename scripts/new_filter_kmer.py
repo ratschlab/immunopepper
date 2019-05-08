@@ -40,7 +40,7 @@ def integrate_concate_kmer(data_dir):
         annotation_background_kmer_list.extend(list(junction_kmer_df_all['kmer']))
 
     # subtract background kmer
-    final_junction_kmer_df_all_mode_subtract_background = final_junction_kmer_df_all_mode[np.logical_not(final_junction_kmer_df_all_mode.index.isin(annotaion_background_kmer_list))]
+    final_junction_kmer_df_all_mode_subtract_background = final_junction_kmer_df_all_mode[np.logical_not(final_junction_kmer_df_all_mode.index.isin(annotation_background_kmer_list))]
     return final_junction_kmer_df_all_mode_subtract_background
 
 result_dir = '/cluster/work/grlab/projects/TCGA/immunopepper_tcga_rerun_fly'
