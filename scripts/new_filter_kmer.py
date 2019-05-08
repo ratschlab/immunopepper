@@ -28,7 +28,7 @@ def integrate_concate_kmer(data_dir):
     kmer_df_list = []
     for mode in mode_prefix:
         junction_file_name = os.path.join(data_dir,mode+'_junction_kmer.txt')
-        junction_kmer_df = get_unique_kmer(junction_file_name,junction_zero_filter=True,cross_junction=True)
+        junction_kmer_df = get_unique_kmer(junction_file_name,file_type='junction',junction_zero_filter=True,cross_junction=True)
         final_junction_kmer_df = junction_kmer_df.groupby('kmer')[['seg_expr', 'gene_name','junction_expr']].agg('max')
         final_junction_kmer_df['mode'] = mode
         kmer_df_list.append(final_junction_kmer_df)
@@ -36,24 +36,19 @@ def integrate_concate_kmer(data_dir):
     annotation_background_kmer_list = []
     for mode in ['germline','somatic']:
         back_file_name = os.path.join(data_dir,mode+'_back_kmer.txt')
-        junction_kmer_df_all = get_unique_kmer(back_file_name, junction_zero_filter=False, cross_junction=False)
+        junction_kmer_df_all = get_unique_kmer(back_file_name, file_type='background',junction_zero_filter=False, cross_junction=False)
         annotation_background_kmer_list.extend(list(junction_kmer_df_all['kmer']))
 
     # subtract background kmer
     final_junction_kmer_df_all_mode_subtract_background = final_junction_kmer_df_all_mode[np.logical_not(final_junction_kmer_df_all_mode.index.isin(annotaion_background_kmer_list))]
     return final_junction_kmer_df_all_mode_subtract_background
 
-
-
-gene_id_dict = np.load('gene_id_dict.npy').item()
 result_dir = '/cluster/work/grlab/projects/TCGA/immunopepper_tcga_rerun_fly'
 all_dir = list(filter(lambda dir_name: dir_name.startswith('TCGA'),os.listdir(result_dir)))
 
 dir_name = 'TCGA-24-1430'
 mode = 'germline'
 data_dir = os.path.join(result_dir, dir_name)
-
-file_num_list = [len(os.listdir(os.path.join(result_dir,dir_name))) for dir_name in all_dir]
 for dir_name in all_dir:
     print(dir_name)
     data_dir = os.path.join(result_dir,dir_name)
