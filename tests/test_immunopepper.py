@@ -9,13 +9,12 @@ import numpy as np
 from immunopepper.immuno_mutation import apply_germline_mutation,construct_mut_seq_with_str_concat,get_mutation_mode_from_parser
 from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
     parse_mutation_from_vcf, parse_mutation_from_maf
-from immunopepper.utils import get_sub_mut_dna,get_concat_peptide
+from immunopepper.utils import get_sub_mut_dna,get_concat_peptide,convert_namedtuple_to_str
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.main_immuno import parse_arguments
 from immunopepper.immuno_model import create_output_kmer
 from immunopepper.immuno_nametuple import init_part_coord,Output_background,Output_kmer
 from immunopepper.constant import NOT_EXIST
-from immunopepper.main_immuno import convert_namedtuple_to_str
 from immunopepper.immuno_filter import get_junction_anno_flag
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 
@@ -164,21 +163,15 @@ def test_get_mutation_mode_from_parser():
 
 
 def test_create_output_kmer():
-    peptide_list = [Output_background('1','RTHDGLRSTYI'),Output_background('2','MTHAW')]
-    expr_lists = [[(8,1000),(1,220),(0,0)]]
     k = 3
-    try:
-        c = create_output_kmer(peptide_list,expr_lists,k)
-    except AssertionError: # make sure len(peptide) == len(expr_lists)
-        assert 1
-    peptide_list = [Output_background('1','MTHAW')]
-    expr_lists = [[(8,1000),(1,220),(6,0)]] # test 0 expression
-    c = create_output_kmer(peptide_list, expr_lists, k)
-    true_output = [Output_kmer('MTH','1',913.33,NOT_EXIST), Output_kmer('THA','1',580.0,NOT_EXIST), Output_kmer('HAW','1',246.67,NOT_EXIST)]
+    peptide = Output_background('1','MTHAW')
+    expr_lists = [(8,1000),(1,220),(6,0)] # test 0 expression
+    c = create_output_kmer(peptide, expr_lists, k)
+    true_output = [Output_kmer('MTH','1',913.33,False,NOT_EXIST), Output_kmer('THA','1',580.0,False,NOT_EXIST), Output_kmer('HAW','1',246.67,False,NOT_EXIST)]
     assert c == true_output
-    expr_lists = [[(8,1000),(1,220),(0,0)]] # test 0 expression
-    c = create_output_kmer(peptide_list, expr_lists, k)
-    true_output = [Output_kmer('MTH','1',913.33,NOT_EXIST), Output_kmer('THA','1',870.0,NOT_EXIST), Output_kmer('HAW','1',740.0,NOT_EXIST)]
+    expr_lists = [(8,1000),(1,220),(0,0)] # test 0 expression
+    c = create_output_kmer(peptide, expr_lists, k)
+    true_output = [Output_kmer('MTH','1',913.33,False,NOT_EXIST), Output_kmer('THA','1',870.0,False,NOT_EXIST), Output_kmer('HAW','1',740.0,False,NOT_EXIST)]
     assert c == true_output
 
 
@@ -222,12 +215,12 @@ def test_convert_namedtuple_to_str():
     expected_result = ['1\nEDMHG\n', '2\n\n', '3\nKKQ\n']
     assert result == expected_result
 
-    other_pep_field_list = ['kmer','id','expr','is_cross_junction']
-    kmer_pep1 = Output_kmer('','GENE0_1_2',NOT_EXIST,False)
-    kmer_pep2 = Output_kmer('AQEB','GENE0_1_3',20,True)
+    other_pep_field_list = ['kmer','id','expr','is_cross_junction','junction_count']
+    kmer_pep1 = Output_kmer('','GENE0_1_2',NOT_EXIST,False,NOT_EXIST)
+    kmer_pep2 = Output_kmer('AQEB','GENE0_1_3',20,True,25)
     kmer_pep_list = [kmer_pep1,kmer_pep2]
     result = [convert_namedtuple_to_str(kmer_pep,other_pep_field_list)+'\n' for kmer_pep in kmer_pep_list]
-    expected_result = ['\tGENE0_1_2\t.\tFalse\n', 'AQEB\tGENE0_1_3\t20\tTrue\n']
+    expected_result = ['\tGENE0_1_2\t.\tFalse\t.\n', 'AQEB\tGENE0_1_3\t20\tTrue\t25\n']
     assert result == expected_result
 
 def test_get_junction_ann_flag():
@@ -235,11 +228,11 @@ def test_get_junction_ann_flag():
     junction_flag[1,2] = 1
     junction_flag[2,3] = 1
     vertex_id_tuple = (1,2,3)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 2
+    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == [1,1]
     vertex_id_tuple = (0,2,3)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 1
+    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == [0,1]
     vertex_id_tuple = (0,1,3)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 0
+    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == [0,0]
     vertex_id_tuple = (1,2)
     assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 1
 

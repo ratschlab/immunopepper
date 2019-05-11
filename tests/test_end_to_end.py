@@ -70,16 +70,10 @@ def test_end_to_end_ref(test_id, case, mutation_mode, tmpdir):
         _assert_files_equal(
             os.path.join(sample_dir, '{}_back_peptides.fa'.format(mutation_mode)),
             os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_back_peptides.fa'.format(mutation_mode)))
-        _assert_files_equal(
-            os.path.join(sample_dir, '{}_concat_peptides.fa'.format(mutation_mode)),
-            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_concat_peptides.fa'.format(mutation_mode)))
         #kmer
         _assert_files_equal(
             os.path.join(sample_dir, '{}_back_kmer.txt'.format(mutation_mode)),
             os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_back_kmer.txt'.format(mutation_mode)))
-        _assert_files_equal(
-            os.path.join(sample_dir, '{}_concat_kmer.txt'.format(mutation_mode)),
-            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_concat_kmer.txt'.format(mutation_mode)))
         _assert_files_equal(
             os.path.join(sample_dir, '{}_junction_kmer.txt'.format(mutation_mode)),
             os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_junction_kmer.txt'.format(mutation_mode)))
