@@ -9,7 +9,7 @@ from immunopepper.immuno_mutation import apply_germline_mutation,get_exon_som_di
 from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr,get_peptide_result,convert_namedtuple_to_str,write_namedtuple_list,get_total_gene_expr
 from immunopepper.immuno_preprocess import search_edge_metadata_segmentgraph
 from immunopepper.constant import NOT_EXIST
-from immunopepper.immuno_nametuple import Output_metadata, Output_junc_peptide, Output_kmer, Simple_metadata, init_part_coord, Output_background
+from immunopepper.immuno_nametuple import OutputMetadata, OutputJuncPeptide, OutputKmer, SimpleMetadata, init_part_coord, OutputBackground
 
 def get_simple_metadata(gene=None, ref_seq=None, idx=None,mutation=None, option=None):
     """Calculte the output peptide for every exon-pairs in the splicegraph
@@ -84,7 +84,7 @@ def get_simple_metadata(gene=None, ref_seq=None, idx=None,mutation=None, option=
                         peptide, coord, flag = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.maf_dict,ref_mut_seq)
                     has_stop_flag = has_stop_flag and flag.has_stop
                 gene_outputid = str(idx.gene) + '.' + str(output_id)
-                simple_metadata = Simple_metadata(output_id=gene_outputid,
+                simple_metadata = SimpleMetadata(output_id=gene_outputid,
                                                   read_frame=read_frame_tuple,
                                                   exons_coor=coord,
                                                   vertex_idx=vertex_list,
@@ -180,7 +180,7 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
                     #edge_expr = edge_expr*size_factor
                 else:
                     edge_expr = NOT_EXIST
-                output_metadata = Output_metadata(output_id=new_output_id,
+                output_metadata = OutputMetadata(output_id=new_output_id,
                                                   read_frame=read_frame_tuple.read_phase,
                                                   gene_name=gene.name,
                                                   gene_chr=gene.chr,
@@ -200,7 +200,7 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
                                                   segment_expr=segment_expr
                 )
                 variant_id += 1
-                output_peptide = Output_junc_peptide(output_id='>'+new_output_id,
+                output_peptide = OutputJuncPeptide(output_id='>'+new_output_id,
                                                 id=detail_id,
                                                 peptide=peptide.mut,exons_coor=coord,junction_count=edge_expr)
 
@@ -247,7 +247,7 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, table, Segments
             continue
         cds_list = transcript_cds_table[ts]
         cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode='back')
-        peptide = Output_background(ts,cds_peptide)
+        peptide = OutputBackground(ts,cds_peptide)
         background_peptide_list.append(peptide)
         filepointer.background_peptide_fp.write(convert_namedtuple_to_str(peptide,back_pep_field_list)+'\n')
         if option.kmer > 0:
@@ -262,7 +262,7 @@ def create_output_kmer(output_peptide, expr_list, k):
 
     Parameters
     ----------
-    peptide_list: Output_junc_peptide. Filtered output_peptide_list.
+    peptide_list: OutputJuncPeptide. Filtered output_peptide_list.
     expr_lists: List(Tuple). Filtered expr_list.
     k: int. Specify k-mer length
 
@@ -338,7 +338,7 @@ def create_output_kmer(output_peptide, expr_list, k):
             else:
                 is_in_junction = False
                 kmer_junction_count = NOT_EXIST
-            kmer = Output_kmer(kmer_peptide,peptide_head,kmer_peptide_expr,is_in_junction,kmer_junction_count)
+            kmer = OutputKmer(kmer_peptide,peptide_head,kmer_peptide_expr,is_in_junction,kmer_junction_count)
             output_kmer_list.append(kmer)
     return output_kmer_list
 
@@ -380,7 +380,7 @@ def get_concat_metadata(gene,output_metadata_list,k):
                 triple_frame = front_meta.read_frame
                 triple_vertex_idx = front_meta.vertex_idx+[back_meta.vertex_idx[-1]]
                 triple_has_stop = back_meta.has_stop_codon
-                new_simple_metadata = Simple_metadata(output_id=triple_output_id,
+                new_simple_metadata = SimpleMetadata(output_id=triple_output_id,
                                                       read_frame=triple_frame,
                                                       exons_coor=triple_coord,
                                                       vertex_idx=triple_vertex_idx,

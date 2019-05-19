@@ -5,7 +5,7 @@ import re
 import scipy as sp
 
 from .utils import complementary_seq,translate_dna_to_peptide,get_exon_expr
-from .immuno_nametuple import Output_background
+from .immuno_nametuple import OutputBackground
 from .constant import NOT_EXIST
 from functools import reduce
 
@@ -118,7 +118,7 @@ def peptide_match(background_peptide_list, peptide):
 
     Parameters
     ----------
-    background_peptide_list: List(Output_background) All the peptide translated from transcripts in annotation file
+    background_peptide_list: List(OutputBackground) All the peptide translated from transcripts in annotation file
     peptide: str. peptide translated from certain exon-pairs
 
     Returns

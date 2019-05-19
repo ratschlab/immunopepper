@@ -7,8 +7,8 @@ from collections import namedtuple
 import bisect
 
 from .constant import NOT_EXIST
-from .immuno_nametuple import Output_background
-from immunopepper.immuno_nametuple import Peptide,Flag,Idx,Reading_frame_tuple,init_part_coord
+from .immuno_nametuple import OutputBackground
+from immunopepper.immuno_nametuple import Peptide,Flag,Idx,ReadingFrameTuple,init_part_coord
 
 
 
@@ -258,7 +258,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
         next_start_v1 = peptide_accept_coord[0]
         next_stop_v1 = max(stop_v2 - accepting_frame,peptide_accept_coord[0])
 
-    next_reading_frame = Reading_frame_tuple(next_start_v1, next_stop_v1, next_emitting_frame)
+    next_reading_frame = ReadingFrameTuple(next_start_v1, next_stop_v1, next_emitting_frame)
     assert (len(peptide_dna_str_mut) == len(peptide_dna_str_ref))
     # if len(peptide_dna_str_mut) % 3 != 0:
     #     print("Applied mutations have changed the length of the DNA fragment - no longer divisible by 3")
@@ -678,7 +678,7 @@ def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list,
                     if len(concat_peptide) > 0 : # calculate expr list
                         concat_expr_list = get_concat_expr_list(front_coord_pair,vertex_id_pair_list[back_id])
                         concat_expr_lists.append(concat_expr_list)
-                        concat_peptide = Output_background(id='Gene'+str(Idx.gene)+'_'+triple_v,
+                        concat_peptide = OutputBackground(id='Gene'+str(Idx.gene)+'_'+triple_v,
                                                            peptide=concat_peptide)
                         concat_peptide_list.append(concat_peptide)
     return concat_peptide_list,concat_expr_lists

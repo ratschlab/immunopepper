@@ -7,7 +7,7 @@ import scipy as sp
 import pickle
 
 from .utils import to_adj_succ_list,find_overlapping_cds_simple,leq_strand,encode_chromosome
-from .immuno_nametuple import Reading_frame_tuple,GeneTable,Segments,Edges,CountInfo
+from .immuno_nametuple import ReadingFrameTuple,GeneTable,Segments,Edges,CountInfo
 
 def genes_preprocess(genes, gene_cds_begin_dict):
     """ Preprocess the gene and generate new attributes under gene object
@@ -70,7 +70,7 @@ def genes_preprocess(genes, gene_cds_begin_dict):
                     n_trailing_bases = cds_right_modi - cds_left_modi
 
                 read_phase = n_trailing_bases % 3
-                gene.splicegraph.reading_frames[idx].add(Reading_frame_tuple(cds_left_modi, cds_right_modi, read_phase))
+                gene.splicegraph.reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, read_phase))
 
         gene.to_sparse()
 
