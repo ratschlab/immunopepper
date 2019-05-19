@@ -13,8 +13,9 @@ def get_unique_kmer(file,zero_filter=True,cross_junction=True):
     kmer_df = pd.read_csv(file,header=None,names=['kmer','gene_name','expr','flag'],sep='\t')
     kmer_df = kmer_df.dropna()
     kmer_df = kmer_df.astype({'expr':'float16'})
+    kmer_df['flag'] = kmer_df['flag'].astype('bool')
     if cross_junction:
-        kmer_df = kmer_df[np.logical_or(kmer_df['flag'] == 'True', kmer_df['flag'] == True)]
+        kmer_df = kmer_df[kmer_df['flag']]
     if zero_filter:
         kmer_df = kmer_df[kmer_df['expr']>0]
     return kmer_df
