@@ -1,3 +1,8 @@
+####
+# This script is used to generate the neo_kmer for immunopepper whose version is before 'write_pep_on_the_fly' branch.
+# In the original version, the junction kmer and concat kmer are written in different files.
+# also the junction_count is not included in kmer file (only exist in metadata file).
+# This script will be deprecated once new version of immunopepper is used
 import os
 import pandas as pd
 import numpy as np

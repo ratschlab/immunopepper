@@ -1,3 +1,13 @@
+####
+# This script is used for generating the neokmer (for CancerCell Paper)
+# In the foreground part (line 49- line 64), we need only take the junction kmer and non-zero junction count kmer.
+# After appling all this filters, we get a 'integrate_kmer' file in the corresponding sample subdirectory.
+# The background part is easier to process since we take all the kmers so we just need a sort | uniq bash script.
+# After getting the foreground kmer and background kmer, we will add a new column to the foreground kmer file
+#   to indicate if the kmer is neo-kmer (not present in the background kmer). This part is in line 68 - line 95
+# Once to be noticed is that, there are some kmer result for big graphs in `immunopepper_gtex_rerun_big_graph`,
+#   and we also need to subtract them.
+# This script is an updated version of `filter_kmer.py` which is compatible with the latest version of immunopepper.
 import os
 import pandas as pd
 import numpy as np
@@ -55,3 +65,34 @@ for dir_name in all_dir:
     final_kmer_df = integrate_concate_kmer(data_dir)
     result_file = os.path.join(data_dir,'integrate_kmer')
     final_kmer_df.to_csv(result_file,sep='\t')
+
+
+####
+foreground_dir = '/cluster/work/grlab/projects/TCGA/immunopepper_tcga_rerun_fly'
+background_dir = '/cluster/work/grlab/projects/TCGA/immunopepper_gtex_rerun'
+background_big_dir = '/cluster/work/grlab/projects/TCGA/immunopepper_gtex_rerun_big_graph'
+
+all_dir = list(filter(lambda dir_name: dir_name.startswith('TCGA'),os.listdir(background_dir)))
+background_ref_file = os.path.join(background_dir, 'uniq_final_background_ref_kmer.txt')
+background_ref_list = open(background_ref_file, 'r').read().strip().split('\n')
+
+dir_name = 'TCGA-24-1430'
+for dir_name in all_dir:
+    print(dir_name)
+    foreground_sample_dir = os.path.join(foreground_dir,dir_name)
+    foreground_ref_file = os.path.join(foreground_sample_dir,'integrate_ref_kmer.txt')
+    new_foreground_ref_file = os.path.join(foreground_sample_dir,'final_integrate_ref_kmer.txt')
+    foreground_ref_kmer_df = pd.read_csv(foreground_ref_file,sep='\t')
+    uniq_ref_kmer_set = set(foreground_ref_kmer_df['kmer']).difference(set(background_ref_list))
+    foreground_ref_kmer_df['in_neo_flag'] = foreground_ref_kmer_df['kmer'].apply(lambda x:x in uniq_ref_kmer_set)
+    foreground_ref_kmer_df.to_csv(new_foreground_ref_file,sep='\t')
+
+    background_sample_dir = os.path.join(background_dir,dir_name)
+    foreground_mut_file = os.path.join(foreground_sample_dir,'integrate_kmer')
+    foreground_mut_kmer_df = pd.read_csv(foreground_mut_file,sep='\t')
+    background_mut_file = os.path.join(background_sample_dir,'integrate_kmer.txt')
+    new_foreground_mut_file = os.path.join(foreground_sample_dir,'final_integrate_mut_kmer.txt')
+    background_mut_list = open(background_mut_file,'r').read().strip().split('\n')
+    uniq_mut_kmer_set = set(foreground_mut_kmer_df['kmer']).difference(set(background_mut_list))
+    foreground_mut_kmer_df['in_neo_flag'] = foreground_mut_kmer_df['kmer'].apply(lambda x:x in uniq_mut_kmer_set)
+    foreground_mut_kmer_df.to_csv(new_foreground_mut_file,sep='\t')
