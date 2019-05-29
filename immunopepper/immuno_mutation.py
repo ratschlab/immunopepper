@@ -172,7 +172,7 @@ def get_som_expr_dict(gene, mutation_pos, segments, Idx):
     return som_expr_dict
 
 
-def get_mut_comb(exon_som_dict,verex_list):
+def get_mut_comb(exon_som_dict,vertex_list):
     """
     Get all the mutation combination given the mutation given.
     Parameters
@@ -188,7 +188,7 @@ def get_mut_comb(exon_som_dict,verex_list):
     """
     mut_comb = [NOT_EXIST]
     if exon_som_dict is not None:
-        exon_list = map(lambda x: exon_som_dict[x],verex_list)
+        exon_list = map(lambda x: exon_som_dict[x],vertex_list)
         all_comb = get_all_comb(reduce(lambda x,y:x+y,exon_list))
         mut_comb += all_comb
     return mut_comb

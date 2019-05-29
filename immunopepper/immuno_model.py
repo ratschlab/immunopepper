@@ -95,10 +95,8 @@ def get_simple_metadata(gene=None, ref_seq=None, idx=None,mutation=None, option=
 
     concat_simple_meta_list = get_concat_metadata(gene, simple_metadata_list, option.kmer)
     if option.filter_redundant:
-        filtered_simple_meta_list = get_filtered_metadata_list(simple_metadata_list,gene.strand)
-    else:
-        filtered_simple_meta_list = simple_metadata_list
-    final_simple_meta = filtered_simple_meta_list+concat_simple_meta_list
+        simple_metadata_list = get_filtered_metadata_list(simple_metadata_list,gene.strand)
+    final_simple_meta = simple_metadata_list+concat_simple_meta_list
     return final_simple_meta,ref_mut_seq,exon_som_dict
 
 def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background_pep_list=None,ref_mut_seq=None, idx=None,
