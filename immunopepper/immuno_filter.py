@@ -49,6 +49,19 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
     return junction_flag
 
 def get_junction_anno_flag(junction_flag, vertex_id_tuple):
+    """
+    Output is_junction_annotated flag
+    Parameters
+    ----------
+    junction_flag: 2-d array with shape (number_of_vertices, number_of_vertices). if (i,j) entry is 1, i-th vertex and
+        j-th vertex are connected.
+    vertex_id_tuple: triple-elements tuple. (v1,v2,v3) represents the vertex id for the junction pair.
+
+    Returns
+    -------
+    int or list of int depends on it being a 2-vertex junction of 3-vertex junction.
+
+    """
     if NOT_EXIST in vertex_id_tuple:
         return NOT_EXIST
     junction_list = [(vertex_id_tuple[i], vertex_id_tuple[i+1]) for i in range(len(vertex_id_tuple)-1)]

@@ -18,23 +18,15 @@ def get_simple_metadata(gene=None, ref_seq=None, idx=None,mutation=None, option=
        gene: Object, returned by SplAdder.
        ref_seq: Str, reference sequnce of specific chromosome
        idx: Namedtuple Idx, has attribute idx.gene and idx.sample
-       segments: Namedtuple Segments, store segment expression information from count.hdf5.
-           has attribute ['expr', 'lookup_table'].
-       edges: Namedtuple Edges, store edges expression information from count.hdf5.
-           has attribute ['expr','lookup_table']
-       table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
-           from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
-       size_factor: Scalar. To adjust the expression counts based on the external file `libsize.tsv`
-       junction_list: List. Work as a filter to indicate some exon pair has certain
-           ordinary intron which can be ignored further.
+       option: NamedTuple Option, has the attribute output_silence, debug, filter_redundant, kmer
        mutation: Namedtuple Mutation, store the mutation information of specific chromosome and sample.
            has the attribute ['mode', 'maf_dict', 'vcf_dict']
 
        Returns
        -------
-       final_simple_meta:
-       ref_mut_seq:
-       exon_som_dict:
+       final_simple_meta: List of SimpleMetadata.
+       ref_mut_seq: Dict. (sequence_type) -> list[char].
+       exon_som_dict: Dict. (exon_id) |-> (mutation_postion)
 
        """
 
@@ -107,24 +99,27 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
     Parameters
     ----------
     gene: Object, returned by SplAdder.
-    final_simple_meta: Str, reference sequnce of specific chromosome
+    final_simple_meta: List of SimpleMetadata
+    background_pep_list: List[str]. List of all the peptide translated from the given splicegraph and annotation.
+    ref_mut_seq: Str, reference sequnce of specific chromosome
     idx: Namedtuple Idx, has attribute idx.gene and idx.sample
+    exon_som_dict: Dict. (exon_id) |-> (mutation_postion)
     segments: Namedtuple Segments, store segment expression information from count.hdf5.
        has attribute ['expr', 'lookup_table'].
     edges: Namedtuple Edges, store edges expression information from count.hdf5.
        has attribute ['expr','lookup_table']
+    mutation: Namedtuple Mutation, store the mutation information of specific chromosome and sample.
+        has the attribute ['mode', 'maf_dict', 'vcf_dict']
     table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
        from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
     size_factor: Scalar. To adjust the expression counts based on the external file `libsize.tsv`
     junction_list: List. Work as a filter to indicate some exon pair has certain
        ordinary intron which can be ignored further.
-    mutation: Namedtuple Mutation, store the mutation information of specific chromosome and sample.
-       has the attribute ['mode', 'maf_dict', 'vcf_dict']
-    filepointer:
+    filepointer: NamedTuple Filepointer, store file pointer to different output files.
 
     Returns
     -------
-
+    total_expr: float. The total weighted sum segment expression for the given gene and sample.
     """
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
@@ -341,6 +336,19 @@ def create_output_kmer(output_peptide, expr_list, k):
     return output_kmer_list
 
 def get_concat_metadata(gene,output_metadata_list,k):
+    """
+
+    Parameters
+    ----------
+    gene: Object, returned by SplAdder.
+    output_metadata_list: List of SimpleMetadata.
+    k: Int. the length of kmers.
+
+    Returns
+    -------
+    concat_simple_meta_list: List of SimpleMetadata, specifically for triple-vertice cases.
+
+    """
     def in_the_same_read_frame(front_coord, back_coord, strand):
         if strand == '+':
             return (front_coord.stop_v2-back_coord.start_v1)%3 == 0
