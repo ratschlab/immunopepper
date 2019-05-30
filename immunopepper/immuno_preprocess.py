@@ -7,7 +7,7 @@ import scipy as sp
 import pickle
 
 from .utils import to_adj_succ_list,find_overlapping_cds_simple,leq_strand,encode_chromosome
-from .immuno_nametuple import Reading_frame_tuple,GeneTable,Segments,Edges,CountInfo
+from .immuno_nametuple import ReadingFrameTuple,GeneTable,Segments,Edges,CountInfo
 
 def genes_preprocess(genes, gene_cds_begin_dict):
     """ Preprocess the gene and generate new attributes under gene object
@@ -70,7 +70,7 @@ def genes_preprocess(genes, gene_cds_begin_dict):
                     n_trailing_bases = cds_right_modi - cds_left_modi
 
                 read_phase = n_trailing_bases % 3
-                gene.splicegraph.reading_frames[idx].add(Reading_frame_tuple(cds_left_modi, cds_right_modi, read_phase))
+                gene.splicegraph.reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, read_phase))
 
         gene.to_sparse()
 
@@ -196,7 +196,7 @@ def attribute_item_to_dict(a_item, file_type, feature_type):
     return gtf_dict
 
 
-def search_edge_metadata_segmentgraph(gene, sorted_pos, edges, Idx):
+def search_edge_metadata_segmentgraph(gene, coord, edges, Idx):
     """Given the ordered edge coordinates of the edge, return expression information of the edge
 
     Parameters
@@ -211,21 +211,29 @@ def search_edge_metadata_segmentgraph(gene, sorted_pos, edges, Idx):
     -------
     expr: float. Expression level for the given edges.
     """
+    def get_segmentgraph_edge_expr(sorted_pos):
+        a = sp.where(segmentgraph.segments[1, :] == sorted_pos[1])[0]
+        b = sp.where(segmentgraph.segments[0, :] == sorted_pos[2])[0]
+        if a < b:
+            idx = sp.ravel_multi_index([a, b], segmentgraph.seg_edges.shape)
+        else:
+            idx = sp.ravel_multi_index([b, a], segmentgraph.seg_edges.shape)
+        cidxs = list([elem for elem in edge_idxs if elem[1] == idx])
+        assert (len(cidxs) == 1)
+        cidx = cidxs[0]
+        count = edges.expr[cidx[0], Idx.sample]
+        return count
     gene_name = gene.name
     segmentgraph = gene.segmentgraph
     edge_idxs = edges.lookup_table[gene_name] # (idx_in_expr_data, 1d_idx_for_seg_pair)
-
-    a = sp.where(segmentgraph.segments[1, :] == sorted_pos[1])[0]
-    b = sp.where(segmentgraph.segments[0, :] == sorted_pos[2])[0]
-    if a < b:
-        idx = sp.ravel_multi_index([a, b], segmentgraph.seg_edges.shape)
+    sorted_pos = sp.sort(np.array([coord.start_v1, coord.stop_v1, coord.start_v2, coord.stop_v2]))
+    count = get_segmentgraph_edge_expr(sorted_pos)
+    if coord.start_v3 is None:
+        return (count,)
     else:
-        idx = sp.ravel_multi_index([b, a], segmentgraph.seg_edges.shape)
-    cidxs = list([elem for elem in edge_idxs if elem[1] == idx])
-    assert (len(cidxs) == 1)
-    cidx = cidxs[0]
-    count = edges.expr[cidx[0], Idx.sample]
-    return count
+        sorted_pos = sp.sort(np.array([coord.start_v2, coord.stop_v2, coord.start_v3, coord.stop_v3]))
+        count2 = get_segmentgraph_edge_expr(sorted_pos)
+        return (count,count2)
 
 
 def parse_gene_metadata_info(h5f, sample_list):

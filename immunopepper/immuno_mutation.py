@@ -2,6 +2,7 @@
 import bisect
 import sys
 from collections import namedtuple
+from functools import reduce
 
 from .constant import NOT_EXIST
 from .immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
@@ -157,6 +158,8 @@ def get_som_expr_dict(gene, mutation_pos, segments, Idx):
     """
     Build somatic mutation position(key) to expression data(value) dictionary.
     """
+    if segments is None:
+        return None
     seg_mat = gene.segmentgraph.segments[0]
     som_expr_dict = {}
 
@@ -169,7 +172,7 @@ def get_som_expr_dict(gene, mutation_pos, segments, Idx):
     return som_expr_dict
 
 
-def get_mut_comb(exon_som_dict, idx, prop_vertex):
+def get_mut_comb(exon_som_dict,vertex_list):
     """
     Get all the mutation combination given the mutation given.
     Parameters
@@ -185,7 +188,8 @@ def get_mut_comb(exon_som_dict, idx, prop_vertex):
     """
     mut_comb = [NOT_EXIST]
     if exon_som_dict is not None:
-        all_comb = get_all_comb(exon_som_dict[idx] + exon_som_dict[prop_vertex])
+        exon_list = map(lambda x: exon_som_dict[x],vertex_list)
+        all_comb = get_all_comb(reduce(lambda x,y:x+y,exon_list))
         mut_comb += all_comb
     return mut_comb
 
@@ -195,10 +199,10 @@ def get_sub_mutation_tuple(mutation, sample, chrm):
     if (sample, chrm) in list(mutation.vcf_dict.keys()):
         mutation_sub_dict_vcf = mutation.vcf_dict[(sample, chrm)]
     else:
-        mutation_sub_dict_vcf = None
+        mutation_sub_dict_vcf = {}
     if (sample, chrm) in list(mutation.maf_dict.keys()):
         mutation_sub_dict_maf = mutation.maf_dict[(sample, chrm)]
     else:
-        mutation_sub_dict_maf = None
+        mutation_sub_dict_maf = {}
     submutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation.mode)
     return submutation

@@ -4,17 +4,18 @@ import pickle
 
 import Bio.SeqIO as BioIO
 import pytest
+import numpy as np
 
 from immunopepper.immuno_mutation import apply_germline_mutation,construct_mut_seq_with_str_concat,get_mutation_mode_from_parser
 from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
     parse_mutation_from_vcf, parse_mutation_from_maf
-from immunopepper.utils import get_sub_mut_dna,get_concat_peptide
+from immunopepper.utils import get_sub_mut_dna,get_concat_peptide,convert_namedtuple_to_str
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.main_immuno import parse_arguments
 from immunopepper.immuno_model import create_output_kmer
-from immunopepper.immuno_nametuple import Coord,Output_background,Output_kmer
+from immunopepper.immuno_nametuple import init_part_coord,OutputBackground,OutputKmer
 from immunopepper.constant import NOT_EXIST
-from immunopepper.main_immuno import convert_namedtuple_to_str
+from immunopepper.immuno_filter import get_junction_anno_flag
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 
 
@@ -87,8 +88,8 @@ def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
     variant_comb = [(38,), (38, 41), '.']
     strand = ['+', '+', '+']
     for i, vlist in enumerate(test_list):
-        sub_dna = get_sub_mut_dna(ref_seq, vlist[0], vlist[1], vlist[2],
-                                  vlist[3], variant_comb[i],
+        coord = init_part_coord(vlist[0], vlist[1], vlist[2], vlist[3])
+        sub_dna = get_sub_mut_dna(ref_seq, coord, variant_comb[i],
                                   mutation_sub_dic_maf, strand[i])
         assert sub_dna == groundtruth[i]
 
@@ -162,27 +163,21 @@ def test_get_mutation_mode_from_parser():
 
 
 def test_create_output_kmer():
-    peptide_list = [Output_background('1','RTHDGLRSTYI'),Output_background('2','MTHAW')]
-    expr_lists = [[(8,1000),(1,220),(0,0)]]
     k = 3
-    try:
-        c = create_output_kmer(peptide_list,expr_lists,k)
-    except AssertionError: # make sure len(peptide) == len(expr_lists)
-        assert 1
-    peptide_list = [Output_background('1','MTHAW')]
-    expr_lists = [[(8,1000),(1,220),(6,0)]] # test 0 expression
-    c = create_output_kmer(peptide_list, expr_lists, k)
-    true_output = [Output_kmer('MTH','1',913.33,NOT_EXIST), Output_kmer('THA','1',580.0,NOT_EXIST), Output_kmer('HAW','1',246.67,NOT_EXIST)]
+    peptide = OutputBackground('1','MTHAW')
+    expr_lists = [(8,1000),(1,220),(6,0)] # test 0 expression
+    c = create_output_kmer(peptide, expr_lists, k)
+    true_output = [OutputKmer('MTH','1',913.33,False,NOT_EXIST), OutputKmer('THA','1',580.0,False,NOT_EXIST), OutputKmer('HAW','1',246.67,False,NOT_EXIST)]
     assert c == true_output
-    expr_lists = [[(8,1000),(1,220),(0,0)]] # test 0 expression
-    c = create_output_kmer(peptide_list, expr_lists, k)
-    true_output = [Output_kmer('MTH','1',913.33,NOT_EXIST), Output_kmer('THA','1',870.0,NOT_EXIST), Output_kmer('HAW','1',740.0,NOT_EXIST)]
+    expr_lists = [(8,1000),(1,220),(0,0)] # test 0 expression
+    c = create_output_kmer(peptide, expr_lists, k)
+    true_output = [OutputKmer('MTH','1',913.33,False,NOT_EXIST), OutputKmer('THA','1',870.0,False,NOT_EXIST), OutputKmer('HAW','1',740.0,False,NOT_EXIST)]
     assert c == true_output
 
 
 def test_get_concat_peptide():
-    front_coord = Coord(10,19,25,33)
-    back_coord = Coord(27,36,44,53)
+    front_coord = init_part_coord(10,19,25,33)
+    back_coord = init_part_coord(27,36,44,53)
     front_peptide = ''
     back_peptide = 'MGF'
     strand = '+'
@@ -202,8 +197,8 @@ def test_get_concat_peptide():
     assert concat_pep == 'EDMF'
 
     # neg case
-    front_coord = Coord(35,43,20,29)
-    back_coord = Coord(18,26,17,13)
+    front_coord = init_part_coord(35,43,20,29)
+    back_coord = init_part_coord(18,26,17,13)
     strand = '-'
     front_peptide = 'EDM'
     back_peptide = 'DMF'
@@ -212,18 +207,33 @@ def test_get_concat_peptide():
 
 def test_convert_namedtuple_to_str():
     other_pep_field_list = ['id', 'new_line', 'peptide']
-    back_pep1 = Output_background(1,'EDMHG')
-    back_pep2 = Output_background(2,'')
-    back_pep3 = Output_background(3,'KKQ')
+    back_pep1 = OutputBackground(1,'EDMHG')
+    back_pep2 = OutputBackground(2,'')
+    back_pep3 = OutputBackground(3,'KKQ')
     back_pep_list = [back_pep1,back_pep2,back_pep3]
     result = [convert_namedtuple_to_str(back_pep,other_pep_field_list)+'\n' for back_pep in back_pep_list]
     expected_result = ['1\nEDMHG\n', '2\n\n', '3\nKKQ\n']
     assert result == expected_result
 
-    other_pep_field_list = ['kmer','id','expr','is_cross_junction']
-    kmer_pep1 = Output_kmer('','GENE0_1_2',NOT_EXIST,False)
-    kmer_pep2 = Output_kmer('AQEB','GENE0_1_3',20,True)
+    other_pep_field_list = ['kmer','id','expr','is_cross_junction','junction_count']
+    kmer_pep1 = OutputKmer('','GENE0_1_2',NOT_EXIST,False,NOT_EXIST)
+    kmer_pep2 = OutputKmer('AQEB','GENE0_1_3',20,True,25)
     kmer_pep_list = [kmer_pep1,kmer_pep2]
     result = [convert_namedtuple_to_str(kmer_pep,other_pep_field_list)+'\n' for kmer_pep in kmer_pep_list]
-    expected_result = ['\tGENE0_1_2\t.\tFalse\n', 'AQEB\tGENE0_1_3\t20\tTrue\n']
+    expected_result = ['\tGENE0_1_2\t.\tFalse\t.\n', 'AQEB\tGENE0_1_3\t20\tTrue\t25\n']
     assert result == expected_result
+
+def test_get_junction_ann_flag():
+    junction_flag = np.zeros((4,4))
+    junction_flag[1,2] = 1
+    junction_flag[2,3] = 1
+    vertex_id_tuple = (1,2,3)
+    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == [1,1]
+    vertex_id_tuple = (0,2,3)
+    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == [0,1]
+    vertex_id_tuple = (0,1,3)
+    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == [0,0]
+    vertex_id_tuple = (1,2)
+    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 1
+
+

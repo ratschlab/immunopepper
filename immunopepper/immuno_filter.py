@@ -5,7 +5,9 @@ import re
 import scipy as sp
 
 from .utils import complementary_seq,translate_dna_to_peptide,get_exon_expr
-from .immuno_nametuple import Output_background
+from .immuno_nametuple import OutputBackground
+from .constant import NOT_EXIST
+from functools import reduce
 
 def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_table):
     """ Indicate whether exon pair also appears in transcript given by .gtf file
@@ -46,6 +48,28 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
 
     return junction_flag
 
+def get_junction_anno_flag(junction_flag, vertex_id_tuple):
+    """
+    Output is_junction_annotated flag
+    Parameters
+    ----------
+    junction_flag: 2-d array with shape (number_of_vertices, number_of_vertices). if (i,j) entry is 1, i-th vertex and
+        j-th vertex are connected.
+    vertex_id_tuple: triple-elements tuple. (v1,v2,v3) represents the vertex id for the junction pair.
+
+    Returns
+    -------
+    int or list of int depends on it being a 2-vertex junction of 3-vertex junction.
+
+    """
+    if NOT_EXIST in vertex_id_tuple:
+        return NOT_EXIST
+    junction_list = [(vertex_id_tuple[i], vertex_id_tuple[i+1]) for i in range(len(vertex_id_tuple)-1)]
+    if len(junction_list) > 1:
+        #return reduce(lambda junction1,junction2: junction_flag[junction1[0],junction1[1]]+junction_flag[junction2[0],junction2[1]],junction_list)
+        return list(map(lambda junction: int(junction_flag[junction[0],junction[1]]),junction_list))
+    else:
+        return int(junction_flag[vertex_id_tuple[0],vertex_id_tuple[1]])
 
 def get_full_peptide(gene, seq, cds_list, Segments, Idx, mode):
     """
@@ -102,47 +126,12 @@ def get_full_peptide(gene, seq, cds_list, Segments, Idx, mode):
     return cds_expr_list, cds_string, cds_peptide
 
 
-def find_background_peptides(gene, ref_seq, gene_to_transcript_table, transcript_cds_table, Segments, Idx):
-    """Calculate the peptide translated from the complete transcript instead of single exon pairs
-
-    Parameters
-    ----------
-    gene: Object. Created by SplAdder
-    ref_seq: List(str). Reference sequence of certain chromosome.
-    gene_to_transcript_table: Dict. "Gene" -> "transcript"
-    transcript_to_cds_table: Dict. "transcript" -> "cds"
-
-    Returns
-    -------
-    peptide_list: List[str]. List of all the peptide translated from the given
-       splicegraph and annotation.
-    (ts_list): List[str]. List of all the transcript indicated by the  annotation file
-        can be used to generate artifical reads.
-    """
-    gene_transcripts = gene_to_transcript_table[gene.name]
-    peptide_list = []
-    expr_lists = []
-    # Generate a background peptide for every variant transcript
-    for ts in gene_transcripts:
-        # No CDS entries for transcript in annotation file...
-        if ts not in transcript_cds_table:
-            #print("WARNING: Transcript not in CDS table")
-            continue
-        cds_list = transcript_cds_table[ts]
-        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene,ref_seq,cds_list,Segments,Idx,mode='back')
-        peptide = Output_background(ts,cds_peptide)
-        peptide_list.append(peptide)
-        expr_lists.append(cds_expr_list)
-    gene.processed = True
-    return peptide_list, expr_lists
-
-
 def peptide_match(background_peptide_list, peptide):
     """ Find if the translated exon-pair peptide also appear in the background peptide translated from annotation file.
 
     Parameters
     ----------
-    background_peptide_list: List(Output_background) All the peptide translated from transcripts in annotation file
+    background_peptide_list: List(OutputBackground) All the peptide translated from transcripts in annotation file
     peptide: str. peptide translated from certain exon-pairs
 
     Returns
@@ -158,7 +147,7 @@ def peptide_match(background_peptide_list, peptide):
     return match_ts_list
 
 
-def get_exon_dict(metadata_list):
+def get_exon_dict(metadata_list,strand):
     """ Get an auxiliary dictionary used for filtering
 
     Parameters
@@ -175,8 +164,7 @@ def get_exon_dict(metadata_list):
         ## TODO: need to come up with a new way to index the exon dict
         coord = metadata.exons_coor
         idx = metadata.output_id
-        read_frame = metadata.read_frame
-        strand = metadata.gene_strand
+        read_frame = metadata.read_frame.read_phase
         if strand == '+':
             key = (read_frame,coord.stop_v1,coord.start_v2)
             if key in exon_dict:
@@ -211,6 +199,12 @@ def get_remove_id(metadata_dict):
                     remove_id_list.append(exon_pair[0])
                     break
     return remove_id_list
+
+def get_filtered_metadata_list(metadata_list,strand):
+    exon_dict = get_exon_dict(metadata_list,strand)
+    remove_id_list = get_remove_id(exon_dict)
+    filtered_meta_list = list(filter(lambda metadata: metadata.output_id not in remove_id_list,metadata_list))
+    return filtered_meta_list
 
 
 def get_filtered_output_list(metadata_list,peptide_list,expr_lists):

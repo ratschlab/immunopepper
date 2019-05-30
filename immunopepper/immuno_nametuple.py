@@ -6,7 +6,10 @@ Coord namedtuple
 start and stop position of the junction pairs (two exons). If it only consists of one exon,
 start_v2 and stop_v2 is NOT_EXIST.
 """
-Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2'])
+Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2', 'start_v3', 'stop_v3'])
+
+def init_part_coord(start_v1, stop_v1, start_v2, stop_v2, start_v3=None, stop_v3=None):
+    return Coord(start_v1,stop_v1,start_v2,stop_v2,start_v3,stop_v3)
 
 """
 Output_junc_peptide namedtuple
@@ -17,7 +20,7 @@ Output_junc_peptide namedtuple
 - peptide: (peptide_string). The peptide translated from junction pairs.
 - exons_coor: Coord namedtuple
 """
-Output_junc_peptide = namedtuple('Output_junc_peptide', ['output_id','id','peptide','exons_coor'])
+OutputJuncPeptide = namedtuple('OutputJuncPeptide', ['output_id','id','peptide','exons_coor','junction_count'])
 
 
 """
@@ -46,7 +49,7 @@ Output_metadata namedtuple.
 - segment_expr. float. The weighted sum of segment expression. We split the junction into segments and compute the segment 
     expression with the length-weighted-sum expression.
 """
-Output_metadata = namedtuple('Output_metadata', ['output_id', 'read_frame', 'gene_name', 'gene_chr',
+OutputMetadata = namedtuple('OutputMetadata', ['output_id', 'read_frame', 'gene_name', 'gene_chr',
                                                  'gene_strand',	'mutation_mode','peptide_weight', 'peptide_annotated',
                                                  'junction_annotated',	'has_stop_codon',
                                                  'is_in_junction_list',	'is_isolated',
@@ -54,13 +57,15 @@ Output_metadata = namedtuple('Output_metadata', ['output_id', 'read_frame', 'gen
                                                  'exons_coor',	'vertex_idx',	'junction_expr',
                                                  'segment_expr'])
 
+SimpleMetadata = namedtuple('SimpleMetadata', ['output_id', 'read_frame','has_stop_codon','exons_coor','vertex_idx','peptide_weight'])
+
 
 """
 Output_backgrouond namedtuple.
 - id: transcript name
 - peptide: background peptide
 """
-Output_background = namedtuple('Output_background', ['id', 'peptide'])
+OutputBackground = namedtuple('OutputBackground', ['id', 'peptide'])
 
 
 """
@@ -70,7 +75,7 @@ Output_kmer namedtuple.
 - expr: float. length-weighted sum of expression of the kmer
 - is_cross_junction: boolen. indicate if the kmer spans over the cross junction
 """
-Output_kmer= namedtuple('Output_kmer', ['kmer','id','expr','is_cross_junction'])
+OutputKmer= namedtuple('OutputKmer', ['kmer','id','expr','is_cross_junction','junction_count'])
 
 
 """
@@ -103,7 +108,7 @@ Reading_frame_tuple namedtuple
 - cds_right_modi: modified right cds coordinate
 - read_phase: (0,1,2). the number of bases left for the next cds
 """
-Reading_frame_tuple = namedtuple('reading_frame_tuple',['cds_left_modi','cds_right_modi','read_phase'])
+ReadingFrameTuple = namedtuple('ReadingFrameTuple',['cds_left_modi','cds_right_modi','read_phase'])
 
 
 """
@@ -139,6 +144,30 @@ CountInfo namedtuple
 - sample_idx_table: dict. (sample -> sample_id in count HDF5 dictionary)
 """
 CountInfo = namedtuple('CountInfo', ['segments', 'edges', 'sample_idx_table'])
+
+
+"""
+Option namedtuple
+namedtuple that contain all the argument needed in calculating output peptide 
+- output_silence: 
+- debug: 
+- filter_redundant: 
+- kmer:
+"""
+Option = namedtuple('Option', ['output_silence', 'debug', 'filter_redundant', 'kmer'])
+
+
+"""
+filepointer namedtuple
+namedtuple that contain all the filepointers
+- junction_peptide_fp:
+- junction_meta_fp:
+- background_peptide_fp:
+- background_kmer_fp:
+- junction_kmer_fp:
+"""
+Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp','background_peptide_fp','junction_kmer_fp','background_kmer_fp'])
+
 
 
 
