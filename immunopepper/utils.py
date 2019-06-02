@@ -243,15 +243,15 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     # so we need to do a little modification
     if strand == "+":
         start_v2 = peptide_accept_coord[0]
-        stop_v2 = peptide_accept_coord[1] - next_emitting_frame
+        stop_v2 = max(start_v2,peptide_accept_coord[1] - next_emitting_frame)
         coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
         peptide_dna_str_mut = get_sub_mut_dna(mut_seq, coord, variant_comb, mutation_sub_dic_maf, strand)
         peptide_dna_str_ref = ref_seq[start_v1:stop_v1] + ref_seq[start_v2:stop_v2]
         next_start_v1 = min(start_v2 + accepting_frame,peptide_accept_coord[1])
         next_stop_v1 = peptide_accept_coord[1]
     else:  # strand == "-"
-        start_v2 = peptide_accept_coord[0] + next_emitting_frame
         stop_v2 = peptide_accept_coord[1]
+        start_v2 = min(stop_v2,peptide_accept_coord[0] + next_emitting_frame)
         coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
         peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, coord, variant_comb, mutation_sub_dic_maf, strand))
         peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1] + ref_seq[start_v2:stop_v2][::-1])
