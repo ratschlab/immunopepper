@@ -154,7 +154,7 @@ namedtuple that contain all the argument needed in calculating output peptide
 - filter_redundant: 
 - kmer:
 """
-Option = namedtuple('Option', ['output_silence', 'debug', 'filter_redundant', 'kmer'])
+Option = namedtuple('Option', ['output_silence', 'debug', 'filter_redundant', 'kmer','disable_concat'])
 
 
 """
