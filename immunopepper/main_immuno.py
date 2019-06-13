@@ -118,6 +118,7 @@ def main(arg):
     genes_preprocess(graph_data, genetable.gene_to_cds_begin)
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
+    print_memory_diags()
 
     expr_distr_dict = {}
     # process graph for each input sample
@@ -187,6 +188,7 @@ def main(arg):
                 expr_distr.append(total_expr)
                 end_time = timeit.default_timer()
                 print(gene_idx, end_time - start_time,'\n')
+                print_memory_diags()
 
             except Exception as e:
                 # should also print the error
