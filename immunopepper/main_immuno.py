@@ -42,6 +42,7 @@ def parse_arguments(argv):
     parser.add_argument("--heter_code", type=int, help="if count expression data is provided in h5 format, specify the code for heterzygous", default=0)
     parser.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
     parser.add_argument("--output_silence",help="output mutated peptide even it is the same as reference peptide", action="store_true",default=False)
+    parser.add_argument("--disable_concat",help="not considering concatenate case to speed up, default false",action="store_true",default=False)
     if len(argv) < 2:
         parser.print_help()
         sys.exit(1)
@@ -118,11 +119,16 @@ def main(arg):
     genes_preprocess(graph_data, genetable.gene_to_cds_begin)
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
+    print_memory_diags()
 
     expr_distr_dict = {}
     # process graph for each input sample
     output_libszie_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
-    option = Option(output_silence=arg.output_silence,debug=arg.debug,filter_redundant=arg.filter_redundant,kmer=arg.kmer)
+    option = Option(output_silence=arg.output_silence,
+                    debug=arg.debug,
+                    filter_redundant=arg.filter_redundant,
+                    kmer=arg.kmer,
+                    disable_concat=arg.disable_concat)
     for sample in arg.samples:
         expr_distr = []
         # prepare for the output file
@@ -187,6 +193,7 @@ def main(arg):
                 expr_distr.append(total_expr)
                 end_time = timeit.default_timer()
                 print(gene_idx, end_time - start_time,'\n')
+                print_memory_diags()
 
             except Exception as e:
                 # should also print the error
