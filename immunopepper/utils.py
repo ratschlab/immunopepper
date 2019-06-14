@@ -194,7 +194,6 @@ def get_sub_mut_dna(background_seq, coord,variant_comb, mutation_sub_dic_maf, st
         pos = relative_variant_pos[i]
         if pos != NOT_EXIST:
         # strand = mutation_sub_dic_maf[variant_ipos]['strand']
-            assert (sub_dna[pos] == ref_base)
             sub_dna = sub_dna[:pos]+mut_base+sub_dna[pos+1:]
 
     return sub_dna
