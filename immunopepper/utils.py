@@ -560,6 +560,7 @@ def create_libsize(expr_distr_dict,output_fp):
     output_fp: file pointer. library_size text
 
     """
+
     libsize_count = {sample:(np.percentile(expr_list,75),np.sum(expr_list)) for sample,expr_list in list(expr_distr_dict.items())}
     with open(output_fp,'w') as f:
         f.write('\t'.join(['sample','libsize_75percent','libsize_total_count'])+'\n')
@@ -705,3 +706,9 @@ def write_namedtuple_list(fp, namedtuple_list, field_list):
 
 def write_list(fp, _list):
     fp.writelines([l+'\n' for l in _list])
+
+def write_gene_expr(fp, gene_expr_tuple_list):
+    header_line = 'gene\texpr\n'
+    fp.write(header_line)
+    gene_expr_str_list = [ gene_expr_tuple[0]+'\t'+str(gene_expr_tuple[1]) for gene_expr_tuple in gene_expr_tuple_list]
+    write_list(fp,gene_expr_str_list)
