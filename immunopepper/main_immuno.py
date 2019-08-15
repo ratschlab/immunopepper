@@ -24,25 +24,39 @@ from immunopepper.utils import get_idx,create_libsize
 
 def parse_arguments(argv):
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--samples", nargs='+', help="the sample names, can specify more than one sample", required=False, default='')
-    parser.add_argument("--output_dir", help="specify the output directory [default: tests]", required=False, default='test')
-    parser.add_argument("--ann_path", help="specify the absolute path of annotation file", required=False)
-    parser.add_argument("--splice_path", help="specify the absolute path of splicegraph file", required=False)
-    parser.add_argument("--ref_path", help="specify the absolute path of reference gene file to the work_dir", required=False)
-    parser.add_argument("--libsize_path", nargs='?', help="specify the absolute path to expression library sizes",required=False, default=None)
-    parser.add_argument("--vcf_path", help="specify the absolute path of vcf file", required=False, default='')
-    parser.add_argument("--maf_path", help="specify the absolute path of maf file", required=False, default='')
-    parser.add_argument("--count_path",help="specify the absolute path of the count h5 file", required=False, default=None)
-    parser.add_argument("--gtex_junction_path",help="specify the absolute path the the gtex_junction h5 file", required=False, default=None)
-    parser.add_argument("--process_num", type=int, help="Only process the first *process_num* gene in the splicegraph,default,0, means process all", required=False, default=0)
-    parser.add_argument("--filter_redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
-    parser.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
-    parser.add_argument("--mutation_mode", help="specify the mutation mdoe", required=False, default='ref')
-    parser.add_argument("--heter_code", type=int, help="if count expression data is provided in h5 format, specify the code for heterzygous", default=0)
-    parser.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
-    parser.add_argument("--output_silence",help="output mutated peptide even it is the same as reference peptide", action="store_true",default=False)
-    parser.add_argument("--disable_concat",help="not considering concatenate case to speed up, default false",action="store_true",default=False)
+    parser = argparse.ArgumentParser(prog='immunopepper')
+    subparsers = parser.add_subparsers(help='Running modes', metavar='{foreground, background, diff}')
+    parser_foreground = subparsers.add_parser('foreground', help='generate foreground peptide')
+    required = parser_foreground.add_argument_group('MANDATORY')
+    required.add_argument("--samples", nargs='+', help="the sample names, can specify more than one sample", required=True, default='')
+    required.add_argument("--output_dir", help="specify the output directory [default: tests]", required=True, default='test')
+    required.add_argument("--ann_path", help="specify the absolute path of annotation file", required=True)
+    required.add_argument("--splice_path", help="specify the absolute path of splicegraph file", required=True)
+    required.add_argument("--ref_path", help="specify the absolute path of reference gene file to the work_dir", required=True)
+    required.add_argument("--mutation_mode", help="specify the mutation mdoe", required=True, default='ref')
+
+    hidden = parser_foreground.add_argument_group('HIDDEN')
+    hidden.add_argument("--libsize_path", nargs='?', help="specify the absolute path to expression library sizes",required=False, default=None)
+    hidden.add_argument("--gtex_junction_path",help="specify the absolute path the the gtex_junction h5 file", required=False, default=None)
+    hidden.add_argument("--output_silence",help="output mutated peptide even it is the same as reference peptide", action="store_true",default=False)
+
+    experimental = parser_foreground.add_argument_group('EXPERIMENTAL')
+    experimental.add_argument("--filter_redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
+
+    outputs = parser_foreground.add_argument_group('OUTPUT OPTIONS')
+    outputs.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
+    outputs.add_argument("--disable_concat",help="not considering concatenate case to speed up, default false",action="store_true",default=False)
+
+    additional_file = parser_foreground.add_argument_group('ADDITIONAL FILES')
+    additional_file.add_argument("--vcf_path", help="specify the absolute path of vcf file", required=False, default='')
+    additional_file.add_argument("--maf_path", help="specify the absolute path of maf file", required=False, default='')
+    additional_file.add_argument("--count_path",help="specify the absolute path of the count h5 file", required=False, default=None)
+    additional_file.add_argument("--heter_code", type=int, help="if count expression data is provided in h5 format, specify the code for heterzygous", default=0)
+
+    general = parser_foreground.add_argument_group('GENERAL')
+    general.add_argument("--process_num", type=int, help="Only process the first *process_num* gene in the splicegraph,default,0, means process all", required=False, default=0)
+    general.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
+
     if len(argv) < 2:
         parser.print_help()
         sys.exit(1)

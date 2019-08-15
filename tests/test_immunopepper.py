@@ -145,7 +145,14 @@ def test_construct_mut_seq_with_str_concat():
 
 
 def test_get_mutation_mode_from_parser():
-    my_args1 = ['--vcf_path', os.path.join(data_dir,'test1pos.vcf'),
+    basic_args = ['foreground',
+                  '--samples','this_sample',
+                  '--splice_path','this_splicegraph',
+                  '--output_dir','this_output_dir',
+                  '--ann_path','this_ann_path',
+                  '--ref_path','this_ref_path']
+    my_args1 = basic_args+[
+                '--vcf_path', os.path.join(data_dir,'test1pos.vcf'),
                '--maf_path', os.path.join(data_dir,'test1pos.maf'),
                '--mutation_mode', 'somantic']  # bad mutation mode
     args = parse_arguments(my_args1)
@@ -153,7 +160,7 @@ def test_get_mutation_mode_from_parser():
         get_mutation_mode_from_parser(args)
     except SystemExit:
         assert 1
-    my_args2 = ['--vcf_path', os.path.join(data_dir,'test1pos.vcf'),
+    my_args2 = basic_args+['--vcf_path', os.path.join(data_dir,'test1pos.vcf'),
                '--mutation_mode', 'somatic']  # mismatch mutation mode and input files
     args = parse_arguments(my_args2)
     try:

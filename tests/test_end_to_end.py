@@ -40,7 +40,7 @@ def test_end_to_end_ref(test_id, case, mutation_mode, tmpdir):
     sample_dir_kmer = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'groundtruth_kmer','{}'.format(case),'test{}{}'.format(test_id,case))
     sample_dir_junction = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'groundtruth_junction','{}'.format(case),'test{}{}'.format(test_id,case))
 
-    my_args_kmer = ['--samples', 'test{}{}'.format(test_id,case),
+    my_args_kmer = ['foreground','--samples', 'test{}{}'.format(test_id,case),
                '--output_dir', out_dir,
                '--splice_path',
                '{}/{}graph/spladder/genes_graph_conf3.merge_graphs.pickle'.format(
