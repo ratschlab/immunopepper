@@ -5,7 +5,8 @@ import pytest
 
 
 data_dir = os.path.join(os.path.dirname(__file__), 'data')
-sample_dir = os.path.join(os.path.dirname(__file__), 'test1')
+groundtruth_dir = os.path.join(os.path.dirname(__file__), 'test1')
+
 from immunopepper import main_immuno
 
 
@@ -33,14 +34,13 @@ def _assert_files_equal(expected_path, actual_path):
     ['1', 'neg', 'somatic_and_germline']
 ])
 
-
-def test_end_to_end_ref(test_id, case, mutation_mode, tmpdir):
+# test build mode
+def test_end_to_end_build(test_id, case, mutation_mode, tmpdir):
     data_dir = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id), 'data')
     out_dir = str(tmpdir)
-    sample_dir_kmer = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'groundtruth_kmer','{}'.format(case),'test{}{}'.format(test_id,case))
-    sample_dir_junction = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'groundtruth_junction','{}'.format(case),'test{}{}'.format(test_id,case))
+    sample_dir_build = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'build','{}'.format(case),'test{}{}'.format(test_id,case))
 
-    my_args_kmer = ['foreground','--samples', 'test{}{}'.format(test_id,case),
+    my_args_build = ['build','--samples', 'test{}{}'.format(test_id,case),
                '--output_dir', out_dir,
                '--splice_path',
                '{}/{}graph/spladder/genes_graph_conf3.merge_graphs.pickle'.format(
@@ -53,27 +53,139 @@ def test_end_to_end_ref(test_id, case, mutation_mode, tmpdir):
                '--vcf_path', '{}/test{}{}.vcf'.format(data_dir, test_id, case),
                '--maf_path', '{}/test{}{}.maf'.format(data_dir, test_id, case),
                '--mutation_mode', mutation_mode,
-                '--kmer', '4',
-                '--output_silence']
-    my_args_junction = my_args_kmer[:-3]+['--filter_redundant']
+                '--kmer', '4']
+
+    my_args = my_args_build
+    sample_dir = sample_dir_build
+    main_immuno.split_mode(my_args)
+    _assert_files_equal(
+        os.path.join(sample_dir, '{}_metadata.tsv.gz'.format(mutation_mode)),
+        os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_metadata.tsv.gz'.format(mutation_mode)))
+    # peptide
+    _assert_files_equal(
+        os.path.join(sample_dir, '{}_peptides.fa'.format(mutation_mode)),
+        os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_peptides.fa'.format(mutation_mode)))
+    _assert_files_equal(
+        os.path.join(sample_dir, '{}_back_peptides.fa'.format(mutation_mode)),
+        os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_back_peptides.fa'.format(mutation_mode)))
+    #kmer
+    _assert_files_equal(
+        os.path.join(sample_dir, '{}_back_kmer.txt'.format(mutation_mode)),
+        os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_back_kmer.txt'.format(mutation_mode)))
+    _assert_files_equal(
+        os.path.join(sample_dir, '{}_junction_kmer.txt'.format(mutation_mode)),
+        os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_junction_kmer.txt'.format(mutation_mode)))
 
 
-    for my_args,sample_dir in zip([my_args_kmer,my_args_junction],[sample_dir_kmer,sample_dir_junction]):
-        main_immuno.main(main_immuno.parse_arguments(my_args))
-        _assert_files_equal(
-            os.path.join(sample_dir, '{}_metadata.tsv.gz'.format(mutation_mode)),
-            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_metadata.tsv.gz'.format(mutation_mode)))
-        # peptide
-        _assert_files_equal(
-            os.path.join(sample_dir, '{}_peptides.fa'.format(mutation_mode)),
-            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_peptides.fa'.format(mutation_mode)))
-        _assert_files_equal(
-            os.path.join(sample_dir, '{}_back_peptides.fa'.format(mutation_mode)),
-            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_back_peptides.fa'.format(mutation_mode)))
-        #kmer
-        _assert_files_equal(
-            os.path.join(sample_dir, '{}_back_kmer.txt'.format(mutation_mode)),
-            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_back_kmer.txt'.format(mutation_mode)))
-        _assert_files_equal(
-            os.path.join(sample_dir, '{}_junction_kmer.txt'.format(mutation_mode)),
-            os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_junction_kmer.txt'.format(mutation_mode)))
+# test
+@pytest.mark.parametrize("test_id,case", [
+    ['1', 'pos'],
+    ['1', 'neg']
+])
+def test_end_to_end_makebg(test_id, case,tmpdir):
+    sample_dir = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'make_bg','{}'.format(case))
+    out_dir = str(tmpdir)
+    output_file_name = os.path.join(out_dir,'{}_integrated_background_kmer.txt'.format(case))
+    back_file_dir = os.path.join(os.path.dirname(__file__),'test{}'.format(test_id),'build',case,'test{}{}'.format(test_id,case))
+    bg_file_list = [os.path.join(back_file_dir,'{}_back_kmer.txt'.format(mode)) for mode in ['ref','somatic','somatic_and_germline','germline']]
+    my_args_makebg = ['make_bg','--kmer_files_list']+bg_file_list+['--output_file_path',output_file_name]
+
+    main_immuno.split_mode(my_args_makebg)
+    _assert_files_equal(
+        os.path.join(sample_dir, '{}_integrated_background_kmer.txt'.format(case)),
+        os.path.join(out_dir,'{}_integrated_background_kmer.txt'.format(case)))
+
+@pytest.mark.parametrize("test_id,case,mutation_mode", [
+    ['1', 'pos', 'ref'],
+    ['1', 'pos', 'germline'],
+    ['1', 'pos', 'somatic'],
+    ['1', 'pos', 'somatic_and_germline'],
+    ['1', 'neg', 'ref'],
+    ['1', 'neg', 'germline'],
+    ['1', 'neg', 'somatic'],
+    ['1', 'neg', 'somatic_and_germline']
+])
+def test_end_to_end_diff(test_id, case, tmpdir,mutation_mode):
+    groundtruth_diff_dir = os.path.join(groundtruth_dir,'diff','{}'.format(case))
+    out_dir = str(tmpdir)
+    junction_kmer_file_path = os.path.join(groundtruth_dir, 'build',
+                                           case, 'test{}{}'.format(test_id, case),
+                                           '{}_junction_kmer.txt'.format(mutation_mode))
+
+    bg_kmer_file_path = os.path.join(groundtruth_dir, 'make_bg',
+                                     '{}'.format(case), '{}_integrated_background_kmer.txt'.format(case))
+
+    output_file_path = os.path.join(out_dir,'{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode))
+
+    my_args_diff = ['diff', '--junction_kmer_file', junction_kmer_file_path,
+                   '--bg_file_path', bg_kmer_file_path,
+                   '--output_file_path', output_file_path]
+
+    main_immuno.split_mode(my_args_diff)
+    _assert_files_equal(
+        os.path.join(groundtruth_diff_dir, '{}_{}_junction_kmer_with_bg.txt'.format(case,mutation_mode)),
+        os.path.join(out_dir,'{}_{}_junction_kmer_with_bg.txt'.format(case,mutation_mode)))
+
+@pytest.mark.parametrize("test_id,case,mutation_mode", [
+    ['1', 'pos', 'ref'],
+    ['1', 'pos', 'germline'],
+    ['1', 'pos', 'somatic'],
+    ['1', 'pos', 'somatic_and_germline'],
+    ['1', 'neg', 'ref'],
+    ['1', 'neg', 'germline'],
+    ['1', 'neg', 'somatic'],
+    ['1', 'neg', 'somatic_and_germline']
+])
+def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
+    groundtruth_filter_dir = os.path.join(groundtruth_dir,'filter','{}'.format(case))
+    out_dir = str(tmpdir)
+    junction_kmer_file_path = os.path.join(groundtruth_dir, 'diff',
+                                           case,'{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode))
+
+    # cross_junction filter
+    output_filtered_file_name = 'cj_{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode)
+    output_file_path = os.path.join(out_dir,output_filtered_file_name)
+    my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_file_path,
+               '--output_file_path', output_file_path,
+               '--cross_junction']
+    main_immuno.split_mode(my_args)
+    _assert_files_equal(
+        os.path.join(groundtruth_filter_dir, output_filtered_file_name),
+        os.path.join(out_dir,output_filtered_file_name))
+
+    # junction expression 0 filter
+    output_filtered_file_name = 'junc_expr_0_{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode)
+    output_file_path = os.path.join(out_dir,output_filtered_file_name)
+    my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_file_path,
+               '--output_file_path', output_file_path,
+               '--junc_expr']
+    main_immuno.split_mode(my_args)
+    _assert_files_equal(
+        os.path.join(groundtruth_filter_dir, output_filtered_file_name),
+        os.path.join(out_dir, output_filtered_file_name))
+
+    # segment expression 1300 filter
+    output_filtered_file_name = 'seg_expr_1300_{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode)
+    output_file_path = os.path.join(out_dir,output_filtered_file_name)
+    my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_file_path,
+               '--output_file_path', output_file_path,
+               '--seg_expr',
+               '--seg_expr_thre','1300']
+    main_immuno.split_mode(my_args)
+    _assert_files_equal(
+        os.path.join(groundtruth_filter_dir, output_filtered_file_name),
+        os.path.join(out_dir, output_filtered_file_name))
+
+    # segment expression 1300 filter and junction expression 500
+    output_filtered_file_name = 'junc_expr_500_seg_expr_1300_cj_{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode)
+    output_file_path = os.path.join(out_dir,output_filtered_file_name)
+    my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_file_path,
+               '--output_file_path', output_file_path,
+               '--seg_expr',
+               '--seg_expr_thre','1300',
+               '--junc_expr',
+               '--junc_expr_thre','500']
+    main_immuno.split_mode(my_args)
+    _assert_files_equal(
+        os.path.join(groundtruth_filter_dir, output_filtered_file_name),
+        os.path.join(out_dir, output_filtered_file_name))

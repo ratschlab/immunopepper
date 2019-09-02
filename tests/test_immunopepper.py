@@ -145,7 +145,7 @@ def test_construct_mut_seq_with_str_concat():
 
 
 def test_get_mutation_mode_from_parser():
-    basic_args = ['foreground',
+    basic_args = ['build',
                   '--samples','this_sample',
                   '--splice_path','this_splicegraph',
                   '--output_dir','this_output_dir',
