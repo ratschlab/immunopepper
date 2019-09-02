@@ -10,8 +10,7 @@ def immunopepper_diff(arg):
     verbose = arg.verbose
     with open(bg_file_path,'r') as f:
         bg_kmer_set = set(f.read().split('\n'))
-    kmer_df = pd.read_csv(junction_kmer_file, sep='\t',
-                                         names=['kmer', 'gene_name', 'seg_expr', 'is_crossjunction', 'junction_expr'])
+    kmer_df = pd.read_csv(junction_kmer_file, sep='\t')
     uniq_ref_kmer_set = set(kmer_df['kmer']).difference(bg_kmer_set)
     kmer_df['is_neo_flag'] = kmer_df['kmer'].apply(lambda x: x in uniq_ref_kmer_set)
     kmer_df.to_csv(output_file, sep='\t', index=False)
