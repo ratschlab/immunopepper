@@ -75,7 +75,9 @@ def test_end_to_end_build(test_id, case, mutation_mode, tmpdir):
     _assert_files_equal(
         os.path.join(sample_dir, '{}_junction_kmer.txt'.format(mutation_mode)),
         os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_junction_kmer.txt'.format(mutation_mode)))
-
+    _assert_files_equal(
+        os.path.join(sample_dir, 'gene_expression_detail.tsv'),
+        os.path.join(out_dir, 'test{}{}'.format(test_id, case), 'gene_expression_detail.tsv'))
 
 # test
 @pytest.mark.parametrize("test_id,case", [
