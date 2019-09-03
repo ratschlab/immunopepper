@@ -7,6 +7,7 @@ from immunopepper.immunopepper_build import immunopepper_build
 from immunopepper.immunopepper_makebg import immunopepper_makebg
 from immunopepper.immunopepper_diff import immunopepper_diff
 from immunopepper.immunopepper_filter import immunopepper_filter
+
 def parse_arguments(argv):
 
     parser = argparse.ArgumentParser(prog='immunopepper')

@@ -6,7 +6,7 @@ import scipy as sp
 
 from immunopepper.immuno_filter import junction_is_annotated, peptide_match,get_junction_anno_flag,get_filtered_metadata_list,get_full_peptide
 from immunopepper.immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
-from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr,get_peptide_result,convert_namedtuple_to_str,write_namedtuple_list,get_total_gene_expr
+from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr,get_peptide_result,convert_namedtuple_to_str,write_namedtuple_list
 from immunopepper.immuno_preprocess import search_edge_metadata_segmentgraph
 from immunopepper.constant import NOT_EXIST
 from immunopepper.immuno_nametuple import OutputMetadata, OutputJuncPeptide, OutputKmer, SimpleMetadata, init_part_coord, OutputBackground
@@ -119,14 +119,10 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
        ordinary intron which can be ignored further.
     filepointer: NamedTuple Filepointer, store file pointer to different output files.
 
-    Returns
-    -------
-    total_expr: float. The total weighted sum segment expression for the given gene and sample.
     """
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
-    total_expr = get_total_gene_expr(gene,segments,idx)
     som_exp_dict = get_som_expr_dict(gene, list(mutation.maf_dict.keys()), segments, idx)
     meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode',
                        'peptide_weight', 'peptide_annotated',
@@ -209,7 +205,6 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
     if not gene.splicegraph.edges is None:
         gene.to_sparse()
     gene.processed = True
-    return total_expr
 
 def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, table, Segments, Idx,filepointer,option):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
