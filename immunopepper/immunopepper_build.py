@@ -20,7 +20,7 @@ from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_m
 from immunopepper.immuno_model import get_simple_metadata, get_and_write_peptide_and_kmer,get_and_write_background_peptide_and_kmer
 from immunopepper.immuno_nametuple import Option, Filepointer
 from immunopepper.io_utils import load_pickled_graph
-from immunopepper.utils import get_idx,create_libsize
+from immunopepper.utils import get_idx,create_libsize,get_total_gene_expr,write_gene_expr
 
 def immunopepper_build(arg):
     # load genome sequence data
@@ -103,6 +103,7 @@ def immunopepper_build(arg):
                     disable_concat=arg.disable_concat)
     for sample in arg.samples:
         expr_distr = []
+        gene_name_expr_distr = []
         # prepare for the output file
         output_path = os.path.join(arg.output_dir, sample)
         if not os.path.isdir(output_path):
@@ -117,12 +118,14 @@ def immunopepper_build(arg):
         background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa')
         junction_kmer_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.txt')
         background_kmer_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.txt')
+        gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.tsv')
 
         peptide_fp = open(junction_peptide_file_path, 'w')
         meta_peptide_fp = gzip.open(junction_meta_file_path, 'wt')
         background_fp = open(background_peptide_file_path,'w')
         junction_kmer_fp = open(junction_kmer_file_path, 'w')
         background_kmer_fp = open(background_kmer_file_path, 'w')
+        gene_expr_fp = open(gene_expr_file_path,'w')
 
         filepointer = Filepointer(peptide_fp,meta_peptide_fp,background_fp,junction_kmer_fp,background_kmer_fp)
 
@@ -137,12 +140,14 @@ def immunopepper_build(arg):
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
         for gene_idx in gene_id_list:
-            #if 1:
+            gene = graph_data[gene_idx]
+            idx = get_idx(sample_idx_table, sample, gene_idx)
+            total_expr = get_total_gene_expr(gene, segments, idx)
+            gene_name_expr_distr.append((gene.name, total_expr))
+            expr_distr.append(total_expr)
             try:
-                gene = graph_data[gene_idx]
                 start_time = timeit.default_timer()
                 print('%s %i/%i\n'%(sample, gene_idx, num))
-                idx = get_idx(sample_idx_table,sample,gene_idx)
                 # Genes not contained in the annotation...
                 if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
                     gene.processed = False
@@ -161,11 +166,10 @@ def immunopepper_build(arg):
                 background_pep_list = get_and_write_background_peptide_and_kmer(gene=gene,ref_mut_seq=ref_mut_seq,table=genetable,
                                                           Idx=idx,filepointer=filepointer,option=option,Segments=segments)
 
-                total_expr = get_and_write_peptide_and_kmer(gene=gene, final_simple_meta=final_simple_meta, background_pep_list=background_pep_list,
+                get_and_write_peptide_and_kmer(gene=gene, final_simple_meta=final_simple_meta, background_pep_list=background_pep_list,
                                                ref_mut_seq=ref_mut_seq, idx=idx, exon_som_dict=exon_som_dict, segments=segments,
                                                edges=edges, mutation=sub_mutation,table=genetable,option=option,size_factor=None,
                                                junction_list=junction_list, filepointer=filepointer)
-                expr_distr.append(total_expr)
                 end_time = timeit.default_timer()
                 print(gene_idx, end_time - start_time,'\n')
                 print_memory_diags()
@@ -175,5 +179,7 @@ def immunopepper_build(arg):
                 logging.exception("Exception occured in gene %d, %s mode, sample %s " % (gene_idx,arg.mutation_mode,sample))
 
         expr_distr_dict[sample] = expr_distr
-    create_libsize(expr_distr_dict,output_libszie_fp)
+        write_gene_expr(gene_expr_fp,gene_name_expr_distr)
+    if segments is not None:
+        create_libsize(expr_distr_dict,output_libszie_fp)
 
