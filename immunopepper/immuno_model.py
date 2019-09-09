@@ -319,12 +319,12 @@ def create_output_kmer(output_peptide, expr_list, k):
                 kmer_peptide_expr = NOT_EXIST
             else:
                 kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]),2)
-            if j in spanning_index1 and junction_count != NOT_EXIST:
+            if j in spanning_index1:
                 is_in_junction = True
-                kmer_junction_count = junction_count[0]
-            elif j in spanning_index2 and junction_count != NOT_EXIST:
+                kmer_junction_count = junction_count[0] if junction_count != NOT_EXIST else NOT_EXIST
+            elif j in spanning_index2 :
                 is_in_junction = True
-                kmer_junction_count = junction_count[1]
+                kmer_junction_count = junction_count[1] if junction_count != NOT_EXIST else NOT_EXIST
             else:
                 is_in_junction = False
                 kmer_junction_count = NOT_EXIST
