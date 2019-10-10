@@ -265,9 +265,15 @@ def parse_gene_metadata_info(h5f, sample_list):
                 sample_idx_table[sample] = i
                 continue
 
-    gene_names = h5f["/gene_names"][:, 0]
-    gene_ids_segs = h5f["/gene_ids_segs"][:, 0]
-    gene_ids_edges = h5f["/gene_ids_edges"][:, 0]
+    gene_names = h5f["/gene_names"]
+    gene_ids_segs = h5f["/gene_ids_segs"]
+    gene_ids_edges = h5f["/gene_ids_edges"]
+    if len(gene_names.shape) > 1:
+        gene_names = gene_names[:, 0]
+    if len(gene_ids_segs.shape) > 1:
+        gene_ids_segs = gene_ids_segs[:, 0]
+    if len(gene_ids_edges.shape) > 1:
+        gene_ids_edges = gene_ids_edges[:, 0]
     assert (gene_ids_segs.size == segment_expr_info.shape[0])
     assert (gene_ids_edges.size == edge_expr_info.shape[0])
     seg_lookup_table = {}
