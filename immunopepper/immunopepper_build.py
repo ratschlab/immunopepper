@@ -26,11 +26,11 @@ def immunopepper_build(arg):
     # load genome sequence data
     seq_dict = {}
     start_time = timeit.default_timer()
-    interesting_chr = list(map(str, list(range(1, 23)))) + ["X", "Y", "MT"]
+    #interesting_chr = list(map(str, list(range(1, 23)))) + ["X", "Y", "MT"]
     print('Parsing genome sequence ...')
     for record in BioIO.parse(arg.ref_path, "fasta"):
-        if record.id in interesting_chr:
-            seq_dict[record.id] = str(record.seq).strip()
+        #if record.id in interesting_chr:
+        seq_dict[record.id] = str(record.seq).strip()
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
