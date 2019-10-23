@@ -127,8 +127,7 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
     # as a  junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
     som_exp_dict = get_som_expr_dict(gene, list(mutation.maf_dict.keys()), segments, idx)
-    meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode',
-                       'peptide_weight', 'peptide_annotated',
+    meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode', 'peptide_annotated',
                        'junction_annotated', 'has_stop_codon', 'is_in_junction_list', 'is_isolated', 'variant_comb',
                        'variant_seg_expr',
                        'modified_exons_coord','original_exons_coord', 'vertex_idx', 'junction_expr', 'segment_expr']
@@ -141,7 +140,6 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
         orig_coord = simple_metadata.original_exons_coord
         vertex_list = simple_metadata.vertex_idx
         read_frame_tuple = simple_metadata.read_frame
-        peptide_weight = simple_metadata.peptide_weight
         if gene.strand == '+':
             orig_read_frame = (modi_coord[0]-gene.splicegraph.vertices[0,vertex_list[0]])%3
         else:
@@ -184,7 +182,6 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
                                                   gene_chr=gene.chr,
                                                   gene_strand=gene.strand,
                                                   mutation_mode=mutation.mode,
-                                                  peptide_weight=peptide_weight,
                                                   peptide_annotated=peptide_is_annotated,
                                                   junction_annotated=junction_anno_flag,
                                                   has_stop_codon=int(flag.has_stop),
