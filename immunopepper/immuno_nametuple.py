@@ -54,10 +54,10 @@ OutputMetadata = namedtuple('OutputMetadata', ['output_id', 'read_frame', 'gene_
                                                  'junction_annotated',	'has_stop_codon',
                                                  'is_in_junction_list',	'is_isolated',
                                                  'variant_comb',	'variant_seg_expr',
-                                                 'exons_coor',	'vertex_idx',	'junction_expr',
+                                                 'modified_exons_coord','original_exons_coord',	'vertex_idx',	'junction_expr',
                                                  'segment_expr'])
 
-SimpleMetadata = namedtuple('SimpleMetadata', ['output_id', 'read_frame','has_stop_codon','exons_coor','vertex_idx','peptide_weight'])
+SimpleMetadata = namedtuple('SimpleMetadata', ['output_id', 'read_frame','has_stop_codon','modified_exons_coord','original_exons_coord','vertex_idx','peptide_weight'])
 
 
 """

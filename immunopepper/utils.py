@@ -336,20 +336,20 @@ def get_peptide_result(simple_meta_data, strand, variant_comb, mutation_sub_dic_
     else:
         ref_seq = ref_mut_seq['ref']
     mut_seq = ref_mut_seq['background']
-
+    modi_coord = simple_meta_data.modified_exons_coord
     if strand == "+":
-        peptide_dna_str_mut = get_sub_mut_dna(mut_seq,simple_meta_data.exons_coor, variant_comb, mutation_sub_dic_maf, strand)
-        peptide_dna_str_ref = get_sub_mut_dna(ref_seq,simple_meta_data.exons_coor, NOT_EXIST, mutation_sub_dic_maf, strand)
+        peptide_dna_str_mut = get_sub_mut_dna(mut_seq,modi_coord, variant_comb, mutation_sub_dic_maf, strand)
+        peptide_dna_str_ref = get_sub_mut_dna(ref_seq,modi_coord, NOT_EXIST, mutation_sub_dic_maf, strand)
     else:  # strand == "-"
-        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, simple_meta_data.exons_coor, variant_comb, mutation_sub_dic_maf, strand))
-        peptide_dna_str_ref = complementary_seq(get_sub_mut_dna(ref_seq, simple_meta_data.exons_coor, NOT_EXIST, mutation_sub_dic_maf, strand))
+        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, modi_coord, variant_comb, mutation_sub_dic_maf, strand))
+        peptide_dna_str_ref = complementary_seq(get_sub_mut_dna(ref_seq, modi_coord, NOT_EXIST, mutation_sub_dic_maf, strand))
     peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut)
     peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref)
 
     # if the stop codon appears before translating the second exon, mark 'single'
-    stop_v1 = simple_meta_data.exons_coor.stop_v1
-    start_v1 = simple_meta_data.exons_coor.start_v1
-    start_v2 = simple_meta_data.exons_coor.start_v2
+    stop_v1 = modi_coord.stop_v1
+    start_v1 = modi_coord.start_v1
+    start_v2 = modi_coord.start_v2
     if start_v2 == NOT_EXIST or len(peptide_mut)*3 <= abs(stop_v1 - start_v1) + 1:
         is_isolated = True
     else:
