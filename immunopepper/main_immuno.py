@@ -55,6 +55,8 @@ def parse_arguments(argv):
     required.add_argument("--junction_kmer_file", help="the foreground junction file", required=True, default='')
     required.add_argument("--bg_file_path", help="the background file path", required=True, default='')
     required.add_argument("--output_file_path", help="specify the output file path", required=True, default='')
+    required.add_argument("--remove_bg", help="choose to simply remove background rows or add a new flag column to indicate"
+                                              " the if the kmer exists in the background kmers",action="store_true", required=False, default=False)
     general = parser_diff.add_argument_group('MISCELLANEOUS')
     general.add_argument("--verbose", type=int, help="specify the output verbosity", required=False, default=0)
 
