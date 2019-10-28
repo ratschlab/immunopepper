@@ -12,6 +12,7 @@ import logging
 # External libraries
 import Bio.SeqIO as BioIO
 import h5py
+import gc
 
 # immuno module
 from immunopepper.immuno_print import print_memory_diags
@@ -20,32 +21,32 @@ from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_m
 from immunopepper.immuno_model import get_simple_metadata, get_and_write_peptide_and_kmer,get_and_write_background_peptide_and_kmer
 from immunopepper.immuno_nametuple import Option, Filepointer
 from immunopepper.io_utils import load_pickled_graph
-from immunopepper.utils import get_idx,create_libsize,get_total_gene_expr,write_gene_expr
+from immunopepper.utils import get_idx,create_libsize,get_total_gene_expr,write_gene_expr,check_chr_consistence
 
 def immunopepper_build(arg):
-    # load genome sequence data
-    seq_dict = {}
+    # read and process the annotation file
+    print('Building lookup structure ...')
     start_time = timeit.default_timer()
-    interesting_chr = list(map(str, list(range(1, 23)))) + ["X", "Y", "MT"]
-    print('Parsing genome sequence ...')
-    for record in BioIO.parse(arg.ref_path, "fasta"):
-        if record.id in interesting_chr:
-            seq_dict[record.id] = str(record.seq).strip()
+    genetable,chromosome_set = preprocess_ann(arg.ann_path)
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
 
-    # read and process the annotation file
-    print('Building lookup structure ...')
+    # load genome sequence data
+    seq_dict = {}
     start_time = timeit.default_timer()
-    genetable = preprocess_ann(arg.ann_path)
+    print('Parsing genome sequence ...')
+    for record in BioIO.parse(arg.ref_path, "fasta"):
+        if record.id in chromosome_set:
+            seq_dict[record.id] = str(record.seq).strip()
+        else:
+            print("The genome chromosome identifier {} is not shown in the annotation file".format(record.id))
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
 
     # read the variant file
     mutation = get_mutation_mode_from_parser(arg)
-
     # load splicegraph
     print('Loading splice graph ...')
     start_time = timeit.default_timer()
@@ -54,6 +55,8 @@ def immunopepper_build(arg):
     end_time = timeit.default_timer()
     print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
+
+    check_chr_consistence(chromosome_set,mutation,graph_data)
 
     if arg.process_num == 0:  # Default process all genes
         num = len(graph_data)
@@ -177,7 +180,8 @@ def immunopepper_build(arg):
             except Exception as e:
                 # should also print the error
                 logging.exception("Exception occured in gene %d, %s mode, sample %s " % (gene_idx,arg.mutation_mode,sample))
-
+            graph_data[gene_idx] = None
+            gc.collect()
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
     if segments is not None:

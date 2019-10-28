@@ -3,14 +3,12 @@ import itertools
 import scipy as sp
 import numpy as np
 
-from collections import namedtuple
+import sys
 import bisect
 
 from .constant import NOT_EXIST
 from .immuno_nametuple import OutputBackground
 from immunopepper.immuno_nametuple import Peptide,Flag,Idx,ReadingFrameTuple,init_part_coord
-
-
 
 def to_adj_list(adj_matrix):
     """
@@ -712,3 +710,20 @@ def write_gene_expr(fp, gene_expr_tuple_list):
     fp.write(header_line)
     gene_expr_str_list = [ gene_expr_tuple[0]+'\t'+str(gene_expr_tuple[1]) for gene_expr_tuple in gene_expr_tuple_list]
     write_list(fp,gene_expr_str_list)
+
+def check_chr_consistence(chr_set,mutation,graph_data):
+    if mutation.vcf_dict:
+        vcf_chr_set = set([item[1] for item in mutation.vcf_dict.keys()])
+        if vcf_chr_set != chr_set:
+            print("vcf file has different chromosome naming from annotation file, please check")
+            sys.exit(0)
+    if mutation.maf_dict:
+        maf_chr_set = set([item[1] for item in mutation.maf_dict.keys()])
+        if maf_chr_set != chr_set:
+            print("maf file has different chromosome naming from annotation file, please check")
+            sys.exit(0)
+    if len(graph_data) > 0:
+        gene_chr_set = set([gene.chr for gene in graph_data])
+        if gene_chr_set != chr_set:
+            print("Gene object has different chromosome naming from annotation file, please check")
+            sys.exit(0)
