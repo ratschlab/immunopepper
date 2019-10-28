@@ -519,7 +519,7 @@ def get_total_gene_expr(gene, Segments, Idx):
     actually total_expr = reads_length*total_reads_counts
     """
 
-    if Segments is None:
+    if Segments is None or Idx.sample is None:
         return NOT_EXIST
     count_segments = Segments.lookup_table[gene.name]
     seg_len = gene.segmentgraph.segments[1]-gene.segmentgraph.segments[0]
@@ -539,7 +539,11 @@ def get_idx(sample_idx_table, sample, gene_idx):
 
     """
     if sample_idx_table is not None:
-        sample_idx = sample_idx_table[sample]
+        if sample in sample_idx_table:
+            sample_idx = sample_idx_table[sample]
+        else:
+            sample_idx = None
+            print("Warning: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
     else:
         sample_idx = None
     idx = Idx(gene_idx,sample_idx)
@@ -558,8 +562,12 @@ def create_libsize(expr_distr_dict,output_fp):
     output_fp: file pointer. library_size text
 
     """
-
-    libsize_count = {sample:(np.percentile(expr_list,75),np.sum(expr_list)) for sample,expr_list in list(expr_distr_dict.items())}
+    # filter the dict
+    libsize_count = {}
+    for sample,expr_list in expr_distr_dict.items():
+        if np.array(expr_list).dtype in  [np.float,np.int]:
+            libsize_count[sample] = (np.percentile(expr_list,75),np.sum(expr_list))
+    #libsize_count = {sample:(np.percentile(expr_list,75),np.sum(expr_list)) for sample,expr_list in list(expr_distr_dict.items())}
     with open(output_fp,'w') as f:
         f.write('\t'.join(['sample','libsize_75percent','libsize_total_count'])+'\n')
         for sample,count_tuple in list(libsize_count.items()):

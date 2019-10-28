@@ -196,13 +196,19 @@ def get_mut_comb(exon_som_dict,vertex_list):
 
 def get_sub_mutation_tuple(mutation, sample, chrm):
     """ Get sub mutation namedtuple on given sample and chromosome """
+    is_ref = True
     if (sample, chrm) in list(mutation.vcf_dict.keys()):
         mutation_sub_dict_vcf = mutation.vcf_dict[(sample, chrm)]
+        is_ref = False
     else:
         mutation_sub_dict_vcf = {}
     if (sample, chrm) in list(mutation.maf_dict.keys()):
         mutation_sub_dict_maf = mutation.maf_dict[(sample, chrm)]
+        is_ref = False
     else:
         mutation_sub_dict_maf = {}
+    if mutation.mode != 'ref' and is_ref:
+        print("Warning: Can not find sample {} in the corresponding mutation file, please check again before proceeding.".format(sample))
+        sys.exit(1)
     submutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation.mode)
     return submutation

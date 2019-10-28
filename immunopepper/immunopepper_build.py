@@ -157,7 +157,7 @@ def immunopepper_build(arg):
                     continue
 
                 chrm = gene.chr.strip()
-                sub_mutation = get_sub_mutation_tuple(mutation,sample, chrm)
+                sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
                 if not junction_dict is None and chrm in junction_dict:
                     junction_list = junction_dict[chrm]
                 else:
@@ -184,6 +184,5 @@ def immunopepper_build(arg):
             gc.collect()
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
-    if segments is not None:
         create_libsize(expr_distr_dict,output_libszie_fp)
 
