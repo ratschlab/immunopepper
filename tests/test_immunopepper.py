@@ -6,10 +6,10 @@ import Bio.SeqIO as BioIO
 import pytest
 import numpy as np
 
-from immunopepper.immuno_mutation import apply_germline_mutation,construct_mut_seq_with_str_concat,get_mutation_mode_from_parser
+from immunopepper.immuno_mutation import apply_germline_mutation,construct_mut_seq_with_str_concat,get_mutation_mode_from_parser,Mutation,get_sub_mutation_tuple
 from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
     parse_mutation_from_vcf, parse_mutation_from_maf
-from immunopepper.utils import get_sub_mut_dna,get_concat_peptide,convert_namedtuple_to_str
+from immunopepper.utils import get_sub_mut_dna,get_concat_peptide,convert_namedtuple_to_str,check_chr_consistence,get_idx,create_libsize
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.main_immuno import parse_arguments
 from immunopepper.immuno_model import create_output_kmer
@@ -27,7 +27,7 @@ def load_gene_data():
     ref_path = os.path.join(data_dir, 'test1pos.fa')
 
     (graph_data, graph_meta) = load_pickled_graph(f)  # cPickle.load(f)
-    genetable = preprocess_ann(ann_path)
+    genetable,chr_set = preprocess_ann(ann_path)
     interesting_chr = list(map(str, range(1, 23))) + ["X", "Y", "MT"]
     seq_dict = {}
     for record in BioIO.parse(ref_path, "fasta"):
@@ -97,8 +97,8 @@ def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
 def test_reading_gtf_and_gff3_file():
     gff3_path = os.path.join(data_dir,'small.gencode.v29.gff3')
     gtf_path = os.path.join(data_dir, 'small.gencode.v29.gtf')
-    gene_table_gtf = preprocess_ann(gtf_path)
-    gene_table_gff = preprocess_ann(gff3_path)
+    gene_table_gtf,_ = preprocess_ann(gtf_path)
+    gene_table_gff,_ = preprocess_ann(gff3_path)
     assert gene_table_gff.gene_to_ts == gene_table_gtf.gene_to_ts
     assert gene_table_gtf.ts_to_cds.keys() == gene_table_gff.ts_to_cds.keys()
     assert gene_table_gtf.ts_to_cds['ENST00000335137.4'] == [(69090, 70005, 0)]
@@ -108,8 +108,8 @@ def test_reading_gtf_and_gff3_file():
 def test_reading_gtf_and_gff_file():
     gff_path = os.path.join(data_dir,'small.gencode.v19.gff')
     gtf_path = os.path.join(data_dir, 'small.gencode.v19.gtf')
-    gene_table_gtf = preprocess_ann(gtf_path)
-    gene_table_gff = preprocess_ann(gff_path)
+    gene_table_gtf,_ = preprocess_ann(gtf_path)
+    gene_table_gff,_ = preprocess_ann(gff_path)
     assert gene_table_gff.gene_to_ts == gene_table_gtf.gene_to_ts
     assert gene_table_gtf.ts_to_cds.keys() == gene_table_gff.ts_to_cds.keys()
     assert gene_table_gff.ts_to_cds['ENST00000335137.3'] == [(69090, 70006, 0)]
@@ -168,6 +168,32 @@ def test_get_mutation_mode_from_parser():
     except SystemExit:
         assert 1
 
+def test_get_sub_mutation_tuple():
+    vcf_dict = {('test1pos','1'):{135:{'mut_base': 'G', 'ref_base': 'C'}},('test1neg','1'):{136:{'mut_base': 'G', 'ref_base': 'C'}}}
+    maf_dict = {('test1pos','1'):{28:{'mut_base': 'G', 'ref_base': 'C'}},('test2neg','1'):{29:{'mut_base': 'G', 'ref_base': 'C'}}}
+    sample = 'test1pos'
+    chrm = '1'
+    mutation = Mutation(vcf_dict,maf_dict,mode='somatic_and_germline')
+
+    sub_mutation = get_sub_mutation_tuple(mutation,sample,chrm)
+    assert sub_mutation.maf_dict == mutation.maf_dict[('test1pos','1')]
+    assert sub_mutation.vcf_dict == mutation.vcf_dict[('test1pos','1')]
+    assert sub_mutation.mode == mutation.mode
+
+    # (test1neg,'1') not in the keys of maf_dict
+    sample = 'test1neg'
+    try:
+        sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
+    except SystemExit:
+        assert 1
+
+    # (test1pos, 2) does exists neither in vcf nor maf
+    sample = 'test1pos'
+    chrm = '2'
+    try:
+        sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
+    except SystemExit:
+        assert 1
 
 def test_create_output_kmer():
     k = 3
@@ -243,4 +269,52 @@ def test_get_junction_ann_flag():
     vertex_id_tuple = (1,2)
     assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 1
 
+def test_check_chr_consistence(load_gene_data, load_mutation_data):
+    graph_data, ref_seq, gene_cds_begin_dict = load_gene_data
+    mutation_dic_vcf, mutation_dic_maf = load_mutation_data
+    mutation = Mutation(None,mutation_dic_maf,mutation_dic_vcf) # vcf_dict[('test1pos','X')]
+    ann_path = os.path.join(data_dir, 'test1pos.gtf')
+    genetable,chr_set = preprocess_ann(ann_path)
 
+    check_chr_consistence(chr_set,mutation,graph_data)
+
+    # conflict between chr_set and vcf_dict
+    try:
+        chr_set = set(['chrX'])
+        check_chr_consistence(chr_set, mutation, graph_data)
+    except SystemExit:
+        assert 1
+
+    # conflict between chr_set and gene.chr
+    try:
+        graph_data[0].chr = 'chrX'
+        check_chr_consistence(chr_set, mutation, graph_data)
+    except SystemExit:
+        assert 1
+
+
+def test_get_idx():
+    sample_idx_table = {}
+    sample_idx_table['test1pos'] = 100
+    sample_idx_table['test1neg'] = 101
+    sample = 'test1pos'
+    gene_idx = 0
+    Idx = get_idx(sample_idx_table,sample,gene_idx)
+    assert Idx.gene == gene_idx
+    assert Idx.sample == sample_idx_table['test1pos']
+
+    # the inquiry sample name not in sample_idx_table
+    Idx = get_idx(sample_idx_table, 'test2', gene_idx)
+    assert Idx.gene == gene_idx
+    assert Idx.sample == None
+
+    # the sample_idx_table does not exist
+    Idx = get_idx(None, 'test2', gene_idx)
+    assert Idx.gene == gene_idx
+    assert Idx.sample == None
+
+def test_create_libsize():
+    fp = 'temp.txt'
+    expr_distr_dict = {'test1pos':['.'],'test1neg':[2,10,11]}
+    libsize_count_dict = create_libsize(expr_distr_dict,fp,debug=True)
+    assert libsize_count_dict == {'test1neg':(10.5,23)}
