@@ -550,7 +550,7 @@ def get_idx(sample_idx_table, sample, gene_idx):
     return idx
 
 
-def create_libsize(expr_distr_dict,output_fp):
+def create_libsize(expr_distr_dict,output_fp,debug=False):
     """ create library_size text file.
 
     Calculate the 75% expression and sum of expression for each sample
@@ -560,7 +560,7 @@ def create_libsize(expr_distr_dict,output_fp):
     ----------
     expr_distr_dict: Dict. str -> List(float). Mapping sample to the expression of all exon pairs
     output_fp: file pointer. library_size text
-
+    debug: Bool. In debug mode, return the libsize_count dictionary.
     """
     # filter the dict
     libsize_count = {}
@@ -568,12 +568,13 @@ def create_libsize(expr_distr_dict,output_fp):
         if np.array(expr_list).dtype in  [np.float,np.int]:
             libsize_count[sample] = (np.percentile(expr_list,75),np.sum(expr_list))
     #libsize_count = {sample:(np.percentile(expr_list,75),np.sum(expr_list)) for sample,expr_list in list(expr_distr_dict.items())}
+    if debug:
+        return libsize_count
     with open(output_fp,'w') as f:
         f.write('\t'.join(['sample','libsize_75percent','libsize_total_count'])+'\n')
         for sample,count_tuple in list(libsize_count.items()):
             line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
             f.write(line)
-
 
 def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_peptide, strand,k=None):
     """
