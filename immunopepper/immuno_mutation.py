@@ -196,19 +196,23 @@ def get_mut_comb(exon_som_dict,vertex_list):
 
 def get_sub_mutation_tuple(mutation, sample, chrm):
     """ Get sub mutation namedtuple on given sample and chromosome """
-    is_ref = True
+    mode_map = {'ref':0,'somatic':1,'germline':2,'somatic_and_germline':3}
+    inv_mode_map = {0:'ref',1:'somatic',2:'germline',3:'somatic_and_germline'}
+    loaded_mode_code = 0
+    expected_mode_code = mode_map[mutation.mode]
     if (sample, chrm) in list(mutation.vcf_dict.keys()):
         mutation_sub_dict_vcf = mutation.vcf_dict[(sample, chrm)]
-        is_ref = False
+        loaded_mode_code += mode_map['germline']
     else:
         mutation_sub_dict_vcf = {}
     if (sample, chrm) in list(mutation.maf_dict.keys()):
         mutation_sub_dict_maf = mutation.maf_dict[(sample, chrm)]
-        is_ref = False
+        loaded_mode_code += mode_map['somatic']
     else:
         mutation_sub_dict_maf = {}
-    if mutation.mode != 'ref' and is_ref:
-        print("Warning: Can not find sample {} in the corresponding mutation file, please check again before proceeding.".format(sample))
+    if expected_mode_code != loaded_mode_code:
+        print("Warning: the expected mode is {} but the loaded mode is {}."
+              " Please check if the sample exists in the mutation file of missing mode.".format(inv_mode_map[expected_mode_code],inv_mode_map[loaded_mode_code]))
         sys.exit(1)
     submutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation.mode)
     return submutation
