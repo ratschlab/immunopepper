@@ -720,19 +720,23 @@ def write_gene_expr(fp, gene_expr_tuple_list):
     gene_expr_str_list = [ gene_expr_tuple[0]+'\t'+str(gene_expr_tuple[1]) for gene_expr_tuple in gene_expr_tuple_list]
     write_list(fp,gene_expr_str_list)
 
-def check_chr_consistence(chr_set,mutation,graph_data):
+def check_chr_consistence(ann_chr_set,mutation,graph_data):
+    vcf_chr_set = set()
+    maf_chr_set = set()
+    mode = mutation.mode
     if mutation.vcf_dict:
         vcf_chr_set = set([item[1] for item in mutation.vcf_dict.keys()])
-        if vcf_chr_set != chr_set:
-            print("vcf file has different chromosome naming from annotation file, please check")
-            sys.exit(0)
     if mutation.maf_dict:
         maf_chr_set = set([item[1] for item in mutation.maf_dict.keys()])
-        if maf_chr_set != chr_set:
-            print("maf file has different chromosome naming from annotation file, please check")
-            sys.exit(0)
+    whole_mut_set = vcf_chr_set.union(maf_chr_set)
+    common_chr = whole_mut_set.intersection(ann_chr_set)
+
+    if mode != 'ref' and len(common_chr) == 0:
+        print("mutation file has different chromosome naming from annotation file, please check")
+        sys.exit(0)
     if len(graph_data) > 0:
         gene_chr_set = set([gene.chr for gene in graph_data])
-        if gene_chr_set != chr_set:
+        new_chr_set = gene_chr_set.difference(ann_chr_set)
+        if len(new_chr_set) > 0:
             print("Gene object has different chromosome naming from annotation file, please check")
             sys.exit(0)
