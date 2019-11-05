@@ -88,7 +88,7 @@ def test_end_to_end_makebg(test_id, case,tmpdir):
     output_file_name = os.path.join(out_dir,'{}_integrated_background_kmer.txt'.format(case))
     back_file_dir = os.path.join(os.path.dirname(__file__),'test{}'.format(test_id),'build',case,'test{}{}'.format(test_id,case))
     bg_file_list = [os.path.join(back_file_dir,'{}_back_kmer.txt'.format(mode)) for mode in ['ref','somatic','somatic_and_germline','germline']]
-    my_args_makebg = ['make_bg','--kmer_files_list']+bg_file_list+['--output_file_path',output_file_name]
+    my_args_makebg = ['make_bg','--kmer_files_list']+bg_file_list+['--output_file_path',output_file_name]+['--output_dir',out_dir]
 
     main_immuno.split_mode(my_args_makebg)
     _assert_files_equal(
@@ -119,7 +119,8 @@ def test_end_to_end_diff(test_id, case, tmpdir,mutation_mode):
 
     my_args_diff = ['diff', '--junction_kmer_file', junction_kmer_file_path,
                    '--bg_file_path', bg_kmer_file_path,
-                   '--output_file_path', output_file_path]
+                   '--output_file_path', output_file_path,
+                    '--output_dir',out_dir]
 
     main_immuno.split_mode(my_args_diff)
     _assert_files_equal(
@@ -147,6 +148,7 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
     output_file_path = os.path.join(out_dir,output_filtered_file_name)
     my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_file_path,
                '--output_file_path', output_file_path,
+               '--output_dir', out_dir,
                '--cross_junction']
     main_immuno.split_mode(my_args)
     _assert_files_equal(
@@ -158,6 +160,7 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
     output_file_path = os.path.join(out_dir,output_filtered_file_name)
     my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_file_path,
                '--output_file_path', output_file_path,
+               '--output_dir', out_dir,
                '--junc_expr']
     main_immuno.split_mode(my_args)
     _assert_files_equal(
@@ -169,6 +172,7 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
     output_file_path = os.path.join(out_dir,output_filtered_file_name)
     my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_file_path,
                '--output_file_path', output_file_path,
+               '--output_dir', out_dir,
                '--seg_expr',
                '--seg_expr_thre','1300']
     main_immuno.split_mode(my_args)
@@ -181,6 +185,7 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
     output_file_path = os.path.join(out_dir,output_filtered_file_name)
     my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_file_path,
                '--output_file_path', output_file_path,
+               '--output_dir', out_dir,
                '--seg_expr',
                '--seg_expr_thre','1300',
                '--junc_expr',
