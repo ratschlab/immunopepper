@@ -24,12 +24,8 @@ from immunopepper.io_utils import load_pickled_graph
 from immunopepper.utils import get_idx,create_libsize,get_total_gene_expr,write_gene_expr,check_chr_consistence
 
 def immunopepper_build(arg):
-    log_dir = os.path.join(arg.output_dir, 'error.log')
-    logging.basicConfig(level=logging.DEBUG,
-                        filename=log_dir, filemode="a+",
-                        format="%(asctime)-15s %(levelname)-8s %(message)s")
     # read and process the annotation file
-    logging.info(">>>>>>>>> Start Preprocessing")
+    logging.info(">>>>>>>>> Build: Start Preprocessing")
     logging.info('Building lookup structure ...')
     start_time = timeit.default_timer()
     genetable,chromosome_set = preprocess_ann(arg.ann_path)
@@ -99,7 +95,7 @@ def immunopepper_build(arg):
     end_time = timeit.default_timer()
     logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
-    logging.info(">>>>>>>>> Finish Preprocessing\n")
+    logging.info(">>>>>>>>> Finish Preprocessing")
     expr_distr_dict = {}
     # process graph for each input sample
     output_libszie_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
@@ -203,4 +199,4 @@ def immunopepper_build(arg):
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
         create_libsize(expr_distr_dict,output_libszie_fp)
-    logging.info(">>>>>>>>> Finish traversing splicegraph")
+    logging.info(">>>>>>>>> Build: Finish traversing splicegraph in mutation mode {}.\n".format(mutation.mode))

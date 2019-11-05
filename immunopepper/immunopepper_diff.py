@@ -2,7 +2,9 @@
 Add a column in kmer tsv file to indicate if the kmer also appear in given background kmer set
 """
 import pandas as pd
+import logging
 def immunopepper_diff(arg):
+    logging.info(">>>>>>>>> diff: Start")
     junction_kmer_file = arg.junction_kmer_file
     bg_file_path = arg.bg_file_path
     output_file = arg.output_file_path
@@ -20,6 +22,7 @@ def immunopepper_diff(arg):
         kmer_df['is_neo_flag'] = bg_flag
     kmer_df.to_csv(output_file, sep='\t', index=False)
     if verbose:
-        print("output bg-removed kmer file", output_file)
+        logging.info("output bg-removed kmer file : {}".format(output_file))
+    logging.info(">>>>>>>>> diff: Finish\n")
 
 
