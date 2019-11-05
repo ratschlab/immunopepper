@@ -9,6 +9,7 @@ import bisect
 from .constant import NOT_EXIST
 from .immuno_nametuple import OutputBackground
 from immunopepper.immuno_nametuple import Peptide,Flag,Idx,ReadingFrameTuple,init_part_coord
+import logging
 
 def to_adj_list(adj_matrix):
     """
@@ -455,7 +456,7 @@ def get_exon_expr(gene,vstart,vstop,Segments,Idx):
     if vstart == NOT_EXIST or vstop == NOT_EXIST:  # isolated exon case
         expr_list = []
         return expr_list
-    if Segments is None:
+    if Segments is None or Idx.sample is None:
         expr_list = [NOT_EXIST]
         return expr_list
     count_segments = Segments.lookup_table[gene.name]
@@ -543,7 +544,7 @@ def get_idx(sample_idx_table, sample, gene_idx):
             sample_idx = sample_idx_table[sample]
         else:
             sample_idx = None
-            print("Warning: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
+            logging.warning("utils.py line 547: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
     else:
         sample_idx = None
     idx = Idx(gene_idx,sample_idx)
@@ -732,11 +733,11 @@ def check_chr_consistence(ann_chr_set,mutation,graph_data):
     common_chr = whole_mut_set.intersection(ann_chr_set)
 
     if mode != 'ref' and len(common_chr) == 0:
-        print("mutation file has different chromosome naming from annotation file, please check")
+        logging.error("Mutation file has different chromosome naming from annotation file, please check")
         sys.exit(0)
     if len(graph_data) > 0:
         gene_chr_set = set([gene.chr for gene in graph_data])
         new_chr_set = gene_chr_set.difference(ann_chr_set)
         if len(new_chr_set) > 0:
-            print("Gene object has different chromosome naming from annotation file, please check")
+            logging.error("Gene object has different chromosome naming from annotation file, please check")
             sys.exit(0)

@@ -5,7 +5,6 @@ import sys
 import pickle
 import os
 import timeit
-import argparse
 import gzip
 import logging
 
@@ -13,6 +12,7 @@ import logging
 import Bio.SeqIO as BioIO
 import h5py
 import gc
+import numpy as np
 
 # immuno module
 from immunopepper.immuno_print import print_memory_diags
@@ -24,36 +24,41 @@ from immunopepper.io_utils import load_pickled_graph
 from immunopepper.utils import get_idx,create_libsize,get_total_gene_expr,write_gene_expr,check_chr_consistence
 
 def immunopepper_build(arg):
+    log_dir = os.path.join(arg.output_dir, 'error.log')
+    logging.basicConfig(level=logging.DEBUG,
+                        filename=log_dir, filemode="a+",
+                        format="%(asctime)-15s %(levelname)-8s %(message)s")
     # read and process the annotation file
-    print('Building lookup structure ...')
+    logging.info(">>>>>>>>> Start Preprocessing")
+    logging.info('Building lookup structure ...')
     start_time = timeit.default_timer()
     genetable,chromosome_set = preprocess_ann(arg.ann_path)
     end_time = timeit.default_timer()
-    print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
+    logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
 
     # load genome sequence data
     seq_dict = {}
     start_time = timeit.default_timer()
-    print('Parsing genome sequence ...')
+    logging.info('Parsing genome sequence ...')
     for record in BioIO.parse(arg.ref_path, "fasta"):
         if record.id in chromosome_set:
             seq_dict[record.id] = str(record.seq).strip()
         else:
             print("The genome chromosome identifier {} is not shown in the annotation file".format(record.id))
     end_time = timeit.default_timer()
-    print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
+    logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
 
     # read the variant file
     mutation = get_mutation_mode_from_parser(arg)
     # load splicegraph
-    print('Loading splice graph ...')
+    logging.info('Loading splice graph ...')
     start_time = timeit.default_timer()
     with open(arg.splice_path, 'rb') as graph_fp:
         (graph_data, graph_meta) = pickle.load(graph_fp, encoding='latin1')  # both graph data and meta data
     end_time = timeit.default_timer()
-    print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
+    logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
@@ -66,12 +71,12 @@ def immunopepper_build(arg):
     # load graph metadata
     start_time = timeit.default_timer()
     if arg.count_path is not None:
-        print('Loading count data ...')
+        logging.info('Loading count data ...')
         h5f = h5py.File(arg.count_path, 'r')
         countinfo = parse_gene_metadata_info(h5f, arg.samples)
         edges, segments, sample_idx_table = countinfo.edges,countinfo.segments,countinfo.sample_idx_table
         end_time = timeit.default_timer()
-        print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
+        logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
         print_memory_diags()
         # get the fp
         #strains = sp.array([x.split('.')[0] for x in h5f['strains'][:]])
@@ -88,14 +93,13 @@ def immunopepper_build(arg):
 
     # process the genes according to the annotation file
     # add CDS starts and reading frames to the respective nodes
-    print('Processing gene set ...')
+    logging.info('Add reading frame to splicegraph ...')
     start_time = timeit.default_timer()
-    print('...computing from annotation')
     genes_preprocess(graph_data, genetable.gene_to_cds_begin)
     end_time = timeit.default_timer()
-    print('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
+    logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
-
+    logging.info(">>>>>>>>> Finish Preprocessing\n")
     expr_distr_dict = {}
     # process graph for each input sample
     output_libszie_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
@@ -104,18 +108,18 @@ def immunopepper_build(arg):
                     filter_redundant=arg.filter_redundant,
                     kmer=arg.kmer,
                     disable_concat=arg.disable_concat)
+    logging.info(">>>>>>>>> Start traversing splicegraph")
     for sample in arg.samples:
+        logging.info(">>>> Processing sample {}, there are {} graphs in total".format(sample,num))
+        error_gene_num = 0
+        time_list = []
+        memory_list = []
         expr_distr = []
         gene_name_expr_distr = []
         # prepare for the output file
         output_path = os.path.join(arg.output_dir, sample)
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
-        log_dir = os.path.join(output_path, 'error.log')
-        logging.basicConfig(level=logging.DEBUG,
-                            filename=log_dir, filemode="a+",
-                            format="%(asctime)-15s %(levelname)-8s %(message)s")
-
         junction_peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa')
         junction_meta_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz')
         background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa')
@@ -150,7 +154,6 @@ def immunopepper_build(arg):
             expr_distr.append(total_expr)
             try:
                 start_time = timeit.default_timer()
-                print('%s %i/%i\n'%(sample, gene_idx, num))
                 # Genes not contained in the annotation...
                 if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
                     gene.processed = False
@@ -174,15 +177,30 @@ def immunopepper_build(arg):
                                                edges=edges, mutation=sub_mutation,table=genetable,option=option,size_factor=None,
                                                junction_list=junction_list, filepointer=filepointer)
                 end_time = timeit.default_timer()
-                print(gene_idx, end_time - start_time,'\n')
-                print_memory_diags()
-
+                memory = print_memory_diags(diable_print=True)
+                logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample,gene_idx+1, len(gene_id_list),end_time - start_time,memory))
+                time_list.append(end_time - start_time)
+                memory_list.append(memory)
             except Exception as e:
                 # should also print the error
-                logging.exception("Exception occured in gene %d, %s mode, sample %s " % (gene_idx,arg.mutation_mode,sample))
-            graph_data[gene_idx] = None
-            gc.collect()
+                logging.exception("Unexpected exception occured in gene %d, %s mode, sample %s . Traceback is:" % (gene_idx,arg.mutation_mode,sample))
+                error_gene_num += 1
+                time_list.append(0)
+                memory_list.append(0)
+            if len(arg.samples) == 1:
+                graph_data[gene_idx] = None
+                gc.collect()
+        max_memory,max_time = max(memory_list),max(time_list)
+        max_memory_id,max_time_id = np.argmax(memory_list),np.argmax(time_list)
+        if num-error_gene_num > 0:
+            mean_memory, mean_time = sum(memory_list)/(num-error_gene_num),sum(time_list)/(num-error_gene_num)
+        else:
+            mean_memory, mean_time = 0,0
+        logging.info(">>>> Finish sample {}. Errors existed in {}/{} genes. Need further check."
+                     "Max memroy cost:{}, Max time cost:{}, Max memory gene ID:{}, Max time gene ID:{},"
+                     "Average memory cost:{}, Average time cost:{}".format(sample,error_gene_num,num,max_memory,max_time,max_memory_id,max_time_id,
+                                                                           mean_memory,mean_time))
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
         create_libsize(expr_distr_dict,output_libszie_fp)
-
+    logging.info(">>>>>>>>> Finish traversing splicegraph")
