@@ -5,6 +5,7 @@ import sys
 import argparse
 import os
 import logging
+from datetime import datetime
 
 from immunopepper.immunopepper_build import immunopepper_build
 from immunopepper.immunopepper_makebg import immunopepper_makebg
@@ -35,7 +36,7 @@ def parse_arguments(argv):
 
     general = parser_build.add_argument_group('MISCELLANEOUS')
     general.add_argument("--process_num", type=int, help="Only process the first *process_num* gene in the splicegraph,default,0, means process all", required=False, default=0)
-    general.add_argument("--debug", help="generate debug output", action="store_true", required=False, default=False)
+    general.add_argument("--verbose", type=int, help="specify the output verbosity", required=False, default=0)
 
     experimental = parser_build.add_argument_group('EXPERIMENTAL')
     experimental.add_argument("--filter_redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
@@ -90,9 +91,20 @@ def split_mode(options):
     arg = parse_arguments(options)
     if not os.path.isdir(arg.output_dir):
         os.makedirs(arg.output_dir)
-    log_dir = os.path.join(arg.output_dir, 'error.log')
-    logging.basicConfig(level=logging.DEBUG,
-                        filename=log_dir, filemode="a+",
+    now = datetime.now()
+    timestamp = datetime.timestamp(now)
+    runlog_name = 'run_'+mode+'_'+str(timestamp)+'.log'
+    log_dir = os.path.join(arg.output_dir, runlog_name)
+
+    file_handler = logging.FileHandler(filename=log_dir)
+    if arg.verbose > 0:
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        handlers = [file_handler, stdout_handler]
+    else:
+        handlers = [file_handler]
+    logging.basicConfig(
+                        level=logging.DEBUG,
+                        handlers=handlers,
                         format="%(asctime)-15s %(levelname)-8s %(message)s")
     logging.info("Command line"+str(arg))
     if mode == 'build':

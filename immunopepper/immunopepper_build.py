@@ -100,7 +100,7 @@ def immunopepper_build(arg):
     # process graph for each input sample
     output_libszie_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
     option = Option(output_silence=arg.output_silence,
-                    debug=arg.debug,
+                    debug=arg.verbose,
                     filter_redundant=arg.filter_redundant,
                     kmer=arg.kmer,
                     disable_concat=arg.disable_concat)
