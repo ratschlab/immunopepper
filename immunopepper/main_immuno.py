@@ -94,13 +94,14 @@ def parse_arguments(argv):
             parser_filter.print_help()
         else:
             parser.print_help()
-            
+
 
     pargs = parser.parse_args(argv)
     return pargs
 
 def split_mode(options):
     arg = parse_arguments(options)
+    mode = options[0]
     if not os.path.isdir(arg.output_dir):
         os.makedirs(arg.output_dir)
     now = datetime.now()
@@ -119,7 +120,6 @@ def split_mode(options):
                         handlers=handlers,
                         format="%(asctime)-15s %(levelname)-8s %(message)s")
     logging.info("Command line"+str(arg))
-    mode = options[0]
     if mode == 'build':
         immunopepper_build(arg)
     if mode == 'make_bg':
