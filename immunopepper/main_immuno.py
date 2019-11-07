@@ -79,15 +79,27 @@ def parse_arguments(argv):
     general = parser_filter.add_argument_group('MISCELLANEOUS')
     general.add_argument("--verbose", type=int, help="specify the output verbosity", required=False, default=1)
 
-    if len(argv) < 2:
+    if len(argv) < 1:
         parser.print_help()
         sys.exit(1)
+
+    if len(argv) < 2:
+        if argv[0] == 'build':
+            parser_build.print_help()
+        elif argv[0] == 'make_bg':
+            parser_makebg.print_help()
+        elif argv[0] == 'diff':
+            parser_diff.print_help()
+        elif argv[0] == 'filter':
+            parser_filter.print_help()
+        else:
+            parser.print_help()
+            
 
     pargs = parser.parse_args(argv)
     return pargs
 
 def split_mode(options):
-    mode = options[0]
     arg = parse_arguments(options)
     if not os.path.isdir(arg.output_dir):
         os.makedirs(arg.output_dir)
@@ -107,6 +119,7 @@ def split_mode(options):
                         handlers=handlers,
                         format="%(asctime)-15s %(levelname)-8s %(message)s")
     logging.info("Command line"+str(arg))
+    mode = options[0]
     if mode == 'build':
         immunopepper_build(arg)
     if mode == 'make_bg':
