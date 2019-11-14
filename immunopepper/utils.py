@@ -712,3 +712,11 @@ def write_gene_expr(fp, gene_expr_tuple_list):
     fp.write(header_line)
     gene_expr_str_list = [ gene_expr_tuple[0]+'\t'+str(gene_expr_tuple[1]) for gene_expr_tuple in gene_expr_tuple_list]
     write_list(fp,gene_expr_str_list)
+
+def codeUTF8(s):
+    return s.encode('utf-8')
+
+def decodeUTF8(s):
+    if not hasattr(s, 'decode'):
+        return s
+    return s.decode('utf-8')
