@@ -28,6 +28,7 @@ def parse_arguments(argv):
     outputs = parser_build.add_argument_group('OUTPUT OPTIONS')
     outputs.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
     outputs.add_argument("--disable_concat",help="not considering concatenate case to speed up, default false",action="store_true",default=False)
+    outputs.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
 
     additional_file = parser_build.add_argument_group('ADDITIONAL FILES')
     additional_file.add_argument("--vcf_path", help="specify the absolute path of vcf file", required=False, default='')
@@ -53,6 +54,7 @@ def parse_arguments(argv):
     required.add_argument("--output_dir",help='specify the directory to store the log file',required=True)
     required.add_argument("--output_file_path", help="specify the output file path", required=True, default='')
     general = parser_makebg.add_argument_group('MISCELLANEOUS')
+    general.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
     general.add_argument("--verbose", type=int, help="specify the output verbosity", required=False, default=1)
 
     parser_diff = subparsers.add_parser('diff', help='append a new column to the junction kmer txt result file indicating if the kmer is in groundtruth')
@@ -64,6 +66,7 @@ def parse_arguments(argv):
     required.add_argument("--remove_bg", help="choose to simply remove background rows or add a new flag column to indicate"
                                               " the if the kmer exists in the background kmers",action="store_true", required=False, default=False)
     general = parser_diff.add_argument_group('MISCELLANEOUS')
+    general.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
     general.add_argument("--verbose", type=int, help="specify the output verbosity", required=False, default=1)
 
     parser_filter = subparsers.add_parser('filter', help='apply different filter rules')
@@ -77,6 +80,7 @@ def parse_arguments(argv):
     required.add_argument("--junc_expr", help="only output kmers that have junction expression greater than threshold", action="store_true",default=False)
     required.add_argument("--junc_expr_thre", type=int, help="junction expression threshold", default=0)
     general = parser_filter.add_argument_group('MISCELLANEOUS')
+    general.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
     general.add_argument("--verbose", type=int, help="specify the output verbosity", required=False, default=1)
 
     if len(argv) < 1:
