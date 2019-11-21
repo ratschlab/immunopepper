@@ -1,5 +1,6 @@
 """Contains all the output computation based on gene splicegraph"""
 
+import logging
 
 import numpy as np
 import scipy as sp
@@ -65,8 +66,8 @@ def get_simple_metadata(gene=None, ref_seq=None, idx=None,mutation=None, option=
             for read_frame_tuple in sorted(reading_frame_dict[v_id]):
                 has_stop_flag = True
                 for variant_comb in mut_seq_comb:  # go through each variant combination
-                    if option.debug:
-                        print(v_id, prop_vertex, variant_comb, read_frame_tuple)
+                    if option.debug > 1:
+                        logging.debug(' '.join([str(v_id), str(prop_vertex), str(variant_comb), str(read_frame_tuple.read_phase)]))
                     if prop_vertex != NOT_EXIST:
                         peptide, modi_coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.maf_dict, ref_mut_seq, sg.vertices[:, prop_vertex])
                         orig_coord = init_part_coord(sg.vertices[0,v_id],sg.vertices[1,v_id],sg.vertices[0,prop_vertex],sg.vertices[1,prop_vertex])
