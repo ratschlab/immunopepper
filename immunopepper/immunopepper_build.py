@@ -137,9 +137,11 @@ def immunopepper_build(arg):
                                       'exons_coor', 'vertex_idx','junction_expr','segment_expr']
         meta_peptide_fp.write(('\t'.join(meta_field_list) + '\n'))
 
-        kmer_field_list = ['kmer','gene_name','seg_expr','is_crossjunction','junction_expr']
-        junction_kmer_fp.write(('\t'.join(kmer_field_list)+'\n'))
+        junction_kmer_field_list = ['kmer','gene_name','seg_expr','is_crossjunction','junction_expr']
+        junction_kmer_fp.write(('\t'.join(junction_kmer_field_list)+'\n'))
 
+        background_kmer_field_list =  ['kmer','gene_name','seg_expr','is_crossjunction']
+        background_kmer_fp.write(('\t'.join(background_kmer_field_list)+'\n'))
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
         for gene_idx in gene_id_list:
