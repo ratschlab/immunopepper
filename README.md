@@ -6,6 +6,7 @@ peptides can then be used further downstream analyses such as domain annotation
 or computational immunology.
 ### Why Use Immunopepper
 ### Get Started
+
 #### Immunopepper Installation
 
 It is recommended to setup a separate virtual or conda environment.
@@ -26,9 +27,9 @@ We have four working modes for immunopepper `build`, `make_bg`, `diff` and `filt
 1. `build`: Core part of immunopepper. Traverse splicegraph and get all possible
 peptides/kmers.
 2. `make_bg`: Integrate multiple kmer files and generate one background kmer file.
-3. `diff`: Add a new column to the kmer tsv file indicating if the kme also appear
-in the given background kmer file.
-4. `filter`: Apply different filter mechanisms to the given kmer tsv file.
+3. `diff`: Take as input the foreground kmer file and background kmer file. S
+how whether the foreground kmer alsp appears in the background kmer file.
+4. `filter`: Apply different filter mechanisms to the given kmer file.
 
 #### Basic options
 
@@ -159,6 +160,59 @@ predict the peptide-MHC class 1 binding using neural network.
 ###### Mass spectrum
 Mass spectrum data can provide us with another evidence that the kmer exist. [OpenMS](https://www.openms.de) is
 a powerful tool for this.
+
+#### Real Usecase
+We take the real data from the mouse DNA project. Will show how to use the immunopepper to get the new kmers.
+In this example, we have two samples `ENCSR000BZG` and `ERR2130621`. We choose `ENCSR000BZG` as the background sample and
+`ERR2130621` as the foreground sample. They use the same splicegraph but have different expression
+and mutations. We will find what the unique kmers `ERR2130621`  can generate.
+
+
+- Step 1: Use `build` to get kmers of the two samples in four mutation modes.
+```
+immunopepper build --mutation_mode ref --samples ENCSR000BZG ERR2130621 --output_dir immunopepper_usecase_out --splice_path immunopepper_usecase.pickle --ann_path immunopepper_usecase.gtf --ref_path genome1.fa --kmer 9 --count_path immunopepper_usecase.count.hdf5
+immunopepper build --mutation_mode germline --samples ENCSR000BZG ERR2130621 --output_dir immunopepper_usecase_out --splice_path immunopepper_usecase.pickle --ann_path immunopepper_usecase.gtf --ref_path genome1.fa --kmer 9 --count_path immunopepper_usecase.count.hdf5 --vcf_path immunopepper_usecase.vcf --maf_path immunopepper_usecase.maf
+immunopepper build --mutation_mode somatic --samples ENCSR000BZG ERR2130621 --output_dir immunopepper_usecase_out --splice_path immunopepper_usecase.pickle --ann_path immunopepper_usecase.gtf --ref_path genome1.fa --kmer 9 --count_path immunopepper_usecase.count.hdf5 --vcf_path immunopepper_usecase.vcf --maf_path immunopepper_usecase.maf
+immunopepper build --mutation_mode somatic_and_germline --samples ENCSR000BZG ERR2130621 --output_dir immunopepper_usecase_out --splice_path immunopepper_usecase.pickle --ann_path immunopepper_usecase.gtf --ref_path genome1.fa --kmer 9 --count_path immunopepper_usecase.count.hdf5 --vcf_path immunopepper_usecase.vcf --maf_path immunopepper_usecase.maf
+```
+
+- Step 2: Create background kmer set from the output of sample `ENCSR000BZG`.
+Since there is no mutation exist in sample `ENCSR000BZG`, we only consider its output in reference. In addition,
+we only consider kmers that have junction expression larger than 0. We can achieve this with `filter` mode and
+get file `ref_mode_background_kmer.tsv`. We then use `make_bg` mode to create the background kmer file. Since
+the input is just one file. `make_bg` simply takes the first column and output the unique kmers.
+```
+immunopepper filter --output_dir immunopepper_usecase_out --output_file_path immunopepper_usecase_out/ENCSR000BZG/ref_mode_background_kmer.tsv --junction_kmer_tsv_path immunopepper_usecase_out/ENCSR000BZG/ref_junction_kmer.txt --junc_expr
+immunopepper make_bg --kmer_files_list immunopepper_usecase_out/ENCSR000BZG/ref_mode_background_kmer.tsv --output_dir immunopepper_usecase_out --output_file_path immunopepper_usecase_out/background_kmer.txt
+```
+
+- Step 3: Remove the background kmers
+After getting the background kmers in Step 2, we can remove those kmers from the kmer sets of sample `ERR2130621`. We
+can use `diff` to remove those kmers.
+```
+immunopepper diff --junction_kmer_file  immunopepper_usecase_out/ERR2130621/ref_junction_kmer.txt --bg_file_path immunopepper_usecase_out/background_kmer.txt --output_dir immunopepper_usecase_out --output_file_path immunopepper_usecase_out/ERR2130621/ref_junction_kmer_remove_bg.tsv --remove_bg
+immunopepper diff --junction_kmer_file  immunopepper_usecase_out/ERR2130621/germline_junction_kmer.txt --bg_file_path immunopepper_usecase_out/background_kmer.txt --output_dir immunopepper_usecase_out --output_file_path immunopepper_usecase_out/ERR2130621/germline_junction_kmer_remove_bg.tsv --remove_bg
+immunopepper diff --junction_kmer_file  immunopepper_usecase_out/ERR2130621/somatic_junction_kmer.txt --bg_file_path immunopepper_usecase_out/background_kmer.txt --output_dir immunopepper_usecase_out --output_file_path immunopepper_usecase_out/ERR2130621/somatic_junction_kmer_remove_bg.tsv --remove_bg
+immunopepper diff --junction_kmer_file  immunopepper_usecase_out/ERR2130621/somatic_and_germline_junction_kmer.txt --bg_file_path immunopepper_usecase_out/background_kmer.txt --output_dir immunopepper_usecase_out --output_file_path immunopepper_usecase_out/ERR2130621/somatic_and_germline_junction_kmer_remove_bg.tsv --remove_bg
+```
+
+- Step 4: Filter
+After removing the background kmers in Step 3, we can add more filters to reduce the numbers of candidate kmers.
+For example, we only consider the kmers that have junction expression larger than 0 and also the
+segment expression value larger than 2. `filter` mode provides filters based on segment expression and junction expression. We
+can set the threshold arbitrarily.
+```
+immunopepper filter --output_dir immunopepper_usecase_out --output_file_path immunopepper_usecase_out/ERR2130621/ref_junction_kmer_remove_bg_filter.tsv --junction_kmer_tsv_path immunopepper_usecase_out/ERR2130621/ref_junction_kmer_remove_bg.tsv --cross_junction --seg_expr --seg_expr_thre 2
+immunopepper filter --output_dir immunopepper_usecase_out --output_file_path immunopepper_usecase_out/ERR2130621/germline_junction_kmer_remove_bg_filter.tsv --junction_kmer_tsv_path immunopepper_usecase_out/ERR2130621/germline_junction_kmer_remove_bg.tsv --cross_junction --seg_expr --seg_expr_thre 2
+immunopepper filter --output_dir immunopepper_usecase_out --output_file_path immunopepper_usecase_out/ERR2130621/somatic_junction_kmer_remove_bg_filter.tsv --junction_kmer_tsv_path immunopepper_usecase_out/ERR2130621/somatic_junction_kmer_remove_bg.tsv --cross_junction --seg_expr --seg_expr_thre 2
+immunopepper filter --output_dir immunopepper_usecase_out --output_file_path immunopepper_usecase_out/ERR2130621/somatic_and_germline_junction_kmer_remove_bg_filter.tsv --junction_kmer_tsv_path immunopepper_usecase_out/ERR2130621/somatic_and_germline_junction_kmer_remove_bg.tsv --cross_junction --seg_expr --seg_expr_thre 2
+```
+
+- Step 5: Aggregate
+We get the unique kmers of sample `ERR2130621` in four modes. Now we can aggregate all those kmers.
+```
+tail -n +2 immunopepper_usecase_out/ERR2130621/*_junction_kmer_remove_bg_filter.tsv | cat | grep -v "==>" | cut -f1 | sort |uniq | grep . > neo_kmer.txt
+```
 ### Contribution Guidelines
 ### License
 ### Acknowledgement
