@@ -31,13 +31,14 @@ def parse_arguments(argv):
     outputs.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
 
     additional_file = parser_build.add_argument_group('ADDITIONAL FILES')
-    additional_file.add_argument("--vcf_path", help="specify the absolute path of vcf file", required=False, default='')
-    additional_file.add_argument("--maf_path", help="specify the absolute path of maf file", required=False, default='')
+    additional_file.add_argument("--germline", help="specify the absolute path of germline mutation file", required=False, default='')
+    additional_file.add_argument("--somatic", help="specify the absolute path of somatic mutation file", required=False, default='')
     additional_file.add_argument("--count_path",help="specify the absolute path of the count h5 file", required=False, default=None)
 
     general = parser_build.add_argument_group('MISCELLANEOUS')
     general.add_argument("--process_num", type=int, help="Only process the first *process_num* gene in the splicegraph,default,0, means process all", required=False, default=0)
     general.add_argument("--verbose", type=int, help="specify the output verbosity", required=False, default=1)
+    general.add_argument("--use_mut_pickle",help="save and use pickled mutation dict without processing the original files",action="store_true",default=False)
 
     experimental = parser_build.add_argument_group('EXPERIMENTAL')
     experimental.add_argument("--filter_redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)

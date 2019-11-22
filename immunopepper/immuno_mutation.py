@@ -11,10 +11,10 @@ from .utils import get_all_comb
 
 import numpy as np
 
-Mutation = namedtuple('Mutation', ['vcf_dict', 'maf_dict', 'mode'])
+Mutation = namedtuple('Mutation', ['mode','germline_mutation_dict','somatic_mutation_dict'])
 
 
-def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf):
+def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict):
     """Apply germline mutation on the reference sequence
 
     Parameters
@@ -22,7 +22,7 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_v
     ref_sequence: str. reference sequence of certain chromosome.
     pos_start: int. start position of sequence for applying germiline mutation.
     pos_end: int. Ending position of sequence for applying germline mutation.
-    mutation_sub_dic_vcf: dict. (position) -> variant details
+    mutation_sub_dict_vcf: dict. (position) -> variant details
 
     Returns
     -------
@@ -33,15 +33,15 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_v
     """
     output_seq = {}
     output_seq['ref'] = ref_sequence  # copy the reference
-    if mutation_sub_dic_vcf is not None:
-        mut_seq = construct_mut_seq_with_str_concat(ref_sequence, pos_start, pos_end, mutation_sub_dic_vcf)
+    if mutation_sub_dict is not None:
+        mut_seq = construct_mut_seq_with_str_concat(ref_sequence, pos_start, pos_end, mutation_sub_dict)
         output_seq['background'] = mut_seq
     else:
         output_seq['background'] = ref_sequence
     return output_seq
 
 
-def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_maf):
+def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict_maf):
     """Apply somatic mutation on the reference sequence
 
     Parameters
@@ -49,7 +49,7 @@ def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_ma
     ref_sequence: str. reference sequence of certain chromosome.
     pos_start: int. start position of sequence for applying somatic mutation.
     pos_end: int. Ending position of sequence for applying somatic mutation.
-    mutation_sub_dic_maf: dict. (position) -> variant details
+    mutation_sub_dict_maf: dict. (position) -> variant details
 
     Returns
     -------
@@ -58,14 +58,14 @@ def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dic_ma
     if .maf file (somatic mutation) exists while is original sequence if no somatic
     information is available.
     """
-    if mutation_sub_dic_maf is not None:
-        mut_seq = construct_mut_seq_with_str_concat(ref_sequence, pos_start, pos_end, mutation_sub_dic_maf)
+    if mutation_sub_dict_maf is not None:
+        mut_seq = construct_mut_seq_with_str_concat(ref_sequence, pos_start, pos_end, mutation_sub_dict_maf)
     else:
         mut_seq = ref_sequence
     return mut_seq
 
 
-def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
+def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dictt):
     """ Applying germline mutation on given range and get mutated sequence
 
     Parameters
@@ -73,27 +73,27 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     ref_seq: str. reference sequence
     pos_start: int. Start position of applying germline mutation
     pos_end: int. Stop position of applying germline mutation
-    mut_dict: dict. Germline mutation dictioanry
+    mut_dictt: dict. Germline mutation dictioanry
 
     Returns
     -------
     mut_seq: str. mutation sequence
     """
-    variant_pos_candi = [ipos for ipos in list(mut_dict.keys()) if ipos >= pos_start and ipos < pos_end]
+    variant_pos_candi = [ipos for ipos in list(mut_dictt.keys()) if ipos >= pos_start and ipos < pos_end]
     if len(variant_pos_candi) > 0:
         variant_pos_sorted = np.sort(variant_pos_candi)
         mut_seq_list = [ref_seq[:variant_pos_sorted[0]]]
         for i in range(len(variant_pos_sorted)-1):  # process all the mutation in order except the last one
-            mut_base = mut_dict[variant_pos_sorted[i]]['mut_base']
-            ref_base = mut_dict[variant_pos_sorted[i]]['ref_base']
+            mut_base = mut_dictt[variant_pos_sorted[i]]['mut_base']
+            ref_base = mut_dictt[variant_pos_sorted[i]]['ref_base']
             if mut_base != '*':
                 mut_seq_list.append(mut_base)
             else:
                 mut_seq_list.append(ref_base)
             mut_seq_list.append(ref_seq[variant_pos_sorted[i]+1:variant_pos_sorted[i+1]])
         # process the last mutation separately
-        mut_base = mut_dict[variant_pos_sorted[-1]]['mut_base']
-        ref_base = mut_dict[variant_pos_sorted[-1]]['ref_base']
+        mut_base = mut_dictt[variant_pos_sorted[-1]]['mut_base']
+        ref_base = mut_dictt[variant_pos_sorted[-1]]['ref_base']
         if mut_base != '*':
             mut_seq_list.append(mut_base)
         else:
@@ -104,32 +104,46 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
         mut_seq = ref_seq
     return mut_seq
 
+def parse_mutation_file(mutation_file_path,output_dir,heter_code,mut_pickle=False,h5_sample_list=None):
+    if mutation_file_path.endswith('.maf'):
+        mutation_dict = parse_mutation_from_maf(maf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle)
+    elif mutation_file_path.endswith('.vcf') or mutation_file_path.endswith('.vcf.h5'): # we also accept hdf5 file format
+        mutation_dict = parse_mutation_from_vcf(vcf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle,
+                                                heter_code=heter_code,h5_sample_list=h5_sample_list)
+    else:
+        logging.error("Invalid mutation files. Please ensure it is in maf or vcf format.")
+        sys.exit(1)
+    return mutation_dict
+
 
 def get_mutation_mode_from_parser(args):
-    Mutation = namedtuple('Mutation', ['mode','maf_dict','vcf_dict'])
+    "Check if the input files match the mutation mode"
     mutation_mode = args.mutation_mode
-    maf_file_path = args.maf_path
-    vcf_file_path = args.vcf_path
+    germline_file_path = args.germline
+    somatic_file_path = args.somatic
     output_dir = args.output_dir
+    heter_code = args.heter_code
+    mut_pickle = args.use_mut_pickle
+    h5_sample_list = args.samples
     is_error = True
     if mutation_mode == 'somatic_and_germline':
-        if maf_file_path != '' and vcf_file_path != '':
-            mutation_dic_maf = parse_mutation_from_maf(maf_file_path,output_dir)
-            mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path,args.samples, args.heter_code)
+        if somatic_file_path != '' and germline_file_path != '':
+            somatic_mutation_dict = parse_mutation_file(somatic_file_path,output_dir,heter_code,mut_pickle,h5_sample_list)
+            germline_mutation_dict = parse_mutation_file(germline_file_path,output_dir,heter_code,mut_pickle,h5_sample_list)
             is_error = False
     elif mutation_mode == 'germline':
-        if vcf_file_path != '':
-            mutation_dic_maf = {}  # empty dic
-            mutation_dic_vcf = parse_mutation_from_vcf(vcf_file_path,args.samples, args.heter_code)
+        if germline_file_path != '':
+            somatic_mutation_dict = {}  # empty dic
+            germline_mutation_dict = parse_mutation_file(germline_file_path,output_dir,heter_code,mut_pickle,h5_sample_list)
             is_error = False
     elif mutation_mode == 'somatic':
-        if maf_file_path != '':
-            mutation_dic_maf = parse_mutation_from_maf(maf_file_path,output_dir)
-            mutation_dic_vcf = {}
+        if somatic_file_path != '':
+            somatic_mutation_dict = parse_mutation_file(somatic_file_path,output_dir,heter_code,mut_pickle,h5_sample_list)
+            germline_mutation_dict = {}
             is_error = False
     elif mutation_mode == 'ref':
-        mutation_dic_maf = {}
-        mutation_dic_vcf = {}
+        somatic_mutation_dict = {}
+        germline_mutation_dict = {}
         is_error = False
     else:
         logging.error('Mutation mode "%s" not recognized, please check again.' % mutation_mode)
@@ -137,7 +151,7 @@ def get_mutation_mode_from_parser(args):
     if is_error:
          logging.error("The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")
          sys.exit(1)
-    mutation = Mutation(mutation_mode,mutation_dic_maf,mutation_dic_vcf)
+    mutation = Mutation(mutation_mode,germline_mutation_dict=germline_mutation_dict,somatic_mutation_dict=somatic_mutation_dict)
     return mutation
 
 
@@ -146,13 +160,13 @@ def get_exon_som_dict(gene, mutation_pos):
     Build exon id (key) to somatic mutation position dictionary.
     """
     exon_list = gene.splicegraph.vertices
-    exon_som_dict = {k:[] for k in range(exon_list.shape[1])}
+    exon_som_dictt = {k:[] for k in range(exon_list.shape[1])}
     for ipos in mutation_pos:
         for i in range(exon_list.shape[1]):
             if ipos in range(exon_list[0,i], exon_list[1,i]):
-                exon_som_dict[i].append(ipos)
-    exon_som_dict[NOT_EXIST] = []  # for single cds case
-    return exon_som_dict
+                exon_som_dictt[i].append(ipos)
+    exon_som_dictt[NOT_EXIST] = []  # for single cds case
+    return exon_som_dictt
 
 
 def get_som_expr_dict(gene, mutation_pos, segments, Idx):
@@ -162,23 +176,23 @@ def get_som_expr_dict(gene, mutation_pos, segments, Idx):
     if segments is None:
         return None
     seg_mat = gene.segmentgraph.segments[0]
-    som_expr_dict = {}
+    som_expr_dictt = {}
 
     seg_pos_list = segments.lookup_table[gene.name]
     for ipos in mutation_pos:
         seg_id = bisect.bisect(seg_mat,ipos)
         if seg_id > 0 and ipos <= gene.segmentgraph.segments[1][seg_id-1]: # the mutation is within the pos
             expr = segments.expr[seg_pos_list[seg_id-1],Idx.sample]
-            som_expr_dict[ipos] = expr
-    return som_expr_dict
+            som_expr_dictt[ipos] = expr
+    return som_expr_dictt
 
 
-def get_mut_comb(exon_som_dict,vertex_list):
+def get_mut_comb(exon_som_dictt,vertex_list):
     """
     Get all the mutation combination given the mutation given.
     Parameters
     ----------
-    exon_som_dict: dict, keys (exon id), values (somatic mutation position)
+    exon_som_dictt: dict, keys (exon id), values (somatic mutation position)
     idx: int, first exon id
     prop_vertex: int, second exon id
 
@@ -188,8 +202,8 @@ def get_mut_comb(exon_som_dict,vertex_list):
 
     """
     mut_comb = [NOT_EXIST]
-    if exon_som_dict is not None:
-        exon_list = map(lambda x: exon_som_dict[x],vertex_list)
+    if exon_som_dictt is not None:
+        exon_list = map(lambda x: exon_som_dictt[x],vertex_list)
         all_comb = get_all_comb(reduce(lambda x,y:x+y,exon_list))
         mut_comb += all_comb
     return mut_comb
@@ -201,18 +215,18 @@ def get_sub_mutation_tuple(mutation, sample, chrm):
     inv_mode_map = {0:'ref',1:'somatic',2:'germline',3:'somatic_and_germline'}
     loaded_mode_code = 0
     expected_mode_code = mode_map[mutation.mode]
-    if (sample, chrm) in list(mutation.vcf_dict.keys()):
-        mutation_sub_dict_vcf = mutation.vcf_dict[(sample, chrm)]
+    if (sample, chrm) in list(mutation.germline_mutation_dict.keys()):
+        germline_mutation_sub_dict = mutation.germline_mutation_dict[(sample, chrm)]
         loaded_mode_code += mode_map['germline']
     else:
-        mutation_sub_dict_vcf = {}
-    if (sample, chrm) in list(mutation.maf_dict.keys()):
-        mutation_sub_dict_maf = mutation.maf_dict[(sample, chrm)]
+        germline_mutation_sub_dict = {}
+    if (sample, chrm) in list(mutation.somatic_mutation_dict.keys()):
+        somatic_mutation_sub_dict = mutation.somatic_mutation_dict[(sample, chrm)]
         loaded_mode_code += mode_map['somatic']
     else:
-        mutation_sub_dict_maf = {}
+        somatic_mutation_sub_dict = {}
     if expected_mode_code != loaded_mode_code:
         logging.warning("immuno_mutation.py line 215: The expected mode is {} but the loaded mode is {}."
               " Probably there is no mutation in the given chromosome for the given sample.".format(inv_mode_map[expected_mode_code],inv_mode_map[loaded_mode_code]))
-    submutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation.mode)
+    submutation = Mutation(mode=mutation.mode,somatic_mutation_dict=somatic_mutation_sub_dict,germline_mutation_dict=germline_mutation_sub_dict)
     return submutation

@@ -43,14 +43,14 @@ def get_simple_metadata(gene=None, ref_seq=None, idx=None,mutation=None, option=
     pos_start = np.min(sg.vertices[0])
     pos_end = np.max(sg.vertices[1])
     ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq, pos_start=pos_start, pos_end=pos_end,
-                                           mutation_sub_dic_vcf=mutation.vcf_dict)
+                                           mutation_sub_dict=mutation.germline_mutation_dict)
 
     # apply somatic mutation
     # som_exp_dict: (mutation_position) |-> (expression)
     # exon_som_dict: (exon_id) |-> (mutation_postion)
     som_exp_dict, exon_som_dict = None,None
-    if mutation.maf_dict is not None:
-        exon_som_dict = get_exon_som_dict(gene, list(mutation.maf_dict.keys()))
+    if mutation.somatic_mutation_dict is not None:
+        exon_som_dict = get_exon_som_dict(gene, list(mutation.somatic_mutation_dict.keys()))
 
     simple_metadata_list = []
     reading_frame_dict = dict(sg.reading_frames)
@@ -69,13 +69,13 @@ def get_simple_metadata(gene=None, ref_seq=None, idx=None,mutation=None, option=
                     if option.debug > 1:
                         logging.debug(' '.join([str(v_id), str(prop_vertex), str(variant_comb), str(read_frame_tuple.read_phase)]))
                     if prop_vertex != NOT_EXIST:
-                        peptide, modi_coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.maf_dict, ref_mut_seq, sg.vertices[:, prop_vertex])
+                        peptide, modi_coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq, sg.vertices[:, prop_vertex])
                         orig_coord = init_part_coord(sg.vertices[0,v_id],sg.vertices[1,v_id],sg.vertices[0,prop_vertex],sg.vertices[1,prop_vertex])
                         if not flag.has_stop:
                             reading_frame_dict[prop_vertex].add(next_reading_frame)
                     else:
 
-                        peptide, modi_coord, flag = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.maf_dict,ref_mut_seq)
+                        peptide, modi_coord, flag = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_mutation_dict,ref_mut_seq)
                         orig_coord = init_part_coord(sg.vertices[0,v_id],sg.vertices[1,v_id],NOT_EXIST,NOT_EXIST)
                     has_stop_flag = has_stop_flag and flag.has_stop
                 gene_outputid = str(idx.gene) + ':' + str(output_id)
@@ -127,7 +127,7 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
-    som_exp_dict = get_som_expr_dict(gene, list(mutation.maf_dict.keys()), segments, idx)
+    som_exp_dict = get_som_expr_dict(gene, list(mutation.somatic_mutation_dict.keys()), segments, idx)
     meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode', 'peptide_annotated',
                        'junction_annotated', 'has_stop_codon', 'is_in_junction_list', 'is_isolated', 'variant_comb',
                        'variant_seg_expr',
@@ -147,7 +147,7 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
             orig_read_frame = (gene.splicegraph.vertices[1,vertex_list[0]]-modi_coord[1])%3
         variant_id = 0
         for variant_comb in mut_seq_comb:  # go through each variant combination
-            peptide,flag = get_peptide_result(simple_metadata, gene.strand, variant_comb, mutation.maf_dict, ref_mut_seq)
+            peptide,flag = get_peptide_result(simple_metadata, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq)
 
             # If cross junction peptide has a stop-codon in it, the frame
             # will not be propagated because the read is truncated before it reaches the end of the exon.

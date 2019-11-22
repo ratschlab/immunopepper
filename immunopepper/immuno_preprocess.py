@@ -5,6 +5,7 @@ import numpy as np
 import h5py
 import scipy as sp
 import pickle
+import logging
 
 from .utils import to_adj_succ_list,find_overlapping_cds_simple,leq_strand,encode_chromosome
 from .immuno_nametuple import ReadingFrameTuple,GeneTable,Segments,Edges,CountInfo
@@ -294,7 +295,7 @@ def parse_gene_metadata_info(h5f, sample_list):
     return countinfo
 
 
-def parse_mutation_from_vcf(vcf_path, sample_list=None, heter_code=0):
+def parse_mutation_from_vcf(vcf_path, output_dir='', heter_code=0, mut_pickle=False,h5_sample_list=None):
     """Extract germline mutation information from the given vcf file and vcf.h5 file
 
     Parameters
@@ -308,36 +309,50 @@ def parse_mutation_from_vcf(vcf_path, sample_list=None, heter_code=0):
     -------
     mut_dict: with key (sample, chromo) and values (var_dict)
     """
+    vcf_pkl_file = os.path.join(output_dir, 'vcf.pickle')
+    if mut_pickle:
+        if os.path.exists(vcf_pkl_file):
+            f = open(vcf_pkl_file,'rb')
+            mutation_dic = pickle.load(f)
+            logging.info("Use pickled vcf mutation dict in {}".format(vcf_pkl_file))
+            return mutation_dic
+
     file_type = vcf_path.split('.')[-1]
-    if file_type == 'h5':
-        mutation_dic = parse_mutation_from_vcf_h5(vcf_path,sample_list,heter_code)
+    if file_type == 'h5': # hdf5 filr
+        mutation_dic = parse_mutation_from_vcf_h5(vcf_path,h5_sample_list,heter_code)
         return mutation_dic
-    f = open(vcf_path,'r')
-    lines = f.readlines()
-    mutation_dic = {}
-    for line in lines:
-        if line.strip()[:2] == '##':  # annotation line
-            continue
-        if line.strip()[0] == '#':  # head line
-            fields = line.strip().split('\t')
-            sample_list = fields[9:]
-            continue
-        items = line.strip().split('\t')
-        var_dict = {}
-        chr = items[0]
-        pos= int(items[1])-1
-        var_dict['ref_base'] = items[3]
-        var_dict['mut_base'] = items[4]
-        var_dict['qual'] = items[5]
-        var_dict['filter'] = items[6]
-        if len(var_dict['ref_base']) == len(var_dict['mut_base']):  # only consider snp for now
-            for i, sample_id in enumerate(sample_list):
-                if items[9+i].split(':')[0] in {'1|1' ,'1|0', '0|1'}:
-                    if (sample_id,chr) in list(mutation_dic.keys()):
-                        mutation_dic[(sample_id,chr)][int(pos)] = var_dict
-                    else:
-                        mutation_dic[(sample_id,chr)] = {}
-                        mutation_dic[(sample_id, chr)][int(pos)] = var_dict
+    else: # vcf text file
+        f = open(vcf_path,'r')
+        lines = f.readlines()
+        mutation_dic = {}
+        for line in lines:
+            if line.strip()[:2] == '##':  # annotation line
+                continue
+            if line.strip()[0] == '#':  # head line
+                fields = line.strip().split('\t')
+                sample_list = fields[9:]
+                continue
+            items = line.strip().split('\t')
+            var_dict = {}
+            chr = items[0]
+            pos= int(items[1])-1
+            var_dict['ref_base'] = items[3]
+            var_dict['mut_base'] = items[4]
+            var_dict['qual'] = items[5]
+            var_dict['filter'] = items[6]
+            if len(var_dict['ref_base']) == len(var_dict['mut_base']):  # only consider snp for now
+                for i, sample_id in enumerate(sample_list):
+                    if items[9+i].split(':')[0] in {'1|1' ,'1|0', '0|1'}:
+                        if (sample_id,chr) in list(mutation_dic.keys()):
+                            mutation_dic[(sample_id,chr)][int(pos)] = var_dict
+                        else:
+                            mutation_dic[(sample_id,chr)] = {}
+                            mutation_dic[(sample_id, chr)][int(pos)] = var_dict
+    if mut_pickle:
+        f_pkl =open(vcf_pkl_file,'wb')
+        pickle.dump(mutation_dic,f_pkl)
+        logging.info("create vcf pickled mutation dict for next time's use in {}".format(vcf_pkl_file))
+
     return mutation_dic
 
 
@@ -374,7 +389,7 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, sample_list, heter_code=0):
     return mut_dict
 
 
-def parse_mutation_from_maf(maf_path,output_dir=''):
+def parse_mutation_from_maf(maf_path,output_dir='',mut_pickle=False):
     """
     Extract somatic mutation information from given maf file.
 
@@ -387,34 +402,39 @@ def parse_mutation_from_maf(maf_path,output_dir=''):
     mut_dict: with key (sample, chromo) and values (var_dict)
 
     """
-    maf_pkl_file = os.path.join(output_dir,'maf.pickle')
-    if os.path.exists(maf_pkl_file):
-        f = open(maf_pkl_file,'rb')
-        mutation_dic = pickle.load(f)
-    else:
-        f = open(maf_path)
-        lines = f.readlines()
-        mutation_dic = {}
-        for i,line in enumerate(lines[1:]):
-            print(i)
-            items = line.strip().split('\t')
-            if items[9] == 'SNP':  # only consider snp
-                sample_id = '-'.join(items[15].split('-')[:3])
-                chr = items[4]
-                pos = int(items[5])-1
-                var_dict = {}
-                var_dict['ref_base'] = items[10]
-                var_dict['mut_base'] = items[12]
-                var_dict['strand'] = items[7]
-                var_dict['variant_Classification'] = items[8]
-                var_dict['variant_Type'] = items[9]
-                if (sample_id,chr) in list(mutation_dic.keys()):
-                    mutation_dic[((sample_id,chr))][int(pos)] = var_dict
-                else:
-                    mutation_dic[((sample_id, chr))] = {}
-                    mutation_dic[((sample_id,chr))][int(pos)] = var_dict
+    maf_pkl_file = os.path.join(output_dir, 'maf.pickle')
+    if mut_pickle:
+        if os.path.exists(maf_pkl_file):
+            f = open(maf_pkl_file,'rb')
+            mutation_dic = pickle.load(f)
+            logging.info("Use pickled maf mutation dict in {}".format(maf_pkl_file))
+            return mutation_dic
+
+    f = open(maf_path)
+    lines = f.readlines()
+    mutation_dic = {}
+    for i,line in enumerate(lines[1:]):
+        print(i)
+        items = line.strip().split('\t')
+        if items[9] == 'SNP':  # only consider snp
+            sample_id = '-'.join(items[15].split('-')[:3])
+            chr = items[4]
+            pos = int(items[5])-1
+            var_dict = {}
+            var_dict['ref_base'] = items[10]
+            var_dict['mut_base'] = items[12]
+            var_dict['strand'] = items[7]
+            var_dict['variant_Classification'] = items[8]
+            var_dict['variant_Type'] = items[9]
+            if (sample_id,chr) in list(mutation_dic.keys()):
+                mutation_dic[((sample_id,chr))][int(pos)] = var_dict
+            else:
+                mutation_dic[((sample_id, chr))] = {}
+                mutation_dic[((sample_id,chr))][int(pos)] = var_dict
+    if mut_pickle:
         f_pkl =open(maf_pkl_file,'wb')
         pickle.dump(mutation_dic,f_pkl)
+        logging.info("create maf pickled mutation dict for next time's use in {}".format(maf_pkl_file))
     return mutation_dic
 
 
