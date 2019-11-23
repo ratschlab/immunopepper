@@ -107,7 +107,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dictt):
 def parse_mutation_file(mutation_file_path,output_dir,heter_code,mut_pickle=False,h5_sample_list=None):
     if mutation_file_path.endswith('.maf'):
         mutation_dict = parse_mutation_from_maf(maf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle)
-    elif mutation_file_path.endswith('.vcf') or mutation_file_path.endswith('.vcf.h5'): # we also accept hdf5 file format
+    elif mutation_file_path.endswith('.vcf') or mutation_file_path.endswith('.h5'): # we also accept hdf5 file format
         mutation_dict = parse_mutation_from_vcf(vcf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle,
                                                 heter_code=heter_code,h5_sample_list=h5_sample_list)
     else:
