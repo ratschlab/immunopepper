@@ -40,8 +40,6 @@ def immunopepper_build(arg):
     for record in BioIO.parse(arg.ref_path, "fasta"):
         if record.id in chromosome_set:
             seq_dict[record.id] = str(record.seq).strip()
-        else:
-            print("The genome chromosome identifier {} is not shown in the annotation file".format(record.id))
     end_time = timeit.default_timer()
     logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
