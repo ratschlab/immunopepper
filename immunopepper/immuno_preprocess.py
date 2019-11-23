@@ -264,7 +264,7 @@ def parse_gene_metadata_info(h5f, sample_list):
 
     for sample in sample_list:
         for i, strain in enumerate(strain_expr_info):
-            if strain.decode('utf-8') == sample:
+            if strain.decode('utf-8').startswith(sample):
                 sample_idx_table[sample] = i
                 continue
 
