@@ -219,6 +219,9 @@ We get the unique kmers of sample `ERR2130621` in four modes. Now we can aggrega
 ```
 tail -n +2 immunopepper_usecase_out/ERR2130621/*_junction_kmer_remove_bg_filter.tsv | cat | grep -v "==>" | cut -f1 | sort |uniq | grep . > neo_kmer.txt
 ```
+### Tips
+- Immunopepper requires the sample name are `exactly` the same in the **splice count file** and **mutation file** and the
+given option `--samples` should be those samples. Please make necessary changes to the input files so that immunopepper can work as expected.
 ### Contribution Guidelines
 ### License
 ### Acknowledgement
