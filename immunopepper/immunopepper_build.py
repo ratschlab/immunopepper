@@ -204,9 +204,9 @@ def immunopepper_build(arg):
             mean_memory, mean_time = sum(memory_list)/(num-error_gene_num),sum(time_list)/(num-error_gene_num)
         else:
             mean_memory, mean_time = 0,0
-        logging.info(">>>> Finish sample {}. Errors existed in {}/{} genes. Need further check."
-                     "Max memroy cost:{}, Max time cost:{}, Max memory gene ID:{}, Max time gene ID:{},"
-                     "Average memory cost:{}, Average time cost:{}".format(sample,error_gene_num,num,max_memory,max_time,max_memory_id,max_time_id,
+        logging.info(">>>> Finish sample {}. Errors existed in {}/{} genes. Might Need further check. "
+                     "Max memroy cost:{} GB, Max time cost:{} seconds, Max memory gene ID:{}, Max time gene ID:{}, "
+                     "Average memory cost:{} GB, Average time cost:{} seconds".format(sample,error_gene_num,num,max_memory,max_time,max_memory_id,max_time_id,
                                                                            mean_memory,mean_time))
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
