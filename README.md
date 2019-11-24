@@ -166,7 +166,58 @@ predict the peptide-MHC class 1 binding using neural network.
 ###### Mass spectrum
 Mass spectrum data can provide us with another evidence that the kmer exist. [OpenMS](https://www.openms.de) is
 a powerful tool for this.
+#### Output files
+There are 5 files for the `build` mode. `mut_mode` refers to `ref`, `somatic`,  `germline` and `somatic_and_germline`.
+- **\[mut_mode\]_back_peptides.fa**: Peptides translated from annotation transcripts. Two lines for one output. The first
+line is the transcript ID and the second line is the result peptide.
+- **\[mut_mode\]_back_kmer.txt**: kmers generated from **\[mut_mode\]_back_peptides.fa**. There are four columns. First column is
+the result kmer, second column is the transcript ID, third column is the average segment expression and final column is the
+flag indicating if the kmer is junction kmer. The final column is False for *all* rows in this file.
+- **\[mut_mode\]_peptides.fa**: Peptides translated from traversing splicegraph. Two lines for one output. The first
+line is the output ID and the second line is the result peptide.
+- **\[mut_mode\]_junction_kmer**.txt: kmers generated from **\[mut_mode\]_peptides.fa**. There are one more
+column *junction_expr*, which refers to the junction counts for those kmers that spans over
+exon junction. For those with *junction_expr* > 0, the flag `is_crossjunction` is True.
+- **\[mut_mode\]_metadata.tsv.gz**: Contain details for every junction pairs.
 
+Detail explanation for columns in **\[mut_mode\]_metadata.tsv.gz**
+- **output_id**: In the format of \[gene_nama\]:\[first vertex\]_\[second vertex\]:\[somatic variant combination id\]:\[read frame\]. Like `GENE1:0_2:0:1`.
+`GENE1` is the gene name, `0_2` means this junction consists of vertex 0 and vertex 2. `0` means there is no
+somatic mutation or it is the first case of all somatic mutation combination cases. `2` means the read frame is 2.
+- **read_frame**: int (0,1,2). The number of base left to the next junction pair.
+- **gene_name**: str. The name of Gene.
+- **gene_chr**: str. The Chromosome id where the gene is located.
+- **gene_strand**: str ('+', '_'). The strand of gene.
+- **mutation_mode**: str ('ref', 'somatic', 'germline', 'somatic_and_germline'). Mutation mode
+- **peptide_annotated**: Boolean. Indicate if the junction peptide also appears in the background peptide.
+- **junction_peptided**: Boolean. Indicate if the junction also appear in the input annotation file.
+- **has_stop_codon**: Boolean. Indicate if there is stop codon in the junction pair.
+- **is_in_junction_list**: Boolean. Indicate if the junction pair appear in the given junction whitelist.
+- **is_isolated**: Boolean. Indicate if the output peptide is actually translated from a single exon instead of two.
+- **variant_comb**: shows the somatic variantion combination used in this line of output. seperate by ';'
+    eg. 5;25 means the somatic mutation of position 5 and 25 take effect in this output.
+- **variant_seg_expr**: shows the corresponding expression of segments where the corresponding somatic mutation is in.
+    eg. 257.0;123.2 means the segment where the somatic mutation in position 5 is in has counts 257.0
+- **modified_exons_coor**: Shows exon coordination. Usually we have 4 number start_v1;stop_v1;start_v2;stop_v2. They
+    have already absorb reading frame so you can use the coord directly to generate the same output peptide.
+- **original_exons_coord**: Shows the original exon coordination.
+- **vertex_idx**: shows the vertex id of the given junction. eg 5,6 means this junction pair consists of the fifth and
+    sixth vertex.
+- **junction_expr**: float. The expression of the junction.
+- **segment_expr**: float. The weighted sum of segment expression. We split the junction into segments and compute the segment
+    expression with the length-weighted-sum expression.
+
+The `.meta` file is compressed by default in all time. The user can add `--compressed` option
+in the input argument to have other files compressed. It is recommended to output in compressed format because
+it can save a lot of storage.
+
+The output file for `make_bg` mode is a text file. Each line is a unique kmer.
+
+The output file for `diff` mode is a text file. There is a header line like **\[mut_mode\]_junction_kmer** but
+with one more column `is_neo_flag` to indicate if the kmer also exist in the background kmer file. We can also
+remove those kmers that exist in the background files with the option `--remove_bg`.
+
+The output file for `filter` mode is a text file also with header line.
 #### Real Usecase
 We take the real data from the mouse DNA project. Will show how to use the immunopepper to get the new kmers.
 In this example, we have two samples `ENCSR000BZG` and `ERR2130621`. We choose `ENCSR000BZG` as the background sample and
@@ -220,8 +271,19 @@ We get the unique kmers of sample `ERR2130621` in four modes. Now we can aggrega
 tail -n +2 immunopepper_usecase_out/ERR2130621/*_junction_kmer_remove_bg_filter.tsv | cat | grep -v "==>" | cut -f1 | sort |uniq | grep . > neo_kmer.txt
 ```
 ### Tips
-- Immunopepper requires the sample name are `exactly` the same in the **splice count file** and **mutation file** and the
+- Immunopepper requires the sample name are **exactly** the same in the `splice count file` and `mutation file` and the
 given option `--samples` should be those samples. Please make necessary changes to the input files so that immunopepper can work as expected.
+
+- `make_bg`, `diff` and `filter` mode accept the output files of Immunopepper. However, the user
+can also add other external input files.
+    - `make_bg` assumes the input file has
+a header line, seperated with *\t* and kmers are in the first column.
+    - `diff` assumes
+the foreground kmer file has a header line and that the background kmer file has the
+format as the output file of `make_bg`.
+    - `filter` assumes the input file has a header
+line and with three columns `seg_expr`, `junction_expr` and `is_crossjunction`. It's acceptable if some columns
+are missing but the user should not use corresponding filter rules. Otherwise error will happen.
 ### Contribution Guidelines
 ### License
 ### Acknowledgement
