@@ -41,7 +41,7 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict)
     return output_seq
 
 
-def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict_maf):
+def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict):
     """Apply somatic mutation on the reference sequence
 
     Parameters
@@ -49,7 +49,7 @@ def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict_m
     ref_sequence: str. reference sequence of certain chromosome.
     pos_start: int. start position of sequence for applying somatic mutation.
     pos_end: int. Ending position of sequence for applying somatic mutation.
-    mutation_sub_dict_maf: dict. (position) -> variant details
+    mutation_sub_dict: dict. (position) -> variant details
 
     Returns
     -------
@@ -58,14 +58,14 @@ def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict_m
     if .maf file (somatic mutation) exists while is original sequence if no somatic
     information is available.
     """
-    if mutation_sub_dict_maf is not None:
-        mut_seq = construct_mut_seq_with_str_concat(ref_sequence, pos_start, pos_end, mutation_sub_dict_maf)
+    if mutation_sub_dict is not None:
+        mut_seq = construct_mut_seq_with_str_concat(ref_sequence, pos_start, pos_end, mutation_sub_dict)
     else:
         mut_seq = ref_sequence
     return mut_seq
 
 
-def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dictt):
+def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     """ Applying germline mutation on given range and get mutated sequence
 
     Parameters
@@ -73,27 +73,27 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dictt):
     ref_seq: str. reference sequence
     pos_start: int. Start position of applying germline mutation
     pos_end: int. Stop position of applying germline mutation
-    mut_dictt: dict. Germline mutation dictioanry
+    mut_dict: dict. Germline mutation dictioanry
 
     Returns
     -------
     mut_seq: str. mutation sequence
     """
-    variant_pos_candi = [ipos for ipos in list(mut_dictt.keys()) if ipos >= pos_start and ipos < pos_end]
+    variant_pos_candi = [ipos for ipos in list(mut_dict.keys()) if ipos >= pos_start and ipos < pos_end]
     if len(variant_pos_candi) > 0:
         variant_pos_sorted = np.sort(variant_pos_candi)
         mut_seq_list = [ref_seq[:variant_pos_sorted[0]]]
         for i in range(len(variant_pos_sorted)-1):  # process all the mutation in order except the last one
-            mut_base = mut_dictt[variant_pos_sorted[i]]['mut_base']
-            ref_base = mut_dictt[variant_pos_sorted[i]]['ref_base']
+            mut_base = mut_dict[variant_pos_sorted[i]]['mut_base']
+            ref_base = mut_dict[variant_pos_sorted[i]]['ref_base']
             if mut_base != '*':
                 mut_seq_list.append(mut_base)
             else:
                 mut_seq_list.append(ref_base)
             mut_seq_list.append(ref_seq[variant_pos_sorted[i]+1:variant_pos_sorted[i+1]])
         # process the last mutation separately
-        mut_base = mut_dictt[variant_pos_sorted[-1]]['mut_base']
-        ref_base = mut_dictt[variant_pos_sorted[-1]]['ref_base']
+        mut_base = mut_dict[variant_pos_sorted[-1]]['mut_base']
+        ref_base = mut_dict[variant_pos_sorted[-1]]['ref_base']
         if mut_base != '*':
             mut_seq_list.append(mut_base)
         else:
@@ -105,9 +105,9 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dictt):
     return mut_seq
 
 def parse_mutation_file(mutation_file_path,output_dir,heter_code,mut_pickle=False,h5_sample_list=None):
-    if mutation_file_path.endswith('.maf'):
+    if mutation_file_path.lower().endswith('.maf'):
         mutation_dict = parse_mutation_from_maf(maf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle)
-    elif mutation_file_path.endswith('.vcf') or mutation_file_path.endswith('.h5'): # we also accept hdf5 file format
+    elif mutation_file_path.lower().endswith('.vcf') or mutation_file_path.lower().endswith('.h5'): # we also accept hdf5 file format
         mutation_dict = parse_mutation_from_vcf(vcf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle,
                                                 heter_code=heter_code,h5_sample_list=h5_sample_list)
     else:
@@ -160,13 +160,13 @@ def get_exon_som_dict(gene, mutation_pos):
     Build exon id (key) to somatic mutation position dictionary.
     """
     exon_list = gene.splicegraph.vertices
-    exon_som_dictt = {k:[] for k in range(exon_list.shape[1])}
+    exon_som_dict = {k:[] for k in range(exon_list.shape[1])}
     for ipos in mutation_pos:
         for i in range(exon_list.shape[1]):
             if ipos in range(exon_list[0,i], exon_list[1,i]):
-                exon_som_dictt[i].append(ipos)
-    exon_som_dictt[NOT_EXIST] = []  # for single cds case
-    return exon_som_dictt
+                exon_som_dict[i].append(ipos)
+    exon_som_dict[NOT_EXIST] = []  # for single cds case
+    return exon_som_dict
 
 
 def get_som_expr_dict(gene, mutation_pos, segments, Idx):
@@ -176,23 +176,23 @@ def get_som_expr_dict(gene, mutation_pos, segments, Idx):
     if segments is None:
         return None
     seg_mat = gene.segmentgraph.segments[0]
-    som_expr_dictt = {}
+    som_expr_dict = {}
 
     seg_pos_list = segments.lookup_table[gene.name]
     for ipos in mutation_pos:
         seg_id = bisect.bisect(seg_mat,ipos)
         if seg_id > 0 and ipos <= gene.segmentgraph.segments[1][seg_id-1]: # the mutation is within the pos
             expr = segments.expr[seg_pos_list[seg_id-1],Idx.sample]
-            som_expr_dictt[ipos] = expr
-    return som_expr_dictt
+            som_expr_dict[ipos] = expr
+    return som_expr_dict
 
 
-def get_mut_comb(exon_som_dictt,vertex_list):
+def get_mut_comb(exon_som_dict,vertex_list):
     """
     Get all the mutation combination given the mutation given.
     Parameters
     ----------
-    exon_som_dictt: dict, keys (exon id), values (somatic mutation position)
+    exon_som_dict: dict, keys (exon id), values (somatic mutation position)
     idx: int, first exon id
     prop_vertex: int, second exon id
 
@@ -202,8 +202,8 @@ def get_mut_comb(exon_som_dictt,vertex_list):
 
     """
     mut_comb = [NOT_EXIST]
-    if exon_som_dictt is not None:
-        exon_list = map(lambda x: exon_som_dictt[x],vertex_list)
+    if exon_som_dict is not None:
+        exon_list = map(lambda x: exon_som_dict[x],vertex_list)
         all_comb = get_all_comb(reduce(lambda x,y:x+y,exon_list))
         mut_comb += all_comb
     return mut_comb

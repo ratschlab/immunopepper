@@ -21,7 +21,7 @@ from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_m
 from immunopepper.immuno_model import get_simple_metadata, get_and_write_peptide_and_kmer,get_and_write_background_peptide_and_kmer
 from immunopepper.immuno_nametuple import Option, Filepointer
 from immunopepper.io_utils import load_pickled_graph
-from immunopepper.utils import get_idx,create_libsize,get_total_gene_expr,write_gene_expr,check_chr_consistence
+from immunopepper.utils import get_idx,create_libsize,get_total_gene_expr,write_gene_expr,check_chr_consistence,gz_and_normal_open
 
 def immunopepper_build(arg):
     # read and process the annotation file
@@ -116,29 +116,21 @@ def immunopepper_build(arg):
             os.makedirs(output_path)
 
         junction_meta_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz')
-        meta_peptide_fp = gzip.open(junction_meta_file_path, 'wt')
+        meta_peptide_fp = gz_and_normal_open(junction_meta_file_path)
+        gzip_tag = ''
         if arg.compressed:
-            junction_peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa.gz')
-            background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa.gz')
-            junction_kmer_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.txt.gz')
-            background_kmer_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.txt.gz')
-            gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.tsv.gz')
-            peptide_fp = gzip.open(junction_peptide_file_path, 'wt')
-            background_fp = gzip.open(background_peptide_file_path,'wt')
-            junction_kmer_fp = gzip.open(junction_kmer_file_path, 'wt')
-            background_kmer_fp = gzip.open(background_kmer_file_path, 'wt')
-            gene_expr_fp = gzip.open(gene_expr_file_path,'wt')
-        else:
-            junction_peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa')
-            background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa')
-            junction_kmer_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.txt')
-            background_kmer_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.txt')
-            gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.tsv')
-            peptide_fp = open(junction_peptide_file_path, 'w')
-            background_fp = open(background_peptide_file_path,'w')
-            junction_kmer_fp = open(junction_kmer_file_path, 'w')
-            background_kmer_fp = open(background_kmer_file_path, 'w')
-            gene_expr_fp = open(gene_expr_file_path,'w')
+            gzip_tag = '.gz'
+        junction_peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa'+gzip_tag)
+        background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa'+gzip_tag)
+        junction_kmer_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.txt'+gzip_tag)
+        background_kmer_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.txt'+gzip_tag)
+        gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.tsv'+gzip_tag)
+        peptide_fp = gz_and_normal_open(junction_peptide_file_path)
+        background_fp = gz_and_normal_open(background_peptide_file_path)
+        junction_kmer_fp = gz_and_normal_open(junction_kmer_file_path)
+        background_kmer_fp = gz_and_normal_open(background_kmer_file_path)
+        gene_expr_fp = gz_and_normal_open(gene_expr_file_path)
+
 
         filepointer = Filepointer(peptide_fp,meta_peptide_fp,background_fp,junction_kmer_fp,background_kmer_fp)
 
