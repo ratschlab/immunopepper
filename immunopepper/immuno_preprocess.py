@@ -7,7 +7,7 @@ import scipy as sp
 import pickle
 import logging
 
-from .utils import to_adj_succ_list,find_overlapping_cds_simple,leq_strand,encode_chromosome
+from .utils import to_adj_succ_list,find_overlapping_cds_simple,leq_strand,encode_chromosome,decodeUTF8
 from .immuno_nametuple import ReadingFrameTuple,GeneTable,Segments,Edges,CountInfo
 
 def genes_preprocess(genes, gene_cds_begin_dict):
@@ -264,13 +264,19 @@ def parse_gene_metadata_info(h5f, sample_list):
 
     for sample in sample_list:
         for i, strain in enumerate(strain_expr_info):
-            if strain.decode('utf-8').startswith(sample):
+            if decodeUTF8(strain).startswith(sample):
                 sample_idx_table[sample] = i
                 continue
 
     gene_names = h5f["/gene_names"]
     gene_ids_segs = h5f["/gene_ids_segs"]
     gene_ids_edges = h5f["/gene_ids_edges"]
+    if len(gene_names.shape) > 1:
+        gene_names = gene_names[:, 0]
+    if len(gene_ids_segs.shape) > 1:
+        gene_ids_segs = gene_ids_segs[:, 0]
+    if len(gene_ids_edges.shape) > 1:
+        gene_ids_edges = gene_ids_edges[:, 0]
     assert (gene_ids_segs.size == segment_expr_info.shape[0])
     assert (gene_ids_edges.size == edge_expr_info.shape[0])
     seg_lookup_table = {}
@@ -278,13 +284,13 @@ def parse_gene_metadata_info(h5f, sample_list):
 
     #print(gene_ids_segs.shape)
     for seg_idx in np.arange(gene_ids_segs.shape[0]):
-        gene_id = gene_names[gene_ids_segs[seg_idx, 0]].decode('utf-8')
+        gene_id = decodeUTF8(gene_names[gene_ids_segs[seg_idx]])
         if gene_id not in seg_lookup_table:
             seg_lookup_table[gene_id] = []
         seg_lookup_table[gene_id].append(seg_idx)
 
     for edge_idx in np.arange(gene_ids_edges.shape[0]):
-        gene_id = gene_names[gene_ids_edges[edge_idx, 0]].decode('utf-8')
+        gene_id = decodeUTF8(gene_names[gene_ids_edges[edge_idx]])
         if gene_id not in edge_lookup_table:
             edge_lookup_table[gene_id] = []
         edge_lookup_table[gene_id].append((edge_idx, edge_idx_info[edge_idx]))
@@ -373,13 +379,13 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, sample_list, heter_code=0):
     a = h5py.File(h5_vcf_path,'r')
     mut_dict = {}
     for sample in sample_list:
-        col_id = [i for (i, item) in enumerate(a['gtid']) if item.decode('utf-8').startswith(sample)][0]
+        col_id = [i for (i, item) in enumerate(a['gtid']) if decodeUTF8(item).startswith(sample)][0]
         row_id = sp.where(sp.logical_or(a['gt'][:,col_id] == heter_code,a['gt'][:,col_id] == 1))[0]
         for irow in row_id:
             chromo = encode_chromosome(a['pos'][irow,0])
             pos = a['pos'][irow,1]-1
-            mut_base = a['allele_alt'][irow].decode('utf-8')
-            ref_base = a['allele_ref'][irow].decode('utf-8')
+            mut_base = decodeUTF8(a['allele_alt'][irow])
+            ref_base = decodeUTF8(a['allele_ref'][irow])
             var_dict = {"mut_base":mut_base,"ref_base":ref_base}
             if (sample,chromo)  in mut_dict:
                 mut_dict[(sample,chromo)][pos] = var_dict
@@ -461,7 +467,7 @@ def parse_junction_meta_info(h5f_path):
 
         for i,ichr in enumerate(chrms):
             try:
-                junction_dict[ichr.decode('utf-8')].add(':'.join([pos[i, 0], pos[i, 1], strand[i].decode('utf-8')]))
+                junction_dict[decodeUTF8(ichr)].add(':'.join([pos[i, 0], pos[i, 1], decodeUTF8(strand[i])]))
             except KeyError:
-                junction_dict[ichr.decode('utf-8')] = set([':'.join([pos[i, 0], pos[i, 1], strand[i].decode('utf-8')])])
+                junction_dict[decodeUTF8(ichr)] = set([':'.join([pos[i, 0], pos[i, 1], decodeUTF8(strand[i])])])
     return junction_dict

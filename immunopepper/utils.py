@@ -545,7 +545,7 @@ def get_idx(sample_idx_table, sample, gene_idx):
             sample_idx = sample_idx_table[sample]
         else:
             sample_idx = None
-            logging.warning("utils.py line 547: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
+            logging.warning("utils.py: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
     else:
         sample_idx = None
     idx = Idx(gene_idx,sample_idx)
@@ -722,6 +722,7 @@ def write_gene_expr(fp, gene_expr_tuple_list):
     gene_expr_str_list = [ gene_expr_tuple[0]+'\t'+str(gene_expr_tuple[1]) for gene_expr_tuple in gene_expr_tuple_list]
     write_list(fp,gene_expr_str_list)
 
+
 def check_chr_consistence(ann_chr_set,mutation,graph_data):
     germline_chr_set = set()
     somatic_chr_set = set()
@@ -749,3 +750,11 @@ def gz_and_normal_open(file_path):
     else:
         file_fp = open(file_path,'w')
     return file_fp
+
+def codeUTF8(s):
+    return s.encode('utf-8')
+
+def decodeUTF8(s):
+    if not hasattr(s, 'decode'):
+        return s
+    return s.decode('utf-8')

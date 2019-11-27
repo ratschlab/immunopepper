@@ -198,7 +198,7 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
                 )
                 variant_id += 1
                 output_peptide = OutputJuncPeptide(output_id='>'+new_output_id,
-                                                id=detail_id,
+                                                id=new_output_id,
                                                 peptide=peptide.mut,exons_coor=modi_coord,junction_count=edge_expr)
 
                 if option.kmer > 0:
