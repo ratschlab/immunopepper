@@ -173,7 +173,7 @@ def immunopepper_build(arg):
                                                edges=edges, mutation=sub_mutation,table=genetable,option=option,size_factor=None,
                                                junction_list=junction_list, filepointer=filepointer)
                 end_time = timeit.default_timer()
-                memory = print_memory_diags(diable_print=True)
+                memory = print_memory_diags(disable_print=True)
                 logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample,gene_idx+1, len(gene_id_list),end_time - start_time,memory))
                 time_list.append(end_time - start_time)
                 memory_list.append(memory)

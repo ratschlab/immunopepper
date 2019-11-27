@@ -135,7 +135,7 @@ def get_mutation_mode_from_parser(args):
         logging.error('Mutation mode "%s" not recognized, please check again.' % mutation_mode)
 
     if is_error:
-         logging.error("The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")
+         logging.error("immuno_mutation.py: The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")
          sys.exit(1)
     mutation = Mutation(mutation_mode,mutation_dic_maf,mutation_dic_vcf)
     return mutation
@@ -212,7 +212,7 @@ def get_sub_mutation_tuple(mutation, sample, chrm):
     else:
         mutation_sub_dict_maf = {}
     if expected_mode_code != loaded_mode_code:
-        logging.warning("immuno_mutation.py line 215: The expected mode is {} but the loaded mode is {}."
+        logging.warning("The expected mode is {} but the loaded mode is {}."
               " Probably there is no mutation in the given chromosome for the given sample.".format(inv_mode_map[expected_mode_code],inv_mode_map[loaded_mode_code]))
     submutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation.mode)
     return submutation

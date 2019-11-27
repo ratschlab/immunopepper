@@ -544,7 +544,7 @@ def get_idx(sample_idx_table, sample, gene_idx):
             sample_idx = sample_idx_table[sample]
         else:
             sample_idx = None
-            logging.warning("utils.py line 547: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
+            logging.warning("utils.py: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
     else:
         sample_idx = None
     idx = Idx(gene_idx,sample_idx)

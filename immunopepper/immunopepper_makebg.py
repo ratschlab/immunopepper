@@ -9,7 +9,7 @@ def immunopepper_makebg(arg):
     verbose = arg.verbose
     uniq_kmer_set = set()
     for kmer_file in kmer_file_list:
-        if verbose > 1:
+        if verbose:
             logging.info("consider background file:{}".format(kmer_file))
         with open(kmer_file,'r') as f:
             kmer_list = [line.split('\t')[0] for line in f]
@@ -17,7 +17,7 @@ def immunopepper_makebg(arg):
     uniq_kmer_list = sorted(uniq_kmer_set)
     with open(output_file_path,'w') as f_out:
         f_out.writelines("%s\n" % l for l in uniq_kmer_list)
-    if verbose > 0:
+    if verbose:
         logging.info("generate unique background kmer file in {}".format(output_file_path))
     logging.info(">>>>>>>>> make_bg: Finish\n")
 
