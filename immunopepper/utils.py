@@ -721,6 +721,7 @@ def write_gene_expr(fp, gene_expr_tuple_list):
     gene_expr_str_list = [ gene_expr_tuple[0]+'\t'+str(gene_expr_tuple[1]) for gene_expr_tuple in gene_expr_tuple_list]
     write_list(fp,gene_expr_str_list)
 
+
 def check_chr_consistence(ann_chr_set,mutation,graph_data):
     vcf_chr_set = set()
     maf_chr_set = set()
@@ -741,3 +742,12 @@ def check_chr_consistence(ann_chr_set,mutation,graph_data):
         if len(new_chr_set) > 0:
             logging.error("Gene object has different chromosome naming from annotation file, please check")
             sys.exit(0)
+
+def codeUTF8(s):
+    return s.encode('utf-8')
+
+def decodeUTF8(s):
+    if not hasattr(s, 'decode'):
+        return s
+    return s.decode('utf-8')
+
