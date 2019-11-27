@@ -3,14 +3,13 @@ import itertools
 import scipy as sp
 import numpy as np
 
-from collections import namedtuple
+import sys
 import bisect
 
 from .constant import NOT_EXIST
 from .immuno_nametuple import OutputBackground
 from immunopepper.immuno_nametuple import Peptide,Flag,Idx,ReadingFrameTuple,init_part_coord
-
-
+import logging
 
 def to_adj_list(adj_matrix):
     """
@@ -336,20 +335,20 @@ def get_peptide_result(simple_meta_data, strand, variant_comb, mutation_sub_dic_
     else:
         ref_seq = ref_mut_seq['ref']
     mut_seq = ref_mut_seq['background']
-
+    modi_coord = simple_meta_data.modified_exons_coord
     if strand == "+":
-        peptide_dna_str_mut = get_sub_mut_dna(mut_seq,simple_meta_data.exons_coor, variant_comb, mutation_sub_dic_maf, strand)
-        peptide_dna_str_ref = get_sub_mut_dna(ref_seq,simple_meta_data.exons_coor, NOT_EXIST, mutation_sub_dic_maf, strand)
+        peptide_dna_str_mut = get_sub_mut_dna(mut_seq,modi_coord, variant_comb, mutation_sub_dic_maf, strand)
+        peptide_dna_str_ref = get_sub_mut_dna(ref_seq,modi_coord, NOT_EXIST, mutation_sub_dic_maf, strand)
     else:  # strand == "-"
-        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, simple_meta_data.exons_coor, variant_comb, mutation_sub_dic_maf, strand))
-        peptide_dna_str_ref = complementary_seq(get_sub_mut_dna(ref_seq, simple_meta_data.exons_coor, NOT_EXIST, mutation_sub_dic_maf, strand))
+        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, modi_coord, variant_comb, mutation_sub_dic_maf, strand))
+        peptide_dna_str_ref = complementary_seq(get_sub_mut_dna(ref_seq, modi_coord, NOT_EXIST, mutation_sub_dic_maf, strand))
     peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut)
     peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref)
 
     # if the stop codon appears before translating the second exon, mark 'single'
-    stop_v1 = simple_meta_data.exons_coor.stop_v1
-    start_v1 = simple_meta_data.exons_coor.start_v1
-    start_v2 = simple_meta_data.exons_coor.start_v2
+    stop_v1 = modi_coord.stop_v1
+    start_v1 = modi_coord.start_v1
+    start_v2 = modi_coord.start_v2
     if start_v2 == NOT_EXIST or len(peptide_mut)*3 <= abs(stop_v1 - start_v1) + 1:
         is_isolated = True
     else:
@@ -457,7 +456,7 @@ def get_exon_expr(gene,vstart,vstop,Segments,Idx):
     if vstart == NOT_EXIST or vstop == NOT_EXIST:  # isolated exon case
         expr_list = []
         return expr_list
-    if Segments is None:
+    if Segments is None or Idx.sample is None:
         expr_list = [NOT_EXIST]
         return expr_list
     count_segments = Segments.lookup_table[gene.name]
@@ -521,7 +520,7 @@ def get_total_gene_expr(gene, Segments, Idx):
     actually total_expr = reads_length*total_reads_counts
     """
 
-    if Segments is None:
+    if Segments is None or Idx.sample is None:
         return NOT_EXIST
     count_segments = Segments.lookup_table[gene.name]
     seg_len = gene.segmentgraph.segments[1]-gene.segmentgraph.segments[0]
@@ -541,14 +540,18 @@ def get_idx(sample_idx_table, sample, gene_idx):
 
     """
     if sample_idx_table is not None:
-        sample_idx = sample_idx_table[sample]
+        if sample in sample_idx_table:
+            sample_idx = sample_idx_table[sample]
+        else:
+            sample_idx = None
+            logging.warning("utils.py: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
     else:
         sample_idx = None
     idx = Idx(gene_idx,sample_idx)
     return idx
 
 
-def create_libsize(expr_distr_dict,output_fp):
+def create_libsize(expr_distr_dict,output_fp,debug=False):
     """ create library_size text file.
 
     Calculate the 75% expression and sum of expression for each sample
@@ -558,16 +561,21 @@ def create_libsize(expr_distr_dict,output_fp):
     ----------
     expr_distr_dict: Dict. str -> List(float). Mapping sample to the expression of all exon pairs
     output_fp: file pointer. library_size text
-
+    debug: Bool. In debug mode, return the libsize_count dictionary.
     """
-
-    libsize_count = {sample:(np.percentile(expr_list,75),np.sum(expr_list)) for sample,expr_list in list(expr_distr_dict.items())}
+    # filter the dict
+    libsize_count = {}
+    for sample,expr_list in expr_distr_dict.items():
+        if np.array(expr_list).dtype in  [np.float,np.int]:
+            libsize_count[sample] = (np.percentile(expr_list,75),np.sum(expr_list))
+    #libsize_count = {sample:(np.percentile(expr_list,75),np.sum(expr_list)) for sample,expr_list in list(expr_distr_dict.items())}
+    if debug:
+        return libsize_count
     with open(output_fp,'w') as f:
         f.write('\t'.join(['sample','libsize_75percent','libsize_total_count'])+'\n')
         for sample,count_tuple in list(libsize_count.items()):
             line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
             f.write(line)
-
 
 def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_peptide, strand,k=None):
     """
@@ -713,6 +721,28 @@ def write_gene_expr(fp, gene_expr_tuple_list):
     gene_expr_str_list = [ gene_expr_tuple[0]+'\t'+str(gene_expr_tuple[1]) for gene_expr_tuple in gene_expr_tuple_list]
     write_list(fp,gene_expr_str_list)
 
+
+def check_chr_consistence(ann_chr_set,mutation,graph_data):
+    vcf_chr_set = set()
+    maf_chr_set = set()
+    mode = mutation.mode
+    if mutation.vcf_dict:
+        vcf_chr_set = set([item[1] for item in mutation.vcf_dict.keys()])
+    if mutation.maf_dict:
+        maf_chr_set = set([item[1] for item in mutation.maf_dict.keys()])
+    whole_mut_set = vcf_chr_set.union(maf_chr_set)
+    common_chr = whole_mut_set.intersection(ann_chr_set)
+
+    if mode != 'ref' and len(common_chr) == 0:
+        logging.error("Mutation file has different chromosome naming from annotation file, please check")
+        sys.exit(0)
+    if len(graph_data) > 0:
+        gene_chr_set = set([gene.chr for gene in graph_data])
+        new_chr_set = gene_chr_set.difference(ann_chr_set)
+        if len(new_chr_set) > 0:
+            logging.error("Gene object has different chromosome naming from annotation file, please check")
+            sys.exit(0)
+
 def codeUTF8(s):
     return s.encode('utf-8')
 
@@ -720,3 +750,4 @@ def decodeUTF8(s):
     if not hasattr(s, 'decode'):
         return s
     return s.decode('utf-8')
+

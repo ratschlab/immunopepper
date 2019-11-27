@@ -86,6 +86,7 @@ def preprocess_ann(ann_path):
     -------
     gene_table: NamedTuple.store the gene-transcript-cds mapping tables derived
         from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
+    chromosome_set: set. Store the chromosome naming.
     """
     transcript_to_gene_dict = {}    # transcript -> gene id
     gene_to_transcript_dict = {}    # gene_id -> list of transcripts
@@ -94,12 +95,13 @@ def preprocess_ann(ann_path):
     gene_cds_begin_dict = {}        # gene -> list of first CDS exons
 
     file_type = ann_path.split('.')[-1]
-
+    chromesome_set = set()
     # collect information from annotation file
     for line in open(ann_path):
         if line[0] == '#':
             continue
         item = line.strip().split('\t')
+        chromesome_set.add(item[0])
         feature_type = item[2]
         attribute_item = item[-1]
         attribute_dict = attribute_item_to_dict(attribute_item, file_type, feature_type)
@@ -150,7 +152,7 @@ def preprocess_ann(ann_path):
         transcript_to_cds_dict[ts_key] = sorted(transcript_to_cds_dict[ts_key], key=lambda coordpair: coordpair[0])
 
     genetable = GeneTable(gene_cds_begin_dict, transcript_to_cds_dict, gene_to_transcript_dict)
-    return genetable
+    return genetable,chromesome_set
 
 
 def attribute_item_to_dict(a_item, file_type, feature_type):

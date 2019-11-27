@@ -31,7 +31,6 @@ Output_metadata namedtuple.
 - gene_chr: str. The Chromosome id where the gene is located.
 - gene_strand: str ('+', '_'). The strand of gene.
 - mutation_mode: str ('ref', 'somatic', 'germline', 'somatic_and_germline'). Mutation mode
-- peptide_weight: float. The reciprocal of read_frame. Seem to be obsolete now.
 - peptide_annotated: Boolean. Indicate if the junction peptide also appears in the background peptide.
 - junction_peptided: Boolean. Indicate if the junction also appear in the input annotation file.
 - has_stop_codon. Boolean. Indicate if there is stop codon in the junction pair.
@@ -41,8 +40,9 @@ Output_metadata namedtuple.
     eg. 5;25 means the somatic mutation of position 5 and 25 take effect in this output.
 - variant_seg_expr: shows the corresponding expression of segments where the corresponding somatic mutation is in.
     eg. 257.0;123.2 means the segment where the somatic mutation in position 5 is in has counts 257.0
-- exons_coor. Coord namedtuple. shows exon coordination. Usually we have 4 number start_v1;stop_v1;start_v2;stop_v2. They 
+- modified_exons_coor. Coord namedtuple. Shows exon coordination. Usually we have 4 number start_v1;stop_v1;start_v2;stop_v2. They 
     have already absorb reading frame so you can use the coord directly to generate the same output peptide.
+- original_exons_coord. Coord namedtuple. Shows the original exon coordination.
 - vertex_idx. shows the vertex id of the given junction. eg 5,6 means this junction pars consists of the fifth and
     sixth vertex.
 - junction_expr. float. The expression of the junction.
@@ -50,14 +50,14 @@ Output_metadata namedtuple.
     expression with the length-weighted-sum expression.
 """
 OutputMetadata = namedtuple('OutputMetadata', ['output_id', 'read_frame', 'gene_name', 'gene_chr',
-                                                 'gene_strand',	'mutation_mode','peptide_weight', 'peptide_annotated',
+                                                 'gene_strand',	'mutation_mode', 'peptide_annotated',
                                                  'junction_annotated',	'has_stop_codon',
                                                  'is_in_junction_list',	'is_isolated',
                                                  'variant_comb',	'variant_seg_expr',
-                                                 'exons_coor',	'vertex_idx',	'junction_expr',
+                                                 'modified_exons_coord','original_exons_coord',	'vertex_idx',	'junction_expr',
                                                  'segment_expr'])
 
-SimpleMetadata = namedtuple('SimpleMetadata', ['output_id', 'read_frame','has_stop_codon','exons_coor','vertex_idx','peptide_weight'])
+SimpleMetadata = namedtuple('SimpleMetadata', ['output_id', 'read_frame','has_stop_codon','modified_exons_coord','original_exons_coord','vertex_idx','peptide_weight'])
 
 
 """

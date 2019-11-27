@@ -3,6 +3,7 @@ import bisect
 import sys
 from collections import namedtuple
 from functools import reduce
+import logging
 
 from .constant import NOT_EXIST
 from .immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
@@ -131,10 +132,10 @@ def get_mutation_mode_from_parser(args):
         mutation_dic_vcf = {}
         is_error = False
     else:
-        print('Mutation mode "%s" not recognized' % mutation_mode)
+        logging.error('Mutation mode "%s" not recognized, please check again.' % mutation_mode)
 
     if is_error:
-         print("The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")
+         logging.error("immuno_mutation.py: The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")
          sys.exit(1)
     mutation = Mutation(mutation_mode,mutation_dic_maf,mutation_dic_vcf)
     return mutation
@@ -196,13 +197,22 @@ def get_mut_comb(exon_som_dict,vertex_list):
 
 def get_sub_mutation_tuple(mutation, sample, chrm):
     """ Get sub mutation namedtuple on given sample and chromosome """
+    mode_map = {'ref':0,'somatic':1,'germline':2,'somatic_and_germline':3}
+    inv_mode_map = {0:'ref',1:'somatic',2:'germline',3:'somatic_and_germline'}
+    loaded_mode_code = 0
+    expected_mode_code = mode_map[mutation.mode]
     if (sample, chrm) in list(mutation.vcf_dict.keys()):
         mutation_sub_dict_vcf = mutation.vcf_dict[(sample, chrm)]
+        loaded_mode_code += mode_map['germline']
     else:
         mutation_sub_dict_vcf = {}
     if (sample, chrm) in list(mutation.maf_dict.keys()):
         mutation_sub_dict_maf = mutation.maf_dict[(sample, chrm)]
+        loaded_mode_code += mode_map['somatic']
     else:
         mutation_sub_dict_maf = {}
+    if expected_mode_code != loaded_mode_code:
+        logging.warning("The expected mode is {} but the loaded mode is {}."
+              " Probably there is no mutation in the given chromosome for the given sample.".format(inv_mode_map[expected_mode_code],inv_mode_map[loaded_mode_code]))
     submutation = Mutation(mutation_sub_dict_vcf,mutation_sub_dict_maf,mutation.mode)
     return submutation

@@ -49,9 +49,18 @@ for case in case_list:
         output_file_path = os.path.join(test_file_dir, 'test{}'.format(test_id), 'diff',
                                         '{}'.format(case), '{}_{}_junction_kmer_with_bg.txt'.format(case,mutation_mode))
 
+        output_file_path_remove_bg = os.path.join(test_file_dir, 'test{}'.format(test_id), 'diff',
+                                        '{}'.format(case), '{}_{}_junction_kmer_without_bg.txt'.format(case,mutation_mode))
+
         my_args = ['diff', '--junction_kmer_file', junction_kmer_file_path,
                    '--bg_file_path', bg_kmer_file_path,
                    '--output_file_path', output_file_path]
+        main_immuno.split_mode(my_args)
+
+        my_args = ['diff', '--junction_kmer_file', junction_kmer_file_path,
+                   '--bg_file_path', bg_kmer_file_path,
+                   '--output_file_path', output_file_path_remove_bg,
+                   '--remove_bg']
         main_immuno.split_mode(my_args)
 # filter mode
 for case in case_list:
