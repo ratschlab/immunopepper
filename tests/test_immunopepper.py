@@ -44,8 +44,8 @@ def load_gene_data():
 def load_mutation_data():
     vcf_path = os.path.join(data_dir, 'test1pos.vcf')
     maf_path = os.path.join(data_dir, 'test1pos.maf')
-    mutation_dic_vcf = parse_mutation_from_vcf(vcf_path,['test1pos'])
-    mutation_dic_maf = parse_mutation_from_maf(maf_path)
+    mutation_dic_vcf = parse_mutation_from_vcf(vcf_path=vcf_path,h5_sample_list=['test1pos'])
+    mutation_dic_maf = parse_mutation_from_maf(maf_path=maf_path)
 
     return mutation_dic_vcf, mutation_dic_maf
 
@@ -64,7 +64,7 @@ def test_germline_mutation(load_gene_data, load_mutation_data):
     ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq,
                                           pos_start=gene.start,
                                           pos_end=gene.stop,
-                                          mutation_sub_dic_vcf=mutation_sub_dic_vcf)
+                                          mutation_sub_dict=mutation_sub_dic_vcf)
     assert 'ref' in ref_mut_seq.keys()
 
 
@@ -117,8 +117,8 @@ def test_reading_gtf_and_gff_file():
 
 
 def test_reading_vcf_h5():
-    vcf_dict_default_heter_code0 = parse_mutation_from_vcf(os.path.join(data_dir,'test1vcf.h5'),['test1pos','test1neg'])
-    vcf_dict_heter_code2 = parse_mutation_from_vcf(os.path.join(data_dir,'test1vcf.h5'),['test1pos','test1neg'],heter_code=2)
+    vcf_dict_default_heter_code0 = parse_mutation_from_vcf(os.path.join(data_dir,'test1vcf.h5'),h5_sample_list=['test1pos','test1neg'])
+    vcf_dict_heter_code2 = parse_mutation_from_vcf(os.path.join(data_dir,'test1vcf.h5'),h5_sample_list=['test1pos','test1neg'],heter_code=2)
     assert len(vcf_dict_default_heter_code0) == 2
     assert vcf_dict_default_heter_code0['test1neg', 'X'][135] == {'mut_base': 'G', 'ref_base': 'C'}
     assert vcf_dict_default_heter_code0['test1pos', 'X'][14] == {'mut_base': 'C', 'ref_base':'G'}
@@ -152,15 +152,15 @@ def test_get_mutation_mode_from_parser():
                   '--ann_path','this_ann_path',
                   '--ref_path','this_ref_path']
     my_args1 = basic_args+[
-                '--vcf_path', os.path.join(data_dir,'test1pos.vcf'),
-               '--maf_path', os.path.join(data_dir,'test1pos.maf'),
+                '--germline', os.path.join(data_dir,'test1pos.vcf'),
+               '--somatic', os.path.join(data_dir,'test1pos.maf'),
                '--mutation_mode', 'somantic']  # bad mutation mode
     args = parse_arguments(my_args1)
     try:
         get_mutation_mode_from_parser(args)
     except SystemExit:
         assert 1
-    my_args2 = basic_args+['--vcf_path', os.path.join(data_dir,'test1pos.vcf'),
+    my_args2 = basic_args+['--germline', os.path.join(data_dir,'test1pos.vcf'),
                '--mutation_mode', 'somatic']  # mismatch mutation mode and input files
     args = parse_arguments(my_args2)
     try:
@@ -169,15 +169,15 @@ def test_get_mutation_mode_from_parser():
         assert 1
 
 def test_get_sub_mutation_tuple():
-    vcf_dict = {('test1pos','1'):{135:{'mut_base': 'G', 'ref_base': 'C'}},('test1neg','1'):{136:{'mut_base': 'G', 'ref_base': 'C'}}}
-    maf_dict = {('test1pos','1'):{28:{'mut_base': 'G', 'ref_base': 'C'}},('test2neg','1'):{29:{'mut_base': 'G', 'ref_base': 'C'}}}
+    germline_dict = {('test1pos','1'):{135:{'mut_base': 'G', 'ref_base': 'C'}},('test1neg','1'):{136:{'mut_base': 'G', 'ref_base': 'C'}}}
+    somatic_dict = {('test1pos','1'):{28:{'mut_base': 'G', 'ref_base': 'C'}},('test2neg','1'):{29:{'mut_base': 'G', 'ref_base': 'C'}}}
     sample = 'test1pos'
     chrm = '1'
-    mutation = Mutation(vcf_dict,maf_dict,mode='somatic_and_germline')
+    mutation = Mutation(mode='somatic_and_germline',germline_mutation_dict=germline_dict,somatic_mutation_dict=somatic_dict)
 
     sub_mutation = get_sub_mutation_tuple(mutation,sample,chrm)
-    assert sub_mutation.maf_dict == mutation.maf_dict[('test1pos','1')]
-    assert sub_mutation.vcf_dict == mutation.vcf_dict[('test1pos','1')]
+    assert sub_mutation.somatic_mutation_dict == mutation.somatic_mutation_dict[('test1pos','1')]
+    assert sub_mutation.germline_mutation_dict == mutation.germline_mutation_dict[('test1pos','1')]
     assert sub_mutation.mode == mutation.mode
 
     # (test1neg,'1') not in the keys of maf_dict

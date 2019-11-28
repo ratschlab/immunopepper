@@ -31,7 +31,10 @@ def immunopepper_filter(arg):
         kmer_df = kmer_df[kmer_df['is_crossjunction']]
         kmer_df['junction_expr'] = pd.to_numeric(kmer_df['junction_expr'])
         kmer_df = kmer_df[kmer_df['junction_expr']>junc_expr_thre]
-    kmer_df.to_csv(output_file_path,sep='\t',index=False)
+    if arg.compressed:
+        kmer_df.to_csv(output_file_path, sep='\t', index=False,compression='gzip')
+    else:
+        kmer_df.to_csv(output_file_path,sep='\t',index=False)
     if verbose:
         logging.info("Apply filter to {} and save result to {}".format(junction_kmer_tsv_path,output_file_path))
     logging.info(">>>>>>>>> filter: Finish\n")
