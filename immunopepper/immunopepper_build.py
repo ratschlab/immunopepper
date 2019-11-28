@@ -21,7 +21,7 @@ from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_m
 from immunopepper.immuno_model import get_simple_metadata, get_and_write_peptide_and_kmer,get_and_write_background_peptide_and_kmer
 from immunopepper.immuno_nametuple import Option, Filepointer
 from immunopepper.io_utils import load_pickled_graph
-from immunopepper.utils import get_idx,create_libsize,get_total_gene_expr,write_gene_expr,check_chr_consistence
+from immunopepper.utils import get_idx,create_libsize,get_total_gene_expr,write_gene_expr,check_chr_consistence,gz_and_normal_open
 
 def immunopepper_build(arg):
     # read and process the annotation file
@@ -40,8 +40,6 @@ def immunopepper_build(arg):
     for record in BioIO.parse(arg.ref_path, "fasta"):
         if record.id in chromosome_set:
             seq_dict[record.id] = str(record.seq).strip()
-        else:
-            print("The genome chromosome identifier {} is not shown in the annotation file".format(record.id))
     end_time = timeit.default_timer()
     logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
@@ -116,19 +114,23 @@ def immunopepper_build(arg):
         output_path = os.path.join(arg.output_dir, sample)
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
-        junction_peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa')
-        junction_meta_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz')
-        background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa')
-        junction_kmer_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.txt')
-        background_kmer_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.txt')
-        gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.tsv')
 
-        peptide_fp = open(junction_peptide_file_path, 'w')
-        meta_peptide_fp = gzip.open(junction_meta_file_path, 'wt')
-        background_fp = open(background_peptide_file_path,'w')
-        junction_kmer_fp = open(junction_kmer_file_path, 'w')
-        background_kmer_fp = open(background_kmer_file_path, 'w')
-        gene_expr_fp = open(gene_expr_file_path,'w')
+        junction_meta_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz')
+        meta_peptide_fp = gz_and_normal_open(junction_meta_file_path)
+        gzip_tag = ''
+        if arg.compressed:
+            gzip_tag = '.gz'
+        junction_peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa'+gzip_tag)
+        background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa'+gzip_tag)
+        junction_kmer_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.txt'+gzip_tag)
+        background_kmer_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.txt'+gzip_tag)
+        gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.tsv'+gzip_tag)
+        peptide_fp = gz_and_normal_open(junction_peptide_file_path)
+        background_fp = gz_and_normal_open(background_peptide_file_path)
+        junction_kmer_fp = gz_and_normal_open(junction_kmer_file_path)
+        background_kmer_fp = gz_and_normal_open(background_kmer_file_path)
+        gene_expr_fp = gz_and_normal_open(gene_expr_file_path)
+
 
         filepointer = Filepointer(peptide_fp,meta_peptide_fp,background_fp,junction_kmer_fp,background_kmer_fp)
 
@@ -137,9 +139,11 @@ def immunopepper_build(arg):
                                       'exons_coor', 'vertex_idx','junction_expr','segment_expr']
         meta_peptide_fp.write(('\t'.join(meta_field_list) + '\n'))
 
-        kmer_field_list = ['kmer','gene_name','seg_expr','is_crossjunction','junction_expr']
-        junction_kmer_fp.write(('\t'.join(kmer_field_list)+'\n'))
+        junction_kmer_field_list = ['kmer','gene_name','seg_expr','is_crossjunction','junction_expr']
+        junction_kmer_fp.write(('\t'.join(junction_kmer_field_list)+'\n'))
 
+        background_kmer_field_list =  ['kmer','gene_name','seg_expr','is_crossjunction']
+        background_kmer_fp.write(('\t'.join(background_kmer_field_list)+'\n'))
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
         for gene_idx in gene_id_list:
@@ -192,9 +196,9 @@ def immunopepper_build(arg):
             mean_memory, mean_time = sum(memory_list)/(num-error_gene_num),sum(time_list)/(num-error_gene_num)
         else:
             mean_memory, mean_time = 0,0
-        logging.info(">>>> Finish sample {}. Errors existed in {}/{} genes. Need further check."
-                     "Max memroy cost:{}, Max time cost:{}, Max memory gene ID:{}, Max time gene ID:{},"
-                     "Average memory cost:{}, Average time cost:{}".format(sample,error_gene_num,num,max_memory,max_time,max_memory_id,max_time_id,
+        logging.info(">>>> Finish sample {}. Errors existed in {}/{} genes. Might Need further check. "
+                     "Max memroy cost:{} GB, Max time cost:{} seconds, Max memory gene ID:{}, Max time gene ID:{}, "
+                     "Average memory cost:{} GB, Average time cost:{} seconds".format(sample,error_gene_num,num,max_memory,max_time,max_memory_id,max_time_id,
                                                                            mean_memory,mean_time))
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)

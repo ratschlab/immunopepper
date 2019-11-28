@@ -5,6 +5,7 @@ import numpy as np
 
 import sys
 import bisect
+import gzip
 
 from .constant import NOT_EXIST
 from .immuno_nametuple import OutputBackground
@@ -141,7 +142,7 @@ def translate_dna_to_peptide(dna_str):
     return "".join(aa_str),has_stop_codon
 
 
-def get_sub_mut_dna(background_seq, coord,variant_comb, mutation_sub_dic_maf, strand):
+def get_sub_mut_dna(background_seq, coord,variant_comb, somatic_mutation_sub_dict, strand):
     """ Get the mutated dna sub-sequence according to mutation specified by the variant_comb.
 
     Parameters
@@ -152,7 +153,7 @@ def get_sub_mut_dna(background_seq, coord,variant_comb, mutation_sub_dic_maf, st
     start_v2: int. start position of second vertex.
     stop_v2: int. stop position of second vertex.
     variant_comb: List(int). List of variant position. Like ['38', '43']
-    mutation_sub_dic_maf: Dict. variant position -> variant details.
+    somatic_mutation_sub_dict: Dict. variant position -> variant details.
     strand: gene strand
 
     Returns
@@ -188,16 +189,16 @@ def get_sub_mut_dna(background_seq, coord,variant_comb, mutation_sub_dic_maf, st
         return sub_dna
     relative_variant_pos = [get_variant_pos_offset(variant_ipos,coord_pair_list,strand) for variant_ipos in variant_comb]
     for i,variant_ipos in enumerate(variant_comb):
-        mut_base = mutation_sub_dic_maf[variant_ipos]['mut_base']
-        ref_base = mutation_sub_dic_maf[variant_ipos]['ref_base']
+        mut_base = somatic_mutation_sub_dict[variant_ipos]['mut_base']
+        ref_base = somatic_mutation_sub_dict[variant_ipos]['ref_base']
         pos = relative_variant_pos[i]
         if pos != NOT_EXIST:
-        # strand = mutation_sub_dic_maf[variant_ipos]['strand']
+        # strand = somatic_mutation_sub_dict[variant_ipos]['strand']
             sub_dna = sub_dna[:pos]+mut_base+sub_dna[pos+1:]
 
     return sub_dna
 
-def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq, peptide_accept_coord):
+def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_dict, ref_mut_seq, peptide_accept_coord):
     """ Get translated peptide from the given exon pairs.
 
     Parameters
@@ -205,7 +206,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     read_frame: NamedTuple. (read_start_codon, read_stop_codon, emitting_frame)
     strand: str. '+' or '-'
     variant_comb: List(int).
-    mutation_sub_dic_maf: Dict. variant position -> variant details.
+    somatic_mutation_sub_dict: Dict. variant position -> variant details.
     ref_mut_seq: Dict.['ref', 'background'] -> List(str)
     peptide_accept_coord: The start and end position of next vertex. Positions of the first vertex
         are already given in read_frame.
@@ -232,7 +233,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     # emitting_frame + accepting_frame = 3
     accepting_frame = (3 - emitting_frame) % 3
 
-    if mutation_sub_dic_maf:  # exist maf dictionary, so we use germline mutation-applied seq as the background seq
+    if somatic_mutation_sub_dict:  # exist maf dictionary, so we use germline mutation-applied seq as the background seq
         ref_seq = ref_mut_seq['background']
     else:
         ref_seq = ref_mut_seq['ref']
@@ -243,7 +244,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
         start_v2 = peptide_accept_coord[0]
         stop_v2 = max(start_v2,peptide_accept_coord[1] - next_emitting_frame)
         coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
-        peptide_dna_str_mut = get_sub_mut_dna(mut_seq, coord, variant_comb, mutation_sub_dic_maf, strand)
+        peptide_dna_str_mut = get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand)
         peptide_dna_str_ref = ref_seq[start_v1:stop_v1] + ref_seq[start_v2:stop_v2]
         next_start_v1 = min(start_v2 + accepting_frame,peptide_accept_coord[1])
         next_stop_v1 = peptide_accept_coord[1]
@@ -251,7 +252,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
         stop_v2 = peptide_accept_coord[1]
         start_v2 = min(stop_v2,peptide_accept_coord[0] + next_emitting_frame)
         coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
-        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, coord, variant_comb, mutation_sub_dic_maf, strand))
+        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand))
         peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1] + ref_seq[start_v2:stop_v2][::-1])
         next_start_v1 = peptide_accept_coord[0]
         next_stop_v1 = max(stop_v2 - accepting_frame,peptide_accept_coord[0])
@@ -276,7 +277,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf,
     return peptide, coord, flag, next_reading_frame
 
 
-def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq):
+def isolated_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_dict, ref_mut_seq):
     """ Deal with translating isolated cds, almost the same as cross_peptide_result
 
     Parameters
@@ -284,7 +285,7 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
     read_frame: Tuple. (read_start_codon, read_stop_codon, emitting_frame)
     strand: str. '+' or '-'
     variant_comb: List(int).
-    mutation_sub_dic_maf: Dict. variant position -> variant details.
+    somatic_mutation_sub_dict: Dict. variant position -> variant details.
     ref_mut_seq: Dict.['ref', 'background'] -> List(str)
 
     Returns
@@ -302,7 +303,7 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
     start_v2 = NOT_EXIST
     stop_v2 = NOT_EXIST
 
-    if mutation_sub_dic_maf:  # exist maf dictionary, so we use germline mutation-applied seq as the background seq
+    if somatic_mutation_sub_dict:  # exist maf dictionary, so we use germline mutation-applied seq as the background seq
         ref_seq = ref_mut_seq['background']
     else:
         ref_seq = ref_mut_seq['ref']
@@ -310,11 +311,11 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
 
     if strand == '+':
         coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
-        peptide_dna_str_mut = get_sub_mut_dna(mut_seq, coord, variant_comb, mutation_sub_dic_maf, strand)
+        peptide_dna_str_mut = get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand)
         peptide_dna_str_ref = ref_seq[start_v1:stop_v1]
     else:
         coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
-        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, coord, variant_comb, mutation_sub_dic_maf, strand))
+        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand))
         peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1])
 
     peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut)
@@ -329,19 +330,19 @@ def isolated_peptide_result(read_frame, strand, variant_comb, mutation_sub_dic_m
     return peptide, coord, flag
 
 
-def get_peptide_result(simple_meta_data, strand, variant_comb, mutation_sub_dic_maf, ref_mut_seq):
-    if mutation_sub_dic_maf:  # exist maf dictionary, so we use germline mutation-applied seq as the background seq
+def get_peptide_result(simple_meta_data, strand, variant_comb, somatic_mutation_sub_dict, ref_mut_seq):
+    if somatic_mutation_sub_dict:  # exist maf dictionary, so we use germline mutation-applied seq as the background seq
         ref_seq = ref_mut_seq['background']
     else:
         ref_seq = ref_mut_seq['ref']
     mut_seq = ref_mut_seq['background']
     modi_coord = simple_meta_data.modified_exons_coord
     if strand == "+":
-        peptide_dna_str_mut = get_sub_mut_dna(mut_seq,modi_coord, variant_comb, mutation_sub_dic_maf, strand)
-        peptide_dna_str_ref = get_sub_mut_dna(ref_seq,modi_coord, NOT_EXIST, mutation_sub_dic_maf, strand)
+        peptide_dna_str_mut = get_sub_mut_dna(mut_seq,modi_coord, variant_comb, somatic_mutation_sub_dict, strand)
+        peptide_dna_str_ref = get_sub_mut_dna(ref_seq,modi_coord, NOT_EXIST, somatic_mutation_sub_dict, strand)
     else:  # strand == "-"
-        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, modi_coord, variant_comb, mutation_sub_dic_maf, strand))
-        peptide_dna_str_ref = complementary_seq(get_sub_mut_dna(ref_seq, modi_coord, NOT_EXIST, mutation_sub_dic_maf, strand))
+        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, modi_coord, variant_comb, somatic_mutation_sub_dict, strand))
+        peptide_dna_str_ref = complementary_seq(get_sub_mut_dna(ref_seq, modi_coord, NOT_EXIST, somatic_mutation_sub_dict, strand))
     peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut)
     peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref)
 
@@ -723,14 +724,14 @@ def write_gene_expr(fp, gene_expr_tuple_list):
 
 
 def check_chr_consistence(ann_chr_set,mutation,graph_data):
-    vcf_chr_set = set()
-    maf_chr_set = set()
+    germline_chr_set = set()
+    somatic_chr_set = set()
     mode = mutation.mode
-    if mutation.vcf_dict:
-        vcf_chr_set = set([item[1] for item in mutation.vcf_dict.keys()])
-    if mutation.maf_dict:
-        maf_chr_set = set([item[1] for item in mutation.maf_dict.keys()])
-    whole_mut_set = vcf_chr_set.union(maf_chr_set)
+    if mutation.germline_mutation_dict:
+        germline_chr_set = set([item[1] for item in mutation.germline_mutation_dict.keys()])
+    if mutation.somatic_mutation_dict:
+        somatic_chr_set = set([item[1] for item in mutation.somatic_mutation_dict.keys()])
+    whole_mut_set = somatic_chr_set.union(germline_chr_set)
     common_chr = whole_mut_set.intersection(ann_chr_set)
 
     if mode != 'ref' and len(common_chr) == 0:
@@ -743,6 +744,13 @@ def check_chr_consistence(ann_chr_set,mutation,graph_data):
             logging.error("Gene object has different chromosome naming from annotation file, please check")
             sys.exit(0)
 
+def gz_and_normal_open(file_path):
+    if file_path.endswith('.gz'):
+        file_fp = gzip.open(file_path, 'wt')
+    else:
+        file_fp = open(file_path,'w')
+    return file_fp
+
 def codeUTF8(s):
     return s.encode('utf-8')
 
@@ -750,4 +758,3 @@ def decodeUTF8(s):
     if not hasattr(s, 'decode'):
         return s
     return s.decode('utf-8')
-

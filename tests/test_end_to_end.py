@@ -50,8 +50,8 @@ def test_end_to_end_build(test_id, case, mutation_mode, tmpdir):
                    data_dir, case),
                '--ann_path', '{}/test{}{}.gtf'.format(data_dir, test_id, case),
                '--ref_path', '{}/test{}{}.fa'.format(data_dir, test_id, case),
-               '--vcf_path', '{}/test{}{}.vcf'.format(data_dir, test_id, case),
-               '--maf_path', '{}/test{}{}.maf'.format(data_dir, test_id, case),
+               '--germline', '{}/test{}{}.vcf'.format(data_dir, test_id, case),
+               '--somatic', '{}/test{}{}.maf'.format(data_dir, test_id, case),
                '--mutation_mode', mutation_mode,
                 '--kmer', '4']
 

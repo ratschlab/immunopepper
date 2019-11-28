@@ -30,11 +30,11 @@ for case in case_list:
 
 # make_bg mode
 for case in case_list:
-    out_dir = os.path.join(test_file_dir, 'test{}'.format(test_id), 'make_bg',case)
+    output_dir = os.path.join(test_file_dir, 'test{}'.format(test_id), 'make_bg',case)
     output_file_name = os.path.join(out_dir,'{}_integrated_background_kmer.txt'.format(case))
     back_file_dir = os.path.join(test_file_dir,'test{}'.format(test_id),'build',case,'test{}{}'.format(test_id,case))
     bg_file_list = [os.path.join(back_file_dir,'{}_back_kmer.txt'.format(mode)) for mode in ['ref','somatic','somatic_and_germline','germline']]
-    my_args = ['make_bg','--kmer_files_list']+bg_file_list+['--output_file_path',output_file_name]
+    my_args = ['make_bg','--kmer_files_list']+bg_file_list+['--output_file_path',output_file_name]+['--output_dir',output_dir]
     main_immuno.split_mode(my_args)
 
 # diff mode
@@ -45,22 +45,22 @@ for case in case_list:
 
         bg_kmer_file_path = os.path.join(test_file_dir, 'test{}'.format(test_id), 'make_bg',
                                          '{}'.format(case), '{}_integrated_background_kmer.txt'.format(case))
-
-        output_file_path = os.path.join(test_file_dir, 'test{}'.format(test_id), 'diff',
-                                        '{}'.format(case), '{}_{}_junction_kmer_with_bg.txt'.format(case,mutation_mode))
-
-        output_file_path_remove_bg = os.path.join(test_file_dir, 'test{}'.format(test_id), 'diff',
-                                        '{}'.format(case), '{}_{}_junction_kmer_without_bg.txt'.format(case,mutation_mode))
+        output_dir = os.path.join(test_file_dir, 'test{}'.format(test_id), 'diff','{}'.format(case))
+        output_file_path = os.path.join(output_dir, '{}_{}_junction_kmer_with_bg.txt'.format(case,mutation_mode))
+        output_file_path_remove_bg = os.path.join(output_dir, '{}_{}_junction_kmer_without_bg.txt'.format(case,mutation_mode))
 
         my_args = ['diff', '--junction_kmer_file', junction_kmer_file_path,
                    '--bg_file_path', bg_kmer_file_path,
-                   '--output_file_path', output_file_path]
+                   '--output_file_path', output_file_path,
+                   '--output_dir',output_dir]
         main_immuno.split_mode(my_args)
 
         my_args = ['diff', '--junction_kmer_file', junction_kmer_file_path,
                    '--bg_file_path', bg_kmer_file_path,
                    '--output_file_path', output_file_path_remove_bg,
-                   '--remove_bg']
+                   '--remove_bg',
+                   '--output_dir', output_dir
+                   ]
         main_immuno.split_mode(my_args)
 # filter mode
 for case in case_list:
@@ -73,18 +73,21 @@ for case in case_list:
         junction_kmer_tsv_file_name = '{}_{}_junction_kmer_with_bg.txt'.format(case,mutation_mode)
         my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_tsv_path,
                    '--output_file_path', os.path.join(output_dir,'cj_'+junction_kmer_tsv_file_name),
-                   '--cross_junction']
+                   '--cross_junction',
+                   '--output_dir', output_dir]
         main_immuno.split_mode(my_args)
 
         my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_tsv_path,
                    '--output_file_path', os.path.join(output_dir,'junc_expr_0_'+junction_kmer_tsv_file_name),
-                   '--junc_expr']
+                   '--junc_expr',
+                   '--output_dir', output_dir]
         main_immuno.split_mode(my_args)
 
         my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_tsv_path,
                    '--output_file_path', os.path.join(output_dir,'seg_expr_1300_'+junction_kmer_tsv_file_name),
                    '--seg_expr',
-                   '--seg_expr_thre',str(1300)]
+                   '--seg_expr_thre',str(1300),
+                   '--output_dir',output_dir]
         main_immuno.split_mode(my_args)
 
         my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_tsv_path,
@@ -93,6 +96,7 @@ for case in case_list:
                    '--junc_expr',
                    '--junc_expr_thre',str(500),
                    '--seg_expr',
-                   '--seg_expr_thre', str(1300)]
+                   '--seg_expr_thre', str(1300),
+                   '--output_dir',output_dir]
         main_immuno.split_mode(my_args)
 

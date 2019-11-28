@@ -1,3 +1,4 @@
+kmer	gene_name	seg_expr	is_crossjunction
 DHAR	TRANS1.1	1287.23	False
 HARM	TRANS1.1	1287.23	False
 ARMV	TRANS1.1	1597.59	False
