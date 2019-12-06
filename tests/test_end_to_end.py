@@ -41,19 +41,19 @@ def test_end_to_end_build(test_id, case, mutation_mode, tmpdir):
     sample_dir_build = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'build','{}'.format(case),'test{}{}'.format(test_id,case))
 
     my_args_build = ['build','--samples', 'test{}{}'.format(test_id,case),
-               '--output_dir', out_dir,
-               '--splice_path',
+               '--output-dir', out_dir,
+               '--splice-path',
                '{}/{}graph/spladder/genes_graph_conf3.merge_graphs.pickle'.format(
                    data_dir, case),
-               '--count_path',
+               '--count-path',
                '{}/{}graph/spladder/genes_graph_conf3.merge_graphs.count.hdf5'.format(
                    data_dir, case),
-               '--ann_path', '{}/test{}{}.gtf'.format(data_dir, test_id, case),
-               '--ref_path', '{}/test{}{}.fa'.format(data_dir, test_id, case),
+               '--ann-path', '{}/test{}{}.gtf'.format(data_dir, test_id, case),
+               '--ref-path', '{}/test{}{}.fa'.format(data_dir, test_id, case),
                '--germline', '{}/test{}{}.vcf'.format(data_dir, test_id, case),
                '--somatic', '{}/test{}{}.maf'.format(data_dir, test_id, case),
-               '--mutation_mode', mutation_mode,
-                '--kmer', '4']
+               '--mutation-mode', mutation_mode,
+               '--kmer', '4']
 
     my_args = my_args_build
     sample_dir = sample_dir_build
@@ -90,7 +90,7 @@ def test_end_to_end_makebg(test_id, case,tmpdir):
     output_file_name = os.path.join(out_dir,'{}_integrated_background_kmer.txt'.format(case))
     back_file_dir = os.path.join(os.path.dirname(__file__),'test{}'.format(test_id),'build',case,'test{}{}'.format(test_id,case))
     bg_file_list = [os.path.join(back_file_dir,'{}_back_kmer.txt'.format(mode)) for mode in ['ref','somatic','somatic_and_germline','germline']]
-    my_args_makebg = ['make_bg','--kmer_files_list']+bg_file_list+['--output_file_path',output_file_name]+['--output_dir',out_dir]
+    my_args_makebg = ['make_bg','--kmer-files-list']+bg_file_list+['--output-file-path', output_file_name]+['--output-dir', out_dir]
 
     main_immuno.split_mode(my_args_makebg)
     _assert_files_equal(
@@ -119,10 +119,10 @@ def test_end_to_end_diff(test_id, case, tmpdir,mutation_mode):
 
     output_file_path = os.path.join(out_dir,'{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode))
 
-    my_args_diff = ['diff', '--junction_kmer_file', junction_kmer_file_path,
-                   '--bg_file_path', bg_kmer_file_path,
-                   '--output_file_path', output_file_path,
-                    '--output_dir',out_dir]
+    my_args_diff = ['diff', '--junction-kmer-file', junction_kmer_file_path,
+                   '--bg-file-path', bg_kmer_file_path,
+                   '--output-file-path', output_file_path,
+                   '--output-dir', out_dir]
 
     main_immuno.split_mode(my_args_diff)
     _assert_files_equal(
@@ -148,10 +148,10 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
     # cross_junction filter
     output_filtered_file_name = 'cj_{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode)
     output_file_path = os.path.join(out_dir,output_filtered_file_name)
-    my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_file_path,
-               '--output_file_path', output_file_path,
-               '--output_dir', out_dir,
-               '--cross_junction']
+    my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_file_path,
+               '--output-file-path', output_file_path,
+               '--output-dir', out_dir,
+               '--cross-junction']
     main_immuno.split_mode(my_args)
     _assert_files_equal(
         os.path.join(groundtruth_filter_dir, output_filtered_file_name),
@@ -160,10 +160,10 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
     # junction expression 0 filter
     output_filtered_file_name = 'junc_expr_0_{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode)
     output_file_path = os.path.join(out_dir,output_filtered_file_name)
-    my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_file_path,
-               '--output_file_path', output_file_path,
-               '--output_dir', out_dir,
-               '--junc_expr']
+    my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_file_path,
+               '--output-file-path', output_file_path,
+               '--output-dir', out_dir,
+               '--junc-expr']
     main_immuno.split_mode(my_args)
     _assert_files_equal(
         os.path.join(groundtruth_filter_dir, output_filtered_file_name),
@@ -172,11 +172,11 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
     # segment expression 1300 filter
     output_filtered_file_name = 'seg_expr_1300_{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode)
     output_file_path = os.path.join(out_dir,output_filtered_file_name)
-    my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_file_path,
-               '--output_file_path', output_file_path,
-               '--output_dir', out_dir,
-               '--seg_expr',
-               '--seg_expr_thre','1300']
+    my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_file_path,
+               '--output-file-path', output_file_path,
+               '--output-dir', out_dir,
+               '--seg-expr',
+               '--seg-expr-thresh','1300']
     main_immuno.split_mode(my_args)
     _assert_files_equal(
         os.path.join(groundtruth_filter_dir, output_filtered_file_name),
@@ -185,13 +185,13 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
     # segment expression 1300 filter and junction expression 500
     output_filtered_file_name = 'junc_expr_500_seg_expr_1300_cj_{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode)
     output_file_path = os.path.join(out_dir,output_filtered_file_name)
-    my_args = ['filter', '--junction_kmer_tsv_path', junction_kmer_file_path,
-               '--output_file_path', output_file_path,
-               '--output_dir', out_dir,
-               '--seg_expr',
-               '--seg_expr_thre','1300',
-               '--junc_expr',
-               '--junc_expr_thre','500']
+    my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_file_path,
+               '--output-file-path', output_file_path,
+               '--output-dir', out_dir,
+               '--seg-expr',
+               '--seg-expr-thresh', '1300',
+               '--junc-expr',
+               '--junc-expr-thresh', '500']
     main_immuno.split_mode(my_args)
     _assert_files_equal(
         os.path.join(groundtruth_filter_dir, output_filtered_file_name),
