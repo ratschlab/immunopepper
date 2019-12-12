@@ -23,6 +23,16 @@ from immunopepper.immuno_nametuple import Option, Filepointer
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.utils import get_idx,create_libsize,get_total_gene_expr,write_gene_expr,check_chr_consistence,gz_and_normal_open
 
+### intermediate fix to load pickle files stored under previous version
+from spladder.classes import gene as cgene
+from spladder.classes import splicegraph as csplicegraph
+from spladder.classes import segmentgraph as csegmentgraph
+sys.modules['modules'] = cgene
+sys.modules['modules.classes.gene'] = cgene
+sys.modules['modules.classes.splicegraph'] = csplicegraph
+sys.modules['modules.classes.segmentgraph'] = csegmentgraph
+### end fix
+
 def immunopepper_build(arg):
     # read and process the annotation file
     logging.info(">>>>>>>>> Build: Start Preprocessing")
