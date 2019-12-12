@@ -147,21 +147,21 @@ def test_construct_mut_seq_with_str_concat():
 def test_get_mutation_mode_from_parser():
     basic_args = ['build',
                   '--samples','this_sample',
-                  '--splice_path','this_splicegraph',
-                  '--output_dir','this_output_dir',
-                  '--ann_path','this_ann_path',
-                  '--ref_path','this_ref_path']
+                  '--splice-path','this_splicegraph',
+                  '--output-dir','this_output_dir',
+                  '--ann-path','this_ann_path',
+                  '--ref-path','this_ref_path']
     my_args1 = basic_args+[
-                '--germline', os.path.join(data_dir,'test1pos.vcf'),
+               '--germline', os.path.join(data_dir,'test1pos.vcf'),
                '--somatic', os.path.join(data_dir,'test1pos.maf'),
-               '--mutation_mode', 'somantic']  # bad mutation mode
+               '--mutation-mode', 'somantic']  # bad mutation mode
     args = parse_arguments(my_args1)
     try:
         get_mutation_mode_from_parser(args)
     except SystemExit:
         assert 1
     my_args2 = basic_args+['--germline', os.path.join(data_dir,'test1pos.vcf'),
-               '--mutation_mode', 'somatic']  # mismatch mutation mode and input files
+               '--mutation-mode', 'somatic']  # mismatch mutation mode and input files
     args = parse_arguments(my_args2)
     try:
         get_mutation_mode_from_parser(args)

@@ -90,7 +90,7 @@ def test_end_to_end_makebg(test_id, case,tmpdir):
     output_file_name = os.path.join(out_dir,'{}_integrated_background_kmer.txt'.format(case))
     back_file_dir = os.path.join(os.path.dirname(__file__),'test{}'.format(test_id),'build',case,'test{}{}'.format(test_id,case))
     bg_file_list = [os.path.join(back_file_dir,'{}_back_kmer.txt'.format(mode)) for mode in ['ref','somatic','somatic_and_germline','germline']]
-    my_args_makebg = ['make_bg','--kmer-files-list']+bg_file_list+['--output-file-path', output_file_name]+['--output-dir', out_dir]
+    my_args_makebg = ['make_bg','--kmer-files']+bg_file_list+['--output-file-path', output_file_name]+['--output-dir', out_dir]
 
     main_immuno.split_mode(my_args_makebg)
     _assert_files_equal(

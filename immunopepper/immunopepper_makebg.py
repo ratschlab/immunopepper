@@ -5,7 +5,7 @@ import logging
 import gzip
 def immunopepper_makebg(arg):
     logging.info(">>>>>>>>> make_bg: Start")
-    kmer_file_list = arg.kmer_files_list
+    kmer_file_list = arg.kmer_files
     output_file_path = arg.output_file_path
     verbose = arg.verbose
     uniq_kmer_set = set()
