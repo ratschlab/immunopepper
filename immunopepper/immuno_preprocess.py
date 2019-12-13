@@ -1,4 +1,4 @@
-"""Contain the functions to parse, preprocess information from the input file"""
+"""Contains functions to parse and preprocess information from the input file"""
 import sys
 import os
 import numpy as np
@@ -7,8 +7,17 @@ import scipy as sp
 import pickle
 import logging
 
-from .utils import to_adj_succ_list,find_overlapping_cds_simple,leq_strand,encode_chromosome,decodeUTF8
-from .immuno_nametuple import ReadingFrameTuple,GeneTable,Segments,Edges,CountInfo
+from .immuno_nametuple import CountInfo
+from .immuno_nametuple import Edges
+from .immuno_nametuple import GeneTable
+from .immuno_nametuple import ReadingFrameTuple
+from .immuno_nametuple import Segments
+
+from .utils import decodeUTF8
+from .utils import encode_chromosome
+from .utils import find_overlapping_cds_simple
+from .utils import get_successor_list
+from .utils import leq_strand
 
 def genes_preprocess(genes, gene_cds_begin_dict):
     """ Preprocess the gene and generate new attributes under gene object
@@ -35,7 +44,7 @@ def genes_preprocess(genes, gene_cds_begin_dict):
             continue
 
         gene.nvertices = gene.splicegraph.vertices.shape[1]
-        gene.vertex_succ_list = to_adj_succ_list(gene.splicegraph.edges, gene.splicegraph.vertices, gene.strand)
+        gene.vertex_succ_list = get_successor_list(gene.splicegraph.edges, gene.splicegraph.vertices, gene.strand)
         if gene.strand == "+":
             gene.vertex_order = np.argsort(gene.splicegraph.vertices[0, :])
         else:  # gene.strand=="-"
@@ -98,7 +107,7 @@ def preprocess_ann(ann_path):
     file_type = ann_path.split('.')[-1]
     chromesome_set = set()
     # collect information from annotation file
-    for line in open(ann_path):
+    for line in open(ann_path, 'r'):
         if line[0] == '#':
             continue
         item = line.strip().split('\t')
@@ -172,17 +181,17 @@ def attribute_item_to_dict(a_item, file_type, feature_type):
 
     """
     gtf_dict = {}
-    if file_type == 'gtf':
+    if file_type.lower() == 'gtf':
         attribute_list = a_item.split('; ')
         for attribute_pair in attribute_list:
             pair = attribute_pair.split(' ')
             gtf_dict[pair[0]] = pair[1][1:-1]
-    elif file_type == 'gff3':
+    elif file_type.lower() == 'gff3':
         attribute_list = a_item.split(';')
         for attribute_pair in attribute_list:
             pair = attribute_pair.split('=')
             gtf_dict[pair[0]] = pair[1]
-    elif file_type == 'gff':
+    elif file_type.lower() == 'gff':
         gff_dict = {}
         attribute_list = a_item.split(';')
         for attribute_pair in attribute_list:
