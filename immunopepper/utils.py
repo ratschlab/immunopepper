@@ -5,7 +5,6 @@ import numpy as np
 
 import sys
 import bisect
-import gzip
 import logging
 
 from .constant import NOT_EXIST
@@ -748,13 +747,6 @@ def check_chr_consistence(ann_chr_set,mutation,graph_data):
         if len(new_chr_set) > 0:
             logging.error("Gene object has different chromosome naming from annotation file, please check")
             sys.exit(0)
-
-def gz_and_normal_open(file_path):
-    if file_path.endswith('.gz'):
-        file_fp = gzip.open(file_path, 'wt')
-    else:
-        file_fp = open(file_path,'w')
-    return file_fp
 
 def codeUTF8(s):
     return s.encode('utf-8')

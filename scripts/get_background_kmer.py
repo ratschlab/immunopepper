@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import sys
-from immunopepper.immuno_print import print_memory_diags
+from immunopepper.io_utils import print_memory_diags
 
 def get_unique_kmer(file,zero_filter=True,cross_junction=True):
     kmer_df = pd.read_csv(file,header=None,names=['kmer','gene_name','expr','flag'],sep='\t')
