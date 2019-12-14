@@ -7,10 +7,10 @@ import scipy as sp
 
 from immunopepper.immuno_filter import junction_is_annotated, peptide_match,get_junction_anno_flag,get_filtered_metadata_list,get_full_peptide
 from immunopepper.immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
-from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr,get_peptide_result,convert_namedtuple_to_str,write_namedtuple_list,init_part_coord
+from immunopepper.utils import cross_peptide_result,is_isolated_cds,isolated_peptide_result,is_in_junction_list,get_segment_expr,get_peptide_result,convert_namedtuple_to_str,write_namedtuple_list
 from immunopepper.immuno_preprocess import search_edge_metadata_segmentgraph
 from immunopepper.constant import NOT_EXIST
-from immunopepper.immuno_nametuple import OutputMetadata, OutputJuncPeptide, OutputKmer, SimpleMetadata, init_part_coord, OutputBackground
+from immunopepper.immuno_nametuple import OutputMetadata, OutputJuncPeptide, OutputKmer, SimpleMetadata, Coord, OutputBackground
 
 def get_simple_metadata(gene=None, ref_seq=None, idx=None,mutation=None, option=None):
     """Calculte the output peptide for every exon-pairs in the splicegraph
@@ -31,26 +31,24 @@ def get_simple_metadata(gene=None, ref_seq=None, idx=None,mutation=None, option=
 
        """
 
-    sg = gene.splicegraph
     gene.from_sparse()
+    sg = gene.splicegraph
 
     output_id = 0
-
 
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
     # otherwise, background_seq = ref_seq
-    pos_start = np.min(sg.vertices[0])
-    pos_end = np.max(sg.vertices[1])
-    ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq, pos_start=pos_start, pos_end=pos_end,
-                                           mutation_sub_dict=mutation.germline_mutation_dict)
+    ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq, 
+                                          pos_start=np.min(sg.vertices[0]), 
+                                          pos_end=np.max(sg.vertices[1]),
+                                          mutation_sub_dict=mutation.germline_mutation_dict)
 
     # apply somatic mutation
-    # som_exp_dict: (mutation_position) |-> (expression)
     # exon_som_dict: (exon_id) |-> (mutation_postion)
-    som_exp_dict, exon_som_dict = None,None
+    exon_som_dict = None
     if mutation.somatic_mutation_dict is not None:
-        exon_som_dict = get_exon_som_dict(gene, list(mutation.somatic_mutation_dict.keys()))
+        exon_som_dict = get_exon_som_dict(gene, mutation.somatic_mutation_dict)
 
     simple_metadata_list = []
     reading_frame_dict = dict(sg.reading_frames)
@@ -70,13 +68,13 @@ def get_simple_metadata(gene=None, ref_seq=None, idx=None,mutation=None, option=
                         logging.debug(' '.join([str(v_id), str(prop_vertex), str(variant_comb), str(read_frame_tuple.read_phase)]))
                     if prop_vertex != NOT_EXIST:
                         peptide, modi_coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq, sg.vertices[:, prop_vertex])
-                        orig_coord = init_part_coord(sg.vertices[0,v_id],sg.vertices[1,v_id],sg.vertices[0,prop_vertex],sg.vertices[1,prop_vertex])
+                        orig_coord = Coord(sg.vertices[0,v_id], sg.vertices[1,v_id], sg.vertices[0,prop_vertex], sg.vertices[1,prop_vertex])
                         if not flag.has_stop:
                             reading_frame_dict[prop_vertex].add(next_reading_frame)
                     else:
 
                         peptide, modi_coord, flag = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_mutation_dict,ref_mut_seq)
-                        orig_coord = init_part_coord(sg.vertices[0,v_id],sg.vertices[1,v_id],NOT_EXIST,NOT_EXIST)
+                        orig_coord = Coord(sg.vertices[0,v_id],sg.vertices[1,v_id],NOT_EXIST,NOT_EXIST)
                     has_stop_flag = has_stop_flag and flag.has_stop
                 gene_outputid = str(idx.gene) + ':' + str(output_id)
                 simple_metadata = SimpleMetadata(output_id=gene_outputid,
@@ -96,6 +94,7 @@ def get_simple_metadata(gene=None, ref_seq=None, idx=None,mutation=None, option=
         simple_metadata_list = get_filtered_metadata_list(simple_metadata_list,gene.strand)
     final_simple_meta = simple_metadata_list+concat_simple_meta_list
     return final_simple_meta,ref_mut_seq,exon_som_dict
+
 
 def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background_pep_list=None,ref_mut_seq=None, idx=None,
                          exon_som_dict=None,segments=None, edges=None, mutation=None,table=None,option=None,
@@ -381,13 +380,13 @@ def get_concat_metadata(gene,output_metadata_list,k):
                     continue
                 front_vertex_id = front_meta.vertex_idx
                 middle_exon_coord = gene.splicegraph.vertices[:,front_vertex_id[1]]
-                triple_modi_coord = init_part_coord(start_v1=front_modi_coord.start_v1,
+                triple_modi_coord = Coord(start_v1=front_modi_coord.start_v1,
                                                stop_v1=front_modi_coord.stop_v1,
                                                start_v2=middle_exon_coord[0],
                                                stop_v2=middle_exon_coord[1],
                                                start_v3=back_modi_coord.start_v2,
                                                stop_v3=back_modi_coord.stop_v2)
-                triple_orig_coord = init_part_coord(start_v1=front_orig_coord.start_v1,
+                triple_orig_coord = Coord(start_v1=front_orig_coord.start_v1,
                                                stop_v1=front_orig_coord.stop_v1,
                                                start_v2=middle_exon_coord[0],
                                                stop_v2=middle_exon_coord[1],
