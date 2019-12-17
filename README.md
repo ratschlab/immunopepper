@@ -164,13 +164,13 @@ exist several tools for searching a peptide sequence against a MS database, for 
 There are 5 files for the `build` mode. `mut_mode` refers to `ref`, `somatic`,  `germline` and `somatic_and_germline`.
 - **\[mut_mode\]_back_peptides.fa**: Peptides translated from annotation transcripts. Two lines for one output. The first
 line is the transcript ID and the second line is the result peptide.
-- **\[mut_mode\]_back_kmer.txt**: kmers generated from **\[mut_mode\]_back_peptides.fa**. There are four columns. First column is
-the result kmer, second column is the transcript ID, third column is the average segment expression and final column is the
+- **\[mut_mode\]_back_kmer.txt**: kmers generated from **\[mut_mode\]_back_peptides.fa**. There are four columns: \[ *kmer*, *gene_name*, *seg_expr*, *is_crossjunction*\]. The first column is
+the result kmer, the second column is the transcript ID, the third column is the average segment expression and the final column is the
 flag indicating if the kmer is junction kmer. The final column is False for *all* rows in this file.
 - **\[mut_mode\]_peptides.fa**: Peptides translated from traversing splicegraph. Two lines for one output. The first
 line is the output ID and the second line is the result peptide.
-- **\[mut_mode\]_junction_kmer**.txt: kmers generated from **\[mut_mode\]_peptides.fa**. There are one more
-column *junction_expr*, which refers to the junction counts for those kmers that spans over
+- **\[mut_mode\]_junction_kmer**.txt: kmers generated from **\[mut_mode\]_peptides.fa**. In addition to the same four columns in **\[mut_mode\]_back_kmer.txt**, there is one more
+column in this file. *junction_expr*, refers to the junction counts for those kmers that span over
 exon junction. For those with *junction_expr* > 0, the flag `is_crossjunction` is True.
 - **\[mut_mode\]_metadata.tsv.gz**: Contain details for every junction pairs.
 
@@ -261,7 +261,7 @@ immunopepper diff --junction-kmer-file  ImmunoPepper_usecase_out/ERR2130621/soma
 After removing the background kmers in Step 3, we can add more filters to further reduce the number of candidate kmers.
 For example, we only consider the kmers that have junction expression larger than 0 as well as a
 segment expression value larger than 2. `filter` mode provides filters based on segment expression
-and junction expression, based on a user-provided threshold. 
+and junction expression, based on a user-provided threshold.
 ```
 # filter ref kmers
 immunopepper filter --output-dir ImmunoPepper_usecase_out --output-file-path ImmunoPepper_usecase_out/ERR2130621/ref_junction_kmer_remove-bg_filter.tsv --junction-kmer-tsv-path ImmunoPepper_usecase_out/ERR2130621/ref_junction_kmer_remove-bg.tsv --cross-junction --seg-expr --seg-expr-thresh 2
