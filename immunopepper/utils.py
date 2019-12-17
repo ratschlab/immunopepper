@@ -218,7 +218,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_
     -------
     peptide: NamedTuple Peptide. has attribute ['ref', 'mut']. contain the output peptide
         translated from reference sequence and mutated sequence.
-    coord: NamedTuple Coord. has attribute ['start_v2', 'stop_v1', 'start_v2', 'stop_v2']
+    coord: NamedTuple Coord. has attribute ['start_v1', 'stop_v1', 'start_v2', 'stop_v2']
         contains the true four position of exon pairs (after considering read framee)
         that outputs the peptide.
     flag: NamedTuple Flag. has attribute ['has_stop', 'is_isolated']

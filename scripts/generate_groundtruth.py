@@ -4,7 +4,7 @@ test_id = 1
 case_list = ['pos','neg']
 mutation_list = ['ref','somatic','germline','somatic_and_germline']
 
-test_file_dir = '/Users/akahles/git/projects/2018/immunopepper/tests'
+test_file_dir = '../tests'
 
 # build mode
 for case in case_list:
