@@ -1,27 +1,40 @@
+import gzip
+import logging
+import os
 import pickle
+import psutil
+import sys
+
+### intermediate fix to load pickle files stored under previous version
+import spladder.classes.gene as gene
+import spladder.classes.splicegraph as splicegraph
+import spladder.classes.segmentgraph as segmentgraph
+sys.modules['modules.classes.gene'] = gene
+sys.modules['modules.classes.splicegraph'] = splicegraph
+sys.modules['modules.classes.segmentgraph'] = segmentgraph
+### end fix
 
 
-# TODO: this is a hack to get around module name changes spladder affecting pickle
 def load_pickled_graph(f):
-    # following https://wiki.python.org/moin/UsingPickle/RenamingModules
-    renametable = {
-        'modules.classes.gene': 'spladder.classes.gene',
-        'modules.classes.splicegraph': 'spladder.classes.splicegraph',
-        'modules.classes.segmentgraph': 'spladder.classes.segmentgraph'
-    }
+    return pickle.load(f)
 
-    def mapname(name):
-        if name in renametable:
-            return renametable[name]
-        return name
 
-    def mapped_load_global(self):
-        module = mapname(self.readline()[:-1])
-        name = mapname(self.readline()[:-1])
-        klass = self.find_class(module, name)
-        self.append(klass)
+def gz_and_normal_open(file_path):
+    if file_path.endswith('.gz'):
+        file_fp = gzip.open(file_path, 'wt')
+    else:
+        file_fp = open(file_path,'w')
+    return file_fp
 
-    unpickler = pickle.Unpickler(f)
 
-    unpickler.dispatch[pickle.GLOBAL] = mapped_load_global
-    return unpickler.load()
+def print_memory_diags(disable_print=False):
+    """
+    Print memory diagnostics including the active resident set size
+    """
+    process = psutil.Process(os.getpid())
+    memory = process.memory_info().rss/1000000000.0
+    if not disable_print:
+        logging.info('\tMemory usage: {:.3f} GB'.format(memory))
+    return memory
+
+
