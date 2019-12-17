@@ -16,7 +16,7 @@ def immunopepper_filter(arg):
         kmer_df = kmer_df[kmer_df['is_crossjunction']]
 
     if arg.seg_expr:
-        seg_expr_thre = arg.seg_expr_thre
+        seg_expr_thre = arg.seg_expr_thresh
         if verbose > 1:
             logging.info('apply segment expression filter, threshold is {}'.format(seg_expr_thre))
         kmer_df = kmer_df[kmer_df['seg_expr']>seg_expr_thre]
@@ -25,7 +25,7 @@ def immunopepper_filter(arg):
         # if we want to filter based on junction expression
         # we actually also do cross_junction filter because
         # only cross junction kmers have junction expression
-        junc_expr_thre = arg.junc_expr_thre
+        junc_expr_thre = arg.junc_expr_thresh
         if verbose > 1:
             logging.info('apply junction expression filter, threshold is {}'.format(junc_expr_thre))
         kmer_df = kmer_df[kmer_df['is_crossjunction']]

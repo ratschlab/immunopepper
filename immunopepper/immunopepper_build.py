@@ -1,27 +1,49 @@
 # Python libraries
 """"""
 # Core operation of ImmunoPepper. Traverse splicegraph and get kmer/peptide output
-import sys
-import pickle
-import os
-import timeit
-import gzip
 import logging
+import gzip
+import os
+import pickle
+import sys
+import timeit
 
 # External libraries
 import Bio.SeqIO as BioIO
-import h5py
 import gc
+import h5py
 import numpy as np
 
 # immuno module
-from immunopepper.immuno_print import print_memory_diags
-from immunopepper.immuno_preprocess import genes_preprocess,preprocess_ann,parse_gene_metadata_info,parse_junction_meta_info
-from immunopepper.immuno_mutation import get_mutation_mode_from_parser,get_sub_mutation_tuple
-from immunopepper.immuno_model import get_simple_metadata, get_and_write_peptide_and_kmer,get_and_write_background_peptide_and_kmer
-from immunopepper.immuno_nametuple import Option, Filepointer
-from immunopepper.io_utils import load_pickled_graph
-from immunopepper.utils import get_idx,create_libsize,get_total_gene_expr,write_gene_expr,check_chr_consistence,gz_and_normal_open
+from .immuno_preprocess import genes_preprocess
+from .immuno_preprocess import parse_junction_meta_info
+from .immuno_preprocess import parse_gene_metadata_info
+from .immuno_preprocess import preprocess_ann
+from .immuno_mutation import get_mutation_mode_from_parser
+from .immuno_mutation import get_sub_mutation_tuple
+from .immuno_model import get_and_write_background_peptide_and_kmer
+from .immuno_model import get_and_write_peptide_and_kmer
+from .immuno_model import get_simple_metadata
+from .immuno_nametuple import Filepointer
+from .immuno_nametuple import Option
+from .io_utils import gz_and_normal_open
+from .io_utils import load_pickled_graph
+from .io_utils import print_memory_diags
+from .utils import check_chr_consistence
+from .utils import create_libsize
+from .utils import get_idx
+from .utils import get_total_gene_expr
+from .utils import write_gene_expr
+
+### intermediate fix to load pickle files stored under previous version
+from spladder.classes import gene as cgene
+from spladder.classes import splicegraph as csplicegraph
+from spladder.classes import segmentgraph as csegmentgraph
+sys.modules['modules'] = cgene
+sys.modules['modules.classes.gene'] = cgene
+sys.modules['modules.classes.splicegraph'] = csplicegraph
+sys.modules['modules.classes.segmentgraph'] = csegmentgraph
+### end fix
 
 def immunopepper_build(arg):
     # read and process the annotation file

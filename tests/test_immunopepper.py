@@ -13,7 +13,7 @@ from immunopepper.utils import get_sub_mut_dna,get_concat_peptide,convert_namedt
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.main_immuno import parse_arguments
 from immunopepper.immuno_model import create_output_kmer
-from immunopepper.immuno_nametuple import init_part_coord,OutputBackground,OutputKmer
+from immunopepper.immuno_nametuple import Coord,OutputBackground,OutputKmer
 from immunopepper.constant import NOT_EXIST
 from immunopepper.immuno_filter import get_junction_anno_flag
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
@@ -88,7 +88,7 @@ def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
     variant_comb = [(38,), (38, 41), '.']
     strand = ['+', '+', '+']
     for i, vlist in enumerate(test_list):
-        coord = init_part_coord(vlist[0], vlist[1], vlist[2], vlist[3])
+        coord = Coord(vlist[0], vlist[1], vlist[2], vlist[3])
         sub_dna = get_sub_mut_dna(ref_seq, coord, variant_comb[i],
                                   mutation_sub_dic_maf, strand[i])
         assert sub_dna == groundtruth[i]
@@ -147,21 +147,21 @@ def test_construct_mut_seq_with_str_concat():
 def test_get_mutation_mode_from_parser():
     basic_args = ['build',
                   '--samples','this_sample',
-                  '--splice_path','this_splicegraph',
-                  '--output_dir','this_output_dir',
-                  '--ann_path','this_ann_path',
-                  '--ref_path','this_ref_path']
+                  '--splice-path','this_splicegraph',
+                  '--output-dir','this_output_dir',
+                  '--ann-path','this_ann_path',
+                  '--ref-path','this_ref_path']
     my_args1 = basic_args+[
-                '--germline', os.path.join(data_dir,'test1pos.vcf'),
+               '--germline', os.path.join(data_dir,'test1pos.vcf'),
                '--somatic', os.path.join(data_dir,'test1pos.maf'),
-               '--mutation_mode', 'somantic']  # bad mutation mode
+               '--mutation-mode', 'somantic']  # bad mutation mode
     args = parse_arguments(my_args1)
     try:
         get_mutation_mode_from_parser(args)
     except SystemExit:
         assert 1
     my_args2 = basic_args+['--germline', os.path.join(data_dir,'test1pos.vcf'),
-               '--mutation_mode', 'somatic']  # mismatch mutation mode and input files
+               '--mutation-mode', 'somatic']  # mismatch mutation mode and input files
     args = parse_arguments(my_args2)
     try:
         get_mutation_mode_from_parser(args)
@@ -209,8 +209,8 @@ def test_create_output_kmer():
 
 
 def test_get_concat_peptide():
-    front_coord = init_part_coord(10,19,25,33)
-    back_coord = init_part_coord(27,36,44,53)
+    front_coord = Coord(10,19,25,33)
+    back_coord = Coord(27,36,44,53)
     front_peptide = ''
     back_peptide = 'MGF'
     strand = '+'
@@ -230,8 +230,8 @@ def test_get_concat_peptide():
     assert concat_pep == 'EDMF'
 
     # neg case
-    front_coord = init_part_coord(35,43,20,29)
-    back_coord = init_part_coord(18,26,17,13)
+    front_coord = Coord(35,43,20,29)
+    back_coord = Coord(18,26,17,13)
     strand = '-'
     front_peptide = 'EDM'
     back_peptide = 'DMF'

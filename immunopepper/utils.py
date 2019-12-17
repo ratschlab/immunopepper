@@ -5,12 +5,16 @@ import numpy as np
 
 import sys
 import bisect
-import gzip
+import logging
 
 from .constant import NOT_EXIST
+from .immuno_nametuple import Coord
+from .immuno_nametuple import Flag
+from .immuno_nametuple import Idx
 from .immuno_nametuple import OutputBackground
-from immunopepper.immuno_nametuple import Peptide,Flag,Idx,ReadingFrameTuple,init_part_coord
-import logging
+from .immuno_nametuple import Peptide
+from .immuno_nametuple import ReadingFrameTuple
+
 
 def to_adj_list(adj_matrix):
     """
@@ -19,13 +23,13 @@ def to_adj_list(adj_matrix):
     adj_list = []
     assert (adj_matrix.shape[0] == adj_matrix.shape[1])
     for idx in range(adj_matrix.shape[0]):
-        for jdx in range(adj_matrix.shape[0]):
-            if adj_matrix[idx, jdx] == 1 and idx <= jdx:
+        for jdx in range(idx, adj_matrix.shape[0]):
+            if adj_matrix[idx, jdx] == 1:
                 adj_list.append([idx, jdx])
     return adj_list
 
 
-def to_adj_succ_list(adj_matrix, vertex_map, read_strand):
+def get_successor_list(adj_matrix, vertex_map, read_strand):
     """ Returns a list of successors by vertex, sensitive to the read strand
 
     Parameters
@@ -58,10 +62,9 @@ def find_overlapping_cds_simple(v_start, v_stop, cds_begins, strand):
     """
     # cds_start = cds_begin[0]
     if strand == '+':
-        return [cds_begin for cds_begin in cds_begins if cds_begin[0] >= v_start and cds_begin[0] < v_stop]
+        return list(filter(lambda x: x[0] >= v_start and x[0] < v_stop, cds_begins))
     else:
-        return [cds_begin for cds_begin in cds_begins if cds_begin[0] > v_start and cds_begin[0] <= v_stop]
-
+        return list(filter(lambda x: x[0] > v_start and x[0] <= v_stop, cds_begins))
 
 
 def leq_strand(coord1, coord2, strand):
@@ -77,8 +80,7 @@ def complementary_seq(dna_seq):
     Otherwise remain the same.
     """
     comp_dict = {"A": "T", "T": "A", "C": "G", "G": "C"}
-    comp_dict_keys = list(comp_dict.keys())
-    return "".join([comp_dict[nuc] if nuc in comp_dict_keys else nuc for nuc in dna_seq])
+    return "".join([comp_dict[nuc] if nuc in comp_dict else nuc for nuc in dna_seq])
 
 
 def encode_chromosome(in_num):
@@ -86,7 +88,7 @@ def encode_chromosome(in_num):
     Encodes chromosome to same cn
     """
     convert_dict = {23: "X", 24: "Y", 25: "MT"}
-    return convert_dict[in_num] if in_num in list(convert_dict.keys()) else str(in_num)
+    return convert_dict[in_num] if in_num in convert_dict else str(in_num)
 
 
 def translate_dna_to_peptide(dna_str):
@@ -130,19 +132,19 @@ def translate_dna_to_peptide(dna_str):
         codon = dna_str[idx:idx + 3]
         if len(codon) < 3:
             break
-        if "N" in codon:
+        if 'N' in codon:
             aa_str.append('X')
         else:
             if codontable[codon] == '_':
                 has_stop_codon = True
-                return ''.join(aa_str),has_stop_codon
+                return ''.join(aa_str), has_stop_codon
             else:
                 aa_str.append(codontable[codon])
 
-    return "".join(aa_str),has_stop_codon
+    return ''.join(aa_str), has_stop_codon
 
 
-def get_sub_mut_dna(background_seq, coord,variant_comb, somatic_mutation_sub_dict, strand):
+def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_dict, strand):
     """ Get the mutated dna sub-sequence according to mutation specified by the variant_comb.
 
     Parameters
@@ -161,42 +163,43 @@ def get_sub_mut_dna(background_seq, coord,variant_comb, somatic_mutation_sub_dic
     final_dna: str. dna when applied somatic mutation.
 
     """
-    def get_variant_pos_offset(variant_pos,coord_pair_list,strand):
+    def _get_variant_pos_offset(variant_pos, coord_pair_list, strand):
         offset = 0
-        take_effect_flag = False
-        for coord_pair in coord_pair_list:
-            if variant_pos in range(coord_pair[0],coord_pair[1]):
+        takes_effect = False
+        for pair in coord_pair_list:
+            if variant_pos in range(pair[0], pair[1]):
                 if strand == '+':
-                    offset += variant_pos - coord_pair[0]
+                    offset += variant_pos - pair[0]
                 else:
-                    offset += coord_pair[1]-variant_pos-1
-                take_effect_flag = True
+                    offset += pair[1] - variant_pos - 1
+                takes_effect = True
                 break
             else:
-                offset = coord_pair[1]-coord_pair[0]
+                offset = pair[1] - pair[0]
 
-        return offset if take_effect_flag else NOT_EXIST
-
+        return offset if takes_effect else NOT_EXIST
 
     real_coord = list(filter(lambda x: x != NOT_EXIST and x != None, coord))
-    assert len(real_coord)%2 == 0
-    coord_pair_list = [(real_coord[2*i], real_coord[2*i+1]) for i in range(len(real_coord)//2)]
+    assert len(real_coord) % 2 == 0
+    coord_pair_list = list(zip(real_coord[::2], real_coord[1::2]))
 
-    sub_dna = ''.join([background_seq[coord_pair[0]:coord_pair[1]] if strand == '+'
-                       else background_seq[coord_pair[0]:coord_pair[1]][::-1] for coord_pair in coord_pair_list])
+    if strand == '+':
+        sub_dna = ''.join([background_seq[pair[0]:pair[1]] for pair in coord_pair_list])
+    else:
+        sub_dna = ''.join([background_seq[pair[0]:pair[1]][::-1] for pair in coord_pair_list])
 
     if variant_comb == NOT_EXIST : # no mutation exist
         return sub_dna
-    relative_variant_pos = [get_variant_pos_offset(variant_ipos,coord_pair_list,strand) for variant_ipos in variant_comb]
+
+    relative_variant_pos = [_get_variant_pos_offset(variant_ipos, coord_pair_list, strand) for variant_ipos in variant_comb]
     for i,variant_ipos in enumerate(variant_comb):
         mut_base = somatic_mutation_sub_dict[variant_ipos]['mut_base']
         ref_base = somatic_mutation_sub_dict[variant_ipos]['ref_base']
         pos = relative_variant_pos[i]
         if pos != NOT_EXIST:
-        # strand = somatic_mutation_sub_dict[variant_ipos]['strand']
-            sub_dna = sub_dna[:pos]+mut_base+sub_dna[pos+1:]
-
+            sub_dna = sub_dna[:pos] + mut_base + sub_dna[pos+1:]
     return sub_dna
+
 
 def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_dict, ref_mut_seq, peptide_accept_coord):
     """ Get translated peptide from the given exon pairs.
@@ -222,7 +225,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_
     next_reading_frame: Tuple. The reading frame to be propogated to the next vertex.
 
     """
-    cds_left_modi, cds_right_modi, emitting_frame = read_frame[0],read_frame[1],read_frame[2]
+    cds_left_modi, cds_right_modi, emitting_frame = read_frame[0], read_frame[1], read_frame[2]
     next_emitting_frame = (peptide_accept_coord[1] - peptide_accept_coord[0] + emitting_frame) % 3
     start_v1 = cds_left_modi
     stop_v1 = cds_right_modi
@@ -242,20 +245,20 @@ def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_
     # so we need to do a little modification
     if strand == "+":
         start_v2 = peptide_accept_coord[0]
-        stop_v2 = max(start_v2,peptide_accept_coord[1] - next_emitting_frame)
-        coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
+        stop_v2 = max(start_v2, peptide_accept_coord[1] - next_emitting_frame)
+        coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
         peptide_dna_str_mut = get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand)
         peptide_dna_str_ref = ref_seq[start_v1:stop_v1] + ref_seq[start_v2:stop_v2]
-        next_start_v1 = min(start_v2 + accepting_frame,peptide_accept_coord[1])
+        next_start_v1 = min(start_v2 + accepting_frame, peptide_accept_coord[1])
         next_stop_v1 = peptide_accept_coord[1]
     else:  # strand == "-"
         stop_v2 = peptide_accept_coord[1]
-        start_v2 = min(stop_v2,peptide_accept_coord[0] + next_emitting_frame)
-        coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
+        start_v2 = min(stop_v2, peptide_accept_coord[0] + next_emitting_frame)
+        coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
         peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand))
         peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1] + ref_seq[start_v2:stop_v2][::-1])
         next_start_v1 = peptide_accept_coord[0]
-        next_stop_v1 = max(stop_v2 - accepting_frame,peptide_accept_coord[0])
+        next_stop_v1 = max(stop_v2 - accepting_frame, peptide_accept_coord[0])
 
     next_reading_frame = ReadingFrameTuple(next_start_v1, next_stop_v1, next_emitting_frame)
     assert (len(peptide_dna_str_mut) == len(peptide_dna_str_ref))
@@ -271,9 +274,9 @@ def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_
         jpos = 0.0
     else:
         jpos = float(stop_v1 - start_v1) / 3.0
-    peptide = Peptide(peptide_mut,peptide_ref)
-    coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
-    flag = Flag(mut_has_stop_codon,is_isolated)
+    peptide = Peptide(peptide_mut, peptide_ref)
+    coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
+    flag = Flag(mut_has_stop_codon, is_isolated)
     return peptide, coord, flag, next_reading_frame
 
 
@@ -310,11 +313,11 @@ def isolated_peptide_result(read_frame, strand, variant_comb, somatic_mutation_s
     mut_seq = ref_mut_seq['background']
 
     if strand == '+':
-        coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
+        coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
         peptide_dna_str_mut = get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand)
         peptide_dna_str_ref = ref_seq[start_v1:stop_v1]
     else:
-        coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
+        coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
         peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand))
         peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1])
 
@@ -324,7 +327,7 @@ def isolated_peptide_result(read_frame, strand, variant_comb, somatic_mutation_s
     is_isolated = True
 
     peptide = Peptide(peptide_mut,peptide_ref)
-    coord = init_part_coord(start_v1,stop_v1,start_v2,stop_v2)
+    coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
     flag = Flag(mut_has_stop_codon,is_isolated)
 
     return peptide, coord, flag
@@ -358,6 +361,7 @@ def get_peptide_result(simple_meta_data, strand, variant_comb, somatic_mutation_
     flag = Flag(mut_has_stop_codon,is_isolated)
     return peptide,flag
 
+
 def get_size_factor(strains, lib_file_path):
     """ Get the expression adjustment parameter for certain samples.
 
@@ -381,7 +385,7 @@ def get_size_factor(strains, lib_file_path):
 
 
 def get_all_comb(array, r=None):
-    """ Get all the combination of items in the given array
+    """ Get all combinations of items in the given array
     Specifically used for generating variant combination
 
     Parameters
@@ -402,10 +406,10 @@ def get_all_comb(array, r=None):
     return result
 
 
-def is_mutation_within_exon_pair(pos_start,pos_end,mutation_pos):
-    variant_pos = [pos for pos in mutation_pos]
-    variant_pos_candi = [ipos for ipos in variant_pos if ipos > pos_start and ipos < pos_end]
-    return variant_pos_candi
+def is_mutation_within_exon_pair(pos_start, pos_end, mutation_pos):
+    #variant_pos = [pos for pos in mutation_pos]
+    #variant_pos_candi = [ipos for ipos in variant_pos if ipos > pos_start and ipos < pos_end]
+    return list(filter(lambda x: x > pos_start and x < pos_end, mutation_pos))
 
 
 def is_isolated_cds(gene, idx):
@@ -520,7 +524,6 @@ def get_total_gene_expr(gene, Segments, Idx):
     """ get total reads count for the given sample and the given gene
     actually total_expr = reads_length*total_reads_counts
     """
-
     if Segments is None or Idx.sample is None:
         return NOT_EXIST
     count_segments = Segments.lookup_table[gene.name]
@@ -528,6 +531,7 @@ def get_total_gene_expr(gene, Segments, Idx):
     seg_expr = Segments.expr[count_segments,Idx.sample]
     total_expr = np.sum(seg_len*seg_expr)
     return total_expr
+
 
 def get_idx(sample_idx_table, sample, gene_idx):
     """ Create a aggregated Index with nametuple idx
@@ -743,13 +747,6 @@ def check_chr_consistence(ann_chr_set,mutation,graph_data):
         if len(new_chr_set) > 0:
             logging.error("Gene object has different chromosome naming from annotation file, please check")
             sys.exit(0)
-
-def gz_and_normal_open(file_path):
-    if file_path.endswith('.gz'):
-        file_fp = gzip.open(file_path, 'wt')
-    else:
-        file_fp = open(file_path,'w')
-    return file_fp
 
 def codeUTF8(s):
     return s.encode('utf-8')

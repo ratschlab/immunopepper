@@ -7,81 +7,83 @@ import os
 import logging
 from datetime import datetime
 
-from immunopepper.immunopepper_build import immunopepper_build
-from immunopepper.immunopepper_makebg import immunopepper_makebg
-from immunopepper.immunopepper_diff import immunopepper_diff
-from immunopepper.immunopepper_filter import immunopepper_filter
+from .immunopepper_build import immunopepper_build
+from .immunopepper_makebg import immunopepper_makebg
+from .immunopepper_diff import immunopepper_diff
+from .immunopepper_filter import immunopepper_filter
 
 def parse_arguments(argv):
 
     parser = argparse.ArgumentParser(prog='immunopepper')
     subparsers = parser.add_subparsers(help='Running modes', metavar='{build, make_bg, diff, filter}')
-    parser_build = subparsers.add_parser('build', help='generate kmers from splicegraph')
+    parser_build = subparsers.add_parser('build', help='generate kmers library from a splicegraph')
     required = parser_build.add_argument_group('MANDATORY')
-    required.add_argument("--samples", nargs='+', help="the sample names, can specify more than one sample", required=True, default='')
-    required.add_argument("--output_dir", help="specify the output directory [default: tests]", required=True, default='tests')
-    required.add_argument("--ann_path", help="specify the absolute path of annotation file", required=True)
-    required.add_argument("--splice_path", help="specify the absolute path of splicegraph file", required=True)
-    required.add_argument("--ref_path", help="specify the absolute path of reference gene file to the work_dir", required=True)
-    required.add_argument("--mutation_mode", help="specify the mutation mdoe", required=True, default='ref')
+    required.add_argument("--samples", nargs='+', help="list of sample names to consider", required=True, default='')
+    required.add_argument("--output-dir", help="output directory [default: output]", required=True, default='output')
+    required.add_argument("--ann-path", help="absolute path of reference gene annotation file", required=True)
+    required.add_argument("--splice-path", help="absolute path of splicegraph file", required=True)
+    required.add_argument("--ref-path", help="absolute path of reference genome file", required=True)
+    required.add_argument("--mutation-mode", help="mutation mode (options: ref, somatic, germline, somatic_germline) [ref]", required=True, default='ref')
 
     outputs = parser_build.add_argument_group('OUTPUT OPTIONS')
     outputs.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
-    outputs.add_argument("--disable_concat",help="not considering concatenate case to speed up, default false",action="store_true",default=False)
+    outputs.add_argument("--disable-concat",help="switch off concatenation of short exons to increase speed",action="store_true",default=False)
     outputs.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
 
     additional_file = parser_build.add_argument_group('ADDITIONAL FILES')
-    additional_file.add_argument("--germline", help="specify the absolute path of germline mutation file", required=False, default='')
-    additional_file.add_argument("--somatic", help="specify the absolute path of somatic mutation file", required=False, default='')
-    additional_file.add_argument("--count_path",help="specify the absolute path of the count h5 file", required=False, default=None)
+    additional_file.add_argument("--germline", help="absolute path of germline mutation file", required=False, default='')
+    additional_file.add_argument("--somatic", help="absolute path of somatic mutation file", required=False, default='')
+    additional_file.add_argument("--count-path",help="absolute path of count hdf5 file", required=False, default=None)
 
     general = parser_build.add_argument_group('MISCELLANEOUS')
-    general.add_argument("--process_num", type=int, help="Only process the first *process_num* gene in the splicegraph,default,0, means process all", required=False, default=0)
-    general.add_argument("--use_mut_pickle",help="save and use pickled mutation dict without processing the original files",action="store_true",default=False)
-    general.add_argument("--verbose", type=int, help="specify the output verbosity. Level 2 records the detail information of junction pairs"
-                                                     "when traversing the splicegraph", required=False, default=1)
+    general.add_argument("--process-num", metavar='N', type=int, help="Only process the first N genes in the splicegraph, default: process all", required=False, default=0)
+    general.add_argument("--use-mut-pickle",help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
+    general.add_argument("--verbose", type=int, help="specify the output verbosity (0 - silent, 1 - verbose, 2 - debug) [1]", required=False, default=1)
 
     experimental = parser_build.add_argument_group('EXPERIMENTAL')
-    experimental.add_argument("--filter_redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
-
-    hidden = parser_build.add_argument_group('HIDDEN')
-    hidden.add_argument("--libsize_path", nargs='?', help="specify the absolute path to expression library sizes",required=False, default=None)
-    hidden.add_argument("--gtex_junction_path",help="specify the absolute path the the gtex_junction h5 file", required=False, default=None)
-    hidden.add_argument("--output_silence",help="output mutated peptide even it is the same as reference peptide", action="store_true",default=False)
-    hidden.add_argument("--heter_code", type=int, help="if count expression data is provided in h5 format, specify the code for heterzygous", default=0)
+    experimental.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
+    #specify the absolute path to expression library sizes
+    experimental.add_argument("--libsize-path", nargs='?', help=argparse.SUPPRESS,required=False, default=None)
+    # specify the absolute path the the gtex_junction h5 file
+    experimental.add_argument("--gtex-junction-path",help=argparse.SUPPRESS, required=False, default=None)
+    # output mutated peptide even it is the same as reference peptide
+    experimental.add_argument("--output-silence",help=argparse.SUPPRESS, action="store_true",default=False)
+    # if count expression data is provided in h5 format, specify the code for heterzygous
+    experimental.add_argument("--heter-code", type=int, help=argparse.SUPPRESS, default=0)
 
     parser_makebg = subparsers.add_parser('make_bg', help='integrate multiple kmer files and generate the single background kmer file')
     required = parser_makebg.add_argument_group('MANDATORY')
-    required.add_argument("--kmer_files_list", nargs='+', help="the outputted kmer files generated by build mode", required=True, default='')
-    required.add_argument("--output_dir",help='specify the directory to store the log file',required=True)
-    required.add_argument("--output_file_path", help="specify the output file path", required=True, default='')
+    required.add_argument("--kmer-files", nargs='+', help="list of kmer files output by build mode", required=True, default='')
+    required.add_argument("--output-dir",help='directory to store the log file',required=True)
+    required.add_argument("--output-file-path", help="output file path", required=True, default='')
     general = parser_makebg.add_argument_group('MISCELLANEOUS')
-    general.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
+    general.add_argument("--compressed",help="compress output files",action="store_true",default=False)
     general.add_argument("--verbose", type=int, help="specify the output verbosity. Level 1 records the input and output file paths.", required=False, default=1)
 
     parser_diff = subparsers.add_parser('diff', help='append a new column to the junction kmer txt result file indicating if the kmer is in groundtruth')
     required = parser_diff.add_argument_group('MANDATORY')
-    required.add_argument("--junction_kmer_file", help="the foreground junction file", required=True, default='')
-    required.add_argument("--bg_file_path", help="the background file path", required=True, default='')
-    required.add_argument("--output_dir",help='specify the directory to store the log file',required=True)
-    required.add_argument("--output_file_path", help="specify the output file path", required=True, default='')
-    required.add_argument("--remove_bg", help="choose to simply remove background rows or add a new flag column to indicate"
-                                              " if the kmer exists in the background kmers",action="store_true", required=False, default=False)
-    general = parser_diff.add_argument_group('MISCELLANEOUS')
+    required.add_argument("--junction-kmer-file", help="absolute path to the foreground junction file", required=True, default='')
+    required.add_argument("--bg-file-path", help="absolute path to the background file", required=True, default='')
+    required.add_argument("--output-dir",help='directory to store the log file',required=True)
+    required.add_argument("--output-file-path", help="output file path", required=True, default='')
+    required.add_argument("--remove-bg", help="choose to simply remove background rows or add a new flag column to indicate"
+                                              " if the kmer exists in the background kmers", action="store_true", required=False, default=False)
 
+    general = parser_diff.add_argument_group('MISCELLANEOUS')
     general.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
     general.add_argument("--verbose", type=int, help="specify the output verbosity. Level 1 records the output file path.", required=False, default=1)
 
     parser_filter = subparsers.add_parser('filter', help='apply different filter rules')
     required = parser_filter.add_argument_group('MANDATORY')
-    required.add_argument("--junction_kmer_tsv_path", help="the kmer tsv file", required=True, default='')
-    required.add_argument("--output_dir",help='specify the directory to store the log file',required=True)
-    required.add_argument("--output_file_path", help="directory to save filtered kmer file", required=True)
-    required.add_argument("--cross_junction", help="only output the cross-junction kmers", action="store_true",default=False)
-    required.add_argument("--seg_expr", help="only output kmers that have segment expression greater than threshold", action="store_true",default=False)
-    required.add_argument("--seg_expr_thre", type=int, help="segment expression threshold", default=0)
-    required.add_argument("--junc_expr", help="only output kmers that have junction expression greater than threshold", action="store_true",default=False)
-    required.add_argument("--junc_expr_thre", type=int, help="junction expression threshold", default=0)
+    required.add_argument("--junction-kmer-tsv-path", help="the kmer tsv file", required=True, default='')
+    required.add_argument("--output-dir",help='specify the directory to store the log file',required=True)
+    required.add_argument("--output-file-path", help="directory to save filtered kmer file", required=True)
+    required.add_argument("--cross-junction", help="only output the cross-junction kmers", action="store_true",default=False)
+    required.add_argument("--seg-expr", help="only output kmers that have segment expression greater than threshold", action="store_true",default=False)
+    required.add_argument("--seg-expr-thresh", type=int, help="segment expression threshold [0]", default=0)
+    required.add_argument("--junc-expr", help="only output kmers that have junction expression greater than threshold", action="store_true",default=False)
+    required.add_argument("--junc-expr-thresh", type=int, help="junction expression threshold [0]", default=0)
+
     general = parser_filter.add_argument_group('MISCELLANEOUS')
     general.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
     general.add_argument("--verbose", type=int, help="specify the output verbosity. Level 1 records the input file"
