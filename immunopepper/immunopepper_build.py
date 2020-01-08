@@ -156,9 +156,12 @@ def immunopepper_build(arg):
 
         filepointer = Filepointer(peptide_fp,meta_peptide_fp,background_fp,junction_kmer_fp,background_kmer_fp)
 
-        meta_field_list = ['output_id','read_frame','gene_name', 'gene_chr', 'gene_strand','mutation_mode','peptide_weight','peptide_annotated',
-                                    'junction_annotated','has_stop_codon','is_in_junction_list','is_isolated','variant_comb','variant_seg_expr',
-                                      'exons_coor', 'vertex_idx','junction_expr','segment_expr']
+        meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode',
+                           'peptide_annotated',
+                           'junction_annotated', 'has_stop_codon', 'is_in_junction_list', 'is_isolated', 'variant_comb',
+                           'variant_seg_expr',
+                           'modified_exons_coord', 'original_exons_coord', 'vertex_idx', 'junction_expr',
+                           'segment_expr']
         meta_peptide_fp.write(('\t'.join(meta_field_list) + '\n'))
 
         junction_kmer_field_list = ['kmer','gene_name','seg_expr','is_crossjunction','junction_expr']
