@@ -7,10 +7,10 @@ import os
 import logging
 from datetime import datetime
 
-from .immunopepper_build import immunopepper_build
-from .immunopepper_makebg import immunopepper_makebg
-from .immunopepper_diff import immunopepper_diff
-from .immunopepper_filter import immunopepper_filter
+from immunopepper.immunopepper_build import immunopepper_build
+from immunopepper.immunopepper_makebg import immunopepper_makebg
+from immunopepper.immunopepper_diff import immunopepper_diff
+from immunopepper.immunopepper_filter import immunopepper_filter
 
 def parse_arguments(argv):
 
@@ -83,6 +83,19 @@ def parse_arguments(argv):
     required.add_argument("--seg-expr-thresh", type=int, help="segment expression threshold [0]", default=0)
     required.add_argument("--junc-expr", help="only output kmers that have junction expression greater than threshold", action="store_true",default=False)
     required.add_argument("--junc-expr-thresh", type=int, help="junction expression threshold [0]", default=0)
+
+    optional = parser_filter.add_argument_group('OPTIONAL')
+    optional.add_argument("--meta-file-path",help="specify the meta data file for more filters")
+    optional.add_argument('--peptide-annotated',help="filter the kmers based on whether their original kmers appear in background peptide, 0 means keeping"
+                                                     "the kmers whose original peptide does not show in background peptide. 1 means the opposition")
+    optional.add_argument('--junction-annotated',help="filter the kmers based on whether their corresponding junction appear in annotation file, 0 means keeping"
+                                                     "the kmers whose original junction does not show in annotation file. 1 means the opposition")
+    optional.add_argument('--has-stop-codon',help="filter the kmers based on whether their corresponding sequence contains stop codon, 0 means keeping"
+                                                     "the kmers whose corresponding dna does not contain stop codon. 1 means the opposition")
+    optional.add_argument('--is-in-junction-list',help="filter the kmers based on whether their corresponding intron is in the junction whitelist, 0 means keeping"
+                                                     "the kmers whose corresponding intron id not in the junction whitelist. 1 means the opposition")
+    optional.add_argument('--is-isolated',help="filter the kmers based on whether their corresponding peptide comes from single exon or not, 0 means keeping"
+                                                     "the kmers whose corresponding peptide comes from exon pairs. 1 means the opposition")
 
     general = parser_filter.add_argument_group('MISCELLANEOUS')
     general.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
