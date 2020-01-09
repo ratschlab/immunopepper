@@ -144,7 +144,7 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
     out_dir = str(tmpdir)
     junction_kmer_file_path = os.path.join(groundtruth_dir, 'diff',
                                            case,'{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode))
-
+    meta_file_path = os.path.join(groundtruth_dir,'build',case,'test{}{}'.format(test_id,case),'{}_metadata.tsv.gz'.format(mutation_mode))
     # cross_junction filter
     output_filtered_file_name = 'cj_{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode)
     output_file_path = os.path.join(out_dir,output_filtered_file_name)
@@ -196,3 +196,21 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
     _assert_files_equal(
         os.path.join(groundtruth_filter_dir, output_filtered_file_name),
         os.path.join(out_dir, output_filtered_file_name))
+
+    output_filtered_file_name = 'seg_expr_1300_peptide_annotated_1_junction_annotated_1_stop_1_isolated_1_{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode)
+    output_file_path = os.path.join(out_dir,output_filtered_file_name)
+    my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_file_path,
+               '--output-file-path',output_file_path,
+               '--meta-file-path', meta_file_path,
+               '--seg-expr',
+               '--seg-expr-thresh', str(1300),
+               '--peptide-annotated', str(1),
+               '--junction-annotated', str(1),
+               '--has-stop-codon', str(1),
+               '--is-isolated', str(0),
+               '--output-dir', out_dir]
+    main_immuno.split_mode(my_args)
+    _assert_files_equal(
+        os.path.join(groundtruth_filter_dir, output_filtered_file_name),
+        os.path.join(out_dir, output_filtered_file_name))
+
