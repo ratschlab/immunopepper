@@ -271,7 +271,7 @@ The output of this command line is in `spladder_out/spladder/genes_graph_conf3.E
 file `graph/spladder/genes_graph_conf3.merge_graphs.pickle` and `graph/spladder/genes_graph_conf3.merge_graphs.count.hdf5`.
 It takes around 7000 seconds for creating the merged splicegraph.
 
-The mutation files *immunopepper_usecase.maf* and *immunopepper_usecase.vcf* are created arbitrarily. We
+The mutation files *ImmunoPepper_usecase.maf* and *ImmunoPepper_usecase.vcf* are created arbitrarily. We
 just choose a position randomly and replace the original base with another one.
 
 ### Get the mini-version
