@@ -230,9 +230,10 @@ splicegraph but have different expression values and individual (personalized) m
 
 ### Generate the mouse data
 We first show how to generate the data files required to run immunopepper from the files available on public.
-- [Mouse Genomic FASTA](https://www.ncbi.nlm.nih.gov/assembly/GCF_000001635.20/). Get `GCF_000001635.26_GRCm38.p6_genomic.fna`
+- [Mouse Genomic FASTA](ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M23/GRCm38.p6.genome.fa.gz). Get `GRCm38.p6.genome.fa`
 - [Mouse Comprehensive gene annotation](https://www.gencodegenes.org/mouse/release_M23.html). Get `gencode.vM23.annotation.gtf`
-- [ENCSR000BZG bam file](https://www.encodeproject.org/files/ENCFF713JNY/@@download/ENCFF713JNY.bam) Get `ENCFF713JNY.bam`
+- [ENCSR000BZG bam file](https://www.encodeproject.org/files/ENCFF713JNY/@@download/ENCFF713JNY.bam) Get `ENCFF713JNY.bam`. We can rename `ENCFF713JNY.bam` as `ENCSR000BZG.bam` to be in consistence with
+the given file.
 - [ERR2130621 fasta](https://www.ebi.ac.uk/ena/browser/view/ERR2130621). Get `ERR2130621.fastq`
 
 If the binary alignment map file (.bam) is available, we should start from the original RNA-seq fasta data. We
@@ -241,18 +242,18 @@ Then we can use [SAMtools](http://samtools.sourceforge.net) to index the alignme
 we start with the original fasta file.
 
 ```
-STAR --runThreadN 3 --runMode genomeGenerate --genomeDir genome --genomeFastaFiles ncbi-genomes-2020-01-08/GCF_000001635.26_GRCm38.p6_genomic.fna  --sjdbGTFfile gencode.vM23.annotation.gtf
-STAR --runThreadN 3 --genomeDir genome --readFilesIn ERR2130621.fastq --outSAMtype BAM SortedByCoordinate --outFileNamePrefix align
-mv alignAligned.sortedByCoord.out.bam ERR2130621.bam || TRUE
+STAR --runThreadN 3 --runMode genomeGenerate --genomeDir genome --genomeFastaFiles  GRCm38.p6.genome.fa --sjdbGTFfile gencode.vM23.annotation.gtf
+STAR --runThreadN 3 --genomeDir genome --readFilesIn ERR2130621.fastq --outSAMtype BAM SortedByCoordinate --outFileNamePrefix ERR2130621
+mv ERR2130621aligned.sortedByCoord.out.bam ERR2130621.bam || TRUE
 samtools index  ERR2130621.bam
 ```
-It takes around 6000 seconds to have the bam file from `ERR2130621.fastq`.
+It takes around 6000 seconds to obtain the bam file from `ERR2130621.fastq`.
 
 If the binary alignment map file (.bam) is available, we can directly run SplAdder with command to build
  the merge splicegraph.
 ```
 spladder build \
--b ENCFF713JNY.bam ERR2130621.bam\
+-b ENCSR000BZG.bam ERR2130621.bam\
 -o spladder_out \
 -a gencode.vM23.annotation.gtf \
 -v \
@@ -276,15 +277,16 @@ just choose a position randomly and replace the original base with another one.
 
 ### Get the mini-version
 Both the `ImmunoPepper_usecase.gtf` and `genome1.fa` are mini-version. The test cases only contain gene `ENSMUSG00000025902.13`
-and `ENSMUSG00000025903.14` and they are both in `chr1`. So we just take part of it.
+and `ENSMUSG00000025903.14` and they are both in `chr1`. So we can just extract a small part
+of the annotation and genome sequence file.
 
 ```
-grep -e 'ENSMUSG00000025902.13\|ENSMUSG00000025903.14' gencode.vM23.annotation.gtf > ImmunoPepper_usecase.gtf
-sed -e '1,2443401 p' GCF_000001635.26_GRCm38.p6_genomic.fna > genome1.fa
+grep -E 'ENSMUSG00000025902.13|ENSMUSG00000025903.14' gencode.vM23.annotation.gtf > ImmunoPepper_usecase.gtf
+head -n 23252381 GRCm38.p6.genome.fa > genome1.fa
 ```
 
 The SplAdder output contains more than 50000 genes. In our small usecase, we just contain 2 genes, whose id
-is 19 and 33. We can thus extract a mini-version data, that is *ImmunoPepper_usecase.pickle* and *ImmunoPepper_usecase.count.hdf5*, to accelerate the running.
+is 19 and 33. We can thus extract a mini-version splicegraph and its corresponding expression data, that is *ImmunoPepper_usecase.pickle* and *ImmunoPepper_usecase.count.hdf5*, to accelerate the runn process.
 You can also use the original data *genes_graph_conf3.merge_graphs.pickle* and *genes_graph_conf3.merge_graphs.count.hdf5* to have a full run.
 ```
 import pickle
@@ -301,7 +303,6 @@ f.close()
 ## create mini-version count file
 h5 = h5py.File('spladder_out/spladder/genes_graph_conf3.merge_graphs.count.hdf5','r')
 newcount = h5py.File('ImmunoPepper_usecase.count.hdf5','w')
-h5 = h5py.File('/cluster/work/grlab/projects/projects2018-immuno-msk/results/2019_03/spladder/all_MSK.ENC.mTissLi.Sollner_all/output_spladder/spladder/genes_graph_conf2.merge_graphs.count.hdf5','r')
 gene_ids_edges = [i for i,item in enumerate(h5['gene_ids_edges'][:1000]) if item in choose_gene_id ]
 gene_ids_segs = [i for i,item in enumerate(h5['gene_ids_segs'][:1000]) if item in choose_gene_id ]
 
@@ -334,13 +335,13 @@ newcount.close()
 - Step 1: Use the `build` mode to generate kmers of the two samples in all four mutation modes:
 ```
 # reference (ref) mode
-immunopepper build --mutation-mode ref --samples ENCFF713JNY ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5
+immunopepper build --mutation-mode ref --samples ENCSR000BZG ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5
 # germline mode
-immunopepper build --mutation-mode germline --samples ENCFF713JNY ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5 --germline ImmunoPepper_usecase.vcf --somatic ImmunoPepper_usecase.maf
+immunopepper build --mutation-mode germline --samples ENCSR000BZG ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5 --germline ImmunoPepper_usecase.vcf --somatic ImmunoPepper_usecase.maf
 # somatic mode
-immunopepper build --mutation_mode somatic --samples ENCFF713JNY ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5 --germline ImmunoPepper_usecase.vcf --somatic ImmunoPepper_usecase.maf
+immunopepper build --mutation_mode somatic --samples ENCSR000BZG ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5 --germline ImmunoPepper_usecase.vcf --somatic ImmunoPepper_usecase.maf
 # germline and somatic mode
-immunopepper build --mutation_mode somatic_and_germline --samples ENCFF713JNY ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5 --germline ImmunoPepper_usecase.vcf --somatic ImmunoPepper_usecase.maf
+immunopepper build --mutation_mode somatic_and_germline --samples ENCSR000BZG ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5 --germline ImmunoPepper_usecase.vcf --somatic ImmunoPepper_usecase.maf
 ```
 
 - Step 2: Create background kmer set from the output of sample `ENCSR000BZG`.
