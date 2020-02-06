@@ -221,7 +221,7 @@ def immunopepper_build(arg):
             else:
                 mean_memory, mean_time = 0,0
             logging.info(">>>> Finish sample {}. Errors existed in {}/{} genes. Might Need further check. "
-                         "Max memroy cost:{} GB, Max time cost:{} seconds, Max memory gene ID:{}, Max time gene ID:{}, "
+                         "Max memory :{} GB, Max time :{} seconds, Max memory gene ID:{}, Max time gene ID:{}, "
                          "Average memory cost:{} GB, Average time cost:{} seconds".format(sample,error_gene_num,num,max_memory,max_time,max_memory_id,max_time_id,
                                                                                mean_memory,mean_time))
         else:
