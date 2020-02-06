@@ -247,7 +247,7 @@ STAR --runThreadN 3 --genomeDir genome --readFilesIn ERR2130621.fastq --outSAMty
 mv ERR2130621aligned.sortedByCoord.out.bam ERR2130621.bam || TRUE
 samtools index  ERR2130621.bam
 ```
-It takes around 6000 seconds to obtain the bam file from `ERR2130621.fastq`.
+It takes around 6000 seconds to obtain the bam file from `ERR2130621.fastq` with a single thread.
 
 If the binary alignment map file (.bam) is available, we can directly run SplAdder with command to build
  the merge splicegraph.
@@ -270,7 +270,7 @@ spladder build \
 ```
 The output of this command line is in `spladder_out/spladder/genes_graph_conf3.ENCFF713JNY.pickle` and the count
 file `graph/spladder/genes_graph_conf3.merge_graphs.pickle` and `graph/spladder/genes_graph_conf3.merge_graphs.count.hdf5`.
-It takes around 7000 seconds for creating the merged splicegraph.
+It takes around 7000 seconds for creating the merged splicegraph using a single thread.
 
 The mutation files *ImmunoPepper_usecase.maf* and *ImmunoPepper_usecase.vcf* are created arbitrarily. We
 just choose a position randomly and replace the original base with another one.
@@ -286,49 +286,10 @@ head -n 23252381 GRCm38.p6.genome.fa > genome1.fa
 ```
 
 The SplAdder output contains more than 50000 genes. In our small usecase, we just contain 2 genes, whose id
-is 19 and 33. We can thus extract a mini-version splicegraph and its corresponding expression data, that is *ImmunoPepper_usecase.pickle* and *ImmunoPepper_usecase.count.hdf5*, to accelerate the runn process.
+is 19 and 33. We can thus extract a mini-version splicegraph and its corresponding expression data, that is *ImmunoPepper_usecase.pickle* and *ImmunoPepper_usecase.count.hdf5*, to accelerate the running process.
+The corresponding script is `scripts/create_mini_mouse_data.py`.
 You can also use the original data *genes_graph_conf3.merge_graphs.pickle* and *genes_graph_conf3.merge_graphs.count.hdf5* to have a full run.
-```
-import pickle
-import numpy as np
-## create mini-version splicegraph
-a = pickle.load(open('spladder_out/spladder/genes_graph_conf3.merge_graphs.pickle','rb'),encoding='latin1')
-choose_gene_id = [19,33]
-strain_id = [0,1] # ENCSR000BZG ERR2130621
-new_graph_tuple = (a[0][choose_gene_id],a[1])
-f = open('ImmunoPepper_usecase.pickle','wb')
-pickle.dump(new_graph_tuple,f)
-f.close()
 
-## create mini-version count file
-h5 = h5py.File('spladder_out/spladder/genes_graph_conf3.merge_graphs.count.hdf5','r')
-newcount = h5py.File('ImmunoPepper_usecase.count.hdf5','w')
-gene_ids_edges = [i for i,item in enumerate(h5['gene_ids_edges'][:1000]) if item in choose_gene_id ]
-gene_ids_segs = [i for i,item in enumerate(h5['gene_ids_segs'][:1000]) if item in choose_gene_id ]
-
-break_id = np.where(np.diff(gene_ids_edges)>1)[0][0]
-new_ids_edges = np.reshape(gene_ids_edges,(len(gene_ids_edges),1))
-new_ids_edges[:break_id+1] = 0
-new_ids_edges[break_id+1:] = 1
-
-break_id = np.where(np.diff(gene_ids_segs)>1)[0][0]
-new_ids_segs = np.reshape(gene_ids_segs,(len(gene_ids_segs),1))
-new_ids_segs[:break_id+1] = 0
-new_ids_segs[break_id+1:] = 1
-
-ind = gene_ids_edges
-newcount.create_dataset('edge_idx',data=h5['edge_idx'][ind])
-newcount.create_dataset('edges',data=h5['edges'][ind][:,strain_id])
-newcount.create_dataset('gene_ids_edges',data=new_ids_edges)
-newcount.create_dataset('gene_names',data=h5['gene_names'][choose_gene_id])
-
-ind = gene_ids_segs
-newcount.create_dataset('gene_ids_segs',data=new_ids_segs)
-newcount.create_dataset('segments',data=h5['segments'][ind][:,strain_id])
-newcount.create_dataset('seg_pos',data=h5['seg_pos'][ind][:,strain_id])
-newcount.create_dataset('strains',data=h5['strains'][strain_id])
-newcount.close()
-```
 
 
 ### Run Immunopepper on mouse data
