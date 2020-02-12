@@ -34,7 +34,7 @@ def parse_arguments(argv):
     additional_file.add_argument("--germline", help="absolute path of germline mutation file", required=False, default='')
     additional_file.add_argument("--somatic", help="absolute path of somatic mutation file", required=False, default='')
     additional_file.add_argument("--count-path",help="absolute path of count hdf5 file", required=False, default=None)
-    additional_file.add_argument("--gtex-junction-path",help="absolute path of whitelist junction file", required=False, default=None)
+    additional_file.add_argument("--gtex-junction-path",help="absolute path of whitelist junction file (hdf5 file by default)", required=False, default=None)
 
     general = parser_build.add_argument_group('MISCELLANEOUS')
     general.add_argument("--process-num", metavar='N', type=int, help="Only process the first N genes in the splicegraph, default: process all", required=False, default=0)

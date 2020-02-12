@@ -468,7 +468,7 @@ def parse_junction_meta_info(h5f_path):
     if h5f_path is None:
         return None
     else:
-        h5f = h5py.File(h5f_path)
+        h5f = h5py.File(h5f_path,'r')
         chrms = h5f['chrms'][:]
         pos = h5f['pos'][:].astype('str')
         strand = h5f['strand'][:]
