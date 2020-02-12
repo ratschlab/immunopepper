@@ -34,6 +34,7 @@ def parse_arguments(argv):
     additional_file.add_argument("--germline", help="absolute path of germline mutation file", required=False, default='')
     additional_file.add_argument("--somatic", help="absolute path of somatic mutation file", required=False, default='')
     additional_file.add_argument("--count-path",help="absolute path of count hdf5 file", required=False, default=None)
+    additional_file.add_argument("--gtex-junction-path",help="absolute path of whitelist junction file", required=False, default=None)
 
     general = parser_build.add_argument_group('MISCELLANEOUS')
     general.add_argument("--process-num", metavar='N', type=int, help="Only process the first N genes in the splicegraph, default: process all", required=False, default=0)
@@ -44,8 +45,6 @@ def parse_arguments(argv):
     experimental.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
     #specify the absolute path to expression library sizes
     experimental.add_argument("--libsize-path", nargs='?', help=argparse.SUPPRESS,required=False, default=None)
-    # specify the absolute path the the gtex_junction h5 file
-    experimental.add_argument("--gtex-junction-path",help=argparse.SUPPRESS, required=False, default=None)
     # output mutated peptide even it is the same as reference peptide
     experimental.add_argument("--output-silence",help=argparse.SUPPRESS, action="store_true",default=False)
     # if count expression data is provided in h5 format, specify the code for heterzygous
