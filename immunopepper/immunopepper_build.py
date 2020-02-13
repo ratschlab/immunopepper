@@ -179,6 +179,7 @@ def immunopepper_build(arg):
                 # Genes not contained in the annotation...
                 if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
                     gene.processed = False
+                    logging.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
                     continue
 
                 chrm = gene.chr.strip()
@@ -212,16 +213,19 @@ def immunopepper_build(arg):
             if len(arg.samples) == 1:
                 graph_data[gene_idx] = None
                 gc.collect()
-        max_memory,max_time = max(memory_list),max(time_list)
-        max_memory_id,max_time_id = np.argmax(memory_list),np.argmax(time_list)
-        if num-error_gene_num > 0:
-            mean_memory, mean_time = sum(memory_list)/(num-error_gene_num),sum(time_list)/(num-error_gene_num)
+        if memory_list and time_list:
+            max_memory,max_time = max(memory_list),max(time_list)
+            max_memory_id,max_time_id = np.argmax(memory_list),np.argmax(time_list)
+            if num-error_gene_num > 0:
+                mean_memory, mean_time = sum(memory_list)/(num-error_gene_num),sum(time_list)/(num-error_gene_num)
+            else:
+                mean_memory, mean_time = 0,0
+            logging.info(">>>> Finish sample {}. Errors existed in {}/{} genes. Might Need further check. "
+                         "Max memory :{} GB, Max time :{} seconds, Max memory gene ID:{}, Max time gene ID:{}, "
+                         "Average memory cost:{} GB, Average time cost:{} seconds".format(sample,error_gene_num,num,max_memory,max_time,max_memory_id,max_time_id,
+                                                                               mean_memory,mean_time))
         else:
-            mean_memory, mean_time = 0,0
-        logging.info(">>>> Finish sample {}. Errors existed in {}/{} genes. Might Need further check. "
-                     "Max memroy cost:{} GB, Max time cost:{} seconds, Max memory gene ID:{}, Max time gene ID:{}, "
-                     "Average memory cost:{} GB, Average time cost:{} seconds".format(sample,error_gene_num,num,max_memory,max_time,max_memory_id,max_time_id,
-                                                                           mean_memory,mean_time))
+            logging.info(">>>> No gene is processed during this running.")
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
         create_libsize(expr_distr_dict,output_libszie_fp)
