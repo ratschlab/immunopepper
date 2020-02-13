@@ -215,12 +215,84 @@ The output file for `filter` mode is a text file also with header line.
 
 ## Example use case on experimetal data
 Using real DNA-sequencing data from mouse, we will show how to apply ImmunoPepper to generate all
-candidate kmers. In this example, we consider two samples: `ENCSR000BZG` and `ERR2130621`. We choose
-`ENCSR000BZG` as the background sample and `ERR2130621` as the foreground sample. They use the same
-splicegraph but have different expression values and individual (personalized) mutations. Our goal
-is to generate all kmers unique to `ERR2130621`.
+candidate kmers. In this example, we consider two samples: `ENCSR000BZG` and `ERR2130621`. `ERR2130621` comes
+from[An RNA-Seq atlas of gene expression in mouse and rat normal tissues](https://www.nature.com/articles/sdata2017185#data-records). It aims to provide a comprehensive RNA-seq dataset
+across the same 13 tissues for normal mouse and rat. `ERR2130621` is the RNA-seq result from one of the house mouse.
+`ENCSR000BZG` comes from [project ENCODE](https://www.encodeproject.org/report/?type=Experiment&status=released).
+It is also a RNA-seq result from central nervous system tissue of house mouse embryo. They are both taken
+from normal tissues. In real applications, we should choose the cancer sample as the foreground one and
+subtract the normal background result. However, here we just simply show the basic workflow on
+real dataset.
+
+We choose `ENCSR000BZG` as the background sample and `ERR2130621` as the foreground sample. They use the same
+splicegraph but have different expression values and individual (personalized) mutations. The mutation file
+ is created arbitrarily and have no real implications. Our goal is to generate all kmers unique to `ERR2130621`.
+
+### Generate the mouse data
+We first show how to generate the data files required to run immunopepper from the files available on public.
+- [Mouse Genomic FASTA](ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M23/GRCm38.p6.genome.fa.gz). Get `GRCm38.p6.genome.fa`
+- [Mouse Comprehensive gene annotation](https://www.gencodegenes.org/mouse/release_M23.html). Get `gencode.vM23.annotation.gtf`
+- [ENCSR000BZG bam file](https://www.encodeproject.org/files/ENCFF713JNY/@@download/ENCFF713JNY.bam) Get `ENCFF713JNY.bam`. We can rename `ENCFF713JNY.bam` as `ENCSR000BZG.bam` to be in consistence with
+the given file.
+- [ERR2130621 fasta](https://www.ebi.ac.uk/ena/browser/view/ERR2130621). Get `ERR2130621.fastq`
+
+If the binary alignment map file (.bam) is available, we should start from the original RNA-seq fasta data. We
+can using alignment toolbox [STAR](https://hbctraining.github.io/Intro-to-rnaseq-hpc-O2/lessons/03_alignment.html).
+Then we can use [SAMtools](http://samtools.sourceforge.net) to index the alignment. In our case, bam file for sample `ERR2130621` is not available so
+we start with the original fasta file.
+
+```
+STAR --runThreadN 3 --runMode genomeGenerate --genomeDir genome --genomeFastaFiles  GRCm38.p6.genome.fa --sjdbGTFfile gencode.vM23.annotation.gtf
+STAR --runThreadN 3 --genomeDir genome --readFilesIn ERR2130621.fastq --outSAMtype BAM SortedByCoordinate --outFileNamePrefix ERR2130621
+mv ERR2130621aligned.sortedByCoord.out.bam ERR2130621.bam || TRUE
+samtools index  ERR2130621.bam
+```
+It takes around 6000 seconds to obtain the bam file from `ERR2130621.fastq` with a single thread.
+
+If the binary alignment map file (.bam) is available, we can directly run SplAdder with command to build
+ the merge splicegraph.
+```
+spladder build \
+-b ENCSR000BZG.bam ERR2130621.bam\
+-o spladder_out \
+-a gencode.vM23.annotation.gtf \
+-v \
+-c 3 \
+--merge-strat merge_graphs \
+--quantify-graph \
+--no-extract-ase \
+--no-primary-only \
+--no-insert-ir \
+--no-insert-es \
+--no-insert-ni \
+--no-remove-se \
+--no-validate-sg \
+```
+The output of this command line is in `spladder_out/spladder/genes_graph_conf3.ENCFF713JNY.pickle` and the count
+file `graph/spladder/genes_graph_conf3.merge_graphs.pickle` and `graph/spladder/genes_graph_conf3.merge_graphs.count.hdf5`.
+It takes around 7000 seconds for creating the merged splicegraph using a single thread.
+
+The mutation files *ImmunoPepper_usecase.maf* and *ImmunoPepper_usecase.vcf* are created arbitrarily. We
+just choose a position randomly and replace the original base with another one.
+
+### Get the mini-version
+Both the `ImmunoPepper_usecase.gtf` and `genome1.fa` are mini-version. The test cases only contain gene `ENSMUSG00000025902.13`
+and `ENSMUSG00000025903.14` and they are both in `chr1`. So we can just extract a small part
+of the annotation and genome sequence file.
+
+```
+grep -E 'ENSMUSG00000025902.13|ENSMUSG00000025903.14' gencode.vM23.annotation.gtf > ImmunoPepper_usecase.gtf
+head -n 23252381 GRCm38.p6.genome.fa > genome1.fa
+```
+
+The SplAdder output contains more than 50000 genes. In our small usecase, we just contain 2 genes, whose id
+is 19 and 33. We can thus extract a mini-version splicegraph and its corresponding expression data, that is *ImmunoPepper_usecase.pickle* and *ImmunoPepper_usecase.count.hdf5*, to accelerate the running process.
+The corresponding script is `scripts/create_mini_mouse_data.py`.
+You can also use the original data *genes_graph_conf3.merge_graphs.pickle* and *genes_graph_conf3.merge_graphs.count.hdf5* to have a full run.
 
 
+
+### Run Immunopepper on mouse data
 - Step 1: Use the `build` mode to generate kmers of the two samples in all four mutation modes:
 ```
 # reference (ref) mode
