@@ -52,8 +52,9 @@ def test_end_to_end_build(test_id, case, mutation_mode, tmpdir):
                '--ref-path', '{}/test{}{}.fa'.format(data_dir, test_id, case),
                '--germline', '{}/test{}{}.vcf'.format(data_dir, test_id, case),
                '--somatic', '{}/test{}{}.maf'.format(data_dir, test_id, case),
-               '--mutation-mode', mutation_mode,
-               '--kmer', '4']
+                '--gtex-junction-path', '{}/{}graph/spladder/genes_graph_conf3.test1{}.junction.hdf5'.format(data_dir, case, case),
+                '--mutation-mode', mutation_mode,
+                '--kmer', '4']
 
     my_args = my_args_build
     sample_dir = sample_dir_build
@@ -197,7 +198,13 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
         os.path.join(groundtruth_filter_dir, output_filtered_file_name),
         os.path.join(out_dir, output_filtered_file_name))
 
-    output_filtered_file_name = 'seg_expr_1300_peptide_annotated_1_junction_annotated_1_stop_1_isolated_1_{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode)
+    # apply all filters
+    # -peptide_annotated 1
+    # -junction_annotated 1
+    # -has_stop_codon 1
+    # -is_in_junction_list 0
+    # -is_isolated 0
+    output_filtered_file_name = 'all_filter_{}_{}_junction_kmer_with_bg.txt'.format(case, mutation_mode)
     output_file_path = os.path.join(out_dir,output_filtered_file_name)
     my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_file_path,
                '--output-file-path',output_file_path,
@@ -207,6 +214,7 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
                '--peptide-annotated', str(1),
                '--junction-annotated', str(1),
                '--has-stop-codon', str(1),
+               '--is-in-junction-list', str(0),
                '--is-isolated', str(0),
                '--output-dir', out_dir]
     main_immuno.split_mode(my_args)
