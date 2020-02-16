@@ -67,9 +67,12 @@ def get_junction_anno_flag(junction_flag, vertex_id_tuple):
     if len(vertex_id_tuple) == 2:
         return int(junction_flag[vertex_id_tuple[0],vertex_id_tuple[1]])
     else:
-        flag1 = get_junction_anno_flag(junction_flag, vertex_id_tuple[:2])
-        flag2 = get_junction_anno_flag(junction_flag, vertex_id_tuple[1:])
-        return flag1 or flag2
+        for i in range(len(vertex_id_tuple)-1):
+            flag = get_junction_anno_flag(junction_flag, vertex_id_tuple[i:i+2])
+            if flag:
+                return 1
+        return 0
+
 
 def get_full_peptide(gene, seq, cds_list, Segments, Idx, mode):
     """

@@ -61,7 +61,7 @@ The following parameters are *optional*:
 - `--somatic`: somatic mutation file path. Mandatory argument if the mutation mode is `somatic` or `somatic_and_germline`.
 - `--use-mut-pickle`: Summarize mutation information in a pickle file and re-use if existing (saves the time processing the original mutation files).
 - `--count-path`: path to splice graph count file
-- `--gtex-junction-path`: path to intron whitelist. Accept the hdf5 file format.
+- `--gtex-junction-path`: path to intron whitelist. Accept the hdf5 file format. Will accept tsv format in the future.
 - `--compressed`: compress the output files using gzip
 
 Example command line (replace `ref` with `germline` to consider mutation information)
