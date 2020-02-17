@@ -73,7 +73,7 @@ immunopepper build \
 --splice-path tests/test1/data/posgraph/spladder/genes_graph_conf3.merge_graphs.pickle \
 --somatic tests/test1/data/test1pos.maf \
 --germline tests/test1/data/test1pos.vcf \
---samples test1pos\
+--samples test1pos \
 --mutation-mode ref \
 --kmer 4 \
 --disable-concat \
