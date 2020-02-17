@@ -94,9 +94,9 @@ The following parameters are *optional*:
 Example command line:
 ```
 immunopepper make_bg \
---kmer-files-list tests/test1/current_output_pos/test1pos/ref_back_kmer.txt tests/test1/current_output_pos/test1pos/germline_back_kmer.txt \
+--kmer-files tests/test1/current_output_pos/test1pos/ref_back_kmer.txt tests/test1/current_output_pos/test1pos/germline_back_kmer.txt \
 --output-dir tests/test1/current_output_pos/ \
---output-file_path tests/test1/current_output_pos/test1pos/uniq_back_kmer.txt \
+--output-file-path tests/test1/current_output_pos/test1pos/uniq_back_kmer.txt \
 --verbose 2
 ```
 
