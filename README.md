@@ -73,7 +73,7 @@ immunopepper build \
 --splice-path tests/test1/data/posgraph/spladder/genes_graph_conf3.merge_graphs.pickle \
 --somatic tests/test1/data/test1pos.maf \
 --germline tests/test1/data/test1pos.vcf \
---samples test1pos\
+--samples test1pos \
 --mutation-mode ref \
 --kmer 4 \
 --disable-concat \
@@ -94,9 +94,9 @@ The following parameters are *optional*:
 Example command line:
 ```
 immunopepper make_bg \
---kmer-files-list tests/test1/current_output_pos/test1pos/ref_back_kmer.txt tests/test1/current_output_pos/test1pos/germline_back_kmer.txt \
+--kmer-files tests/test1/current_output_pos/test1pos/ref_back_kmer.txt tests/test1/current_output_pos/test1pos/ref_back_kmer.txt \
 --output-dir tests/test1/current_output_pos/ \
---output-file_path tests/test1/current_output_pos/test1pos/uniq_back_kmer.txt \
+--output-file-path tests/test1/current_output_pos/test1pos/uniq_back_kmer.txt \
 --verbose 2
 ```
 
