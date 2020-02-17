@@ -452,7 +452,7 @@ def parse_mutation_from_maf(maf_path,output_dir='',mut_pickle=False):
         logging.info("create maf pickled mutation dict for next time's use in {}".format(maf_pkl_file))
     return mutation_dic
 
-
+#todo: support tsv file in the future
 def parse_junction_meta_info(h5f_path):
     """
     Extract introns of interest from given h5py file
@@ -468,7 +468,7 @@ def parse_junction_meta_info(h5f_path):
     if h5f_path is None:
         return None
     else:
-        h5f = h5py.File(h5f_path)
+        h5f = h5py.File(h5f_path,'r')
         chrms = h5f['chrms'][:]
         pos = h5f['pos'][:].astype('str')
         strand = h5f['strand'][:]

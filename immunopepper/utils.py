@@ -431,12 +431,23 @@ def is_isolated_cds(gene, idx):
     return sp.sum(gene.splicegraph.edges[:, idx]) == 0
 
 
-def is_in_junction_list(v1,v2,strand,junction_list):
+def is_in_junction_list(splicegraph, vertex_id_list, strand, junction_list):
+    vertex_coord_list = splicegraph.vertices
     """Check if the intron is in concerned junction list"""
-    if junction_list is not None:
-        return int(':'.join([str(v1[1]),  str(v2[0]), strand]) in junction_list)
-    else:
+    if NOT_EXIST in vertex_id_list:
         return NOT_EXIST
+    if junction_list is not None:
+        if len(vertex_id_list) == 2:
+            if strand == '-':
+                vertex_id_list = vertex_id_list[::-1] # in negative strand case, the vertex id list is [5,3] instead of [3,5]
+            junc_comb = ':'.join([str(vertex_coord_list[1,vertex_id_list[0]]),  str(vertex_coord_list[0,vertex_id_list[1]]), strand])
+            return int(junc_comb in junction_list)
+        else:
+            for i in range(len(vertex_id_list)-1):
+                flag = is_in_junction_list(splicegraph,vertex_id_list[i:i+2],strand,junction_list)
+                if flag:
+                    return 1
+            return 0
 
 
 def get_exon_expr(gene,vstart,vstop,Segments,Idx):

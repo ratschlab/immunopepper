@@ -261,11 +261,11 @@ def test_get_junction_ann_flag():
     junction_flag[1,2] = 1
     junction_flag[2,3] = 1
     vertex_id_tuple = (1,2,3)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == [1,1]
+    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 1
     vertex_id_tuple = (0,2,3)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == [0,1]
+    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 1
     vertex_id_tuple = (0,1,3)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == [0,0]
+    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 0
     vertex_id_tuple = (1,2)
     assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 1
 

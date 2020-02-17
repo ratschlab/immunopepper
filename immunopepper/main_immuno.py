@@ -7,10 +7,10 @@ import os
 import logging
 from datetime import datetime
 
-from .immunopepper_build import immunopepper_build
-from .immunopepper_makebg import immunopepper_makebg
-from .immunopepper_diff import immunopepper_diff
-from .immunopepper_filter import immunopepper_filter
+from immunopepper.immunopepper_build import immunopepper_build
+from immunopepper.immunopepper_makebg import immunopepper_makebg
+from immunopepper.immunopepper_diff import immunopepper_diff
+from immunopepper.immunopepper_filter import immunopepper_filter
 
 def parse_arguments(argv):
 
@@ -34,6 +34,8 @@ def parse_arguments(argv):
     additional_file.add_argument("--germline", help="absolute path of germline mutation file", required=False, default='')
     additional_file.add_argument("--somatic", help="absolute path of somatic mutation file", required=False, default='')
     additional_file.add_argument("--count-path",help="absolute path of count hdf5 file", required=False, default=None)
+    additional_file.add_argument("--gtex-junction-path",help="absolute path of whitelist junction file, currently only support hdf5 format. Will suport tsv"
+                                                             "format in the future", required=False, default=None)
 
     general = parser_build.add_argument_group('MISCELLANEOUS')
     general.add_argument("--process-num", metavar='N', type=int, help="Only process the first N genes in the splicegraph, default: process all", required=False, default=0)
@@ -44,8 +46,6 @@ def parse_arguments(argv):
     experimental.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
     #specify the absolute path to expression library sizes
     experimental.add_argument("--libsize-path", nargs='?', help=argparse.SUPPRESS,required=False, default=None)
-    # specify the absolute path the the gtex_junction h5 file
-    experimental.add_argument("--gtex-junction-path",help=argparse.SUPPRESS, required=False, default=None)
     # output mutated peptide even it is the same as reference peptide
     experimental.add_argument("--output-silence",help=argparse.SUPPRESS, action="store_true",default=False)
     # if count expression data is provided in h5 format, specify the code for heterzygous
@@ -83,6 +83,19 @@ def parse_arguments(argv):
     required.add_argument("--seg-expr-thresh", type=int, help="segment expression threshold [0]", default=0)
     required.add_argument("--junc-expr", help="only output kmers that have junction expression greater than threshold", action="store_true",default=False)
     required.add_argument("--junc-expr-thresh", type=int, help="junction expression threshold [0]", default=0)
+
+    optional = parser_filter.add_argument_group('OPTIONAL')
+    optional.add_argument("--meta-file-path",help="specify the meta data file for more filters")
+    optional.add_argument('--peptide-annotated',help="filter the kmers based on whether their original kmers appear in background peptide, 0 means keeping"
+                                                     "the kmers whose original peptide does not show in background peptide. 1 means the opposite")
+    optional.add_argument('--junction-annotated',help="filter the kmers based on whether their corresponding junction appear in annotation file, 0 means keeping"
+                                                     "the kmers whose original junction does not show in annotation file. 1 means the opposite")
+    optional.add_argument('--has-stop-codon',help="filter the kmers based on whether their corresponding sequence contains stop codon, 0 means keeping"
+                                                     "the kmers whose corresponding dna does not contain stop codon. 1 means the opposite")
+    optional.add_argument('--is-in-junction-list',help="filter the kmers based on whether their corresponding intron is in the junction whitelist, 0 means keeping"
+                                                     "the kmers whose corresponding intron id not in the junction whitelist. 1 means the opposite")
+    optional.add_argument('--is-isolated',help="filter the kmers based on whether their corresponding peptide comes from single exon or not, 0 means keeping"
+                                                     "the kmers whose corresponding peptide comes from exon pairs. 1 means the opposite")
 
     general = parser_filter.add_argument_group('MISCELLANEOUS')
     general.add_argument("--compressed",help="compress the output files",action="store_true",default=False)

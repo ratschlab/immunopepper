@@ -64,12 +64,15 @@ def get_junction_anno_flag(junction_flag, vertex_id_tuple):
     """
     if NOT_EXIST in vertex_id_tuple:
         return NOT_EXIST
-    junction_list = [(vertex_id_tuple[i], vertex_id_tuple[i+1]) for i in range(len(vertex_id_tuple)-1)]
-    if len(junction_list) > 1:
-        #return reduce(lambda junction1,junction2: junction_flag[junction1[0],junction1[1]]+junction_flag[junction2[0],junction2[1]],junction_list)
-        return list(map(lambda junction: int(junction_flag[junction[0],junction[1]]),junction_list))
-    else:
+    if len(vertex_id_tuple) == 2:
         return int(junction_flag[vertex_id_tuple[0],vertex_id_tuple[1]])
+    else:
+        for i in range(len(vertex_id_tuple)-1):
+            flag = get_junction_anno_flag(junction_flag, vertex_id_tuple[i:i+2])
+            if flag:
+                return 1
+        return 0
+
 
 def get_full_peptide(gene, seq, cds_list, Segments, Idx, mode):
     """
