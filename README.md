@@ -94,7 +94,7 @@ The following parameters are *optional*:
 Example command line:
 ```
 immunopepper make_bg \
---kmer-files tests/test1/current_output_pos/test1pos/ref_back_kmer.txt tests/test1/current_output_pos/test1pos/germline_back_kmer.txt \
+--kmer-files tests/test1/current_output_pos/test1pos/ref_back_kmer.txt tests/test1/current_output_pos/test1pos/ref_back_kmer.txt \
 --output-dir tests/test1/current_output_pos/ \
 --output-file-path tests/test1/current_output_pos/test1pos/uniq_back_kmer.txt \
 --verbose 2
@@ -296,14 +296,15 @@ You can also use the original data *genes_graph_conf3.merge_graphs.pickle* and *
 ### Run Immunopepper on mouse data
 - Step 1: Use the `build` mode to generate kmers of the two samples in all four mutation modes:
 ```
+cd tests/mouse_usecase
 # reference (ref) mode
 immunopepper build --mutation-mode ref --samples ENCSR000BZG ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5
 # germline mode
 immunopepper build --mutation-mode germline --samples ENCSR000BZG ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5 --germline ImmunoPepper_usecase.vcf --somatic ImmunoPepper_usecase.maf
 # somatic mode
-immunopepper build --mutation_mode somatic --samples ENCSR000BZG ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5 --germline ImmunoPepper_usecase.vcf --somatic ImmunoPepper_usecase.maf
+immunopepper build --mutation-mode somatic --samples ENCSR000BZG ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5 --germline ImmunoPepper_usecase.vcf --somatic ImmunoPepper_usecase.maf
 # germline and somatic mode
-immunopepper build --mutation_mode somatic_and_germline --samples ENCSR000BZG ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5 --germline ImmunoPepper_usecase.vcf --somatic ImmunoPepper_usecase.maf
+immunopepper build --mutation-mode somatic_and_germline --samples ENCSR000BZG ERR2130621 --output-dir ImmunoPepper_usecase_out --splice-path ImmunoPepper_usecase.pickle --ann-path ImmunoPepper_usecase.gtf --ref-path genome1.fa --kmer 9 --count-path ImmunoPepper_usecase.count.hdf5 --germline ImmunoPepper_usecase.vcf --somatic ImmunoPepper_usecase.maf
 ```
 
 - Step 2: Create background kmer set from the output of sample `ENCSR000BZG`.
@@ -312,8 +313,8 @@ we only consider kmers that have junction expression larger than 0. We can achie
 get the file `ref_mode_background_kmer.tsv`. We then use the `make_bg` mode to create the background kmer file. Since
 the input is just one file, `make_bg` simply takes the first column and outputs all unique kmers.
 ```
-immunopepper filter --output-dir ImmunoPepper_usecase_out --output-file-path ImmunoPepper_usecase_out/ENCSR000BZG/ref_mode_background_kmer.tsv --junction-kmer-tsv-path ImmunoPepper_usecase_out/ENCSR000BZG/ref_junction_kmer.txt --junc_expr
-immunopepper make_bg --kmer_files_list ImmunoPepper_usecase_out/ENCSR000BZG/ref_mode_background_kmer.tsv --output-dir ImmunoPepper_usecase_out --output-file-path ImmunoPepper_usecase_out/background_kmer.txt
+immunopepper filter --output-dir ImmunoPepper_usecase_out --output-file-path ImmunoPepper_usecase_out/ENCSR000BZG/ref_mode_background_kmer.tsv --junction-kmer-tsv-path ImmunoPepper_usecase_out/ENCSR000BZG/ref_junction_kmer.txt --junc-expr
+immunopepper make_bg --kmer-files ImmunoPepper_usecase_out/ENCSR000BZG/ref_mode_background_kmer.tsv --output-dir ImmunoPepper_usecase_out --output-file-path ImmunoPepper_usecase_out/background_kmer.txt
 ```
 
 - Step 3: Remove the background kmers
