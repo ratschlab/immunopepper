@@ -9,7 +9,8 @@ import numpy as np
 from immunopepper.immuno_mutation import apply_germline_mutation,construct_mut_seq_with_str_concat,get_mutation_mode_from_parser,Mutation,get_sub_mutation_tuple
 from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
     parse_mutation_from_vcf, parse_mutation_from_maf
-from immunopepper.utils import get_sub_mut_dna,get_concat_peptide,convert_namedtuple_to_str,check_chr_consistence,get_idx,create_libsize
+from immunopepper.utils import get_sub_mut_dna,get_concat_peptide,convert_namedtuple_to_str, \
+    check_chr_consistence,get_idx,create_libsize,translate_dna_to_peptide,complementary_seq
 from immunopepper.io_utils import load_pickled_graph
 from immunopepper.main_immuno import parse_arguments
 from immunopepper.immuno_model import create_output_kmer
@@ -318,3 +319,101 @@ def test_create_libsize():
     expr_distr_dict = {'test1pos':['.'],'test1neg':[2,10,11]}
     libsize_count_dict = create_libsize(expr_distr_dict,fp,debug=True)
     assert libsize_count_dict == {'test1neg':(10.5,23)}
+
+
+def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic', sample=None,
+                         germline_file_path=None,somatic_file_path=None):
+    """
+    Check if the exact dna position can output the same kmer
+    Parameters
+    ----------
+    new_junction_file: str. kmer_junction file path outputed by filter
+    genome_file: str. genome file path.
+    mutation_mode: str. choose from four modes. ref, germline, somatic, somatic_and_germline
+    sample: str. sample name
+    germline_file_path: str. germline file path
+    somatic_file_path: str. somatic file path
+    """
+
+    #read the variant file
+    if mutation_mode != 'ref':
+        basic_args = ['build',
+                      '--samples','this_sample',
+                      '--splice-path','this_splicegraph',
+                      '--output-dir','this_output_dir',
+                      '--ann-path','this_ann_path',
+                      '--ref-path','this_ref_path']
+        my_args1 = basic_args+[
+                   '--somatic', somatic_file_path,
+                   '--germline',germline_file_path,
+                   '--mutation-mode', mutation_mode]
+        args = parse_arguments(my_args1)
+        mutation = get_mutation_mode_from_parser(args)
+
+    # read genome file
+    seq_dict = {}
+    for record in BioIO.parse(genome_file, "fasta"):
+        seq_dict[record.id] = str(record.seq).strip()
+        if mutation_mode in ['germline','somatic_and_germline']:
+            seq_dict[record.id] = apply_germline_mutation(ref_sequence=seq_dict[record.id],
+                                              pos_start=0,
+                                              pos_end=len(seq_dict[record.id]),
+                                              mutation_sub_dict=mutation.germline_mutation_dict[(sample,record.id)])['background']
+
+    f = open(new_junction_file,'r')
+    headline = next(f)
+    for line in f:
+        items = line.strip().split('\t')
+        kmer = items[0]
+        exact_kmer_pos = items[5]
+        gene_chr, gene_strand, somatic_comb,pos_str = exact_kmer_pos.split('_')
+        pos_list = [int(pos) for pos in pos_str.split(';')]
+        sub_mutation = get_sub_mutation_tuple(mutation, sample, gene_chr)
+        somatic_comb_list = somatic_comb.split(';')
+        if somatic_comb_list[0] == NOT_EXIST:
+            somatic_comb_list = []
+
+        i = 0
+        seq_list = []
+        if gene_strand == '+':
+            while i < len(pos_list):
+                orig_str = seq_dict[gene_chr][pos_list[i]:pos_list[i+1]]
+                for somatic_mut_pos in somatic_comb_list:
+                    somatic_mut_pos = int(somatic_mut_pos)
+                    if somatic_mut_pos in range(pos_list[i],pos_list[i+1]):
+                        offset = somatic_mut_pos-pos_list[i]
+                        mut_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['mut_base']
+                        ref_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['ref_base']
+                        # assert ref_base == orig_str[offset]
+                        orig_str = orig_str[:offset] + mut_base+orig_str[offset+1:]
+                        somatic_comb_list.pop()
+                seq_list.append(orig_str)
+                i += 2
+            seq = ''.join(seq_list)
+        else:
+            while i < len(pos_list)-1:
+                orig_str = seq_dict[gene_chr][pos_list[i+1]:pos_list[i]]
+                for somatic_mut_pos in somatic_comb_list:
+                    somatic_mut_pos = int(somatic_mut_pos)
+                    if somatic_mut_pos in range(pos_list[i+1], pos_list[i]):
+                        offset = somatic_mut_pos - pos_list[i+1]
+                        mut_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['mut_base']
+                        ref_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['ref_base']
+                        # assert ref_base == orig_str[offset]
+                        orig_str = orig_str[:offset] + mut_base + orig_str[offset+1:]
+                        somatic_comb_list.pop()
+                seq_list.append(orig_str[::-1])
+                i += 2
+            seq = ''.join(seq_list)
+            seq = complementary_seq(seq)
+        aa,_ = translate_dna_to_peptide(seq)
+        assert aa == kmer
+
+# case='neg'
+# mutation_mode='somatic_and_germline'
+# sample='test1{}'.format(case)
+# new_junction_file = 'new_junction_kmer.txt'
+# genome_file = 'tests/test1/data/test1{}.fa'.format(case)
+# germline_file_path='tests/test1/data/test1{}.vcf'.format(case)
+# somatic_file_path='tests/test1/data/test1{}.maf'.format(case)
+# check_kmer_pos_valid(new_junction_file,genome_file,mutation_mode,sample,germline_file_path,somatic_file_path)
