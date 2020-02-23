@@ -5,6 +5,7 @@ import pandas as pd
 import logging
 from .constant import NOT_EXIST
 import gzip
+import sys
 def immunopepper_filter(arg):
     logging.info(">>>>>>>>> filter: Start")
     junction_kmer_tsv_path = arg.junction_kmer_tsv_path
@@ -12,6 +13,9 @@ def immunopepper_filter(arg):
     verbose = arg.verbose
     if arg.infer_dna_pos:
         logging.info("infer exact dna pos for each kmer output so that we could apply rna-seq based filter")
+        if not arg.meta_file_path:
+            logging.error("no metadata file provided. Exit")
+            sys.exit(-1)
         output_file_path = get_start_pos_for_kmer_unfiltered(arg.meta_file_path, junction_kmer_tsv_path, output_file_path,
                                           is_compressed=arg.compressed)
         logging.info("Infer dna pos for {} and save result to {}".format(junction_kmer_tsv_path,output_file_path))
