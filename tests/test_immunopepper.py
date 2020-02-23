@@ -12,13 +12,13 @@ from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
 from immunopepper.utils import get_sub_mut_dna,get_concat_peptide,convert_namedtuple_to_str, \
     check_chr_consistence,get_idx,create_libsize,translate_dna_to_peptide,complementary_seq
 from immunopepper.io_utils import load_pickled_graph
-from immunopepper.main_immuno import parse_arguments
+from immunopepper.main_immuno import parse_arguments,split_mode
 from immunopepper.immuno_model import create_output_kmer
 from immunopepper.immuno_nametuple import Coord,OutputBackground,OutputKmer
 from immunopepper.constant import NOT_EXIST
 from immunopepper.immuno_filter import get_junction_anno_flag
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
-
+groundtruth_dir = os.path.join(os.path.dirname(__file__), 'test1')
 
 @pytest.fixture
 def load_gene_data():
@@ -336,19 +336,19 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
     """
 
     #read the variant file
-    if mutation_mode != 'ref':
-        basic_args = ['build',
-                      '--samples','this_sample',
-                      '--splice-path','this_splicegraph',
-                      '--output-dir','this_output_dir',
-                      '--ann-path','this_ann_path',
-                      '--ref-path','this_ref_path']
-        my_args1 = basic_args+[
-                   '--somatic', somatic_file_path,
-                   '--germline',germline_file_path,
-                   '--mutation-mode', mutation_mode]
-        args = parse_arguments(my_args1)
-        mutation = get_mutation_mode_from_parser(args)
+
+    basic_args = ['build',
+                  '--samples','this_sample',
+                  '--splice-path','this_splicegraph',
+                  '--output-dir','this_output_dir',
+                  '--ann-path','this_ann_path',
+                  '--ref-path','this_ref_path']
+    my_args1 = basic_args+[
+               '--somatic', somatic_file_path,
+               '--germline',germline_file_path,
+               '--mutation-mode', mutation_mode]
+    args = parse_arguments(my_args1)
+    mutation = get_mutation_mode_from_parser(args)
 
     # read genome file
     seq_dict = {}
@@ -409,6 +409,7 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
         aa,_ = translate_dna_to_peptide(seq)
         assert aa == kmer
 
+
 # case='neg'
 # mutation_mode='somatic_and_germline'
 # sample='test1{}'.format(case)
@@ -417,3 +418,35 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
 # germline_file_path='tests/test1/data/test1{}.vcf'.format(case)
 # somatic_file_path='tests/test1/data/test1{}.maf'.format(case)
 # check_kmer_pos_valid(new_junction_file,genome_file,mutation_mode,sample,germline_file_path,somatic_file_path)
+
+@pytest.mark.parametrize("test_id,case,mutation_mode", [
+    ['1', 'pos', 'ref'],
+    ['1', 'pos', 'germline'],
+    ['1', 'pos', 'somatic'],
+    ['1', 'pos', 'somatic_and_germline'],
+    ['1', 'neg', 'ref'],
+    ['1', 'neg', 'germline'],
+    ['1', 'neg', 'somatic'],
+    ['1', 'neg', 'somatic_and_germline']
+])
+def test_filter_infer_dna_pos(test_id, case, tmpdir, mutation_mode):
+    tmpdir = str(tmpdir)
+    test_name = 'test{}{}'.format(test_id,case)
+    junction_kmer_file_path = os.path.join(groundtruth_dir, 'build',
+                                           case,test_name,'{}_junction_kmer.txt'.format(mutation_mode))
+    meta_file_path = os.path.join(groundtruth_dir,'build',case,test_name,'{}_metadata.tsv.gz'.format(mutation_mode))
+    output_file_path = os.path.join(tmpdir,'junction_exact_dna_pos.txt')
+
+    genome_path = os.path.join(data_dir, '{}.fa'.format(test_name))
+    somatic_path = os.path.join(data_dir, '{}.maf'.format(test_name))
+    germline_path = os.path.join(data_dir, '{}.vcf'.format(test_name))
+    # infer dna pos output
+    my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_file_path,
+               '--output-file-path', output_file_path,
+               '--output-dir', tmpdir,
+               '--meta-file-path',meta_file_path,
+               '--infer-dna-pos']
+    split_mode(my_args)
+    check_kmer_pos_valid(output_file_path,genome_file=genome_path,
+                         mutation_mode=mutation_mode,sample=test_name,
+                         germline_file_path=germline_path,somatic_file_path=somatic_path)
