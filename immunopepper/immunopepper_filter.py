@@ -4,7 +4,7 @@ Apply different filter mechanism on kmer tsv files
 import pandas as pd
 import logging
 from .constant import NOT_EXIST
-import gzip
+from .io_utils import gz_and_normal_open
 import sys
 def immunopepper_filter(arg):
     logging.info(">>>>>>>>> filter: Start")
@@ -113,10 +113,8 @@ def get_start_pos_for_kmer_unfiltered(meta_file_path,junction_kmer_tsv_path,outp
     if is_compressed:
         if not output_file_path.endswith('.gz'):
             output_file_path += '.gz'
-        new_junction_file = gzip.open(output_file_path,'wt')
-    else:
-        new_junction_file = open(output_file_path,'w')
-    old_junction_file = open(junction_kmer_tsv_path,'r')
+    new_junction_file = gz_and_normal_open(output_file_path,'w')
+    old_junction_file = gz_and_normal_open(junction_kmer_tsv_path,'r')
     headline = next(old_junction_file)
     new_headline = headline.strip()+'\texact_kmer_pos\n'
     new_junction_file.write(new_headline)

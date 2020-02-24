@@ -19,11 +19,13 @@ def load_pickled_graph(f):
     return pickle.load(f)
 
 
-def gz_and_normal_open(file_path):
+def gz_and_normal_open(file_path,mode='r'):
     if file_path.endswith('.gz'):
-        file_fp = gzip.open(file_path, 'wt')
+        mode += 't'
+        file_fp = gzip.open(file_path, mode)
     else:
-        file_fp = open(file_path,'w')
+        file_fp = open(file_path, mode)
+
     return file_fp
 
 
