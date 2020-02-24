@@ -159,7 +159,7 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
                 match_ts_list = peptide_match(background_pep_list, peptide.mut)
                 peptide_is_annotated = len(match_ts_list)
                 junction_anno_flag = get_junction_anno_flag(junction_flag, vertex_list)
-                junctionOI_flag = is_in_junction_list(gene.splicegraph,vertex_list, gene.strand, junction_list) # need re-write
+                junctionOI_flag = is_in_junction_list(gene.splicegraph,vertex_list, gene.strand, junction_list)
 
                 if variant_comb != NOT_EXIST and som_exp_dict is not None:  # which means there do exist some mutation
                     seg_exp_variant_comb = [int(som_exp_dict[ipos]) for ipos in variant_comb]

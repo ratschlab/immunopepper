@@ -448,6 +448,8 @@ def is_in_junction_list(splicegraph, vertex_id_list, strand, junction_list):
                 if flag:
                     return 1
             return 0
+    else:
+        return NOT_EXIST
 
 
 def get_exon_expr(gene,vstart,vstop,Segments,Idx):
