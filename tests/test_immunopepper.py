@@ -322,7 +322,7 @@ def test_create_libsize():
 
 
 def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic', sample=None,
-                         germline_file_path=None,somatic_file_path=None):
+                         germline_file_path=None,somatic_file_path=None,basic_args=None):
     """
     Check if the exact dna position can output the same kmer
     Parameters
@@ -336,13 +336,13 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
     """
 
     #read the variant file
-
-    basic_args = ['build',
-                  '--samples','this_sample',
-                  '--splice-path','this_splicegraph',
-                  '--output-dir','this_output_dir',
-                  '--ann-path','this_ann_path',
-                  '--ref-path','this_ref_path']
+    if basic_args is None:
+        basic_args = ['build',
+                      '--samples','this_sample',
+                      '--splice-path','this_splicegraph',
+                      '--output-dir','this_output_dir',
+                      '--ann-path','this_ann_path',
+                      '--ref-path','this_ref_path']
     my_args1 = basic_args+[
                '--somatic', somatic_file_path,
                '--germline',germline_file_path,
