@@ -11,7 +11,7 @@ from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
     parse_mutation_from_vcf, parse_mutation_from_maf
 from immunopepper.utils import get_sub_mut_dna,get_concat_peptide,convert_namedtuple_to_str, \
     check_chr_consistence,get_idx,create_libsize,translate_dna_to_peptide,complementary_seq
-from immunopepper.io_utils import load_pickled_graph
+from immunopepper.io_utils import load_pickled_graph,gz_and_normal_open
 from immunopepper.main_immuno import parse_arguments,split_mode
 from immunopepper.immuno_model import create_output_kmer
 from immunopepper.immuno_nametuple import Coord,OutputBackground,OutputKmer
@@ -360,7 +360,7 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
                                               pos_end=len(seq_dict[record.id]),
                                               mutation_sub_dict=mutation.germline_mutation_dict[(sample,record.id)])['background']
 
-    f = open(new_junction_file,'r')
+    f = gz_and_normal_open(new_junction_file,'r')
     headline = next(f)
     for line in f:
         items = line.strip().split('\t')
