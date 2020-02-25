@@ -335,6 +335,7 @@ def parse_mutation_from_vcf(vcf_path, output_dir='', heter_code=0, mut_pickle=Fa
     file_type = vcf_path.split('.')[-1]
     if file_type == 'h5': # hdf5 filr
         mutation_dic = parse_mutation_from_vcf_h5(vcf_path,h5_sample_list,heter_code)
+        logging.info("Get germline mutation dict from h5 file in {}. No pickle file created".format(vcf_path))
         return mutation_dic
     else: # vcf text file
         f = open(vcf_path,'r')

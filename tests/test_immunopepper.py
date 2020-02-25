@@ -365,7 +365,7 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
     headline = next(f)
     for line_id, line in enumerate(f):
         if line_id % 10000 == 0:
-            print(line_id)
+            print("{} kmers validated".format(line_id))
         items = line.strip().split('\t')
         kmer = items[0]
         exact_kmer_pos = items[5]
