@@ -120,7 +120,9 @@ def get_start_pos_for_kmer_unfiltered(meta_file_path,junction_kmer_tsv_path,outp
     new_junction_file.write(new_headline)
     count = 0
     prev_output_id = None
-    for line in old_junction_file:
+    for line_id,line in enumerate(old_junction_file):
+        if line_id % 10000 == 0:
+            print(line_id)
         items = line.strip().split('\t')
         output_id = items[1]
         kmer_len = len(items[0])
@@ -129,6 +131,8 @@ def get_start_pos_for_kmer_unfiltered(meta_file_path,junction_kmer_tsv_path,outp
             cur_modi_coord = cur_meta_line['modified_exons_coord'].values[0].split(';')
             cur_modi_coord = [int(coord) if coord != NOT_EXIST else coord for coord in cur_modi_coord]
             vertex_len = [int(cur_modi_coord[2*i+1])-int(cur_modi_coord[2*i]) if cur_modi_coord[2*i+1] != NOT_EXIST else 0 for i in range(len(cur_modi_coord)//2)]
+            # currently there might be identical output, we use the following code to temporily ignore them
+            max_count_id = sum(vertex_len) // 3
             strand = cur_meta_line['gene_strand'].values[0]
             chr = cur_meta_line['gene_chr'].values[0]
             cur_variant_comb = cur_meta_line['variant_comb'].values[0]
@@ -136,6 +140,7 @@ def get_start_pos_for_kmer_unfiltered(meta_file_path,junction_kmer_tsv_path,outp
             count = 0
         else:
             count += 1
+            count %= max_count_id
         pos_list = get_start_pos_from_count(count,cur_modi_coord,vertex_len,strand,kmer_len)
         pos_list = [str(pos) for pos in pos_list]
         exact_kmer_pos = str(chr)+'_'+strand+'_'+str(cur_variant_comb)+'_'+';'.join(pos_list)
