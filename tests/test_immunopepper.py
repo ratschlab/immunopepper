@@ -362,7 +362,9 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
 
     f = gz_and_normal_open(new_junction_file,'r')
     headline = next(f)
-    for line in f:
+    for line_id, line in enumerate(f):
+        if line_id % 10000 == 0:
+            print(line_id)
         items = line.strip().split('\t')
         kmer = items[0]
         exact_kmer_pos = items[5]
@@ -386,7 +388,7 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
                         ref_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['ref_base']
                         # assert ref_base == orig_str[offset]
                         orig_str = orig_str[:offset] + mut_base+orig_str[offset+1:]
-                        somatic_comb_list.pop()
+                        #somatic_comb_list.remove(str(somatic_mut_pos))
                 seq_list.append(orig_str)
                 i += 2
             seq = ''.join(seq_list)
@@ -401,7 +403,7 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
                         ref_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['ref_base']
                         # assert ref_base == orig_str[offset]
                         orig_str = orig_str[:offset] + mut_base + orig_str[offset+1:]
-                        somatic_comb_list.pop()
+                        #somatic_comb_list.remove(somatic_mut_pos)
                 seq_list.append(orig_str[::-1])
                 i += 2
             seq = ''.join(seq_list)
