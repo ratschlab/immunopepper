@@ -138,7 +138,7 @@ def get_start_pos_for_kmer_unfiltered(meta_file_path,junction_kmer_tsv_path,outp
             count += 1
         pos_list = get_start_pos_from_count(count,cur_modi_coord,vertex_len,strand,kmer_len)
         pos_list = [str(pos) for pos in pos_list]
-        exact_kmer_pos = chr+'_'+strand+'_'+str(cur_variant_comb)+'_'+';'.join(pos_list)
+        exact_kmer_pos = str(chr)+'_'+strand+'_'+str(cur_variant_comb)+'_'+';'.join(pos_list)
         new_line = line.strip()+'\t'+exact_kmer_pos+'\n'
         new_junction_file.write(new_line)
     new_junction_file.close()
