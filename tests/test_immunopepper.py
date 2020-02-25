@@ -355,10 +355,11 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
     for record in BioIO.parse(genome_file, "fasta"):
         seq_dict[record.id] = str(record.seq).strip()
         if mutation_mode in ['germline','somatic_and_germline']:
-            seq_dict[record.id] = apply_germline_mutation(ref_sequence=seq_dict[record.id],
-                                              pos_start=0,
-                                              pos_end=len(seq_dict[record.id]),
-                                              mutation_sub_dict=mutation.germline_mutation_dict[(sample,record.id)])['background']
+            if (sample,record.id) in mutation.germline_mutation_dict:
+                seq_dict[record.id] = apply_germline_mutation(ref_sequence=seq_dict[record.id],
+                                                  pos_start=0,
+                                                  pos_end=len(seq_dict[record.id]),
+                                                  mutation_sub_dict=mutation.germline_mutation_dict[(sample,record.id)])['background']
 
     f = gz_and_normal_open(new_junction_file,'r')
     headline = next(f)
