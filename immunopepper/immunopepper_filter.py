@@ -122,7 +122,7 @@ def get_start_pos_for_kmer_unfiltered(meta_file_path,junction_kmer_tsv_path,outp
     prev_output_id = None
     line_buffer = []
     for line_id,line in enumerate(old_junction_file):
-        if line_id % 10000 == 0:
+        if line_id % 100000 == 0:
             print(line_id)
         items = line.strip().split('\t')
         output_id = items[1]
@@ -158,7 +158,13 @@ def get_start_pos_for_kmer_unfiltered(meta_file_path,junction_kmer_tsv_path,outp
 
 def deal_with_duplicate(line_list,k,cur_modi_coord,vertex_len,strand,kmer_len,chr,cur_variant_comb,new_junction_file):
     assert len(line_list) % k == 0
-    uniq_line_len = len(line_list) //3
+    uniq_line_len = len(line_list) // k
+    for line_id,line in enumerate(line_list[:uniq_line_len]):
+        pos_list = get_start_pos_from_count(line_id, cur_modi_coord, vertex_len, strand, kmer_len)
+        pos_list = [str(pos) for pos in pos_list]
+        exact_kmer_pos = str(chr) + '_' + strand + '_' + str(cur_variant_comb) + '_' + ';'.join(pos_list)
+        new_line = line.strip() + '\t' + exact_kmer_pos + '\n'
+        new_junction_file.write(new_line)
 
 
 def get_start_pos_from_count(count, coord_list, vertex_len, strand, kmer_len):
