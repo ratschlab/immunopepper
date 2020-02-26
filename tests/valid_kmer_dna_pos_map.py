@@ -1,6 +1,7 @@
 from tests.test_immunopepper import check_kmer_pos_valid
 import argparse
 import sys
+
 options = sys.argv[1:]
 parser = argparse.ArgumentParser(prog='valid')
 parser.add_argument("--new-junction-file",help="the output junction file outputted by filter infer dna pos."

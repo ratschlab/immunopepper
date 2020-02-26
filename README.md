@@ -164,6 +164,52 @@ and dna sequence seq\[11:23\]
 in position 130 and 106. and dna sequence complementary(seq\[124:134\]\[::-1\]+seq\[104:112\]\[::-1\]). complementary is to convert
 the original base to its complementary base.
 
+Example command line 1 (filter based on metadata):
+```
+immunopepper filter \
+--junction-kmer-tsv-path \
+tests/test1/build/pos/test1pos/ref_junction_kmer.txt \
+--output-file-path \
+tests/test1/current_output_pos/test1pos/kmer_result_filtered.tsv.gz \
+--output-dir \
+tests/test1/current_output_pos/ \
+--meta-file-path \
+tests/test1/build/pos/test1pos/ref_metadata.tsv.gz \
+--cross-junction \
+--junc-expr \
+--compressed \
+--peptide-annotated 1 \
+--junction-annotated 1 \
+--has-stop-codon 1 \
+--is-isolated 0 \
+--is-in-junction-list 1 \
+```
+
+Example command line 2 (infer dna position):
+```
+immunopepper filter \
+--junction-kmer-tsv-path tests/test1/current_output_pos/test1pos/ref_junction_kmer.txt \
+--output-dir tests/test1/current_output_pos/ \
+--output-file-path tests/test1/current_output_pos/test1pos/ref_junction_exact_dna_pos.txt.gz \
+--meta-file-path tests/test1/current_output_pos/test1pos/ref_metadata.tsv.gz \
+--infer-dna-pos \
+--compressed \
+```
+
+Once calculate the dna position, you can also use the script `tests/valid_kmer_dna_pos_map.py` to check if the dna position
+can generate the exact kmer.
+
+Example command line 3 (validate dna position):
+```
+cd tests
+python tests/valid_kmer_dna_pos_map.py \
+--new-junction-file tests/test1/current_output_pos/test1pos/ref_junction_exact_dna_pos.txt.gz \
+--sample test1pos \
+--mutation-mode ref \
+--ref-path tests/test1/data/test1pos.fa \
+--somatic tests/test1/data/test1pos.maf \
+--germline tests/test1/data/test1pos.vcf \
+```
 ## post-processing guidlines
 For further filtering, the user can use the predicted kmers as input for MHC-binding prediction or
 use MS databases for further confirmation.
@@ -193,9 +239,9 @@ exon junction. For those with *junction_expr* > 0, the flag `is_crossjunction` i
 - **\[mut_mode\]_metadata.tsv.gz**: Contain details for every junction pairs.
 
 Detail explanation for columns in **\[mut_mode\]_metadata.tsv.gz**
-- **output_id**: In the format of \[gene_nama\]:\[first vertex\]_\[second vertex\]:\[somatic variant combination id\]:\[read frame\]. Like `GENE1:0_2:0:1`.
+- **output_id**: In the format of \[gene_nama\]:\[first vertex\]_\[second vertex\]:\[somatic variant combination id\]:\[translation start position\]. Like `GENE1:0_2:0:11`.
 `GENE1` is the gene name, `0_2` means this junction consists of vertex 0 and vertex 2. `0` means there is no
-somatic mutation or it is the first case of all somatic mutation combination cases. `2` means the read frame is 2.
+somatic mutation or it is the first case of all somatic mutation combination cases. `11` means the translation starts from position 11.
 - **read_frame**: int (0,1,2). The number of base left to the next junction pair.
 - **gene_name**: str. The name of Gene.
 - **gene_chr**: str. The Chromosome id where the gene is located.
