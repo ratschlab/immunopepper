@@ -138,7 +138,7 @@ def immunopepper_build(arg):
             os.makedirs(output_path)
 
         junction_meta_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz')
-        meta_peptide_fp = gz_and_normal_open(junction_meta_file_path)
+        meta_peptide_fp = gz_and_normal_open(junction_meta_file_path,'w')
         gzip_tag = ''
         if arg.compressed:
             gzip_tag = '.gz'
@@ -147,11 +147,11 @@ def immunopepper_build(arg):
         junction_kmer_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.txt'+gzip_tag)
         background_kmer_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.txt'+gzip_tag)
         gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.tsv'+gzip_tag)
-        peptide_fp = gz_and_normal_open(junction_peptide_file_path)
-        background_fp = gz_and_normal_open(background_peptide_file_path)
-        junction_kmer_fp = gz_and_normal_open(junction_kmer_file_path)
-        background_kmer_fp = gz_and_normal_open(background_kmer_file_path)
-        gene_expr_fp = gz_and_normal_open(gene_expr_file_path)
+        peptide_fp = gz_and_normal_open(junction_peptide_file_path,'w')
+        background_fp = gz_and_normal_open(background_peptide_file_path,'w')
+        junction_kmer_fp = gz_and_normal_open(junction_kmer_file_path,'w')
+        background_kmer_fp = gz_and_normal_open(background_kmer_file_path,'w')
+        gene_expr_fp = gz_and_normal_open(gene_expr_file_path,'w')
 
 
         filepointer = Filepointer(peptide_fp,meta_peptide_fp,background_fp,junction_kmer_fp,background_kmer_fp)

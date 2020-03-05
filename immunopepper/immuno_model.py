@@ -39,8 +39,8 @@ def get_simple_metadata(gene=None, ref_seq=None, idx=None,mutation=None, option=
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
     # otherwise, background_seq = ref_seq
-    ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq, 
-                                          pos_start=np.min(sg.vertices[0]), 
+    ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq,
+                                          pos_start=np.min(sg.vertices[0]),
                                           pos_end=np.max(sg.vertices[1]),
                                           mutation_sub_dict=mutation.germline_mutation_dict)
 
@@ -141,9 +141,11 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
         vertex_list = simple_metadata.vertex_idx
         read_frame_tuple = simple_metadata.read_frame
         if gene.strand == '+':
-            orig_read_frame = (modi_coord[0]-gene.splicegraph.vertices[0,vertex_list[0]])%3
+            tran_start_pos = modi_coord.start_v1
+            #orig_read_frame = (modi_coord[0]-gene.splicegraph.vertices[0,vertex_list[0]])%3
         else:
-            orig_read_frame = (gene.splicegraph.vertices[1,vertex_list[0]]-modi_coord[1])%3
+            tran_start_pos = modi_coord.stop_v1
+            #orig_read_frame = (gene.splicegraph.vertices[1,vertex_list[0]]-modi_coord[1])%3
         variant_id = 0
         for variant_comb in mut_seq_comb:  # go through each variant combination
             peptide,flag = get_peptide_result(simple_metadata, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq)
@@ -152,12 +154,12 @@ def get_and_write_peptide_and_kmer(gene=None, final_simple_meta=None, background
             # will not be propagated because the read is truncated before it reaches the end of the exon.
             # also in mutation mode, only output the case where ref is different from mutated
             if peptide.mut and (peptide.mut != peptide.ref or mutation.mode == 'ref' or option.output_silence):
-                detail_id = gene.name+':'+'_'.join([str(v) for v in vertex_list])+':'+str(variant_id)+':'+str(orig_read_frame)
+                detail_id = gene.name+':'+'_'.join([str(v) for v in vertex_list])+':'+str(variant_id)+':'+str(tran_start_pos)
                 new_output_id = detail_id
                 match_ts_list = peptide_match(background_pep_list, peptide.mut)
                 peptide_is_annotated = len(match_ts_list)
                 junction_anno_flag = get_junction_anno_flag(junction_flag, vertex_list)
-                junctionOI_flag = is_in_junction_list(gene.splicegraph,vertex_list, gene.strand, junction_list) # need re-write
+                junctionOI_flag = is_in_junction_list(gene.splicegraph,vertex_list, gene.strand, junction_list)
 
                 if variant_comb != NOT_EXIST and som_exp_dict is not None:  # which means there do exist some mutation
                     seg_exp_variant_comb = [int(som_exp_dict[ipos]) for ipos in variant_comb]
