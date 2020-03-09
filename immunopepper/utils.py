@@ -1,6 +1,5 @@
 """Contain functions to help compute, to preprocess"""
 import itertools
-import scipy as sp
 import numpy as np
 
 import sys
@@ -167,7 +166,7 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
         offset = 0
         takes_effect = False
         for pair in coord_pair_list:
-            if variant_pos in range(pair[0], pair[1]):
+            if variant_pos >= pair[0] and variant_pos < pair[1]:
                 if strand == '+':
                     offset += variant_pos - pair[0]
                 else:
@@ -341,8 +340,8 @@ def get_peptide_result(simple_meta_data, strand, variant_comb, somatic_mutation_
     mut_seq = ref_mut_seq['background']
     modi_coord = simple_meta_data.modified_exons_coord
     if strand == "+":
-        peptide_dna_str_mut = get_sub_mut_dna(mut_seq,modi_coord, variant_comb, somatic_mutation_sub_dict, strand)
-        peptide_dna_str_ref = get_sub_mut_dna(ref_seq,modi_coord, NOT_EXIST, somatic_mutation_sub_dict, strand)
+        peptide_dna_str_mut = get_sub_mut_dna(mut_seq, modi_coord, variant_comb, somatic_mutation_sub_dict, strand)
+        peptide_dna_str_ref = get_sub_mut_dna(ref_seq, modi_coord, NOT_EXIST, somatic_mutation_sub_dict, strand)
     else:  # strand == "-"
         peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, modi_coord, variant_comb, somatic_mutation_sub_dict, strand))
         peptide_dna_str_ref = complementary_seq(get_sub_mut_dna(ref_seq, modi_coord, NOT_EXIST, somatic_mutation_sub_dict, strand))
@@ -350,15 +349,12 @@ def get_peptide_result(simple_meta_data, strand, variant_comb, somatic_mutation_
     peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref)
 
     # if the stop codon appears before translating the second exon, mark 'single'
-    stop_v1 = modi_coord.stop_v1
-    start_v1 = modi_coord.start_v1
-    start_v2 = modi_coord.start_v2
-    if start_v2 == NOT_EXIST or len(peptide_mut)*3 <= abs(stop_v1 - start_v1) + 1:
+    if modi_coord.start_v2 == NOT_EXIST or len(peptide_mut)*3 <= abs(modi_coord.stop_v1 - modi_coord.start_v1) + 1:
         is_isolated = True
     else:
         is_isolated = False
-    peptide = Peptide(peptide_mut,peptide_ref)
-    flag = Flag(mut_has_stop_codon,is_isolated)
+    peptide = Peptide(peptide_mut, peptide_ref)
+    flag = Flag(mut_has_stop_codon, is_isolated)
     return peptide,flag
 
 
@@ -375,11 +371,11 @@ def get_size_factor(strains, lib_file_path):
     sf: 1darray. size factor.
 
     """
-    libs = sp.loadtxt(lib_file_path, dtype='str', skiprows=1, delimiter='\t')
-    a, b = sp.where(strains[:, sp.newaxis] == libs[:, 0])
-    assert sp.all(libs[b, 0] == strains)
+    libs = np.loadtxt(lib_file_path, dtype='str', skiprows=1, delimiter='\t')
+    a, b = np.where(strains[:, np.newaxis] == libs[:, 0])
+    assert np.all(libs[b, 0] == strains)
     libs = libs[b, :]
-    med = sp.median(libs[:, 1].astype('float'))
+    med = np.median(libs[:, 1].astype('float'))
     sf = med / libs[:, 1].astype('float')
     return sf
 
@@ -400,10 +396,7 @@ def get_all_comb(array, r=None):
     """
     if r is None:
         r = len(array)
-    result = []
-    for i in range(1,r+1):
-        result.extend(list(itertools.combinations(array,i)))
-    return result
+    return [_ for i in range(1, r + 1) for _ in itertools.combinations(array, i)]
 
 
 def is_mutation_within_exon_pair(pos_start, pos_end, mutation_pos):
@@ -428,31 +421,26 @@ def is_isolated_cds(gene, idx):
     if len(gene.vertex_succ_list[idx]) > 0:
         return False
 
-    return sp.sum(gene.splicegraph.edges[:, idx]) == 0
+    return np.sum(gene.splicegraph.edges[:, idx]) == 0
 
 
 def is_in_junction_list(splicegraph, vertex_id_list, strand, junction_list):
-    vertex_coord_list = splicegraph.vertices
     """Check if the intron is in concerned junction list"""
-    if NOT_EXIST in vertex_id_list:
-        return NOT_EXIST
-    if junction_list is not None:
-        if len(vertex_id_list) == 2:
-            if strand == '-':
-                vertex_id_list = vertex_id_list[::-1] # in negative strand case, the vertex id list is [5,3] instead of [3,5]
-            junc_comb = ':'.join([str(vertex_coord_list[1,vertex_id_list[0]]),  str(vertex_coord_list[0,vertex_id_list[1]]), strand])
-            return int(junc_comb in junction_list)
-        else:
-            for i in range(len(vertex_id_list)-1):
-                flag = is_in_junction_list(splicegraph,vertex_id_list[i:i+2],strand,junction_list)
-                if flag:
-                    return 1
-            return 0
-    else:
+
+    if NOT_EXIST in vertex_id_list or junction_list is None:
         return NOT_EXIST
 
+    vertex_coord_list = splicegraph.vertices
+    if strand == '-':
+        vertex_id_list = vertex_id_list[::-1] # in negative strand case, the vertex id list is [5,3] instead of [3,5]
+    for i in range(len(vertex_id_list) - 1):
+        junc_comb = ':'.join([str(vertex_coord_list[1, vertex_id_list[i]]),  str(vertex_coord_list[0, vertex_id_list[i+1]]), strand])
+        if junc_comb in junction_list:
+            return 1
+    return 0
 
-def get_exon_expr(gene,vstart,vstop,Segments,Idx):
+
+def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts=None):
     """ Split the exon into segments and get the corresponding counts.
 
     Parameters
@@ -460,8 +448,7 @@ def get_exon_expr(gene,vstart,vstop,Segments,Idx):
     gene: Object. Generated by SplAdder.
     vstart: int. Start position of given exon.
     vstop: int. Stop position of given exon.
-    Segments: Namedtuple, store segment expression information from count.hdf5.
-        has attribute ['expr', 'lookup_table'].
+    countinfo: Namedtuple, containing spladder count information
     Idx: Namedtuple, has attribute idx.gene and idx.sample
 
     Returns
@@ -472,30 +459,31 @@ def get_exon_expr(gene,vstart,vstop,Segments,Idx):
     """
     # Todo: deal with absense of count file
     if vstart == NOT_EXIST or vstop == NOT_EXIST:  # isolated exon case
-        expr_list = []
-        return expr_list
-    if Segments is None or Idx.sample is None:
-        expr_list = [NOT_EXIST]
-        return expr_list
-    count_segments = Segments.lookup_table[gene.name]
+        return np.zeros((0, 2), dtype='float')
+    if countinfo is None or Idx.sample is None:
+        return np.zeros((0, 2), dtype='float') #[NOT_EXIST]
+
+    seg_len = gene.segmentgraph.segments[1] - gene.segmentgraph.segments[0]
     segments = gene.segmentgraph.segments
-    seg_count = Segments.expr[count_segments,Idx.sample]
-    sv1_id = bisect.bisect(segments[0], vstart)-1
-    sv2_id = bisect.bisect(segments[0], vstop)-1
-    expr_list = []
+
+    if seg_counts is None:
+        count_segments = np.where(countinfo.gene_ids_segs == countinfo.gene_idx_dict[gene.name])[0]
+        seg_counts = countinfo.h5f['segments'][count_segments, Idx.sample]
+
+    sv1_id = bisect.bisect(segments[0], vstart) - 1
+    sv2_id = bisect.bisect(segments[0], vstop) - 1
     if sv1_id == sv2_id:
-        expr_list.append((vstop - vstart, seg_count[sv1_id]))
+        expr_list = [(vstop - vstart, seg_counts[sv1_id])]
     else:
-        expr_list.append((segments[1, sv1_id] - vstart, seg_count[sv1_id]))
-        for i in range(sv1_id + 1, sv2_id):
-            expr_list.append((segments[1, i] - segments[0, i], seg_count[i]))
-        expr_list.append((vstop-segments[0, sv2_id], seg_count[sv2_id]))
+        expr_list = np.c_[segments[1, sv1_id:sv2_id + 1] - segments[0, sv1_id:sv2_id + 1], seg_counts[sv1_id:sv2_id + 1, np.newaxis]]
+        expr_list[0, 0] -= (vstart - segments[0, sv1_id])
+        expr_list[-1, 0] -= (segments[1, sv2_id] - vstop)
         if gene.strand == '-': # need to reverse epression list to match the order of translation
             expr_list = expr_list[::-1]
     return expr_list
 
 
-def get_segment_expr(gene, coord, Segments, Idx):
+def get_segment_expr(gene, coord, countinfo, Idx, seg_counts=None):
     """ Get the segment expression for one exon-pair.
     Apply 'get_exon_expr' for each exon and concatenate them.
 
@@ -505,8 +493,8 @@ def get_segment_expr(gene, coord, Segments, Idx):
     coord: NamedTuple. has attribute ['start_v1', 'stop_v1', 'start_v2', 'stop_v2']
         contains the true four position of exon pairs (after considering read framee)
         that outputs the peptide.
-    Segments: Namedtuple, store segment expression information from count.hdf5.
-        has attribute ['expr', 'lookup_table'].
+    countinfo: Namedtuple, contains count information generated by SplAdder
+        has attributes [sample_idx_dict, gene_idx_dict, gene_ids_segs, gene_ids_edges, h5f]
     Idx: Namedtuple, has attribute idx.gene and idx.sample
 
     Returns
@@ -516,57 +504,56 @@ def get_segment_expr(gene, coord, Segments, Idx):
         and the expression count of that segment.
 
     """
-    expr_list1 = get_exon_expr(gene,coord.start_v1,coord.stop_v1,Segments,Idx)
-    expr_list2 = get_exon_expr(gene,coord.start_v2,coord.stop_v2,Segments,Idx)
-    expr_list1.extend(expr_list2)
-    if coord.start_v3 is not None:
-        expr_list3 = get_exon_expr(gene,coord.start_v3,coord.stop_v3,Segments,Idx)
-        expr_list1.extend(expr_list3)
-    expr_sum = 0
-    seg_len = 0
-    for item in expr_list1:
-        length = item[0]
-        expr = item[1]
-        expr_sum += length*expr
-        seg_len += length
-    mean_expr = int(expr_sum/seg_len) if seg_len > 0 else 0
-    return mean_expr,expr_list1
+    if coord.start_v3 is None:
+        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts),
+                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts)])
+    else:
+        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts),
+                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts),
+                               get_exon_expr(gene, coord.start_v3, coord.stop_v3, countinfo, Idx, seg_counts)])
+    #expr_list = get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx)
+    #expr_list = np.append(expr_list, get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx), axis=0)
+    #if coord.start_v3 is not None:
+    #    expr_list = np.append(expr_list, get_exon_expr(gene, coord.start_v3, coord.stop_v3, countinfo, Idx), axis=0)
+    seg_len = np.sum(expr_list[:, 0])
+    mean_expr = int(np.sum(expr_list[:, 0] * expr_list[:, 1]) / seg_len) if seg_len > 0 else 0 
+    return mean_expr,expr_list
 
 
-def get_total_gene_expr(gene, Segments, Idx):
+def get_total_gene_expr(gene, countinfo, Idx):
     """ get total reads count for the given sample and the given gene
     actually total_expr = reads_length*total_reads_counts
     """
-    if Segments is None or Idx.sample is None:
+    if countinfo is None or Idx.sample is None:
         return NOT_EXIST
-    count_segments = Segments.lookup_table[gene.name]
-    seg_len = gene.segmentgraph.segments[1]-gene.segmentgraph.segments[0]
-    seg_expr = Segments.expr[count_segments,Idx.sample]
+    count_segments = np.where(countinfo.gene_ids_segs == countinfo.gene_idx_dict[gene.name])[0]
+    seg_len = gene.segmentgraph.segments[1] - gene.segmentgraph.segments[0]
+    seg_expr = countinfo.h5f['segments'][count_segments, Idx.sample]
     total_expr = np.sum(seg_len*seg_expr)
     return total_expr
 
 
-def get_idx(sample_idx_table, sample, gene_idx):
-    """ Create a aggregated Index with nametuple idx
+def get_idx(countinfo, sample, gene_idx):
+    """ Create a  aggregated Index with nametuple idx
     Combine the gene_idx, sample_idx
 
     Parameters
     ----------
-    sample_idx_table: Dict. str -> int. Mapping sample to idx.
+    countinfo: NameTuple, containing spladder count information
     sample: str. sample name
     gene_idx: int. Gene index, mainly for formatting the output.
 
     """
-    if sample_idx_table is not None:
-        if sample in sample_idx_table:
-            sample_idx = sample_idx_table[sample]
-        else:
+    if not countinfo is None:
+        if not sample in countinfo.sample_idx_dict:
             sample_idx = None
             logging.warning("utils.py: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
+        else:
+            sample_idx = countinfo.sample_idx_dict[sample]
     else:
         sample_idx = None
-    idx = Idx(gene_idx,sample_idx)
-    return idx
+
+    return Idx(gene_idx, sample_idx)
 
 
 def create_libsize(expr_distr_dict,output_fp,debug=False):
@@ -642,72 +629,6 @@ def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_pep
     else:
         return ''
 
-def get_concat_junction_peptide(gene, output_peptide_list, output_metadata_list, Segments, Idx, k):
-    '''
-    Find all the match peptide and concatenate them, output the new peptide and its expression list
-
-    Parameters
-    ----------
-    gene: SplAdder object.
-    output_peptide_list: List[namedtuple]. Contain all the possible output peptide in the given splicegraph.
-    output_metadata_list: List[namedtuple]. Contain the correpsonding medata data for each output peptide.
-    Idx: Namedtuple Idx, has attribute idx.gene and idx.sample
-    Segments: Namedtuple Segments, store segment expression information from count.hdf5.
-           has attribute ['expr', 'lookup_table'].
-    k: k for k-mer. Positive k is required so that we can find key vertex
-
-    Returns
-    -------
-    concat_peptide_list: List[str]. Contain all the possible concatenated peptide in the given splicegraph.
-    concat_expr_list:List[List(Tuple(int,float))]. Contain the segment expression data for each concatenated peptide.
-
-    '''
-    def get_concat_expr_list(front_coord_pair,back_vertex_pair):
-        new_expr_list = []
-        # first vertex
-
-        expr_list = get_exon_expr(gene, front_coord_pair.start_v1, front_coord_pair.stop_v1, Segments, Idx)
-        new_expr_list.extend(expr_list)
-        # second vetex
-        back_start,back_end = back_vertex_pair.split(',')
-        second_cds_id = int(back_start)
-        expr_list = get_exon_expr(gene, vertices[0, second_cds_id], vertices[1, second_cds_id], Segments, Idx)
-        new_expr_list.extend(expr_list)
-        # third vertex
-        if back_end == '.':
-            expr_list = [(0,0)]
-        else:
-            third_cds_id = int(back_end)
-            expr_list = get_exon_expr(gene, vertices[0, third_cds_id], vertices[1, third_cds_id], Segments, Idx)
-        new_expr_list.extend(expr_list)
-        return new_expr_list
-    vertices = gene.splicegraph.vertices
-    vertex_len = vertices[1,:]-vertices[0,:]
-    key_id_list = np.where(vertex_len < (k+1)*3)[0]
-
-    vertex_id_pair_list = [metadata.vertex_idx for metadata in output_metadata_list]
-    coord_pair_list = [metadata.exons_coor for metadata in output_metadata_list]
-    concat_peptide_list = []
-    concat_expr_lists = []
-    for key_id in key_id_list:
-        front_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair[1] == str(key_id)]
-        back_id_list =[i for i, vert_pair in enumerate(vertex_id_pair_list) if vert_pair[0] == str(key_id)]
-        for front_id in front_id_list:
-            for back_id in back_id_list:
-                triple_v = '_'.join([vertex_id_pair_list[front_id][0],vertex_id_pair_list[front_id][1],vertex_id_pair_list[back_id][1]])
-                back_peptide = output_peptide_list[back_id].peptide
-                front_peptide = output_peptide_list[front_id].peptide
-                back_coord_pair = coord_pair_list[back_id]
-                front_coord_pair = coord_pair_list[front_id]
-                if len(back_peptide) > 0 and len(front_peptide) > 0 and back_coord_pair[-1] != NOT_EXIST: # filter out those empty string
-                    concat_peptide = get_concat_peptide(front_coord_pair,back_coord_pair,front_peptide, back_peptide,gene.strand,k)
-                    if len(concat_peptide) > 0 : # calculate expr list
-                        concat_expr_list = get_concat_expr_list(front_coord_pair,vertex_id_pair_list[back_id])
-                        concat_expr_lists.append(concat_expr_list)
-                        concat_peptide = OutputBackground(id='Gene'+str(Idx.gene)+'_'+triple_v,
-                                                           peptide=concat_peptide)
-                        concat_peptide_list.append(concat_peptide)
-    return concat_peptide_list,concat_expr_lists
 
 def convert_namedtuple_to_str(_namedtuple,field_list):
     def convert_list_to_str(_list):

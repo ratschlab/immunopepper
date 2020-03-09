@@ -2,7 +2,7 @@
 import sys
 import re
 
-import scipy as sp
+import numpy as np
 
 from .utils import complementary_seq,translate_dna_to_peptide,get_exon_expr
 from .immuno_nametuple import OutputBackground
@@ -29,7 +29,7 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
     vertices = gene.splicegraph.vertices
     edges = gene.splicegraph.edges
 
-    junction_flag = sp.zeros(edges.shape, dtype='bool')
+    junction_flag = np.zeros(edges.shape, dtype='bool')
     for ts in ts_list:
         if not ts in transcript_to_cds_table:
             continue
@@ -37,11 +37,11 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
         curr_ts = transcript_to_cds_table[ts]
         if len(curr_ts) < 2:
             continue
-        curr_ts = sp.array(curr_ts)[:, [0, 1]]
+        curr_ts = np.array(curr_ts)[:, [0, 1]]
         transcript_junctions = [':'.join(x) for x in
                                 curr_ts.ravel()[1:-1].reshape(curr_ts.shape[0] - 1, 2).astype('str')]
 
-        for x in sp.array(sp.where(sp.triu(edges))).T:
+        for x in np.array(np.where(np.triu(edges))).T:
             if '%i:%i' % (vertices[1, x[0]], vertices[0, x[1]]) in transcript_junctions:
                 junction_flag[x[0], x[1]] = 1
                 junction_flag[x[1], x[0]] = 1
@@ -64,26 +64,21 @@ def get_junction_anno_flag(junction_flag, vertex_id_tuple):
     """
     if NOT_EXIST in vertex_id_tuple:
         return NOT_EXIST
-    if len(vertex_id_tuple) == 2:
-        return int(junction_flag[vertex_id_tuple[0],vertex_id_tuple[1]])
-    else:
-        for i in range(len(vertex_id_tuple)-1):
-            flag = get_junction_anno_flag(junction_flag, vertex_id_tuple[i:i+2])
-            if flag:
-                return 1
-        return 0
+    for i in range(len(vertex_id_tuple) - 1):
+        if junction_flag[vertex_id_tuple[i], vertex_id_tuple[i+1]]:
+            return 1
+    return 0
 
 
-def get_full_peptide(gene, seq, cds_list, Segments, Idx, mode):
-    """
+def get_full_peptide(gene, seq, cds_list, countinfo, Idx, mode):
+    """ 
     Output translated peptide and segment expression list given cds_list
     Parameters
     ----------
     gene: Object, created by SplAdder.
     seq: str. Gene sequence.
     cds_list: List[Tuple(v_start,v_stop,reading_frame)]
-    Segments: Namedtuple Segments, store segment expression information from count.hdf5.
-           has attribute ['expr', 'lookup_table'].
+    countinfo: Namedtuple, SplAdder count information
     Idx: Namedtuple Idx, has attribute idx.gene and idx.sample
     mode: [temporal argument]. Due to the different meaning of cds_tuple in gene.splicegraph.reading_frame
         and that in gene_to_cds dict (the formal v_start and v_stop has already considered reading_frame and
@@ -113,7 +108,7 @@ def get_full_peptide(gene, seq, cds_list, Segments, Idx, mode):
             else:
                 coord_right -= frameshift
             first_cds = False
-        cds_expr = get_exon_expr(gene, coord_left, coord_right, Segments, Idx)
+        cds_expr = get_exon_expr(gene, coord_left, coord_right, countinfo, Idx)
         cds_expr_list.extend(cds_expr)
         nuc_seq = seq[coord_left:coord_right]
 

@@ -169,25 +169,25 @@ def get_exon_som_dict(gene, mutation_pos):
     return exon_som_dict
 
 
-def get_som_expr_dict(gene, mutation_pos, segments, Idx):
+def get_som_expr_dict(gene, mutation_pos, countinfo, Idx):
     """
     Build somatic mutation position(key) to expression data(value) dictionary.
     """
-    if segments is None:
+    if countinfo is None:
         return None
     seg_mat = gene.segmentgraph.segments[0]
     som_expr_dict = {}
 
-    seg_pos_list = segments.lookup_table[gene.name]
+    seg_pos_list = np.where(countinfo.gene_ids_segs == countinfo.gene_idx_dict[gene.name])[0]
     for ipos in mutation_pos:
         seg_id = bisect.bisect(seg_mat,ipos)
         if seg_id > 0 and ipos <= gene.segmentgraph.segments[1][seg_id-1]: # the mutation is within the pos
-            expr = segments.expr[seg_pos_list[seg_id-1],Idx.sample]
+            expr = countinfo.h5f['segments'][seg_pos_list[seg_id - 1], Idx.sample]
             som_expr_dict[ipos] = expr
     return som_expr_dict
 
 
-def get_mut_comb(exon_som_dict,vertex_list):
+def get_mut_comb(exon_som_dict, vertex_list):
     """
     Get all the mutation combination given the mutation given.
     Parameters
@@ -203,8 +203,8 @@ def get_mut_comb(exon_som_dict,vertex_list):
     """
     mut_comb = [NOT_EXIST]
     if exon_som_dict is not None:
-        exon_list = map(lambda x: exon_som_dict[x],vertex_list)
-        all_comb = get_all_comb(reduce(lambda x,y:x+y,exon_list))
+        exon_list = map(lambda x: exon_som_dict[x], vertex_list)
+        all_comb = get_all_comb(reduce(lambda x, y: x + y, exon_list))
         mut_comb += all_comb
     return mut_comb
 
