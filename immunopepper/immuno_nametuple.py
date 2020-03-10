@@ -122,29 +122,14 @@ GeneTable = namedtuple('GeneTable', ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_
 
 
 """
-Segments namedtuple
-- expr: segment expression HDF5 dataset. With shape (Num_of_segments, Num_of_genes)
-- lookup_table: (gene_name -> List[segment_id])
-"""
-Segments = namedtuple('Segments', ['expr', 'lookup_table'])
-
-
-"""
-Edges namedtuple
-- expr: edge expression HDF5 dataset. With shape (Num_of_edges, Num_of_genes)
-- lookup_table: (gene_name -> List[(edge_id,converted exon pair id)]) the transformation from 1-D edge_id 
-    to 2-D exon_id X exon_id is done by sp.ravel_multi_index
-"""
-Edges = namedtuple('Edges', ['expr', 'lookup_table'])
-
-
-"""
 CountInfo namedtuple
-- segments: Segments namedtuple
-- edges: Edges namedtuple
-- sample_idx_table: dict. (sample -> sample_id in count HDF5 dictionary)
+- sample_idx_dict: Dictionary mapping a sample name to an index
+- gene_idx_dict: Dictionary mapping a gene name to an index
+- gene_ids_segs: ordered list of gene IDs for all segments
+- gene_ids_edges: ordered list of gene IDs for all edges
+- h5f: file handle of the count hdf5 file
 """
-CountInfo = namedtuple('CountInfo', ['segments', 'edges', 'sample_idx_table'])
+CountInfo = namedtuple('CountInfo', ['sample_idx_dict', 'gene_idx_dict', 'gene_ids_segs', 'gene_ids_edges', 'h5f'])
 
 
 """

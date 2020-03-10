@@ -200,11 +200,11 @@ def test_create_output_kmer():
     k = 3
     peptide = OutputBackground('1','MTHAW')
     expr_lists = [(8,1000),(1,220),(6,0)] # test 0 expression
-    c = create_output_kmer(peptide, expr_lists, k)
+    c = create_output_kmer(peptide, k, expr_lists)
     true_output = [OutputKmer('MTH','1',913.33,False,NOT_EXIST), OutputKmer('THA','1',580.0,False,NOT_EXIST), OutputKmer('HAW','1',246.67,False,NOT_EXIST)]
     assert c == true_output
     expr_lists = [(8,1000),(1,220),(0,0)] # test 0 expression
-    c = create_output_kmer(peptide, expr_lists, k)
+    c = create_output_kmer(peptide, k, expr_lists)
     true_output = [OutputKmer('MTH','1',913.33,False,NOT_EXIST), OutputKmer('THA','1',870.0,False,NOT_EXIST), OutputKmer('HAW','1',740.0,False,NOT_EXIST)]
     assert c == true_output
 
@@ -293,26 +293,6 @@ def test_check_chr_consistence(load_gene_data, load_mutation_data):
     except SystemExit:
         assert 1
 
-
-def test_get_idx():
-    sample_idx_table = {}
-    sample_idx_table['test1pos'] = 100
-    sample_idx_table['test1neg'] = 101
-    sample = 'test1pos'
-    gene_idx = 0
-    Idx = get_idx(sample_idx_table,sample,gene_idx)
-    assert Idx.gene == gene_idx
-    assert Idx.sample == sample_idx_table['test1pos']
-
-    # the inquiry sample name not in sample_idx_table
-    Idx = get_idx(sample_idx_table, 'test2', gene_idx)
-    assert Idx.gene == gene_idx
-    assert Idx.sample == None
-
-    # the sample_idx_table does not exist
-    Idx = get_idx(None, 'test2', gene_idx)
-    assert Idx.gene == gene_idx
-    assert Idx.sample == None
 
 def test_create_libsize():
     fp = 'temp.txt'
