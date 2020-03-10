@@ -7,8 +7,8 @@ import bisect
 import logging
 
 from .constant import NOT_EXIST
-from .immuno_nametuple import Coord
-from .immuno_nametuple import Idx
+from .namedtuples import Coord
+from .namedtuples import Idx
 
 def to_adj_list(adj_matrix):
     """
@@ -295,7 +295,7 @@ def get_total_gene_expr(gene, countinfo, Idx):
 
 
 def get_idx(countinfo, sample, gene_idx):
-    """ Create a  aggregated Index with nametuple idx
+    """ Create a  aggregated Index with namedtuple idx
     Combine the gene_idx, sample_idx
 
     Parameters

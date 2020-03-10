@@ -1,11 +1,11 @@
 """Countains code related to translation"""
 
-from .utils import get_exon_expr,get_sub_mut_dna
-from .immuno_nametuple import Coord
-from .immuno_nametuple import Flag
-from .immuno_nametuple import Peptide
-from .immuno_nametuple import ReadingFrameTuple
+from .namedtuples import Coord
+from .namedtuples import Flag
+from .namedtuples import Peptide
+from .namedtuples import ReadingFrameTuple
 from .constant import NOT_EXIST
+from .utils import get_exon_expr,get_sub_mut_dna
 
 def translate_dna_to_peptide(dna_str):
     """ Translate a DNA sequence encoding a peptide to amino-acid sequence via RNA.

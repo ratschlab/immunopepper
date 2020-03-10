@@ -24,11 +24,11 @@ from .immuno_mutation import get_sub_mutation_tuple
 from .immuno_model import collect_vertex_pairs
 from .immuno_model import get_and_write_background_peptide_and_kmer
 from .immuno_model import get_and_write_peptide_and_kmer
-from .immuno_nametuple import Filepointer
-from .immuno_nametuple import Option
 from .io_utils import gz_and_normal_open
 from .io_utils import load_pickled_graph
 from .io_utils import print_memory_diags
+from .namedtuples import Filepointer
+from .namedtuples import Option
 from .utils import check_chr_consistence
 from .utils import create_libsize
 from .utils import get_idx

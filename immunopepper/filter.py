@@ -3,10 +3,10 @@ import sys
 import re
 
 import numpy as np
-
-from .immuno_nametuple import OutputBackground
-from .constant import NOT_EXIST
 from functools import reduce
+
+from .constant import NOT_EXIST
+from .namedtuples import OutputBackground
 
 def _collect_remove_ids(exon_junction_dict):
     """ Get an auxiliary dictionary used for filtering. Assigns to each junction all overlapping exon pairs.

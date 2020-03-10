@@ -4,11 +4,18 @@ import logging
 
 import numpy as np
 
+from .constant import NOT_EXIST
 from .filter import get_filtered_metadata_list
 from .filter import junction_is_annotated
 from .filter import junction_is_in_given_list
 from .filter import junction_tuple_is_annotated
 from .filter import peptide_is_annotated
+from .namedtuples import Coord
+from .namedtuples import OutputBackground
+from .namedtuples import OutputJuncPeptide
+from .namedtuples import OutputKmer
+from .namedtuples import OutputMetadata
+from .namedtuples import VertexPair
 from .translate import get_full_peptide
 from .translate import isolated_peptide_result
 from .translate import get_peptide_result
@@ -17,8 +24,7 @@ from .translate import cross_peptide_result
 from immunopepper.immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
 from immunopepper.utils import get_segment_expr,convert_namedtuple_to_str,write_namedtuple_list
 from immunopepper.immuno_preprocess import search_edge_metadata_segmentgraph
-from immunopepper.constant import NOT_EXIST
-from immunopepper.immuno_nametuple import OutputMetadata, OutputJuncPeptide, OutputKmer, VertexPair, Coord, OutputBackground
+
 
 def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, option=None):
     """Calculte the output peptide for every exon-pairs in the splicegraph

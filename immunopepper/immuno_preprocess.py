@@ -6,10 +6,9 @@ import h5py
 import pickle
 import logging
 
-from .immuno_nametuple import CountInfo
-from .immuno_nametuple import GeneTable
-from .immuno_nametuple import ReadingFrameTuple
-
+from .namedtuples import CountInfo
+from .namedtuples import GeneTable
+from .namedtuples import ReadingFrameTuple
 from .utils import decodeUTF8
 from .utils import encode_chromosome
 from .utils import find_overlapping_cds_simple
