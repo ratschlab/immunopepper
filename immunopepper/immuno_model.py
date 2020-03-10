@@ -205,7 +205,7 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
     kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction','junction_count']
 
     ### collect the relevant count infor for the current gene
-    if not countinfo is None:
+    if countinfo:
         edge_gene_idxs = np.where(countinfo.gene_ids_edges == countinfo.gene_idx_dict[gene.name])[0]
         edge_idxs = countinfo.h5f['edge_idx'][edge_gene_idxs].astype('int')
         edge_counts = countinfo.h5f['edges'][edge_gene_idxs, idx.sample] 
@@ -241,15 +241,13 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
             else:
                 seg_exp_variant_comb = NOT_EXIST  # if no mutation or no count file,  the segment expression is .
 
-            if countinfo is None:
-                segment_expr, expr_list = NOT_EXIST, None
-            else:
-                segment_expr, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts)
-
             # deal with expression data
-            if not countinfo is None and not flag.is_isolated:
+            if  countinfo:
+                segment_expr, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts)
+            else:
+                segment_expr, expr_list = NOT_EXIST, None
+            if countinfo and not flag.is_isolated:
                 edge_expr = search_edge_metadata_segmentgraph(gene, modi_coord, countinfo, idx, edge_idxs, edge_counts)
-                #edge_expr = edge_expr*size_factor
             else:
                 edge_expr = NOT_EXIST
 

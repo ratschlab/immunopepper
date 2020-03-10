@@ -99,16 +99,16 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
     def _get_variant_pos_offset(variant_pos, coord_pair_list, strand):
         offset = 0
         takes_effect = False
-        for pair in coord_pair_list:
-            if variant_pos >= pair[0] and variant_pos < pair[1]:
+        for p1,p2 in coord_pair_list:
+            if variant_pos >= p1 and variant_pos < p2:
                 if strand == '+':
-                    offset += variant_pos - pair[0]
+                    offset += variant_pos - p1
                 else:
-                    offset += pair[1] - variant_pos - 1
+                    offset += p2 - variant_pos - 1
                 takes_effect = True
                 break
             else:
-                offset = pair[1] - pair[0]
+                offset = p2 - p1
 
         return offset if takes_effect else NOT_EXIST
 
