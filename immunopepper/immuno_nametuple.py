@@ -58,7 +58,7 @@ OutputMetadata = namedtuple('OutputMetadata', ['output_id', 'read_frame', 'gene_
                                                  'modified_exons_coord','original_exons_coord',	'vertex_idx',	'junction_expr',
                                                  'segment_expr'])
 
-SimpleMetadata = namedtuple('SimpleMetadata', ['output_id', 'read_frame','has_stop_codon','modified_exons_coord','original_exons_coord','vertex_idx','peptide_weight'])
+VertexPair = namedtuple('VertexPair', ['output_id', 'read_frame','has_stop_codon','modified_exons_coord','original_exons_coord','vertex_idxs','peptide_weight'])
 
 
 """

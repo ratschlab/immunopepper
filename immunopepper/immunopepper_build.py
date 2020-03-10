@@ -21,9 +21,9 @@ from .immuno_preprocess import parse_gene_metadata_info
 from .immuno_preprocess import preprocess_ann
 from .immuno_mutation import get_mutation_mode_from_parser
 from .immuno_mutation import get_sub_mutation_tuple
+from .immuno_model import collect_vertex_pairs
 from .immuno_model import get_and_write_background_peptide_and_kmer
 from .immuno_model import get_and_write_peptide_and_kmer
-from .immuno_model import get_simple_metadata
 from .immuno_nametuple import Filepointer
 from .immuno_nametuple import Option
 from .io_utils import gz_and_normal_open
@@ -192,8 +192,8 @@ def immunopepper_build(arg):
             else:
                 junction_list = None
 
-            final_simple_meta, ref_mut_seq, exon_som_dict = get_simple_metadata(gene=gene,ref_seq=seq_dict[chrm],
-                                                                                idx=idx,mutation=sub_mutation,option=option)
+            vertex_pairs, ref_mut_seq, exon_som_dict = collect_vertex_pairs(gene=gene,ref_seq=seq_dict[chrm],
+                                                                            idx=idx,mutation=sub_mutation,option=option)
             #logging.info(">DEBUG 1: time: {}".format(timeit.default_timer() - start_time))
             background_pep_list = get_and_write_background_peptide_and_kmer(gene=gene, 
                                                                             ref_mut_seq=ref_mut_seq,
@@ -204,7 +204,7 @@ def immunopepper_build(arg):
                                                                             countinfo=countinfo)
             #logging.info(">DEBUG 2: time: {}".format(timeit.default_timer() - start_time))
             get_and_write_peptide_and_kmer(gene=gene, 
-                                           final_simple_meta=final_simple_meta, 
+                                           vertex_pairs=vertex_pairs, 
                                            background_pep_list=background_pep_list,
                                            ref_mut_seq=ref_mut_seq, 
                                            idx=idx, 
