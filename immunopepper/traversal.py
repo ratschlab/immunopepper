@@ -31,7 +31,7 @@ from .translate import cross_peptide_result
 from .utils import get_segment_expr
 
 
-def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, option=None):
+def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, disable_concat=False, kmer=None, filter_redundant=False):
     """Calculte the output peptide for every exon-pairs in the splicegraph
 
        Parameters
@@ -39,7 +39,6 @@ def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, optio
        gene: Object, returned by SplAdder.
        ref_seq: Str, reference sequnce of specific chromosome
        idx: Namedtuple Idx, has attribute idx.gene and idx.sample
-       option: NamedTuple Option, has the attribute output_silence, debug, filter_redundant, kmer
        mutation: Namedtuple Mutation, store the mutation information of specific chromosome and sample.
            has the attribute ['mode', 'maf_dict', 'vcf_dict']
 
@@ -107,11 +106,11 @@ def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, optio
                 vertex_pair_list.append(vertex_pair)
                 output_id += 1
 
-    if  option.disable_concat:
+    if  disable_concat:
         concat_vertex_pair_list = []
     else:
-        concat_vertex_pair_list = collect_vertex_triples(gene, vertex_pair_list, option.kmer)
-    if option.filter_redundant:
+        concat_vertex_pair_list = collect_vertex_triples(gene, vertex_pair_list, kmer)
+    if filter_redundant:
         vertex_pair_list = get_filtered_metadata_list(vertex_pair_list, gene.strand)
     vertex_pair_list += concat_vertex_pair_list
 
@@ -181,8 +180,8 @@ def collect_vertex_triples(gene, vertex_pairs, k):
 
 
 def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_list=None,ref_mut_seq=None, idx=None,
-                         exon_som_dict=None, countinfo=None, mutation=None,table=None,option=None,
-                         size_factor=None, junction_list=None, filepointer=None):
+                         exon_som_dict=None, countinfo=None, mutation=None,table=None,
+                         size_factor=None, junction_list=None, filepointer=None, output_silence=False, kmer=None):
     """
 
     Parameters
@@ -237,7 +236,7 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
             # If cross junction peptide has a stop-codon in it, the frame
             # will not be propagated because the read is truncated before it reaches the end of the exon.
             # also in mutation mode, only output the case where ref is different from mutated
-            if not peptide.mut or not (peptide.mut != peptide.ref or mutation.mode == 'ref' or option.output_silence):
+            if not peptide.mut or not (peptide.mut != peptide.ref or mutation.mode == 'ref' or output_silence):
                 continue
 
             new_output_id = ':'.join([gene.name, '_'.join([str(v) for v in vertex_list]), str(variant_id), str(tran_start_pos)])
@@ -286,8 +285,8 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
                                             exons_coor=modi_coord,
                                             junction_count=edge_expr)
 
-            if option.kmer > 0:
-                output_kmer_list = create_output_kmer(output_peptide, option.kmer, expr_list)
+            if kmer > 0:
+                output_kmer_list = create_output_kmer(output_peptide, kmer, expr_list)
                 write_namedtuple_list(filepointer.junction_kmer_fp, output_kmer_list, kmer_field_list)
 
             filepointer.junction_meta_fp.write(convert_namedtuple_to_str(output_metadata, meta_field_list)+'\n')
@@ -298,15 +297,16 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
     gene.processed = True
 
 
-def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, countinfo, Idx,filepointer,option):
+def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, countinfo, Idx, filepointer, kmer):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
     Parameters
     ----------
     gene: Object. Created by SplAdder
-    ref_seq: List(str). Reference sequence of certain chromosome.
+    ref_mut_seq: List(str). Reference sequence of certain chromosome.
     gene_table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
        from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
+   countinfo: NamedTuple containing SplAdder counts
 
     Returns
     -------
@@ -330,8 +330,8 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, cou
         peptide = OutputBackground(ts, cds_peptide)
         background_peptide_list.append(peptide)
         filepointer.background_peptide_fp.write(convert_namedtuple_to_str(peptide, back_pep_field_list) + '\n')
-        if option.kmer > 0:
-            output_kmer_list = create_output_kmer(peptide, option.kmer, cds_expr_list)
+        if kmer > 0:
+            output_kmer_list = create_output_kmer(peptide, kmer, cds_expr_list)
             write_namedtuple_list(filepointer.background_kmer_fp,output_kmer_list,kmer_field_list)
     gene.processed = True
     return background_peptide_list

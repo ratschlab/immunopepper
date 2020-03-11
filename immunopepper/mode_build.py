@@ -22,7 +22,6 @@ from .io import write_gene_expr
 from .mutations import get_mutation_mode_from_parser
 from .mutations import get_sub_mutation_tuple
 from .namedtuples import Filepointer
-from .namedtuples import Option
 from .preprocess import genes_preprocess
 from .preprocess import parse_junction_meta_info
 from .preprocess import parse_gene_metadata_info
@@ -119,11 +118,6 @@ def mode_build(arg):
     expr_distr_dict = {}
     # process graph for each input sample
     output_libszie_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
-    option = Option(output_silence=arg.output_silence,
-                    debug=arg.verbose,
-                    filter_redundant=arg.filter_redundant,
-                    kmer=arg.kmer,
-                    disable_concat=arg.disable_concat)
     logging.info(">>>>>>>>> Start traversing splicegraph")
     for sample in arg.samples:
         logging.info(">>>> Processing sample {}, there are {} graphs in total".format(sample,num))
@@ -193,15 +187,18 @@ def mode_build(arg):
                 junction_list = None
 
             vertex_pairs, ref_mut_seq, exon_som_dict = collect_vertex_pairs(gene=gene,ref_seq=seq_dict[chrm],
-                                                                            idx=idx,mutation=sub_mutation,option=option)
+                                                                            idx=idx,mutation=sub_mutation,
+                                                                            disable_concat=arg.disable_concat,
+                                                                            kmer=arg.kmer,
+                                                                            filter_redundant=arg.filter_redundant)
             #logging.info(">DEBUG 1: time: {}".format(timeit.default_timer() - start_time))
             background_pep_list = get_and_write_background_peptide_and_kmer(gene=gene, 
                                                                             ref_mut_seq=ref_mut_seq,
                                                                             gene_table=genetable,
+                                                                            countinfo=countinfo, 
                                                                             Idx=idx,
                                                                             filepointer=filepointer,
-                                                                            option=option,
-                                                                            countinfo=countinfo)
+                                                                            kmer=arg.kmer)
             #logging.info(">DEBUG 2: time: {}".format(timeit.default_timer() - start_time))
             get_and_write_peptide_and_kmer(gene=gene, 
                                            vertex_pairs=vertex_pairs, 
@@ -212,10 +209,11 @@ def mode_build(arg):
                                            countinfo=countinfo,
                                            mutation=sub_mutation,
                                            table=genetable,
-                                           option=option,
                                            size_factor=None,
                                            junction_list=junction_list, 
-                                           filepointer=filepointer)
+                                           filepointer=filepointer, 
+                                           kmer=arg.kmer,
+                                           output_silence=arg.output_silence)
             #logging.info(">DEBUG 3: time: {}".format(timeit.default_timer() - start_time))
             end_time = timeit.default_timer()
             memory = print_memory_diags(disable_print=True)

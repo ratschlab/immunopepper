@@ -133,17 +133,6 @@ CountInfo = namedtuple('CountInfo', ['sample_idx_dict', 'gene_idx_dict', 'gene_i
 
 
 """
-Option namedtuple
-namedtuple that contain all the argument needed in calculating output peptide 
-- output_silence: 
-- debug: 
-- filter_redundant: 
-- kmer:
-"""
-Option = namedtuple('Option', ['output_silence', 'debug', 'filter_redundant', 'kmer','disable_concat'])
-
-
-"""
 filepointer namedtuple
 namedtuple that contain all the filepointers
 - junction_peptide_fp:

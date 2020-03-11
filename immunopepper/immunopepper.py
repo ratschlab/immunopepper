@@ -39,7 +39,7 @@ def parse_arguments(argv):
     general = parser_build.add_argument_group('MISCELLANEOUS')
     general.add_argument("--process-num", metavar='N', type=int, help="Only process the first N genes in the splicegraph, default: process all", required=False, default=0)
     general.add_argument("--use-mut-pickle",help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
-    general.add_argument("--verbose", type=int, help="specify the output verbosity (0 - silent, 1 - verbose, 2 - debug) [1]", required=False, default=1)
+    general.add_argument("--verbose", type=int, help="specify the output verbosity (0 - warn, 1 - info, 2 - debug) [1]", required=False, default=1)
 
     experimental = parser_build.add_argument_group('EXPERIMENTAL')
     experimental.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
@@ -57,7 +57,7 @@ def parse_arguments(argv):
     required.add_argument("--output-file-path", help="output file path", required=True, default='')
     general = parser_makebg.add_argument_group('MISCELLANEOUS')
     general.add_argument("--compressed",help="compress output files",action="store_true",default=False)
-    general.add_argument("--verbose", type=int, help="specify the output verbosity. Level 1 records the input and output file paths.", required=False, default=1)
+    general.add_argument("--verbose", type=int, help="specify the output verbosity (0 - warn, 1 - info, 2 - debug) [1]", required=False, default=1)
 
     parser_diff = subparsers.add_parser('diff', help='append a new column to the junction kmer txt result file indicating if the kmer is in groundtruth')
     required = parser_diff.add_argument_group('MANDATORY')
@@ -70,7 +70,7 @@ def parse_arguments(argv):
 
     general = parser_diff.add_argument_group('MISCELLANEOUS')
     general.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
-    general.add_argument("--verbose", type=int, help="specify the output verbosity. Level 1 records the output file path.", required=False, default=1)
+    general.add_argument("--verbose", type=int, help="specify the output verbosity (0 - warn, 1 - info, 2 - debug) [1]", required=False, default=1)
 
     parser_filter = subparsers.add_parser('filter', help='apply different filter rules')
     required = parser_filter.add_argument_group('MANDATORY')
@@ -100,9 +100,7 @@ def parse_arguments(argv):
 
     general = parser_filter.add_argument_group('MISCELLANEOUS')
     general.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
-    general.add_argument("--verbose", type=int, help="specify the output verbosity. Level 1 records the input file"
-                                                     "and output file path in the log. Level 2 records the detail filter mechanism "
-                                                     "and threshold.", required=False, default=1)
+    general.add_argument("--verbose", type=int, help="specify the output verbosity (0 - warn, 1 - info, 2 - debug) [1]", required=False, default=1)
 
     if len(argv) < 1:
         parser.print_help()
@@ -140,8 +138,16 @@ def split_mode(options):
         handlers = [file_handler, stdout_handler]
     else:
         handlers = [file_handler]
+    ### set log level
+    if arg.verbose == 0:
+        log_level = logging.WARNING
+    elif arg.verbose == 1:
+        log_level = logging.INFO
+    else:
+        log_level = logging.DEBUG
+        
     logging.basicConfig(
-                        level=logging.DEBUG,
+                        level=log_level,
                         handlers=handlers,
                         format="%(asctime)-15s %(levelname)-8s %(message)s")
     logging.info("Command line"+str(arg))
