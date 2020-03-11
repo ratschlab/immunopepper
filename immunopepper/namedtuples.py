@@ -155,6 +155,13 @@ namedtuple that contain all the filepointers
 Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp','background_peptide_fp','junction_kmer_fp','background_kmer_fp'])
 
 
-
+"""
+Mutation namedtuple
+namedtuple that contains all mutation information
+- mode: 
+- germline_mutation_dict:
+- somatic_mutation_dict:
+"""
+Mutation = namedtuple('Mutation', ['mode', 'germline_mutation_dict', 'somatic_mutation_dict'])
 
 

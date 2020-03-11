@@ -6,10 +6,10 @@ import h5py
 import pickle
 import logging
 
+from .io import decodeUTF8
 from .namedtuples import CountInfo
 from .namedtuples import GeneTable
 from .namedtuples import ReadingFrameTuple
-from .utils import decodeUTF8
 from .utils import encode_chromosome
 from .utils import find_overlapping_cds_simple
 from .utils import get_successor_list

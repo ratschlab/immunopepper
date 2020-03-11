@@ -15,25 +15,25 @@ import h5py
 import numpy as np
 
 # immuno module
-from .immuno_preprocess import genes_preprocess
-from .immuno_preprocess import parse_junction_meta_info
-from .immuno_preprocess import parse_gene_metadata_info
-from .immuno_preprocess import preprocess_ann
-from .immuno_mutation import get_mutation_mode_from_parser
-from .immuno_mutation import get_sub_mutation_tuple
-from .immuno_model import collect_vertex_pairs
-from .immuno_model import get_and_write_background_peptide_and_kmer
-from .immuno_model import get_and_write_peptide_and_kmer
-from .io_utils import gz_and_normal_open
-from .io_utils import load_pickled_graph
-from .io_utils import print_memory_diags
+from .io import gz_and_normal_open
+from .io import load_pickled_graph
+from .io import print_memory_diags
+from .io import write_gene_expr
+from .mutations import get_mutation_mode_from_parser
+from .mutations import get_sub_mutation_tuple
 from .namedtuples import Filepointer
 from .namedtuples import Option
+from .preprocess import genes_preprocess
+from .preprocess import parse_junction_meta_info
+from .preprocess import parse_gene_metadata_info
+from .preprocess import preprocess_ann
+from .traversal import collect_vertex_pairs
+from .traversal import get_and_write_background_peptide_and_kmer
+from .traversal import get_and_write_peptide_and_kmer
 from .utils import check_chr_consistence
 from .utils import create_libsize
 from .utils import get_idx
 from .utils import get_total_gene_expr
-from .utils import write_gene_expr
 
 ### intermediate fix to load pickle files stored under previous version
 from spladder.classes import gene as cgene
@@ -45,7 +45,7 @@ sys.modules['modules.classes.splicegraph'] = csplicegraph
 sys.modules['modules.classes.segmentgraph'] = csegmentgraph
 ### end fix
 
-def immunopepper_build(arg):
+def mode_build(arg):
     # read and process the annotation file
     logging.info(">>>>>>>>> Build: Start Preprocessing")
     logging.info('Building lookup structure ...')
@@ -197,7 +197,7 @@ def immunopepper_build(arg):
             #logging.info(">DEBUG 1: time: {}".format(timeit.default_timer() - start_time))
             background_pep_list = get_and_write_background_peptide_and_kmer(gene=gene, 
                                                                             ref_mut_seq=ref_mut_seq,
-                                                                            table=genetable,
+                                                                            gene_table=genetable,
                                                                             Idx=idx,
                                                                             filepointer=filepointer,
                                                                             option=option,

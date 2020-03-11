@@ -10,20 +10,25 @@ from .filter import junction_is_annotated
 from .filter import junction_is_in_given_list
 from .filter import junction_tuple_is_annotated
 from .filter import peptide_is_annotated
+from .io import convert_namedtuple_to_str
+from .io import write_namedtuple_list
+from .mutations import apply_germline_mutation
+from .mutations import apply_somatic_mutation
+from .mutations import get_exon_som_dict
+from .mutations import get_mut_comb
+from .mutations import get_som_expr_dict
 from .namedtuples import Coord
 from .namedtuples import OutputBackground
 from .namedtuples import OutputJuncPeptide
 from .namedtuples import OutputKmer
 from .namedtuples import OutputMetadata
 from .namedtuples import VertexPair
+from .preprocess import search_edge_metadata_segmentgraph
 from .translate import get_full_peptide
 from .translate import isolated_peptide_result
 from .translate import get_peptide_result
 from .translate import cross_peptide_result
-
-from immunopepper.immuno_mutation import apply_germline_mutation,get_exon_som_dict,get_som_expr_dict,get_mut_comb,apply_somatic_mutation
-from immunopepper.utils import get_segment_expr,convert_namedtuple_to_str,write_namedtuple_list
-from immunopepper.immuno_preprocess import search_edge_metadata_segmentgraph
+from .utils import get_segment_expr
 
 
 def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, option=None):
@@ -105,7 +110,7 @@ def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, optio
     if  option.disable_concat:
         concat_vertex_pair_list = []
     else:
-        concat_vertex_pair_list = get_vertex_triples(gene, vertex_pair_list, option.kmer)
+        concat_vertex_pair_list = collect_vertex_triples(gene, vertex_pair_list, option.kmer)
     if option.filter_redundant:
         vertex_pair_list = get_filtered_metadata_list(vertex_pair_list, gene.strand)
     vertex_pair_list += concat_vertex_pair_list
@@ -113,7 +118,7 @@ def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, optio
     return vertex_pair_list, ref_mut_seq,exon_som_dict
 
 
-def get_vertex_triples(gene, vertex_pairs, k):
+def collect_vertex_triples(gene, vertex_pairs, k):
     """
 
     Parameters
@@ -218,14 +223,12 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
         seg_gene_idxs = np.where(countinfo.gene_ids_segs == countinfo.gene_idx_dict[gene.name])[0]
         seg_counts = countinfo.h5f['segments'][seg_gene_idxs, idx.sample] 
 
+    ### iterate over all vertex pairs and translate
     for ii,vertex_pair in enumerate(vertex_pairs):
-        mut_seq_comb = get_mut_comb(exon_som_dict, vertex_pair.vertex_idxs)
         modi_coord = vertex_pair.modified_exons_coord
         vertex_list = vertex_pair.vertex_idxs
-        if gene.strand == '+':
-            tran_start_pos = modi_coord.start_v1
-        else:
-            tran_start_pos = modi_coord.stop_v1
+        tran_start_pos = modi_coord.start_v1 if gene.strand == '+' else modi_coord.stop_v1
+        mut_seq_comb = get_mut_comb(exon_som_dict, vertex_pair.vertex_idxs)
 
         variant_id = 0
         for variant_comb in mut_seq_comb:  # go through each variant combination
@@ -247,7 +250,7 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
             else:
                 seg_exp_variant_comb = NOT_EXIST  # if no mutation or no count file,  the segment expression is .
 
-            # deal with expression data
+            # collect expression data
             if  countinfo:
                 segment_expr, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts)
             else:
@@ -295,14 +298,14 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
     gene.processed = True
 
 
-def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, table, countinfo, Idx,filepointer,option):
+def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, countinfo, Idx,filepointer,option):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
     Parameters
     ----------
     gene: Object. Created by SplAdder
     ref_seq: List(str). Reference sequence of certain chromosome.
-    table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
+    gene_table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
        from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
 
     Returns
@@ -313,7 +316,7 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, table, countinf
         can be used to generate artifical reads.
     """
     ref_seq = ref_mut_seq['background']
-    gene_to_transcript_table,transcript_cds_table = table.gene_to_ts, table.ts_to_cds,
+    gene_to_transcript_table,transcript_cds_table = gene_table.gene_to_ts, gene_table.ts_to_cds
     gene_transcripts = gene_to_transcript_table[gene.name]
     back_pep_field_list = ['id', 'new_line', 'peptide']
     kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction']
@@ -322,13 +325,11 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, table, countinf
     for ts in gene_transcripts:
         # No CDS entries for transcript in annotation file...
         if ts not in transcript_cds_table:
-            #print("WARNING: Transcript not in CDS table")
             continue
-        cds_list = transcript_cds_table[ts]
-        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_seq, cds_list, countinfo, Idx, mode='back')
-        peptide = OutputBackground(ts,cds_peptide)
+        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_seq, transcript_cds_table[ts], countinfo, Idx, mode='back')
+        peptide = OutputBackground(ts, cds_peptide)
         background_peptide_list.append(peptide)
-        filepointer.background_peptide_fp.write(convert_namedtuple_to_str(peptide,back_pep_field_list)+'\n')
+        filepointer.background_peptide_fp.write(convert_namedtuple_to_str(peptide, back_pep_field_list) + '\n')
         if option.kmer > 0:
             output_kmer_list = create_output_kmer(peptide, option.kmer, cds_expr_list)
             write_namedtuple_list(filepointer.background_kmer_fp,output_kmer_list,kmer_field_list)

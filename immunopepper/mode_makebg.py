@@ -1,9 +1,11 @@
 """
 Integrate multiple background kmer files and generate background kmer file
 """
-import logging
+
 import gzip
-def immunopepper_makebg(arg):
+import logging
+
+def mode_makebg(arg):
     logging.info(">>>>>>>>> make_bg: Start")
     kmer_file_list = arg.kmer_files
     output_file_path = arg.output_file_path

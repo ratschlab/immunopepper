@@ -5,7 +5,7 @@ import pandas as pd
 import logging
 import gzip
 
-def immunopepper_diff(arg):
+def mode_diff(arg):
     logging.info(">>>>>>>>> diff: Start")
     junction_kmer_file = arg.junction_kmer_file
     bg_file_path = arg.bg_file_path

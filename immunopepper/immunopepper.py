@@ -1,19 +1,18 @@
 
-
 # Python libraries
-import sys
 import argparse
-import os
 import logging
+import os
+import sys
+
 from datetime import datetime
 
-from immunopepper.immunopepper_build import immunopepper_build
-from immunopepper.immunopepper_makebg import immunopepper_makebg
-from immunopepper.immunopepper_diff import immunopepper_diff
-from immunopepper.immunopepper_filter import immunopepper_filter
+from .mode_build import mode_build
+from .mode_diff import mode_diff
+from .mode_filter import mode_filter
+from .mode_makebg import mode_makebg
 
 def parse_arguments(argv):
-
     parser = argparse.ArgumentParser(prog='immunopepper')
     subparsers = parser.add_subparsers(help='Running modes', metavar='{build, make_bg, diff, filter}')
     parser_build = subparsers.add_parser('build', help='generate kmers library from a splicegraph')
@@ -147,18 +146,17 @@ def split_mode(options):
                         format="%(asctime)-15s %(levelname)-8s %(message)s")
     logging.info("Command line"+str(arg))
     if mode == 'build':
-        immunopepper_build(arg)
+        mode_build(arg)
     if mode == 'make_bg':
-        immunopepper_makebg(arg)
+        mode_makebg(arg)
     if mode == 'diff':
-        immunopepper_diff(arg)
+        mode_diff(arg)
     if mode == 'filter':
-        immunopepper_filter(arg)
+        mode_filter(arg)
 
 def cmd_entry():
     options = sys.argv[1:]
     split_mode(options)
-
 
 if __name__ == "__main__":
     cmd_entry()

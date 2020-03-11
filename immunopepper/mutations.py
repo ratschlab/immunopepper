@@ -1,17 +1,17 @@
 """Contain functions to deal with mutation"""
 import bisect
-import sys
-from collections import namedtuple
-from functools import reduce
 import logging
-
-from .constant import NOT_EXIST
-from .immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
-from .utils import get_all_comb
-
+import sys
 import numpy as np
 
-Mutation = namedtuple('Mutation', ['mode','germline_mutation_dict','somatic_mutation_dict'])
+from collections import namedtuple
+from functools import reduce
+
+from .constant import NOT_EXIST
+from .namedtuples import Mutation
+from .preprocess import parse_mutation_from_maf
+from .preprocess import parse_mutation_from_vcf
+from .utils import get_all_comb
 
 
 def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict):
@@ -149,7 +149,7 @@ def get_mutation_mode_from_parser(args):
         logging.error('Mutation mode "%s" not recognized, please check again.' % mutation_mode)
 
     if is_error:
-         logging.error("immuno_mutation.py: The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")
+         logging.error("mutations.py: The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")
          sys.exit(1)
     mutation = Mutation(mutation_mode,germline_mutation_dict=germline_mutation_dict,somatic_mutation_dict=somatic_mutation_dict)
     return mutation

@@ -1,12 +1,15 @@
 """
 Apply different filter mechanism on kmer tsv files
 """
-import pandas as pd
 import logging
-from .constant import NOT_EXIST
-from .io_utils import gz_and_normal_open
 import sys
-def immunopepper_filter(arg):
+
+import pandas as pd
+
+from .constant import NOT_EXIST
+from .io import gz_and_normal_open
+
+def mode_filter(arg):
     logging.info(">>>>>>>>> filter: Start")
     junction_kmer_tsv_path = arg.junction_kmer_tsv_path
     output_file_path = arg.output_file_path
@@ -156,6 +159,7 @@ def get_start_pos_for_kmer_unfiltered(meta_file_path,junction_kmer_tsv_path,outp
     new_junction_file.close()
     return output_file_path
 
+
 def deal_with_duplicate(line_list,k,cur_modi_coord,vertex_len,strand,kmer_len,chr,cur_variant_comb,new_junction_file):
     assert len(line_list) % k == 0
     uniq_line_len = len(line_list) // k
@@ -217,10 +221,3 @@ def get_start_pos_from_count(count, coord_list, vertex_len, strand, kmer_len):
             i += 1 # move the point to the next vertex
         pos_list.append(end_pos)
     return pos_list
-
-# case = 'neg'
-# mode = 'somatic_and_germline'
-# meta_file_path = 'tests/test1/current_output_{}/test1{}/{}_metadata.tsv.gz'.format(case,case,mode)
-# junction_kmer_tsv_path = 'tests/test1/current_output_{}/test1{}/{}_junction_kmer.txt'.format(case,case,mode)
-# output_file_path = 'new_junction_kmer.txt'
-# get_start_pos_for_kmer_unfiltered(meta_file_path,junction_kmer_tsv_path,output_file_path)
