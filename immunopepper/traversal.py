@@ -181,7 +181,7 @@ def collect_vertex_triples(gene, vertex_pairs, k):
 
 def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_list=None,ref_mut_seq=None, idx=None,
                          exon_som_dict=None, countinfo=None, mutation=None,table=None,
-                         size_factor=None, junction_list=None, filepointer=None, output_silence=False, kmer=None):
+                         size_factor=None, junction_list=None, output_silence=False, kmer=None):
     """
 
     Parameters
@@ -200,19 +200,12 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
     size_factor: Scalar. To adjust the expression counts based on the external file `libsize.tsv`
     junction_list: List. Work as a filter to indicate some exon pair has certain
        ordinary intron which can be ignored further.
-    filepointer: NamedTuple Filepointer, store file pointer to different output files.
 
     """
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
     som_exp_dict = get_som_expr_dict(gene, list(mutation.somatic_mutation_dict.keys()), countinfo, idx)
-    meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode', 'peptide_annotated',
-                       'junction_annotated', 'has_stop_codon', 'is_in_junction_list', 'is_isolated', 'variant_comb',
-                       'variant_seg_expr',
-                       'modified_exons_coord','original_exons_coord', 'vertex_idx', 'junction_expr', 'segment_expr']
-    junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
-    kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction','junction_count']
 
     ### collect the relevant count infor for the current gene
     if countinfo:
@@ -221,6 +214,10 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
         edge_counts = countinfo.h5f['edges'][edge_gene_idxs, idx.sample] 
         seg_gene_idxs = np.where(countinfo.gene_ids_segs == countinfo.gene_idx_dict[gene.name])[0]
         seg_counts = countinfo.h5f['segments'][seg_gene_idxs, idx.sample] 
+
+    output_metadata_list = []
+    output_peptide_list = []
+    output_kmer_lists = []
 
     ### iterate over all vertex pairs and translate
     for ii,vertex_pair in enumerate(vertex_pairs):
@@ -259,45 +256,43 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
             else:
                 edge_expr = NOT_EXIST
 
-            output_metadata = OutputMetadata(output_id=new_output_id,
-                                              read_frame=vertex_pair.read_frame.read_phase,
-                                              gene_name=gene.name,
-                                              gene_chr=gene.chr,
-                                              gene_strand=gene.strand,
-                                              mutation_mode=mutation.mode,
-                                              peptide_annotated=peptide_is_annotated_flag,
-                                              junction_annotated=vertex_tuple_anno_flag,
-                                              has_stop_codon=int(flag.has_stop),
-                                              is_in_junction_list=junction_is_in_given_list_flag,
-                                              is_isolated=int(flag.is_isolated),
-                                              variant_comb=variant_comb,
-                                              variant_seg_expr=seg_exp_variant_comb,
-                                              modified_exons_coord=modi_coord,
-                                              original_exons_coord=vertex_pair.original_exons_coord,
-                                              vertex_idx=vertex_list,
-                                              junction_expr=edge_expr,
-                                              segment_expr=segment_expr
-            )
+            output_metadata_list.append(OutputMetadata(output_id=new_output_id,
+                                                       read_frame=vertex_pair.read_frame.read_phase,
+                                                       gene_name=gene.name,
+                                                       gene_chr=gene.chr,
+                                                       gene_strand=gene.strand,
+                                                       mutation_mode=mutation.mode,
+                                                       peptide_annotated=peptide_is_annotated_flag,
+                                                       junction_annotated=vertex_tuple_anno_flag,
+                                                       has_stop_codon=int(flag.has_stop),
+                                                       is_in_junction_list=junction_is_in_given_list_flag,
+                                                       is_isolated=int(flag.is_isolated),
+                                                       variant_comb=variant_comb,
+                                                       variant_seg_expr=seg_exp_variant_comb,
+                                                       modified_exons_coord=modi_coord,
+                                                       original_exons_coord=vertex_pair.original_exons_coord,
+                                                       vertex_idx=vertex_list,
+                                                       junction_expr=edge_expr,
+                                                       segment_expr=segment_expr
+            ))
             variant_id += 1
             output_peptide = OutputJuncPeptide(output_id='>' + new_output_id,
                                             id=new_output_id,
                                             peptide=peptide.mut,
                                             exons_coor=modi_coord,
                                             junction_count=edge_expr)
-
+            output_peptide_list.append(output_peptide)
             if kmer > 0:
-                output_kmer_list = create_output_kmer(output_peptide, kmer, expr_list)
-                write_namedtuple_list(filepointer.junction_kmer_fp, output_kmer_list, kmer_field_list)
-
-            filepointer.junction_meta_fp.write(convert_namedtuple_to_str(output_metadata, meta_field_list)+'\n')
-            filepointer.junction_peptide_fp.write(convert_namedtuple_to_str(output_peptide, junc_pep_field_list)+'\n')
+                output_kmer_lists.append(create_output_kmer(output_peptide, kmer, expr_list))
 
     if not gene.splicegraph.edges is None:
         gene.to_sparse()
     gene.processed = True
 
+    return output_metadata_list, output_peptide_list, output_kmer_lists
 
-def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, countinfo, Idx, filepointer, kmer):
+
+def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, countinfo, Idx, kmer):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
     Parameters
@@ -306,7 +301,7 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, cou
     ref_mut_seq: List(str). Reference sequence of certain chromosome.
     gene_table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
        from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
-   countinfo: NamedTuple containing SplAdder counts
+    countinfo: NamedTuple containing SplAdder counts
 
     Returns
     -------
@@ -315,26 +310,21 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, cou
     (ts_list): List[str]. List of all the transcript indicated by the  annotation file
         can be used to generate artifical reads.
     """
-    ref_seq = ref_mut_seq['background']
-    gene_to_transcript_table,transcript_cds_table = gene_table.gene_to_ts, gene_table.ts_to_cds
-    gene_transcripts = gene_to_transcript_table[gene.name]
-    back_pep_field_list = ['id', 'new_line', 'peptide']
-    kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction']
+    gene_to_transcript_table, transcript_cds_table = gene_table.gene_to_ts, gene_table.ts_to_cds
     background_peptide_list = []
+    output_kmer_lists = []
     # Generate a background peptide for every variant transcript
-    for ts in gene_transcripts:
+    for ts in gene_to_transcript_table[gene.name]:
         # No CDS entries for transcript in annotation file...
         if ts not in transcript_cds_table:
             continue
-        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_seq, transcript_cds_table[ts], countinfo, Idx, mode='back')
+        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_mut_seq['background'], transcript_cds_table[ts], countinfo, Idx, mode='back')
         peptide = OutputBackground(ts, cds_peptide)
         background_peptide_list.append(peptide)
-        filepointer.background_peptide_fp.write(convert_namedtuple_to_str(peptide, back_pep_field_list) + '\n')
         if kmer > 0:
-            output_kmer_list = create_output_kmer(peptide, kmer, cds_expr_list)
-            write_namedtuple_list(filepointer.background_kmer_fp,output_kmer_list,kmer_field_list)
+            output_kmer_lists.append(create_output_kmer(peptide, kmer, cds_expr_list))
     gene.processed = True
-    return background_peptide_list
+    return background_peptide_list, output_kmer_lists
 
 
 def create_output_kmer(output_peptide, k, expr_list):

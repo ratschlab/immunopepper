@@ -40,6 +40,7 @@ def parse_arguments(argv):
     general.add_argument("--process-num", metavar='N', type=int, help="Only process the first N genes in the splicegraph, default: process all", required=False, default=0)
     general.add_argument("--use-mut-pickle",help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
     general.add_argument("--verbose", type=int, help="specify the output verbosity (0 - warn, 1 - info, 2 - debug) [1]", required=False, default=1)
+    general.add_argument("--parallel", type=int, help="number of threads to be used [1]", required=False, default=1)
 
     experimental = parser_build.add_argument_group('EXPERIMENTAL')
     experimental.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)

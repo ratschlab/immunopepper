@@ -15,10 +15,12 @@ import h5py
 import numpy as np
 
 # immuno module
+from .io import convert_namedtuple_to_str
 from .io import gz_and_normal_open
 from .io import load_pickled_graph
 from .io import print_memory_diags
 from .io import write_gene_expr
+from .io import write_namedtuple_list
 from .mutations import get_mutation_mode_from_parser
 from .mutations import get_sub_mutation_tuple
 from .namedtuples import Filepointer
@@ -43,6 +45,75 @@ sys.modules['modules.classes.gene'] = cgene
 sys.modules['modules.classes.splicegraph'] = csplicegraph
 sys.modules['modules.classes.segmentgraph'] = csegmentgraph
 ### end fix
+
+
+def process_single_gene(sample, gene, idx, mutation, junction_dict, seq_dict, countinfo, genetable, arg):
+
+    chrm = gene.chr.strip()
+    sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
+    junction_list = None
+    if not junction_dict is None and chrm in junction_dict:
+        junction_list = junction_dict[chrm]
+
+    ### set result dict
+    R = dict()
+    vertex_pairs, ref_mut_seq, exon_som_dict = collect_vertex_pairs(gene=gene,
+                                                                    ref_seq=seq_dict[chrm],
+                                                                    idx=idx,
+                                                                    mutation=sub_mutation,
+                                                                    disable_concat=arg.disable_concat,
+                                                                    kmer=arg.kmer,
+                                                                    filter_redundant=arg.filter_redundant)
+
+    R['background_peptide_list'], R['background_kmer_lists'] = get_and_write_background_peptide_and_kmer(gene=gene, 
+                                                                    ref_mut_seq=ref_mut_seq,
+                                                                    gene_table=genetable,
+                                                                    countinfo=countinfo, 
+                                                                    Idx=idx,
+                                                                    kmer=arg.kmer)
+    R['output_metadata_list'], R['output_peptide_list'], R['output_kmer_lists'] = get_and_write_peptide_and_kmer(gene=gene, 
+                                                                               vertex_pairs=vertex_pairs, 
+                                                                               background_pep_list=R['background_peptide_list'],
+                                                                               ref_mut_seq=ref_mut_seq, 
+                                                                               idx=idx, 
+                                                                               exon_som_dict=exon_som_dict,
+                                                                               countinfo=countinfo,
+                                                                               mutation=sub_mutation,
+                                                                               table=genetable,
+                                                                               size_factor=None,
+                                                                               junction_list=junction_list, 
+                                                                               kmer=arg.kmer,
+                                                                               output_silence=arg.output_silence)
+
+    return R
+
+
+def write_gene_result(gene_result, filepointer):
+
+    ### define fields relevant for output
+    back_pep_field_list = ['id', 'new_line', 'peptide']
+    for peptide in gene_result['background_peptide_list']:
+        filepointer.background_peptide_fp.write(convert_namedtuple_to_str(peptide, back_pep_field_list) + '\n')
+
+    back_kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction']
+    for kmer_list in gene_result['background_kmer_lists']:
+        write_namedtuple_list(filepointer.background_kmer_fp, kmer_list, back_kmer_field_list)
+
+    junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
+    for peptide in gene_result['output_peptide_list']:
+        filepointer.junction_peptide_fp.write(convert_namedtuple_to_str(peptide, junc_pep_field_list) + '\n')
+
+    meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode', 'peptide_annotated',
+                       'junction_annotated', 'has_stop_codon', 'is_in_junction_list', 'is_isolated', 'variant_comb',
+                       'variant_seg_expr', 'modified_exons_coord','original_exons_coord', 'vertex_idx', 'junction_expr', 'segment_expr']
+    for output_metadata in gene_result['output_metadata_list']:
+        filepointer.junction_meta_fp.write(convert_namedtuple_to_str(output_metadata, meta_field_list) + '\n')
+
+    kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count']
+    for kmer_list in gene_result['output_kmer_lists']:
+        write_namedtuple_list(filepointer.junction_kmer_fp, kmer_list, kmer_field_list)
+
+
 
 def mode_build(arg):
     # read and process the annotation file
@@ -148,7 +219,7 @@ def mode_build(arg):
         gene_expr_fp = gz_and_normal_open(gene_expr_file_path,'w')
 
 
-        filepointer = Filepointer(peptide_fp,meta_peptide_fp,background_fp,junction_kmer_fp,background_kmer_fp)
+        filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp, junction_kmer_fp, background_kmer_fp)
 
         meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode',
                            'peptide_annotated',
@@ -165,70 +236,35 @@ def mode_build(arg):
         background_kmer_fp.write(('\t'.join(background_kmer_field_list)+'\n'))
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
-        for gene_idx in gene_id_list:
-            gene = graph_data[gene_idx]
-            idx = get_idx(countinfo, sample, gene_idx)
-            total_expr = get_total_gene_expr(gene, countinfo, idx)
-            gene_name_expr_distr.append((gene.name, total_expr))
-            expr_distr.append(total_expr)
-            #try:
-            start_time = timeit.default_timer()
-            # Genes not contained in the annotation...
-            if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
-                gene.processed = False
-                logging.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
-                continue
+        if arg.parallel > 1:
+            pass
+        else:
+            for gene_idx in gene_id_list:
+                gene = graph_data[gene_idx]
+                idx = get_idx(countinfo, sample, gene_idx)
+                total_expr = get_total_gene_expr(gene, countinfo, idx)
+                gene_name_expr_distr.append((gene.name, total_expr))
+                expr_distr.append(total_expr)
 
-            chrm = gene.chr.strip()
-            sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
-            if not junction_dict is None and chrm in junction_dict:
-                junction_list = junction_dict[chrm]
-            else:
-                junction_list = None
+                start_time = timeit.default_timer()
+                # Genes not contained in the annotation...
+                if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
+                    gene.processed = False
+                    logging.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
+                    continue
 
-            vertex_pairs, ref_mut_seq, exon_som_dict = collect_vertex_pairs(gene=gene,ref_seq=seq_dict[chrm],
-                                                                            idx=idx,mutation=sub_mutation,
-                                                                            disable_concat=arg.disable_concat,
-                                                                            kmer=arg.kmer,
-                                                                            filter_redundant=arg.filter_redundant)
-            #logging.info(">DEBUG 1: time: {}".format(timeit.default_timer() - start_time))
-            background_pep_list = get_and_write_background_peptide_and_kmer(gene=gene, 
-                                                                            ref_mut_seq=ref_mut_seq,
-                                                                            gene_table=genetable,
-                                                                            countinfo=countinfo, 
-                                                                            Idx=idx,
-                                                                            filepointer=filepointer,
-                                                                            kmer=arg.kmer)
-            #logging.info(">DEBUG 2: time: {}".format(timeit.default_timer() - start_time))
-            get_and_write_peptide_and_kmer(gene=gene, 
-                                           vertex_pairs=vertex_pairs, 
-                                           background_pep_list=background_pep_list,
-                                           ref_mut_seq=ref_mut_seq, 
-                                           idx=idx, 
-                                           exon_som_dict=exon_som_dict,
-                                           countinfo=countinfo,
-                                           mutation=sub_mutation,
-                                           table=genetable,
-                                           size_factor=None,
-                                           junction_list=junction_list, 
-                                           filepointer=filepointer, 
-                                           kmer=arg.kmer,
-                                           output_silence=arg.output_silence)
-            #logging.info(">DEBUG 3: time: {}".format(timeit.default_timer() - start_time))
-            end_time = timeit.default_timer()
-            memory = print_memory_diags(disable_print=True)
-            logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample,gene_idx+1, len(gene_id_list),end_time - start_time,memory))
-            time_list.append(end_time - start_time)
-            memory_list.append(memory)
-            #except Exception as e:
-            #    # should also print the error
-            #    logging.exception("Unexpected exception occured in gene %d, %s mode, sample %s . Traceback is:" % (gene_idx,arg.mutation_mode,sample))
-            #    error_gene_num += 1
-            #    time_list.append(0)
-            #    memory_list.append(0)
-            if len(arg.samples) == 1:
-                graph_data[gene_idx] = None
-                gc.collect()
+                gene_result = process_single_gene(sample, gene, idx, mutation, junction_dict, seq_dict, countinfo, genetable, arg)
+                write_gene_result(gene_result, filepointer)
+
+                end_time = timeit.default_timer()
+                memory = print_memory_diags(disable_print=True)
+                logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample,gene_idx+1, len(gene_id_list),end_time - start_time,memory))
+                time_list.append(end_time - start_time)
+                memory_list.append(memory)
+
+                if len(arg.samples) == 1:
+                    graph_data[gene_idx] = None
+                    gc.collect()
         if memory_list and time_list:
             max_memory,max_time = max(memory_list),max(time_list)
             max_memory_id,max_time_id = np.argmax(memory_list),np.argmax(time_list)
