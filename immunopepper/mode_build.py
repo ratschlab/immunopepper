@@ -7,6 +7,9 @@ import os
 import pickle
 import sys
 import timeit
+import multiprocessing as mp
+import signal as sig
+from functools import partial
 
 # External libraries
 import Bio.SeqIO as BioIO
@@ -24,7 +27,7 @@ from .io import write_namedtuple_list
 from .mutations import get_mutation_mode_from_parser
 from .mutations import get_sub_mutation_tuple
 from .namedtuples import Filepointer
-from .preprocess import genes_preprocess
+from .preprocess import genes_preprocess_all
 from .preprocess import parse_junction_meta_info
 from .preprocess import parse_gene_metadata_info
 from .preprocess import preprocess_ann
@@ -47,7 +50,21 @@ sys.modules['modules.classes.segmentgraph'] = csegmentgraph
 ### end fix
 
 
-def process_single_gene(sample, gene, idx, mutation, junction_dict, seq_dict, countinfo, genetable, arg):
+def process_single_gene(sample, gene, gene_info, gene_idx, mutation, junction_dict, countinfo, genetable, arg):
+    ### set result dict
+    R = dict()
+    R['gene_name'] = gene.name
+
+    # Genes not contained in the annotation...
+    if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
+        gene.processed = False
+        logging.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
+        R['processed'] = False
+        return R
+    R['processed'] = True
+
+    idx = get_idx(countinfo, sample, gene_idx)
+    R['total_expr'] = get_total_gene_expr(gene, countinfo, idx)
 
     chrm = gene.chr.strip()
     sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
@@ -55,10 +72,10 @@ def process_single_gene(sample, gene, idx, mutation, junction_dict, seq_dict, co
     if not junction_dict is None and chrm in junction_dict:
         junction_list = junction_dict[chrm]
 
-    ### set result dict
-    R = dict()
     vertex_pairs, ref_mut_seq, exon_som_dict = collect_vertex_pairs(gene=gene,
-                                                                    ref_seq=seq_dict[chrm],
+                                                                    gene_info=gene_info,
+                                                                    ref_seq_file=arg.ref_path, #seq_dict[chrm],
+                                                                    chrm=chrm,
                                                                     idx=idx,
                                                                     mutation=sub_mutation,
                                                                     disable_concat=arg.disable_concat,
@@ -114,7 +131,6 @@ def write_gene_result(gene_result, filepointer):
         write_namedtuple_list(filepointer.junction_kmer_fp, kmer_list, kmer_field_list)
 
 
-
 def mode_build(arg):
     # read and process the annotation file
     logging.info(">>>>>>>>> Build: Start Preprocessing")
@@ -126,15 +142,15 @@ def mode_build(arg):
     print_memory_diags()
 
     # load genome sequence data
-    seq_dict = {}
-    start_time = timeit.default_timer()
-    logging.info('Parsing genome sequence ...')
-    for record in BioIO.parse(arg.ref_path, "fasta"):
-        if record.id in chromosome_set:
-            seq_dict[record.id] = str(record.seq).strip()
-    end_time = timeit.default_timer()
-    logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
-    print_memory_diags()
+    #seq_dict = {}
+    #start_time = timeit.default_timer()
+    #logging.info('Parsing genome sequence ...')
+    #for record in BioIO.parse(arg.ref_path, "fasta"):
+    #    if record.id in chromosome_set:
+    #        seq_dict[record.id] = str(record.seq).strip()
+    #end_time = timeit.default_timer()
+    #logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
+    #print_memory_diags()
 
     # read the variant file
     mutation = get_mutation_mode_from_parser(arg)
@@ -149,6 +165,7 @@ def mode_build(arg):
     
     ### DEBUG
     #graph_data = graph_data[[3170]]
+    #graph_data = graph_data[:1000]
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
@@ -161,13 +178,10 @@ def mode_build(arg):
     start_time = timeit.default_timer()
     if arg.count_path is not None:
         logging.info('Loading count data ...')
-        h5f = h5py.File(arg.count_path, 'r')
-        countinfo = parse_gene_metadata_info(h5f, arg.samples)
+        countinfo = parse_gene_metadata_info(arg.count_path, arg.samples)
         end_time = timeit.default_timer()
         logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
         print_memory_diags()
-        # get the fp
-        #strains = sp.array([x.split('.')[0] for x in h5f['strains'][:]])
         #size_factor = get_size_factor(strains, arg.libsize_path)
         #size_factor = None
     else:
@@ -181,7 +195,7 @@ def mode_build(arg):
     # add CDS starts and reading frames to the respective nodes
     logging.info('Add reading frame to splicegraph ...')
     start_time = timeit.default_timer()
-    genes_preprocess(graph_data, genetable.gene_to_cds_begin)
+    graph_info = genes_preprocess_all(graph_data, genetable.gene_to_cds_begin, arg.parallel)
     end_time = timeit.default_timer()
     logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
@@ -190,6 +204,14 @@ def mode_build(arg):
     # process graph for each input sample
     output_libszie_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
     logging.info(">>>>>>>>> Start traversing splicegraph")
+
+    if arg.parallel > 1:
+        global cnt
+        global gene_name_expr_distr
+        global expr_distr
+        global filepointer
+        global gene_id_list
+
     for sample in arg.samples:
         logging.info(">>>> Processing sample {}, there are {} graphs in total".format(sample,num))
         error_gene_num = 0
@@ -218,7 +240,6 @@ def mode_build(arg):
         background_kmer_fp = gz_and_normal_open(background_kmer_file_path,'w')
         gene_expr_fp = gz_and_normal_open(gene_expr_file_path,'w')
 
-
         filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp, junction_kmer_fp, background_kmer_fp)
 
         meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode',
@@ -237,25 +258,37 @@ def mode_build(arg):
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
         if arg.parallel > 1:
-            pass
+            cnt = 0
+
+            def process_result(gene_result):
+                global cnt
+                global gene_name_expr_distr
+                global expr_distr
+                global filepointer
+                global gene_id_list
+                logging.info('> Finished processing Gene {} ({}/{})'.format(gene_result['gene_name'], cnt, len(gene_id_list)))
+                cnt += 1
+                if gene_result['processed']:
+                    gene_name_expr_distr.append((gene_result['gene_name'], gene_result['total_expr']))
+                    expr_distr.append(gene_result['total_expr'])
+                    write_gene_result(gene_result, filepointer)
+                del gene_result
+
+            pool = mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
+            for gene_idx in gene_id_list:
+                _ = pool.apply_async(process_single_gene, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, mutation, junction_dict, countinfo, genetable, arg,), callback=process_result)
+            pool.close()
+            pool.join()
         else:
             for gene_idx in gene_id_list:
                 gene = graph_data[gene_idx]
-                idx = get_idx(countinfo, sample, gene_idx)
-                total_expr = get_total_gene_expr(gene, countinfo, idx)
-                gene_name_expr_distr.append((gene.name, total_expr))
-                expr_distr.append(total_expr)
-
+                gene_info = graph_info[gene_idx]
                 start_time = timeit.default_timer()
-                # Genes not contained in the annotation...
-                if gene.name not in genetable.gene_to_cds_begin or gene.name not in genetable.gene_to_ts:
-                    gene.processed = False
-                    logging.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
-                    continue
-
-                gene_result = process_single_gene(sample, gene, idx, mutation, junction_dict, seq_dict, countinfo, genetable, arg)
-                write_gene_result(gene_result, filepointer)
-
+                gene_result = process_single_gene(sample, gene, gene_info, gene_idx, mutation, junction_dict, countinfo, genetable, arg)
+                if gene_result['processed']:
+                    gene_name_expr_distr.append((gene.name, gene_result['total_expr']))
+                    expr_distr.append(gene_result['total_expr'])
+                    write_gene_result(gene_result, filepointer)
                 end_time = timeit.default_timer()
                 memory = print_memory_diags(disable_print=True)
                 logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample,gene_idx+1, len(gene_id_list),end_time - start_time,memory))

@@ -1,7 +1,7 @@
 """Contains all the output computation based on gene splicegraph"""
 
 import logging
-
+import h5py
 import numpy as np
 
 from .constant import NOT_EXIST
@@ -31,7 +31,7 @@ from .translate import cross_peptide_result
 from .utils import get_segment_expr
 
 
-def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, disable_concat=False, kmer=None, filter_redundant=False):
+def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None, idx=None, mutation=None, disable_concat=False, kmer=None, filter_redundant=False):
     """Calculte the output peptide for every exon-pairs in the splicegraph
 
        Parameters
@@ -52,15 +52,18 @@ def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, disab
 
     gene.from_sparse()
     sg = gene.splicegraph
+    min_pos = np.min(sg.vertices[0])
+    max_pos = np.max(sg.vertices[1])
 
     output_id = 0
 
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
     # otherwise, background_seq = ref_seq
-    ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq,
-                                          pos_start=np.min(sg.vertices[0]),
-                                          pos_end=np.max(sg.vertices[1]),
+    ref_mut_seq = apply_germline_mutation(ref_sequence_file=ref_seq_file,
+                                          chrm=chrm,
+                                          pos_start=min_pos,
+                                          pos_end=max_pos,
                                           mutation_sub_dict=mutation.germline_mutation_dict)
 
     # apply somatic mutation
@@ -70,16 +73,16 @@ def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, disab
         exon_som_dict = get_exon_som_dict(gene, mutation.somatic_mutation_dict)
 
     vertex_pair_list = []
-    reading_frame_dict = dict(sg.reading_frames)
+    reading_frame_dict = dict(gene_info.reading_frames)
 
-    for v_id in gene.vertex_order:
+    for v_id in gene_info.vertex_order:
         n_read_frames = len(reading_frame_dict[v_id])
         if n_read_frames == 0:  # no cds start, skip the vertex
             continue
-        if len(gene.vertex_succ_list[v_id]) == 0: # if no successive vertex, we add a flag NOT_EXIST, translate and output it
-            gene.vertex_succ_list[v_id].append(NOT_EXIST)
+        if len(gene_info.vertex_succ_list[v_id]) == 0: # if no successive vertex, we add a flag NOT_EXIST, translate and output it
+            gene_info.vertex_succ_list[v_id].append(NOT_EXIST)
 
-        for prop_vertex in gene.vertex_succ_list[v_id]:
+        for prop_vertex in gene_info.vertex_succ_list[v_id]:
             vertex_list = [v_id, prop_vertex]
             mut_seq_comb = get_mut_comb(exon_som_dict,vertex_list)
             for read_frame_tuple in sorted(reading_frame_dict[v_id]):
@@ -87,12 +90,12 @@ def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, disab
                 for variant_comb in mut_seq_comb:  # go through each variant combination
                     logging.debug(' '.join([str(v_id), str(prop_vertex), str(variant_comb), str(read_frame_tuple.read_phase)]))
                     if prop_vertex != NOT_EXIST:
-                        peptide, modi_coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq, sg.vertices[:, prop_vertex])
+                        peptide, modi_coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq, sg.vertices[:, prop_vertex], min_pos)
                         orig_coord = Coord(sg.vertices[0, v_id], sg.vertices[1, v_id], sg.vertices[0, prop_vertex], sg.vertices[1, prop_vertex])
                         if not flag.has_stop:
                             reading_frame_dict[prop_vertex].add(next_reading_frame)
                     else:
-                        peptide, modi_coord, flag = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_mutation_dict,ref_mut_seq)
+                        peptide, modi_coord, flag = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq, min_pos)
                         orig_coord = Coord(sg.vertices[0, v_id],sg.vertices[1, v_id], NOT_EXIST, NOT_EXIST)
                     has_stop_flag = has_stop_flag and flag.has_stop
                 gene_outputid = str(idx.gene) + ':' + str(output_id)
@@ -114,7 +117,7 @@ def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, disab
         vertex_pair_list = get_filtered_metadata_list(vertex_pair_list, gene.strand)
     vertex_pair_list += concat_vertex_pair_list
 
-    return vertex_pair_list, ref_mut_seq,exon_som_dict
+    return vertex_pair_list, ref_mut_seq, exon_som_dict
 
 
 def collect_vertex_triples(gene, vertex_pairs, k):
@@ -179,7 +182,7 @@ def collect_vertex_triples(gene, vertex_pairs, k):
     return concat_vertex_pair_list
 
 
-def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_list=None,ref_mut_seq=None, idx=None,
+def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_list=None, ref_mut_seq=None, idx=None,
                          exon_som_dict=None, countinfo=None, mutation=None,table=None,
                          size_factor=None, junction_list=None, output_silence=False, kmer=None):
     """
@@ -210,10 +213,11 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
     ### collect the relevant count infor for the current gene
     if countinfo:
         edge_gene_idxs = np.where(countinfo.gene_ids_edges == countinfo.gene_idx_dict[gene.name])[0]
-        edge_idxs = countinfo.h5f['edge_idx'][edge_gene_idxs].astype('int')
-        edge_counts = countinfo.h5f['edges'][edge_gene_idxs, idx.sample] 
-        seg_gene_idxs = np.where(countinfo.gene_ids_segs == countinfo.gene_idx_dict[gene.name])[0]
-        seg_counts = countinfo.h5f['segments'][seg_gene_idxs, idx.sample] 
+        with h5py.File(countinfo.h5fname, 'r') as h5f:
+            edge_idxs = h5f['edge_idx'][edge_gene_idxs].astype('int')
+            edge_counts = h5f['edges'][edge_gene_idxs, idx.sample] 
+            seg_gene_idxs = np.where(countinfo.gene_ids_segs == countinfo.gene_idx_dict[gene.name])[0]
+            seg_counts = h5f['segments'][seg_gene_idxs, idx.sample] 
 
     output_metadata_list = []
     output_peptide_list = []
@@ -228,7 +232,7 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
 
         variant_id = 0
         for variant_comb in mut_seq_comb:  # go through each variant combination
-            peptide,flag = get_peptide_result(vertex_pair, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq)
+            peptide,flag = get_peptide_result(vertex_pair, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq, np.min(gene.splicegraph.vertices))
 
             # If cross junction peptide has a stop-codon in it, the frame
             # will not be propagated because the read is truncated before it reaches the end of the exon.

@@ -3,6 +3,8 @@ import bisect
 import logging
 import sys
 import numpy as np
+import pysam
+import h5py
 
 from collections import namedtuple
 from functools import reduce
@@ -14,7 +16,7 @@ from .preprocess import parse_mutation_from_vcf
 from .utils import get_all_comb
 
 
-def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict):
+def apply_germline_mutation(ref_sequence_file, chrm, pos_start, pos_end, mutation_sub_dict):
     """Apply germline mutation on the reference sequence
 
     Parameters
@@ -31,6 +33,8 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict)
     if .maf file (somatic mutation) exists while is original sequence if no somatic
     information is available.
     """
+    with pysam.FastaFile(ref_sequence_file) as fh:
+        ref_sequence = fh.fetch(chrm, pos_start, pos_end)
     output_seq = {}
     output_seq['ref'] = ref_sequence  # copy the reference
     if mutation_sub_dict is not None:
@@ -41,7 +45,7 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict)
     return output_seq
 
 
-def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict):
+def apply_somatic_mutation(ref_sequence_file, pos_start, pos_end, mutation_sub_dict):
     """Apply somatic mutation on the reference sequence
 
     Parameters
@@ -58,6 +62,9 @@ def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict):
     if .maf file (somatic mutation) exists while is original sequence if no somatic
     information is available.
     """
+    with pysam.FastaFile(ref_sequence_file) as fh:
+        ref_sequence = fh.fetch(chrm, pos_start, pos_end)
+
     if mutation_sub_dict is not None:
         mut_seq = construct_mut_seq_with_str_concat(ref_sequence, pos_start, pos_end, mutation_sub_dict)
     else:
@@ -82,7 +89,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     variant_pos_candi = [ipos for ipos in list(mut_dict.keys()) if ipos >= pos_start and ipos < pos_end]
     if len(variant_pos_candi) > 0:
         variant_pos_sorted = np.sort(variant_pos_candi)
-        mut_seq_list = [ref_seq[:variant_pos_sorted[0]]]
+        mut_seq_list = [ref_seq[:variant_pos_sorted[0] - pos_start]]
         for i in range(len(variant_pos_sorted)-1):  # process all the mutation in order except the last one
             mut_base = mut_dict[variant_pos_sorted[i]]['mut_base']
             ref_base = mut_dict[variant_pos_sorted[i]]['ref_base']
@@ -90,7 +97,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
                 mut_seq_list.append(mut_base)
             else:
                 mut_seq_list.append(ref_base)
-            mut_seq_list.append(ref_seq[variant_pos_sorted[i]+1:variant_pos_sorted[i+1]])
+            mut_seq_list.append(ref_seq[variant_pos_sorted[i] - pos_start + 1:variant_pos_sorted[i + 1] - pos_start])
         # process the last mutation separately
         mut_base = mut_dict[variant_pos_sorted[-1]]['mut_base']
         ref_base = mut_dict[variant_pos_sorted[-1]]['ref_base']
@@ -98,7 +105,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
             mut_seq_list.append(mut_base)
         else:
             mut_seq_list.append(ref_base)
-        mut_seq_list.append(ref_seq[variant_pos_sorted[-1]+1:])
+        mut_seq_list.append(ref_seq[variant_pos_sorted[-1] -pos_start + 1 :])
         mut_seq = ''.join(mut_seq_list)
     else:
         mut_seq = ref_seq
@@ -179,11 +186,14 @@ def get_som_expr_dict(gene, mutation_pos, countinfo, Idx):
     som_expr_dict = {}
 
     seg_pos_list = np.where(countinfo.gene_ids_segs == countinfo.gene_idx_dict[gene.name])[0]
+    h5f = h5py.File(countinfo.h5fname, 'r')
     for ipos in mutation_pos:
         seg_id = bisect.bisect(seg_mat,ipos)
         if seg_id > 0 and ipos <= gene.segmentgraph.segments[1][seg_id-1]: # the mutation is within the pos
-            expr = countinfo.h5f['segments'][seg_pos_list[seg_id - 1], Idx.sample]
+            expr = h5f['segments'][seg_pos_list[seg_id - 1], Idx.sample]
             som_expr_dict[ipos] = expr
+    h5f.close()
+
     return som_expr_dict
 
 
