@@ -185,7 +185,8 @@ def get_som_expr_dict(gene, mutation_pos, countinfo, Idx):
     seg_mat = gene.segmentgraph.segments[0]
     som_expr_dict = {}
 
-    seg_pos_list = np.where(countinfo.gene_ids_segs == countinfo.gene_idx_dict[gene.name])[0]
+    gidx = countinfo.gene_idx_dict[gene.name]
+    seg_pos_list = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
     h5f = h5py.File(countinfo.h5fname, 'r')
     for ipos in mutation_pos:
         seg_id = bisect.bisect(seg_mat,ipos)

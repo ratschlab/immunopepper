@@ -333,10 +333,23 @@ def parse_gene_metadata_info(h5fname, sample_list):
     gene_ids_segs = h5f['gene_ids_segs'][:] if len(h5f['gene_ids_segs'].shape) == 1 else h5f['gene_ids_segs'][:, 0]
     gene_ids_edges = h5f['gene_ids_edges'][:] if len(h5f['gene_ids_edges'].shape) == 1 else h5f['gene_ids_edges'][:, 0]
 
+    ### segs
+    gene_ids_segs_u, gene_ids_segs_idx = np.unique(gene_ids_segs, return_index=True)
+    gene_ids_segs_idx_last = np.r_[gene_ids_segs_idx[1:], [gene_ids_segs.shape[0]]]
+    gene_id_to_segrange = dict()
+    for i, g in enumerate(gene_ids_segs_u):
+        gene_id_to_segrange[g] = (gene_ids_segs_idx[i], gene_ids_segs_idx_last[i])
+    ### edges
+    gene_ids_edges_u, gene_ids_edges_idx = np.unique(gene_ids_edges, return_index=True)
+    gene_ids_edges_idx_last = np.r_[gene_ids_edges_idx[1:], [gene_ids_edges.shape[0]]]
+    gene_id_to_edgerange = dict()
+    for i, g in enumerate(gene_ids_edges_u):
+        gene_id_to_edgerange[g] = (gene_ids_edges_idx[i], gene_ids_edges_idx_last[i])
+
     countinfo = CountInfo(sample_idx_dict,
                           gene_idx_dict,
-                          gene_ids_segs,
-                          gene_ids_edges,
+                          gene_id_to_segrange,
+                          gene_id_to_edgerange,
                           h5fname)
     h5f.close()
     return countinfo

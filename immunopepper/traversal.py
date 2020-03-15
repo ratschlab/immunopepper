@@ -212,11 +212,12 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
 
     ### collect the relevant count infor for the current gene
     if countinfo:
-        edge_gene_idxs = np.where(countinfo.gene_ids_edges == countinfo.gene_idx_dict[gene.name])[0]
+        gidx = countinfo.gene_idx_dict[gene.name]
+        edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
         with h5py.File(countinfo.h5fname, 'r') as h5f:
             edge_idxs = h5f['edge_idx'][edge_gene_idxs].astype('int')
             edge_counts = h5f['edges'][edge_gene_idxs, idx.sample] 
-            seg_gene_idxs = np.where(countinfo.gene_ids_segs == countinfo.gene_idx_dict[gene.name])[0]
+            seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
             seg_counts = h5f['segments'][seg_gene_idxs, idx.sample] 
 
     output_metadata_list = []
