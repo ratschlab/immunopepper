@@ -114,7 +114,7 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1):
         pool.close() 
         pool.join()
     else:
-        genes_info = genes_preprocess_batch(genes, sp.arange(genes.shape[0]), gene_cds_begin_dict, verbose=True)[0]
+        genes_info = genes_preprocess_batch(genes, np.arange(genes.shape[0]), gene_cds_begin_dict, verbose=True)[0]
 
     return genes_info
 

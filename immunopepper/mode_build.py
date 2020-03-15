@@ -234,11 +234,11 @@ def mode_build(arg):
         junction_kmer_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.txt'+gzip_tag)
         background_kmer_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.txt'+gzip_tag)
         gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.tsv'+gzip_tag)
-        peptide_fp = gz_and_normal_open(junction_peptide_file_path,'w')
-        background_fp = gz_and_normal_open(background_peptide_file_path,'w')
-        junction_kmer_fp = gz_and_normal_open(junction_kmer_file_path,'w')
-        background_kmer_fp = gz_and_normal_open(background_kmer_file_path,'w')
-        gene_expr_fp = gz_and_normal_open(gene_expr_file_path,'w')
+        peptide_fp = gz_and_normal_open(junction_peptide_file_path, 'w')
+        background_fp = gz_and_normal_open(background_peptide_file_path, 'w')
+        junction_kmer_fp = gz_and_normal_open(junction_kmer_file_path, 'w')
+        background_kmer_fp = gz_and_normal_open(background_kmer_file_path, 'w')
+        gene_expr_fp = gz_and_normal_open(gene_expr_file_path, 'w')
 
         filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp, junction_kmer_fp, background_kmer_fp)
 
@@ -314,4 +314,17 @@ def mode_build(arg):
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
         create_libsize(expr_distr_dict,output_libszie_fp)
+    
+        ### close files
+        filepointer.junction_peptide_fp.flush()
+        filepointer.junction_peptide_fp.close()
+        filepointer.junction_meta_fp.flush()
+        filepointer.junction_meta_fp.close()
+        filepointer.background_peptide_fp.flush()
+        filepointer.background_peptide_fp.close()
+        filepointer.junction_kmer_fp.flush()
+        filepointer.junction_kmer_fp.close()
+        filepointer.background_kmer_fp.flush()
+        filepointer.background_kmer_fp.close()
     logging.info(">>>>>>>>> Build: Finish traversing splicegraph in mutation mode {}.\n".format(mutation.mode))
+
