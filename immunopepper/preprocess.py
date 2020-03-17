@@ -21,13 +21,7 @@ from .utils import leq_strand
 def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, verbose=False):
 
     gene_info = []
-    for gene_idx in gene_idxs:
-        if verbose and gene_idx > 0 and gene_idx % 100 == 0:
-            sys.stdout.write('.')
-            if gene_idx % 1000 == 0:
-                sys.stdout.write('%i/%i\n' % (gene_idx, genes.shape[0]))
-            sys.stdout.flush()
-        gene = genes[gene_idx]
+    for gene in genes:
         gene.from_sparse()
         assert (gene.strand in ["+", "-"])
         assert (len(gene.transcripts) == len(gene.exons))
@@ -35,6 +29,7 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, verbose=False)
         # Ignore genes that have no CDS annotated...
         if gene.name not in gene_cds_begin_dict:
             gene_info.append(None)
+            continue
 
         vertex_succ_list = get_successor_list(gene.splicegraph.edges, gene.splicegraph.vertices, gene.strand)
         if gene.strand == "+":

@@ -292,7 +292,6 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
 
     if not gene.splicegraph.edges is None:
         gene.to_sparse()
-    gene.processed = True
 
     return output_metadata_list, output_peptide_list, output_kmer_lists
 
@@ -328,7 +327,7 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, cou
         background_peptide_list.append(peptide)
         if kmer > 0:
             output_kmer_lists.append(create_output_kmer(peptide, kmer, cds_expr_list))
-    gene.processed = True
+
     return background_peptide_list, output_kmer_lists
 
 
