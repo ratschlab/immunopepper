@@ -24,14 +24,13 @@ def apply_germline_mutation(ref_sequence_file, chrm, pos_start, pos_end, mutatio
     ref_sequence: str. reference sequence of certain chromosome.
     pos_start: int. start position of sequence for applying germiline mutation.
     pos_end: int. Ending position of sequence for applying germline mutation.
-    mutation_sub_dict_vcf: dict. (position) -> variant details
+    mutation_sub_dict: dict. (position) -> variant details
 
     Returns
     -------
-    output_seq: dict. (sequence_type) -> list[char]. output['ref'] is the original
-    reference sequence output['background'] is the germline-mutation-applied sequence
-    if .maf file (somatic mutation) exists while is original sequence if no somatic
-    information is available.
+    output_seq: dict. (sequence_type) -> list[char]. where
+        output['ref'] is the original reference sequence 
+        output['background'] is the reference seq with germline-mutation-applied
     """
     with pysam.FastaFile(ref_sequence_file) as fh:
         ref_sequence = fh.fetch(chrm, pos_start, pos_end)
@@ -43,33 +42,6 @@ def apply_germline_mutation(ref_sequence_file, chrm, pos_start, pos_end, mutatio
     else:
         output_seq['background'] = ref_sequence
     return output_seq
-
-
-def apply_somatic_mutation(ref_sequence_file, pos_start, pos_end, mutation_sub_dict):
-    """Apply somatic mutation on the reference sequence
-
-    Parameters
-    ----------
-    ref_sequence: str. reference sequence of certain chromosome.
-    pos_start: int. start position of sequence for applying somatic mutation.
-    pos_end: int. Ending position of sequence for applying somatic mutation.
-    mutation_sub_dict: dict. (position) -> variant details
-
-    Returns
-    -------
-    output_seq: dict. (sequence_type) -> list[char]. output['ref'] is the original
-    reference sequence output['background'] is the germline-mutation-applied sequence
-    if .maf file (somatic mutation) exists while is original sequence if no somatic
-    information is available.
-    """
-    with pysam.FastaFile(ref_sequence_file) as fh:
-        ref_sequence = fh.fetch(chrm, pos_start, pos_end)
-
-    if mutation_sub_dict is not None:
-        mut_seq = construct_mut_seq_with_str_concat(ref_sequence, pos_start, pos_end, mutation_sub_dict)
-    else:
-        mut_seq = ref_sequence
-    return mut_seq
 
 
 def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
@@ -110,6 +82,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     else:
         mut_seq = ref_seq
     return mut_seq
+
 
 def parse_mutation_file(mutation_file_path,output_dir,heter_code,mut_pickle=False,h5_sample_list=None):
     if mutation_file_path.lower().endswith('.maf'):
@@ -204,8 +177,7 @@ def get_mut_comb(exon_som_dict, vertex_list):
     Parameters
     ----------
     exon_som_dict: dict, keys (exon id), values (somatic mutation position)
-    idx: int, first exon id
-    prop_vertex: int, second exon id
+    vertex_list: list, array of vertex ids
 
     Returns
     -------

@@ -17,7 +17,6 @@ import timeit
 from .io import convert_namedtuple_to_str
 from .io import gz_and_normal_open
 from .io import load_pickled_graph
-from .io import print_memory_diags
 from .io import write_gene_expr
 from .io import write_namedtuple_list
 from .mutations import get_mutation_mode_from_parser
@@ -35,6 +34,7 @@ from .utils import create_libsize
 from .utils import get_idx
 from .utils import get_total_gene_expr
 from .utils import unpickler
+from .utils import print_memory_diags
 
 ### intermediate fix to load pickle files stored under previous version
 from spladder.classes import gene as cgene
