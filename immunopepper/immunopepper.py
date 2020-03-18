@@ -42,11 +42,6 @@ def parse_arguments(argv):
     additional_file.add_argument("--count-path",help="absolute path of count hdf5 file", required=False, default=None)
     additional_file.add_argument("--gtex-junction-path",help="absolute path of whitelist junction file, currently only support hdf5 format. Will suport tsv"
                                                              "format in the future", required=False, default=None)
-    general = parser_build.add_argument_group('MISCELLANEOUS')
-    general.add_argument("--process-num", metavar='N', type=int, help="Only process the first N genes in the splicegraph, default: process all", required=False, default=0)
-    general.add_argument("--use-mut-pickle",help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
-    general.add_argument("--verbose", type=int, help="specify the output verbosity (0 - warn, 1 - info, 2 - debug) [1]", required=False, default=1)
-
     _add_general_args(parser_build)
 
     experimental = parser_build.add_argument_group('EXPERIMENTAL')
