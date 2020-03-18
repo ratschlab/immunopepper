@@ -13,7 +13,6 @@ from .filter import peptide_is_annotated
 from .io import convert_namedtuple_to_str
 from .io import write_namedtuple_list
 from .mutations import apply_germline_mutation
-from .mutations import apply_somatic_mutation
 from .mutations import get_exon_som_dict
 from .mutations import get_mut_comb
 from .mutations import get_som_expr_dict
@@ -41,13 +40,15 @@ def collect_vertex_pairs(gene=None, ref_seq=None, idx=None, mutation=None, disab
        idx: Namedtuple Idx, has attribute idx.gene and idx.sample
        mutation: Namedtuple Mutation, store the mutation information of specific chromosome and sample.
            has the attribute ['mode', 'maf_dict', 'vcf_dict']
+       disable_concat: bool, flag indicating whether to disable the concanation of vertices into triples
+        kmer: bool, flag indicating whether to extract kmers from the current parse
+        filter_redundant: flag indicating whether to remove pairs spanning the same intron
 
        Returns
        -------
        vertex_pairs: List of VertexPair.
        ref_mut_seq: Dict. (sequence_type) -> list[char].
        exon_som_dict: Dict. (exon_id) |-> (mutation_postion)
-
        """
 
     gene.from_sparse()
@@ -179,8 +180,8 @@ def collect_vertex_triples(gene, vertex_pairs, k):
     return concat_vertex_pair_list
 
 
-def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_list=None,ref_mut_seq=None, idx=None,
-                         exon_som_dict=None, countinfo=None, mutation=None,table=None,
+def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_list=None, ref_mut_seq=None, idx=None,
+                         exon_som_dict=None, countinfo=None, mutation=None, table=None,
                          size_factor=None, junction_list=None, filepointer=None, output_silence=False, kmer=None):
     """
 
@@ -201,7 +202,8 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
     junction_list: List. Work as a filter to indicate some exon pair has certain
        ordinary intron which can be ignored further.
     filepointer: NamedTuple Filepointer, store file pointer to different output files.
-
+    output_silence: bool, flag indicating whether not to silence annotated peptides
+    kmer: bool, flag indicating whether to output kmers for this parse
     """
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
@@ -306,14 +308,15 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, cou
     ref_mut_seq: List(str). Reference sequence of certain chromosome.
     gene_table: Namedtuple GeneTable, store the gene-transcript-cds mapping tables derived
        from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
-   countinfo: NamedTuple containing SplAdder counts
+    countinfo: NamedTuple containing SplAdder counts
+    Idx: Namedtuple containing sample and gene index information
+    filepointer: Namedtuple containing the output file pointers
+    kmer: bool, flag indicating whether kmers from the parse should be output
 
     Returns
     -------
-    peptide_list: List[str]. List of all the peptide translated from the given
+    background_peptide_list: List[str]. List of all the peptide translated from the given
        splicegraph and annotation.
-    (ts_list): List[str]. List of all the transcript indicated by the  annotation file
-        can be used to generate artifical reads.
     """
     ref_seq = ref_mut_seq['background']
     gene_to_transcript_table,transcript_cds_table = gene_table.gene_to_ts, gene_table.ts_to_cds
@@ -342,13 +345,13 @@ def create_output_kmer(output_peptide, k, expr_list):
 
     Parameters
     ----------
-    peptide_list: OutputJuncPeptide. Filtered output_peptide_list.
-    expr_lists: List(Tuple). Filtered expr_list.
+    output_peptide: OutputJuncPeptide. Filtered output_peptide_list.
     k: int. Specify k-mer length
+    expr_lists: List(Tuple). Filtered expr_list.
 
     Returns
     -------
-    output_list: List(str). Each line is the output peptide and corresponding expression level.
+    output_kmer_list: List(str). Each line is the output peptide and corresponding expression level.
 
     """
     def get_spanning_index(coord, k):

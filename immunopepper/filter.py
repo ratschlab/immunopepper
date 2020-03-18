@@ -9,7 +9,7 @@ from .constant import NOT_EXIST
 from .namedtuples import OutputBackground
 
 def _collect_remove_ids(exon_junction_dict):
-    """ Get an auxiliary dictionary used for filtering. Assigns to each junction all overlapping exon pairs.
+    """ For all exon pairs around the same intron, keep the longest one.
 
     Parameters
     ----------
@@ -49,8 +49,9 @@ def _collect_remove_ids(exon_junction_dict):
 
     return remove_id_list
 
+
 def _get_exon_junction_dict(metadata_list, strand):
-    """ Get an auxiliary dictionary used for filtering. Assigns to each junction all overlapping exon pairs.
+    """ Creates an auxiliary dictionary used for filtering. Assigns to each junction all overlapping exon pairs.
 
     Parameters
     ----------
@@ -140,8 +141,8 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
 
 
 def junction_tuple_is_annotated(junction_flag, vertex_id_tuple):
-    """
-    Output is_junction_annotated flag
+    """Returns 1 if any junction in the given tuple of vertexes is flagged and 0 otherwise.
+
     Parameters
     ----------
     junction_flag: 2-d array with shape (number_of_vertices, number_of_vertices). if (i,j) entry is 1, i-th vertex and
@@ -162,7 +163,7 @@ def junction_tuple_is_annotated(junction_flag, vertex_id_tuple):
 
 
 def junction_is_in_given_list(splicegraph, vertex_id_list, strand, junction_list):
-    """Check if the intron is in givenconcerned junction list"""
+    """Check if the intron is in the user provided list of junctions"""
 
     if NOT_EXIST in vertex_id_list or junction_list is None:
         return NOT_EXIST
@@ -178,7 +179,7 @@ def junction_is_in_given_list(splicegraph, vertex_id_list, strand, junction_list
 
 
 def peptide_is_annotated(background_peptide_list, peptide):
-    """ Find if the translated exon-pair peptide also appear in the background peptide translated from annotation file.
+    """Check if the translated exon-pair peptide also appears in the background peptide translated from annotation file.
 
     Parameters
     ----------
