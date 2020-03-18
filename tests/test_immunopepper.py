@@ -2,7 +2,6 @@ import gzip
 import os
 import pickle
 
-import Bio.SeqIO as BioIO
 import pytest
 import pysam
 import numpy as np
@@ -47,10 +46,6 @@ def load_gene_data():
     (graph_data, graph_meta) = load_pickled_graph(f)  # cPickle.load(f)
     genetable,chr_set = preprocess_ann(ann_path)
     interesting_chr = list(map(str, range(1, 23))) + ["X", "Y", "MT"]
-    #seq_dict = {}
-    #for record in BioIO.parse(ref_path, "fasta"):
-    #    if record.id in interesting_chr:
-    #        seq_dict[record.id] = str(record.seq).strip()
 
     gene = graph_data[0]
     chrm = gene.chr.strip()
