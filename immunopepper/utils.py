@@ -1,19 +1,16 @@
 """Contain functions to help compute, to preprocess"""
-import itertools
-import numpy as np
 
-import sys
 import bisect
+import itertools
 import logging
+import numpy as np
+import os
+import psutil
+import sys
 
 from .constant import NOT_EXIST
-from .immuno_nametuple import Coord
-from .immuno_nametuple import Flag
-from .immuno_nametuple import Idx
-from .immuno_nametuple import OutputBackground
-from .immuno_nametuple import Peptide
-from .immuno_nametuple import ReadingFrameTuple
-
+from .namedtuples import Coord
+from .namedtuples import Idx
 
 def to_adj_list(adj_matrix):
     """
@@ -73,15 +70,6 @@ def leq_strand(coord1, coord2, strand):
         return coord1 >= coord2
 
 
-def complementary_seq(dna_seq):
-    """ Yields the complementary DNA sequence
-    Only convert the character in comp_dict.
-    Otherwise remain the same.
-    """
-    comp_dict = {"A": "T", "T": "A", "C": "G", "G": "C"}
-    return "".join([comp_dict[nuc] if nuc in comp_dict else nuc for nuc in dna_seq])
-
-
 def encode_chromosome(in_num):
     """
     Encodes chromosome to same cn
@@ -90,76 +78,20 @@ def encode_chromosome(in_num):
     return convert_dict[in_num] if in_num in convert_dict else str(in_num)
 
 
-def translate_dna_to_peptide(dna_str):
-    """ Translate a DNA sequence encoding a peptide to amino-acid sequence via RNA.
-
-    If 'N' is included in input dna, 'X' will be outputted since 'N' represents
-    uncertainty. Also will output a flag indicating if has stop codon.
-
-    Parameters
-    ----------
-    dna_str: str or List(str). dna string to be translated.
-
-    Returns
-    -------
-    aa_str: translated peptide
-    has_stop_codon: Indicator for showing if the input dna contains stop codon
-
-    """
-    codontable = {
-        'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
-        'ACA': 'T', 'ACC': 'T', 'ACG': 'T', 'ACT': 'T',
-        'AAC': 'N', 'AAT': 'N', 'AAA': 'K', 'AAG': 'K',
-        'AGC': 'S', 'AGT': 'S', 'AGA': 'R', 'AGG': 'R',
-        'CTA': 'L', 'CTC': 'L', 'CTG': 'L', 'CTT': 'L',
-        'CCA': 'P', 'CCC': 'P', 'CCG': 'P', 'CCT': 'P',
-        'CAC': 'H', 'CAT': 'H', 'CAA': 'Q', 'CAG': 'Q',
-        'CGA': 'R', 'CGC': 'R', 'CGG': 'R', 'CGT': 'R',
-        'GTA': 'V', 'GTC': 'V', 'GTG': 'V', 'GTT': 'V',
-        'GCA': 'A', 'GCC': 'A', 'GCG': 'A', 'GCT': 'A',
-        'GAC': 'D', 'GAT': 'D', 'GAA': 'E', 'GAG': 'E',
-        'GGA': 'G', 'GGC': 'G', 'GGG': 'G', 'GGT': 'G',
-        'TCA': 'S', 'TCC': 'S', 'TCG': 'S', 'TCT': 'S',
-        'TTC': 'F', 'TTT': 'F', 'TTA': 'L', 'TTG': 'L',
-        'TAC': 'Y', 'TAT': 'Y', 'TAA': '_', 'TAG': '_',
-        'TGC': 'C', 'TGT': 'C', 'TGA': '_', 'TGG': 'W'
-    }
-    dna_str = dna_str.upper()
-    has_stop_codon = False
-    aa_str = []
-    for idx in range(0, len(dna_str), 3):
-        codon = dna_str[idx:idx + 3]
-        if len(codon) < 3:
-            break
-        if 'N' in codon:
-            aa_str.append('X')
-        else:
-            if codontable[codon] == '_':
-                has_stop_codon = True
-                return ''.join(aa_str), has_stop_codon
-            else:
-                aa_str.append(codontable[codon])
-
-    return ''.join(aa_str), has_stop_codon
-
-
 def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_dict, strand):
     """ Get the mutated dna sub-sequence according to mutation specified by the variant_comb.
 
     Parameters
     ----------
     background_seq: List(str). backgound sequence.
-    start_v1: int. start position of first vertex.
-    stop_v1: int. stop position of first vertex.
-    start_v2: int. start position of second vertex.
-    stop_v2: int. stop position of second vertex.
+    coord: Namedtuple containing the vertex coordinates.
     variant_comb: List(int). List of variant position. Like ['38', '43']
     somatic_mutation_sub_dict: Dict. variant position -> variant details.
     strand: gene strand
 
     Returns
     -------
-    final_dna: str. dna when applied somatic mutation.
+    sub_dna: str. dna when applied somatic mutation.
 
     """
     def _get_variant_pos_offset(variant_pos, coord_pair_list, strand):
@@ -200,165 +132,7 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
     return sub_dna
 
 
-def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_dict, ref_mut_seq, peptide_accept_coord):
-    """ Get translated peptide from the given exon pairs.
-
-    Parameters
-    ----------
-    read_frame: NamedTuple. (read_start_codon, read_stop_codon, emitting_frame)
-    strand: str. '+' or '-'
-    variant_comb: List(int).
-    somatic_mutation_sub_dict: Dict. variant position -> variant details.
-    ref_mut_seq: Dict.['ref', 'background'] -> List(str)
-    peptide_accept_coord: The start and end position of next vertex. Positions of the first vertex
-        are already given in read_frame.
-
-    Returns
-    -------
-    peptide: NamedTuple Peptide. has attribute ['ref', 'mut']. contain the output peptide
-        translated from reference sequence and mutated sequence.
-    coord: NamedTuple Coord. has attribute ['start_v1', 'stop_v1', 'start_v2', 'stop_v2']
-        contains the true four position of exon pairs (after considering read framee)
-        that outputs the peptide.
-    flag: NamedTuple Flag. has attribute ['has_stop', 'is_isolated']
-    next_reading_frame: Tuple. The reading frame to be propogated to the next vertex.
-
-    """
-    cds_left_modi, cds_right_modi, emitting_frame = read_frame[0], read_frame[1], read_frame[2]
-    next_emitting_frame = (peptide_accept_coord[1] - peptide_accept_coord[0] + emitting_frame) % 3
-    start_v1 = cds_left_modi
-    stop_v1 = cds_right_modi
-
-    #                                       |next_start_v1  |
-    # |      v1           | |    v2                         |
-    # -----[emitting_frame] [accepting_frame]-------
-    # emitting_frame + accepting_frame = 3
-    accepting_frame = (3 - emitting_frame) % 3
-
-    if somatic_mutation_sub_dict:  # exist maf dictionary, so we use germline mutation-applied seq as the background seq
-        ref_seq = ref_mut_seq['background']
-    else:
-        ref_seq = ref_mut_seq['ref']
-    mut_seq = ref_mut_seq['background']
-    # python is 0-based while gene annotation file(.gtf) is one based
-    # so we need to do a little modification
-    if strand == "+":
-        start_v2 = peptide_accept_coord[0]
-        stop_v2 = max(start_v2, peptide_accept_coord[1] - next_emitting_frame)
-        coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
-        peptide_dna_str_mut = get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand)
-        peptide_dna_str_ref = ref_seq[start_v1:stop_v1] + ref_seq[start_v2:stop_v2]
-        next_start_v1 = min(start_v2 + accepting_frame, peptide_accept_coord[1])
-        next_stop_v1 = peptide_accept_coord[1]
-    else:  # strand == "-"
-        stop_v2 = peptide_accept_coord[1]
-        start_v2 = min(stop_v2, peptide_accept_coord[0] + next_emitting_frame)
-        coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
-        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand))
-        peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1] + ref_seq[start_v2:stop_v2][::-1])
-        next_start_v1 = peptide_accept_coord[0]
-        next_stop_v1 = max(stop_v2 - accepting_frame, peptide_accept_coord[0])
-
-    next_reading_frame = ReadingFrameTuple(next_start_v1, next_stop_v1, next_emitting_frame)
-    assert (len(peptide_dna_str_mut) == len(peptide_dna_str_ref))
-    # if len(peptide_dna_str_mut) % 3 != 0:
-    #     print("Applied mutations have changed the length of the DNA fragment - no longer divisible by 3")
-    peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut)
-    peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref)
-
-    # if the stop codon appears before translating the second exon, mark 'single'
-    is_isolated = False
-    if len(peptide_mut)*3 <= abs(stop_v1 - start_v1) + 1:
-        is_isolated = True
-        jpos = 0.0
-    else:
-        jpos = float(stop_v1 - start_v1) / 3.0
-    peptide = Peptide(peptide_mut, peptide_ref)
-    coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
-    flag = Flag(mut_has_stop_codon, is_isolated)
-    return peptide, coord, flag, next_reading_frame
-
-
-def isolated_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_dict, ref_mut_seq):
-    """ Deal with translating isolated cds, almost the same as cross_peptide_result
-
-    Parameters
-    ----------
-    read_frame: Tuple. (read_start_codon, read_stop_codon, emitting_frame)
-    strand: str. '+' or '-'
-    variant_comb: List(int).
-    somatic_mutation_sub_dict: Dict. variant position -> variant details.
-    ref_mut_seq: Dict.['ref', 'background'] -> List(str)
-
-    Returns
-    -------
-    peptide: NamedTuple. has attribute ['ref', 'mut']. contain the output peptide
-        translated from reference sequence and mutated sequence.
-    coord: NamedTuple. has attribute ['start_v1', 'stop_v1', 'start_v2', 'stop_v2']
-        contains the true two position of exon pairs (after considering read framee)
-        that outputs the peptide. 'start_v2', 'stop_v2' is set to be NOT_EXIST.
-    flag: NamedTuple. has attribute ['has_stop', 'is_isolated']
-
-    """
-
-    start_v1, stop_v1, emitting_frame = read_frame.cds_left_modi,read_frame.cds_right_modi,read_frame.read_phase
-    start_v2 = NOT_EXIST
-    stop_v2 = NOT_EXIST
-
-    if somatic_mutation_sub_dict:  # exist maf dictionary, so we use germline mutation-applied seq as the background seq
-        ref_seq = ref_mut_seq['background']
-    else:
-        ref_seq = ref_mut_seq['ref']
-    mut_seq = ref_mut_seq['background']
-
-    if strand == '+':
-        coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
-        peptide_dna_str_mut = get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand)
-        peptide_dna_str_ref = ref_seq[start_v1:stop_v1]
-    else:
-        coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
-        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand))
-        peptide_dna_str_ref = complementary_seq(ref_seq[start_v1:stop_v1][::-1])
-
-    peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut)
-    peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref)
-
-    is_isolated = True
-
-    peptide = Peptide(peptide_mut,peptide_ref)
-    coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
-    flag = Flag(mut_has_stop_codon,is_isolated)
-
-    return peptide, coord, flag
-
-
-def get_peptide_result(simple_meta_data, strand, variant_comb, somatic_mutation_sub_dict, ref_mut_seq):
-    if somatic_mutation_sub_dict:  # exist maf dictionary, so we use germline mutation-applied seq as the background seq
-        ref_seq = ref_mut_seq['background']
-    else:
-        ref_seq = ref_mut_seq['ref']
-    mut_seq = ref_mut_seq['background']
-    modi_coord = simple_meta_data.modified_exons_coord
-    if strand == "+":
-        peptide_dna_str_mut = get_sub_mut_dna(mut_seq, modi_coord, variant_comb, somatic_mutation_sub_dict, strand)
-        peptide_dna_str_ref = get_sub_mut_dna(ref_seq, modi_coord, NOT_EXIST, somatic_mutation_sub_dict, strand)
-    else:  # strand == "-"
-        peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, modi_coord, variant_comb, somatic_mutation_sub_dict, strand))
-        peptide_dna_str_ref = complementary_seq(get_sub_mut_dna(ref_seq, modi_coord, NOT_EXIST, somatic_mutation_sub_dict, strand))
-    peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut)
-    peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref)
-
-    # if the stop codon appears before translating the second exon, mark 'single'
-    if modi_coord.start_v2 == NOT_EXIST or len(peptide_mut)*3 <= abs(modi_coord.stop_v1 - modi_coord.start_v1) + 1:
-        is_isolated = True
-    else:
-        is_isolated = False
-    peptide = Peptide(peptide_mut, peptide_ref)
-    flag = Flag(mut_has_stop_codon, is_isolated)
-    return peptide,flag
-
-
-def get_size_factor(strains, lib_file_path):
+def get_size_factor(samples, lib_file_path):
     """ Get the expression adjustment parameter for certain samples.
 
     Parameters
@@ -372,8 +146,8 @@ def get_size_factor(strains, lib_file_path):
 
     """
     libs = np.loadtxt(lib_file_path, dtype='str', skiprows=1, delimiter='\t')
-    a, b = np.where(strains[:, np.newaxis] == libs[:, 0])
-    assert np.all(libs[b, 0] == strains)
+    a, b = np.where(samples[:, np.newaxis] == libs[:, 0])
+    assert np.all(libs[b, 0] == samples)
     libs = libs[b, :]
     med = np.median(libs[:, 1].astype('float'))
     sf = med / libs[:, 1].astype('float')
@@ -400,8 +174,6 @@ def get_all_comb(array, r=None):
 
 
 def is_mutation_within_exon_pair(pos_start, pos_end, mutation_pos):
-    #variant_pos = [pos for pos in mutation_pos]
-    #variant_pos_candi = [ipos for ipos in variant_pos if ipos > pos_start and ipos < pos_end]
     return list(filter(lambda x: x > pos_start and x < pos_end, mutation_pos))
 
 
@@ -411,6 +183,7 @@ def is_isolated_cds(gene, idx):
 
     Currently, it is a simple version. If the exon where the cds is
     has no connected exon, it is isolated. (the method is not true in some cases)
+
     Parameters
     ----------
     gene: gene object
@@ -424,22 +197,6 @@ def is_isolated_cds(gene, idx):
     return np.sum(gene.splicegraph.edges[:, idx]) == 0
 
 
-def is_in_junction_list(splicegraph, vertex_id_list, strand, junction_list):
-    """Check if the intron is in concerned junction list"""
-
-    if NOT_EXIST in vertex_id_list or junction_list is None:
-        return NOT_EXIST
-
-    vertex_coord_list = splicegraph.vertices
-    if strand == '-':
-        vertex_id_list = vertex_id_list[::-1] # in negative strand case, the vertex id list is [5,3] instead of [3,5]
-    for i in range(len(vertex_id_list) - 1):
-        junc_comb = ':'.join([str(vertex_coord_list[1, vertex_id_list[i]]),  str(vertex_coord_list[0, vertex_id_list[i+1]]), strand])
-        if junc_comb in junction_list:
-            return 1
-    return 0
-
-
 def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts=None):
     """ Split the exon into segments and get the corresponding counts.
 
@@ -450,6 +207,7 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts=None):
     vstop: int. Stop position of given exon.
     countinfo: Namedtuple, containing spladder count information
     Idx: Namedtuple, has attribute idx.gene and idx.sample
+    seg_counts: np.array, array of spladder segment counts
 
     Returns
     -------
@@ -496,6 +254,7 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts=None):
     countinfo: Namedtuple, contains count information generated by SplAdder
         has attributes [sample_idx_dict, gene_idx_dict, gene_ids_segs, gene_ids_edges, h5f]
     Idx: Namedtuple, has attribute idx.gene and idx.sample
+    seg_counts: np.array, array of SplAdder segment counts
 
     Returns
     -------
@@ -534,7 +293,7 @@ def get_total_gene_expr(gene, countinfo, Idx):
 
 
 def get_idx(countinfo, sample, gene_idx):
-    """ Create a  aggregated Index with nametuple idx
+    """ Create a  aggregated Index with namedtuple idx
     Combine the gene_idx, sample_idx
 
     Parameters
@@ -556,7 +315,7 @@ def get_idx(countinfo, sample, gene_idx):
     return Idx(gene_idx, sample_idx)
 
 
-def create_libsize(expr_distr_dict,output_fp,debug=False):
+def create_libsize(expr_distr_dict, output_fp, debug=False):
     """ create library_size text file.
 
     Calculate the 75% expression and sum of expression for each sample
@@ -582,7 +341,8 @@ def create_libsize(expr_distr_dict,output_fp,debug=False):
             line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
             f.write(line)
 
-def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_peptide, strand,k=None):
+
+def get_concat_peptide(front_coord_pair, back_coord_pair, front_peptide, back_peptide, strand, k=None):
     """
     Get the concatenated peptide from possible match peptide.
     Parameters
@@ -629,39 +389,7 @@ def get_concat_peptide(front_coord_pair, back_coord_pair,front_peptide, back_pep
     else:
         return ''
 
-
-def convert_namedtuple_to_str(_namedtuple,field_list):
-    def convert_list_to_str(_list):
-        remove_none_list = filter(lambda x:x is not None, _list)
-        return ';'.join([str(_item) for _item in remove_none_list])
-    line = ''
-    for field in field_list:
-        if field == 'new_line':
-            line = line.strip()+'\n'
-            continue
-        # should first check if field in namedtuple
-        item = getattr(_namedtuple, field)
-        if isinstance(item,(list,tuple)):
-            line += convert_list_to_str(item)+'\t'
-        else:
-            line += str(item)+'\t'
-    return line[:-1] # remove the last '\t'
-
-def write_namedtuple_list(fp, namedtuple_list, field_list):
-    """ Write namedtuple_list to the given file pointer"""
-    fp.writelines(convert_namedtuple_to_str(_namedtuple,field_list)+'\n' for _namedtuple in namedtuple_list)
-
-def write_list(fp, _list):
-    fp.writelines([l+'\n' for l in _list])
-
-def write_gene_expr(fp, gene_expr_tuple_list):
-    header_line = 'gene\texpr\n'
-    fp.write(header_line)
-    gene_expr_str_list = [ gene_expr_tuple[0]+'\t'+str(gene_expr_tuple[1]) for gene_expr_tuple in gene_expr_tuple_list]
-    write_list(fp,gene_expr_str_list)
-
-
-def check_chr_consistence(ann_chr_set,mutation,graph_data):
+def check_chr_consistence(ann_chr_set, mutation, graph_data):
     germline_chr_set = set()
     somatic_chr_set = set()
     mode = mutation.mode
@@ -682,10 +410,15 @@ def check_chr_consistence(ann_chr_set,mutation,graph_data):
             logging.error("Gene object has different chromosome naming from annotation file, please check")
             sys.exit(0)
 
-def codeUTF8(s):
-    return s.encode('utf-8')
+def print_memory_diags(disable_print=False):
+    """
+    Print memory diagnostics including the active resident set size
+    """
+    process = psutil.Process(os.getpid())
+    memory = process.memory_info().rss/1000000000.0
+    if not disable_print:
+        logging.info('\tMemory usage: {:.3f} GB'.format(memory))
+    return memory
 
-def decodeUTF8(s):
-    if not hasattr(s, 'decode'):
-        return s
-    return s.decode('utf-8')
+
+

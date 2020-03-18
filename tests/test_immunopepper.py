@@ -6,17 +6,33 @@ import Bio.SeqIO as BioIO
 import pytest
 import numpy as np
 
-from immunopepper.immuno_mutation import apply_germline_mutation,construct_mut_seq_with_str_concat,get_mutation_mode_from_parser,Mutation,get_sub_mutation_tuple
-from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
-    parse_mutation_from_vcf, parse_mutation_from_maf
-from immunopepper.utils import get_sub_mut_dna,get_concat_peptide,convert_namedtuple_to_str, \
-    check_chr_consistence,get_idx,create_libsize,translate_dna_to_peptide,complementary_seq
-from immunopepper.io_utils import load_pickled_graph,gz_and_normal_open
-from immunopepper.main_immuno import parse_arguments,split_mode
-from immunopepper.immuno_model import create_output_kmer
-from immunopepper.immuno_nametuple import Coord,OutputBackground,OutputKmer
 from immunopepper.constant import NOT_EXIST
-from immunopepper.immuno_filter import get_junction_anno_flag
+from immunopepper.filter import junction_tuple_is_annotated
+from immunopepper.io import convert_namedtuple_to_str
+from immunopepper.io import gz_and_normal_open
+from immunopepper.io import load_pickled_graph
+from immunopepper.mutations import apply_germline_mutation
+from immunopepper.mutations import construct_mut_seq_with_str_concat
+from immunopepper.mutations import get_mutation_mode_from_parser
+from immunopepper.mutations import get_sub_mutation_tuple
+from immunopepper.preprocess import genes_preprocess
+from immunopepper.preprocess import parse_mutation_from_vcf
+from immunopepper.preprocess import parse_mutation_from_maf
+from immunopepper.preprocess import preprocess_ann
+from immunopepper.utils import check_chr_consistence
+from immunopepper.utils import create_libsize
+from immunopepper.utils import get_sub_mut_dna
+from immunopepper.utils import get_concat_peptide
+from immunopepper.translate import translate_dna_to_peptide
+from immunopepper.translate import complementary_seq
+from immunopepper.immunopepper import parse_arguments
+from immunopepper.immunopepper import split_mode
+from immunopepper.traversal import create_output_kmer
+from immunopepper.namedtuples import Coord
+from immunopepper.namedtuples import Mutation
+from immunopepper.namedtuples import OutputBackground
+from immunopepper.namedtuples import OutputKmer
+
 data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
 groundtruth_dir = os.path.join(os.path.dirname(__file__), 'test1')
 
@@ -261,14 +277,14 @@ def test_get_junction_ann_flag():
     junction_flag = np.zeros((4,4))
     junction_flag[1,2] = 1
     junction_flag[2,3] = 1
-    vertex_id_tuple = (1,2,3)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 1
-    vertex_id_tuple = (0,2,3)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 1
-    vertex_id_tuple = (0,1,3)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 0
-    vertex_id_tuple = (1,2)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 1
+    vertex_id_tuple = (1, 2, 3)
+    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 1
+    vertex_id_tuple = (0, 2, 3)
+    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 1
+    vertex_id_tuple = (0, 1, 3)
+    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 0
+    vertex_id_tuple = (1, 2)
+    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 1
 
 def test_check_chr_consistence(load_gene_data, load_mutation_data):
     graph_data, ref_seq, gene_cds_begin_dict = load_gene_data

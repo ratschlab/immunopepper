@@ -1,17 +1,17 @@
 """Contain functions to deal with mutation"""
 import bisect
-import sys
-from collections import namedtuple
-from functools import reduce
 import logging
-
-from .constant import NOT_EXIST
-from .immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
-from .utils import get_all_comb
-
+import sys
 import numpy as np
 
-Mutation = namedtuple('Mutation', ['mode','germline_mutation_dict','somatic_mutation_dict'])
+from collections import namedtuple
+from functools import reduce
+
+from .constant import NOT_EXIST
+from .namedtuples import Mutation
+from .preprocess import parse_mutation_from_maf
+from .preprocess import parse_mutation_from_vcf
+from .utils import get_all_comb
 
 
 def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict):
@@ -22,14 +22,13 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict)
     ref_sequence: str. reference sequence of certain chromosome.
     pos_start: int. start position of sequence for applying germiline mutation.
     pos_end: int. Ending position of sequence for applying germline mutation.
-    mutation_sub_dict_vcf: dict. (position) -> variant details
+    mutation_sub_dict: dict. (position) -> variant details
 
     Returns
     -------
-    output_seq: dict. (sequence_type) -> list[char]. output['ref'] is the original
-    reference sequence output['background'] is the germline-mutation-applied sequence
-    if .maf file (somatic mutation) exists while is original sequence if no somatic
-    information is available.
+    output_seq: dict. (sequence_type) -> list[char]. where
+        output['ref'] is the original reference sequence 
+        output['background'] is the reference seq with germline-mutation-applied
     """
     output_seq = {}
     output_seq['ref'] = ref_sequence  # copy the reference
@@ -39,30 +38,6 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict)
     else:
         output_seq['background'] = ref_sequence
     return output_seq
-
-
-def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict):
-    """Apply somatic mutation on the reference sequence
-
-    Parameters
-    ----------
-    ref_sequence: str. reference sequence of certain chromosome.
-    pos_start: int. start position of sequence for applying somatic mutation.
-    pos_end: int. Ending position of sequence for applying somatic mutation.
-    mutation_sub_dict: dict. (position) -> variant details
-
-    Returns
-    -------
-    output_seq: dict. (sequence_type) -> list[char]. output['ref'] is the original
-    reference sequence output['background'] is the germline-mutation-applied sequence
-    if .maf file (somatic mutation) exists while is original sequence if no somatic
-    information is available.
-    """
-    if mutation_sub_dict is not None:
-        mut_seq = construct_mut_seq_with_str_concat(ref_sequence, pos_start, pos_end, mutation_sub_dict)
-    else:
-        mut_seq = ref_sequence
-    return mut_seq
 
 
 def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
@@ -103,6 +78,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     else:
         mut_seq = ref_seq
     return mut_seq
+
 
 def parse_mutation_file(mutation_file_path,output_dir,heter_code,mut_pickle=False,h5_sample_list=None):
     if mutation_file_path.lower().endswith('.maf'):
@@ -149,7 +125,7 @@ def get_mutation_mode_from_parser(args):
         logging.error('Mutation mode "%s" not recognized, please check again.' % mutation_mode)
 
     if is_error:
-         logging.error("immuno_mutation.py: The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")
+         logging.error("mutations.py: The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")
          sys.exit(1)
     mutation = Mutation(mutation_mode,germline_mutation_dict=germline_mutation_dict,somatic_mutation_dict=somatic_mutation_dict)
     return mutation
@@ -193,8 +169,7 @@ def get_mut_comb(exon_som_dict, vertex_list):
     Parameters
     ----------
     exon_som_dict: dict, keys (exon id), values (somatic mutation position)
-    idx: int, first exon id
-    prop_vertex: int, second exon id
+    vertex_list: list, array of vertex ids
 
     Returns
     -------

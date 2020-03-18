@@ -5,14 +5,13 @@ import pandas as pd
 import logging
 import gzip
 
-def immunopepper_diff(arg):
+def mode_diff(arg):
     logging.info(">>>>>>>>> diff: Start")
     junction_kmer_file = arg.junction_kmer_file
     bg_file_path = arg.bg_file_path
     output_file = arg.output_file_path
     remove_bg = arg.remove_bg
 
-    verbose = arg.verbose
     if bg_file_path.endswith('.gz'):
         f = gzip.open(bg_file_path,'r')
         bg_kmer_set = set(f.read().decode().split('\n'))
@@ -32,8 +31,7 @@ def immunopepper_diff(arg):
         kmer_df.to_csv(output_file,sep='\t',index=False,compression='gzip')
     else:
         kmer_df.to_csv(output_file, sep='\t', index=False)
-    if verbose:
-        logging.info("output bg-removed kmer file : {}".format(output_file))
+    logging.info("output bg-removed kmer file : {}".format(output_file))
     logging.info(">>>>>>>>> diff: Finish\n")
 
 

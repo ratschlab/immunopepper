@@ -15,25 +15,24 @@ import h5py
 import numpy as np
 
 # immuno module
-from .immuno_preprocess import genes_preprocess
-from .immuno_preprocess import parse_junction_meta_info
-from .immuno_preprocess import parse_gene_metadata_info
-from .immuno_preprocess import preprocess_ann
-from .immuno_mutation import get_mutation_mode_from_parser
-from .immuno_mutation import get_sub_mutation_tuple
-from .immuno_model import get_and_write_background_peptide_and_kmer
-from .immuno_model import get_and_write_peptide_and_kmer
-from .immuno_model import get_simple_metadata
-from .immuno_nametuple import Filepointer
-from .immuno_nametuple import Option
-from .io_utils import gz_and_normal_open
-from .io_utils import load_pickled_graph
-from .io_utils import print_memory_diags
+from .io import gz_and_normal_open
+from .io import load_pickled_graph
+from .io import write_gene_expr
+from .mutations import get_mutation_mode_from_parser
+from .mutations import get_sub_mutation_tuple
+from .namedtuples import Filepointer
+from .preprocess import genes_preprocess
+from .preprocess import parse_junction_meta_info
+from .preprocess import parse_gene_metadata_info
+from .preprocess import preprocess_ann
+from .traversal import collect_vertex_pairs
+from .traversal import get_and_write_background_peptide_and_kmer
+from .traversal import get_and_write_peptide_and_kmer
 from .utils import check_chr_consistence
 from .utils import create_libsize
 from .utils import get_idx
 from .utils import get_total_gene_expr
-from .utils import write_gene_expr
+from .utils import print_memory_diags
 
 ### intermediate fix to load pickle files stored under previous version
 from spladder.classes import gene as cgene
@@ -45,7 +44,7 @@ sys.modules['modules.classes.splicegraph'] = csplicegraph
 sys.modules['modules.classes.segmentgraph'] = csegmentgraph
 ### end fix
 
-def immunopepper_build(arg):
+def mode_build(arg):
     # read and process the annotation file
     logging.info(">>>>>>>>> Build: Start Preprocessing")
     logging.info('Building lookup structure ...')
@@ -119,11 +118,6 @@ def immunopepper_build(arg):
     expr_distr_dict = {}
     # process graph for each input sample
     output_libszie_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
-    option = Option(output_silence=arg.output_silence,
-                    debug=arg.verbose,
-                    filter_redundant=arg.filter_redundant,
-                    kmer=arg.kmer,
-                    disable_concat=arg.disable_concat)
     logging.info(">>>>>>>>> Start traversing splicegraph")
     for sample in arg.samples:
         logging.info(">>>> Processing sample {}, there are {} graphs in total".format(sample,num))
@@ -192,19 +186,22 @@ def immunopepper_build(arg):
             else:
                 junction_list = None
 
-            final_simple_meta, ref_mut_seq, exon_som_dict = get_simple_metadata(gene=gene,ref_seq=seq_dict[chrm],
-                                                                                idx=idx,mutation=sub_mutation,option=option)
+            vertex_pairs, ref_mut_seq, exon_som_dict = collect_vertex_pairs(gene=gene,ref_seq=seq_dict[chrm],
+                                                                            idx=idx,mutation=sub_mutation,
+                                                                            disable_concat=arg.disable_concat,
+                                                                            kmer=arg.kmer,
+                                                                            filter_redundant=arg.filter_redundant)
             #logging.info(">DEBUG 1: time: {}".format(timeit.default_timer() - start_time))
             background_pep_list = get_and_write_background_peptide_and_kmer(gene=gene, 
                                                                             ref_mut_seq=ref_mut_seq,
-                                                                            table=genetable,
+                                                                            gene_table=genetable,
+                                                                            countinfo=countinfo, 
                                                                             Idx=idx,
                                                                             filepointer=filepointer,
-                                                                            option=option,
-                                                                            countinfo=countinfo)
+                                                                            kmer=arg.kmer)
             #logging.info(">DEBUG 2: time: {}".format(timeit.default_timer() - start_time))
             get_and_write_peptide_and_kmer(gene=gene, 
-                                           final_simple_meta=final_simple_meta, 
+                                           vertex_pairs=vertex_pairs, 
                                            background_pep_list=background_pep_list,
                                            ref_mut_seq=ref_mut_seq, 
                                            idx=idx, 
@@ -212,10 +209,11 @@ def immunopepper_build(arg):
                                            countinfo=countinfo,
                                            mutation=sub_mutation,
                                            table=genetable,
-                                           option=option,
                                            size_factor=None,
                                            junction_list=junction_list, 
-                                           filepointer=filepointer)
+                                           filepointer=filepointer, 
+                                           kmer=arg.kmer,
+                                           output_silence=arg.output_silence)
             #logging.info(">DEBUG 3: time: {}".format(timeit.default_timer() - start_time))
             end_time = timeit.default_timer()
             memory = print_memory_diags(disable_print=True)

@@ -1,5 +1,8 @@
 import os
+import sys
+sys.path.append('..')
 from immunopepper import main_immuno
+
 test_id = 1
 case_list = ['pos','neg']
 mutation_list = ['ref','somatic','germline','somatic_and_germline']

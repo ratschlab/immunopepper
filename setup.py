@@ -32,7 +32,7 @@ setup(
     ],
     description="Software to translate splicing graphs into peptides",
     entry_points = {
-        'console_scripts': ['immunopepper=immunopepper.main_immuno:cmd_entry'],
+        'console_scripts': ['immunopepper=immunopepper.immunopepper:cmd_entry'],
     },
     install_requires=requirements,
     license="MIT license",

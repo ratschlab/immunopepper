@@ -58,7 +58,7 @@ OutputMetadata = namedtuple('OutputMetadata', ['output_id', 'read_frame', 'gene_
                                                  'modified_exons_coord','original_exons_coord',	'vertex_idx',	'junction_expr',
                                                  'segment_expr'])
 
-SimpleMetadata = namedtuple('SimpleMetadata', ['output_id', 'read_frame','has_stop_codon','modified_exons_coord','original_exons_coord','vertex_idx','peptide_weight'])
+VertexPair = namedtuple('VertexPair', ['output_id', 'read_frame','has_stop_codon','modified_exons_coord','original_exons_coord','vertex_idxs','peptide_weight'])
 
 
 """
@@ -133,17 +133,6 @@ CountInfo = namedtuple('CountInfo', ['sample_idx_dict', 'gene_idx_dict', 'gene_i
 
 
 """
-Option namedtuple
-namedtuple that contain all the argument needed in calculating output peptide 
-- output_silence: 
-- debug: 
-- filter_redundant: 
-- kmer:
-"""
-Option = namedtuple('Option', ['output_silence', 'debug', 'filter_redundant', 'kmer','disable_concat'])
-
-
-"""
 filepointer namedtuple
 namedtuple that contain all the filepointers
 - junction_peptide_fp:
@@ -155,6 +144,13 @@ namedtuple that contain all the filepointers
 Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp','background_peptide_fp','junction_kmer_fp','background_kmer_fp'])
 
 
-
+"""
+Mutation namedtuple
+namedtuple that contains all mutation information
+- mode: 
+- germline_mutation_dict:
+- somatic_mutation_dict:
+"""
+Mutation = namedtuple('Mutation', ['mode', 'germline_mutation_dict', 'somatic_mutation_dict'])
 
 

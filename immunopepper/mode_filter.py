@@ -1,16 +1,18 @@
 """
 Apply different filter mechanism on kmer tsv files
 """
-import pandas as pd
 import logging
-from .constant import NOT_EXIST
-from .io_utils import gz_and_normal_open
 import sys
-def immunopepper_filter(arg):
+
+import pandas as pd
+
+from .constant import NOT_EXIST
+from .io import gz_and_normal_open
+
+def mode_filter(arg):
     logging.info(">>>>>>>>> filter: Start")
     junction_kmer_tsv_path = arg.junction_kmer_tsv_path
     output_file_path = arg.output_file_path
-    verbose = arg.verbose
     if arg.infer_dna_pos:
         logging.info("infer exact dna pos for each kmer output so that we could apply rna-seq based filter")
         if not arg.meta_file_path:
@@ -24,14 +26,12 @@ def immunopepper_filter(arg):
 
     kmer_df = pd.read_csv(junction_kmer_tsv_path,sep='\t')
     if arg.cross_junction:
-        if verbose > 1:
-            logging.info('apply cross junction filter')
+        logging.info('apply cross junction filter')
         kmer_df = kmer_df[kmer_df['is_crossjunction']]
 
     if arg.seg_expr:
         seg_expr_thre = arg.seg_expr_thresh
-        if verbose > 1:
-            logging.info('apply segment expression filter, threshold is {}'.format(seg_expr_thre))
+        logging.info('apply segment expression filter, threshold is {}'.format(seg_expr_thre))
         kmer_df = kmer_df[kmer_df['seg_expr']>seg_expr_thre]
 
     if arg.junc_expr:
@@ -39,8 +39,7 @@ def immunopepper_filter(arg):
         # we actually also do cross_junction filter because
         # only cross junction kmers have junction expression
         junc_expr_thre = arg.junc_expr_thresh
-        if verbose > 1:
-            logging.info('apply junction expression filter, threshold is {}'.format(junc_expr_thre))
+        logging.info('apply junction expression filter, threshold is {}'.format(junc_expr_thre))
         kmer_df = kmer_df[kmer_df['is_crossjunction']]
         kmer_df['junction_expr'] = pd.to_numeric(kmer_df['junction_expr'])
         kmer_df = kmer_df[kmer_df['junction_expr']>junc_expr_thre]
@@ -52,8 +51,7 @@ def immunopepper_filter(arg):
         if arg.peptide_annotated:
             keep_id = meta_df[meta_df['peptide_annotated']==int(arg.peptide_annotated)]['output_id']
             total_keep_id = total_keep_id.intersection(keep_id)
-            if verbose > 1:
-                logging.info('apply peptide_annotated filter, value is {}'.format(arg.peptide_annotated))
+            logging.info('apply peptide_annotated filter, value is {}'.format(arg.peptide_annotated))
 
         if arg.junction_annotated:
             if int(arg.junction_annotated):
@@ -61,14 +59,12 @@ def immunopepper_filter(arg):
             else:
                 keep_id = meta_df[meta_df['junction_annotated'].isin(['0'])]['output_id']
             total_keep_id = total_keep_id.intersection(keep_id)
-            if verbose > 1:
-                logging.info('apply junction_annotated filter, value is {}'.format(arg.junction_annotated))
+            logging.info('apply junction_annotated filter, value is {}'.format(arg.junction_annotated))
 
         if arg.has_stop_codon:
             keep_id = meta_df[meta_df['has_stop_codon']==int(arg.has_stop_codon)]['output_id']
             total_keep_id = total_keep_id.intersection(keep_id)
-            if verbose > 1:
-                logging.info('apply has_stop_codon filter, value is {}'.format(arg.has_stop_codon))
+            logging.info('apply has_stop_codon filter, value is {}'.format(arg.has_stop_codon))
 
         if arg.is_in_junction_list:
             if int(arg.junction_annotated):
@@ -76,14 +72,12 @@ def immunopepper_filter(arg):
             else:
                 keep_id = meta_df[meta_df['junction_annotated'].isin(['0'])]['output_id']
             total_keep_id = total_keep_id.intersection(keep_id)
-            if verbose > 1:
-                logging.info('apply junction whitelist filter, value is {}'.format(arg.is_in_junction_list))
+            logging.info('apply junction whitelist filter, value is {}'.format(arg.is_in_junction_list))
 
         if arg.is_isolated:
             keep_id = meta_df[meta_df['is_isolated']==int(arg.is_isolated)]['output_id']
             total_keep_id = total_keep_id.intersection(keep_id)
-            if verbose > 1:
-                logging.info('apply is_isolated filter, value is {}'.format(arg.is_isolated))
+            logging.info('apply is_isolated filter, value is {}'.format(arg.is_isolated))
 
         kmer_df = kmer_df[kmer_df['gene_name'].isin(total_keep_id)]
     if arg.compressed:
@@ -91,8 +85,7 @@ def immunopepper_filter(arg):
     else:
         kmer_df.to_csv(output_file_path,sep='\t',index=False)
 
-    if verbose:
-        logging.info("Apply filter to {} and save result to {}".format(junction_kmer_tsv_path,output_file_path))
+    logging.info("Apply filter to {} and save result to {}".format(junction_kmer_tsv_path,output_file_path))
     logging.info(">>>>>>>>> filter: Finish\n")
 
 
@@ -156,6 +149,7 @@ def get_start_pos_for_kmer_unfiltered(meta_file_path,junction_kmer_tsv_path,outp
     new_junction_file.close()
     return output_file_path
 
+
 def deal_with_duplicate(line_list,k,cur_modi_coord,vertex_len,strand,kmer_len,chr,cur_variant_comb,new_junction_file):
     assert len(line_list) % k == 0
     uniq_line_len = len(line_list) // k
@@ -217,10 +211,3 @@ def get_start_pos_from_count(count, coord_list, vertex_len, strand, kmer_len):
             i += 1 # move the point to the next vertex
         pos_list.append(end_pos)
     return pos_list
-
-# case = 'neg'
-# mode = 'somatic_and_germline'
-# meta_file_path = 'tests/test1/current_output_{}/test1{}/{}_metadata.tsv.gz'.format(case,case,mode)
-# junction_kmer_tsv_path = 'tests/test1/current_output_{}/test1{}/{}_junction_kmer.txt'.format(case,case,mode)
-# output_file_path = 'new_junction_kmer.txt'
-# get_start_pos_for_kmer_unfiltered(meta_file_path,junction_kmer_tsv_path,output_file_path)

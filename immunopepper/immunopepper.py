@@ -1,19 +1,24 @@
 
-
 # Python libraries
-import sys
 import argparse
-import os
 import logging
+import os
+import sys
+
 from datetime import datetime
 
-from immunopepper.immunopepper_build import immunopepper_build
-from immunopepper.immunopepper_makebg import immunopepper_makebg
-from immunopepper.immunopepper_diff import immunopepper_diff
-from immunopepper.immunopepper_filter import immunopepper_filter
+from .mode_build import mode_build
+from .mode_diff import mode_diff
+from .mode_filter import mode_filter
+from .mode_makebg import mode_makebg
+
+
+def _add_general_args(parser):
+    general = parser.add_argument_group('GENERAL')
+    general.add_argument("--verbose", type=int, help="specify output verbosity (0 - warn, 1 - info, 2 - debug) [1]", required=False, default=1)
+    general.add_argument("--compressed", help="compress output files", action="store_true", default=False)
 
 def parse_arguments(argv):
-
     parser = argparse.ArgumentParser(prog='immunopepper')
     subparsers = parser.add_subparsers(help='Running modes', metavar='{build, make_bg, diff, filter}')
     parser_build = subparsers.add_parser('build', help='generate kmers library from a splicegraph')
@@ -28,7 +33,7 @@ def parse_arguments(argv):
     outputs = parser_build.add_argument_group('OUTPUT OPTIONS')
     outputs.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
     outputs.add_argument("--disable-concat",help="switch off concatenation of short exons to increase speed",action="store_true",default=False)
-    outputs.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
+    outputs.add_argument("--use-mut-pickle", help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
 
     additional_file = parser_build.add_argument_group('ADDITIONAL FILES')
     additional_file.add_argument("--germline", help="absolute path of germline mutation file", required=False, default='')
@@ -36,13 +41,10 @@ def parse_arguments(argv):
     additional_file.add_argument("--count-path",help="absolute path of count hdf5 file", required=False, default=None)
     additional_file.add_argument("--gtex-junction-path",help="absolute path of whitelist junction file, currently only support hdf5 format. Will suport tsv"
                                                              "format in the future", required=False, default=None)
-
-    general = parser_build.add_argument_group('MISCELLANEOUS')
-    general.add_argument("--process-num", metavar='N', type=int, help="Only process the first N genes in the splicegraph, default: process all", required=False, default=0)
-    general.add_argument("--use-mut-pickle",help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
-    general.add_argument("--verbose", type=int, help="specify the output verbosity (0 - silent, 1 - verbose, 2 - debug) [1]", required=False, default=1)
+    _add_general_args(parser_build)
 
     experimental = parser_build.add_argument_group('EXPERIMENTAL')
+    experimental.add_argument("--process-num", metavar='N', type=int, help="Only process the first N genes in the splicegraph, default: process all", required=False, default=0)
     experimental.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
     #specify the absolute path to expression library sizes
     experimental.add_argument("--libsize-path", nargs='?', help=argparse.SUPPRESS,required=False, default=None)
@@ -56,9 +58,8 @@ def parse_arguments(argv):
     required.add_argument("--kmer-files", nargs='+', help="list of kmer files output by build mode", required=True, default='')
     required.add_argument("--output-dir",help='directory to store the log file',required=True)
     required.add_argument("--output-file-path", help="output file path", required=True, default='')
-    general = parser_makebg.add_argument_group('MISCELLANEOUS')
-    general.add_argument("--compressed",help="compress output files",action="store_true",default=False)
-    general.add_argument("--verbose", type=int, help="specify the output verbosity. Level 1 records the input and output file paths.", required=False, default=1)
+
+    _add_general_args(parser_makebg)
 
     parser_diff = subparsers.add_parser('diff', help='append a new column to the junction kmer txt result file indicating if the kmer is in groundtruth')
     required = parser_diff.add_argument_group('MANDATORY')
@@ -69,9 +70,7 @@ def parse_arguments(argv):
     required.add_argument("--remove-bg", help="choose to simply remove background rows or add a new flag column to indicate"
                                               " if the kmer exists in the background kmers", action="store_true", required=False, default=False)
 
-    general = parser_diff.add_argument_group('MISCELLANEOUS')
-    general.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
-    general.add_argument("--verbose", type=int, help="specify the output verbosity. Level 1 records the output file path.", required=False, default=1)
+    _add_general_args(parser_diff)
 
     parser_filter = subparsers.add_parser('filter', help='apply different filter rules')
     required = parser_filter.add_argument_group('MANDATORY')
@@ -99,11 +98,7 @@ def parse_arguments(argv):
     optional.add_argument("--infer-dna-pos",help="infer the exact dna positions that output the given kmer for rna-seq filter. Need meta file provided"
                                                  "otherwise no effect",action="store_true",default=False)
 
-    general = parser_filter.add_argument_group('MISCELLANEOUS')
-    general.add_argument("--compressed",help="compress the output files",action="store_true",default=False)
-    general.add_argument("--verbose", type=int, help="specify the output verbosity. Level 1 records the input file"
-                                                     "and output file path in the log. Level 2 records the detail filter mechanism "
-                                                     "and threshold.", required=False, default=1)
+    _add_general_args(parser_filter)
 
     if len(argv) < 1:
         parser.print_help()
@@ -141,24 +136,31 @@ def split_mode(options):
         handlers = [file_handler, stdout_handler]
     else:
         handlers = [file_handler]
+    ### set log level
+    if arg.verbose == 0:
+        log_level = logging.WARNING
+    elif arg.verbose == 1:
+        log_level = logging.INFO
+    else:
+        log_level = logging.DEBUG
+        
     logging.basicConfig(
-                        level=logging.DEBUG,
+                        level=log_level,
                         handlers=handlers,
                         format="%(asctime)-15s %(levelname)-8s %(message)s")
     logging.info("Command line"+str(arg))
     if mode == 'build':
-        immunopepper_build(arg)
+        mode_build(arg)
     if mode == 'make_bg':
-        immunopepper_makebg(arg)
+        mode_makebg(arg)
     if mode == 'diff':
-        immunopepper_diff(arg)
+        mode_diff(arg)
     if mode == 'filter':
-        immunopepper_filter(arg)
+        mode_filter(arg)
 
 def cmd_entry():
     options = sys.argv[1:]
     split_mode(options)
-
 
 if __name__ == "__main__":
     cmd_entry()
