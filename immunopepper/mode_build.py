@@ -34,6 +34,7 @@ from .utils import check_chr_consistence
 from .utils import create_libsize
 from .utils import get_idx
 from .utils import get_total_gene_expr
+from .utils import unpickler
 
 ### intermediate fix to load pickle files stored under previous version
 from spladder.classes import gene as cgene
@@ -46,7 +47,7 @@ sys.modules['modules.classes.segmentgraph'] = csegmentgraph
 ### end fix
 
 
-def process_gene_batch(sample, genes, genes_info, gene_idxs, total_genes, mutation, junction_dict, countinfo, genetable, arg):
+def process_gene_batch(sample, genes, genes_info, gene_idxs, total_genes, mutation, junction_dict, countinfo, genetable, arg, outbase):
     results = []
     for i, gene in enumerate(genes):
         ### measure time
@@ -77,35 +78,41 @@ def process_gene_batch(sample, genes, genes_info, gene_idxs, total_genes, mutati
         if not junction_dict is None and chrm in junction_dict:
             junction_list = junction_dict[chrm]
 
-        vertex_pairs, ref_mut_seq, exon_som_dict = collect_vertex_pairs(gene=gene,
-                                                                        gene_info=genes_info[i],
-                                                                        ref_seq_file=arg.ref_path, #seq_dict[chrm],
-                                                                        chrm=chrm,
-                                                                        idx=idx,
-                                                                        mutation=sub_mutation,
-                                                                        disable_concat=arg.disable_concat,
-                                                                        kmer=arg.kmer,
-                                                                        filter_redundant=arg.filter_redundant)
+        vertex_pairs, \
+        ref_mut_seq, \
+        exon_som_dict = collect_vertex_pairs(gene=gene,
+                                             gene_info=genes_info[i],
+                                             ref_seq_file=arg.ref_path, #seq_dict[chrm],
+                                             chrm=chrm,
+                                             idx=idx,
+                                             mutation=sub_mutation,
+                                             disable_concat=arg.disable_concat,
+                                             kmer=arg.kmer,
+                                             filter_redundant=arg.filter_redundant)
 
-        R['background_peptide_list'], R['background_kmer_lists'] = get_and_write_background_peptide_and_kmer(gene=gene, 
-                                                                        ref_mut_seq=ref_mut_seq,
-                                                                        gene_table=genetable,
-                                                                        countinfo=countinfo, 
-                                                                        Idx=idx,
-                                                                        kmer=arg.kmer)
-        R['output_metadata_list'], R['output_peptide_list'], R['output_kmer_lists'] = get_and_write_peptide_and_kmer(gene=gene, 
-                                                                                   vertex_pairs=vertex_pairs, 
-                                                                                   background_pep_list=R['background_peptide_list'],
-                                                                                   ref_mut_seq=ref_mut_seq, 
-                                                                                   idx=idx, 
-                                                                                   exon_som_dict=exon_som_dict,
-                                                                                   countinfo=countinfo,
-                                                                                   mutation=sub_mutation,
-                                                                                   table=genetable,
-                                                                                   size_factor=None,
-                                                                                   junction_list=junction_list, 
-                                                                                   kmer=arg.kmer,
-                                                                                   output_silence=arg.output_silence)
+        R['background_peptide_list'], \
+        R['background_kmer_lists'] = get_and_write_background_peptide_and_kmer(gene=gene, 
+                                                                               ref_mut_seq=ref_mut_seq,
+                                                                               gene_table=genetable,
+                                                                               countinfo=countinfo, 
+                                                                               Idx=idx,
+                                                                               kmer=arg.kmer)
+        R['output_metadata_list'], \
+        R['output_peptide_list'], \
+        R['output_kmer_lists'] = get_and_write_peptide_and_kmer(gene=gene, 
+                                                                vertex_pairs=vertex_pairs, 
+                                                                background_pep_list=R['background_peptide_list'],
+                                                                ref_mut_seq=ref_mut_seq, 
+                                                                idx=idx, 
+                                                                exon_som_dict=exon_som_dict,
+                                                                countinfo=countinfo,
+                                                                mutation=sub_mutation,
+                                                                table=genetable,
+                                                                size_factor=None,
+                                                                junction_list=junction_list, 
+                                                                kmer=arg.kmer,
+                                                                output_silence=arg.output_silence, 
+                                                                outbase=outbase)
 
         R['time'] = timeit.default_timer() - start_time
         R['memory'] = print_memory_diags(disable_print=True)
@@ -126,18 +133,33 @@ def write_gene_result(gene_result, filepointer):
         write_namedtuple_list(filepointer.background_kmer_fp, kmer_list, back_kmer_field_list)
 
     junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
-    for peptide in gene_result['output_peptide_list']:
-        filepointer.junction_peptide_fp.write(convert_namedtuple_to_str(peptide, junc_pep_field_list) + '\n')
+    if os.path.exists(gene_result['output_peptide_list']):
+        with open(gene_result['output_peptide_list'], 'rb') as fh: 
+            for record in unpickler(fh):
+                filepointer.junction_peptide_fp.write(convert_namedtuple_to_str(record, junc_pep_field_list) + '\n')
+        os.remove(gene_result['output_peptide_list'])
+    #for peptide in gene_result['output_peptide_list']:
+    #    filepointer.junction_peptide_fp.write(convert_namedtuple_to_str(peptide, junc_pep_field_list) + '\n')
 
     meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode', 'peptide_annotated',
                        'junction_annotated', 'has_stop_codon', 'is_in_junction_list', 'is_isolated', 'variant_comb',
                        'variant_seg_expr', 'modified_exons_coord','original_exons_coord', 'vertex_idx', 'junction_expr', 'segment_expr']
-    for output_metadata in gene_result['output_metadata_list']:
-        filepointer.junction_meta_fp.write(convert_namedtuple_to_str(output_metadata, meta_field_list) + '\n')
+    if os.path.exists(gene_result['output_metadata_list']):
+        with open(gene_result['output_metadata_list'], 'rb') as fh: 
+            for record in unpickler(fh):
+                filepointer.junction_meta_fp.write(convert_namedtuple_to_str(record, meta_field_list) + '\n')
+        os.remove(gene_result['output_metadata_list'])
+    #for output_metadata in gene_result['output_metadata_list']:
+    #    filepointer.junction_meta_fp.write(convert_namedtuple_to_str(output_metadata, meta_field_list) + '\n')
 
     kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count']
-    for kmer_list in gene_result['output_kmer_lists']:
-        write_namedtuple_list(filepointer.junction_kmer_fp, kmer_list, kmer_field_list)
+    if os.path.exists(gene_result['output_kmer_lists']):
+        with open(gene_result['output_kmer_lists'], 'rb') as fh:
+            for record in unpickler(fh):
+                write_namedtuple_list(filepointer.junction_kmer_fp, record, kmer_field_list)
+        os.remove(gene_result['output_kmer_lists'])
+    #for kmer_list in gene_result['output_kmer_lists']:
+    #    write_namedtuple_list(filepointer.junction_kmer_fp, kmer_list, kmer_field_list)
 
 
 def mode_build(arg):
@@ -284,12 +306,14 @@ def mode_build(arg):
             batch_size = 10
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
-                _ = pool.apply_async(process_gene_batch, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg,), callback=process_result)
+                outbase = os.path.join(output_path, 'tmp_out_%i' % i)
+                _ = pool.apply_async(process_gene_batch, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg, outbase,), callback=process_result)
             pool.close()
             pool.join()
         else:
             for gene_idx in gene_id_list:
-                gene_result = process_gene_batch(sample, [graph_data[gene_idx]], [graph_info[gene_idx]], [gene_idx], len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg)[0]
+                outbase = os.path.join(output_path, 'tmp_out')
+                gene_result = process_gene_batch(sample, [graph_data[gene_idx]], [graph_info[gene_idx]], [gene_idx], len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg, outbase)[0]
                 if gene_result['processed']:
                     gene_name_expr_distr.append((gene_result['gene_name'], gene_result['total_expr']))
                     expr_distr.append(gene_result['total_expr'])

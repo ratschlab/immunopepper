@@ -1,11 +1,12 @@
 """Contain functions to help compute, to preprocess"""
-import itertools
-import numpy as np
-import h5py
-
-import sys
 import bisect
+import h5py
+import itertools
 import logging
+import numpy as np
+import pickle
+import sys
+
 
 from .constant import NOT_EXIST
 from .namedtuples import Coord
@@ -414,4 +415,11 @@ def check_chr_consistence(ann_chr_set,mutation,graph_data):
         if len(new_chr_set) > 0:
             logging.error("Gene object has different chromosome naming from annotation file, please check")
             sys.exit(0)
+
+def unpickler(picklefile):
+    try:
+        while True:
+            yield pickle.load(picklefile)
+    except EOFError:
+        pass
 
