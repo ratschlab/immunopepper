@@ -17,7 +17,6 @@ import numpy as np
 # immuno module
 from .io import gz_and_normal_open
 from .io import load_pickled_graph
-from .io import print_memory_diags
 from .io import write_gene_expr
 from .mutations import get_mutation_mode_from_parser
 from .mutations import get_sub_mutation_tuple
@@ -33,6 +32,7 @@ from .utils import check_chr_consistence
 from .utils import create_libsize
 from .utils import get_idx
 from .utils import get_total_gene_expr
+from .utils import print_memory_diags
 
 ### intermediate fix to load pickle files stored under previous version
 from spladder.classes import gene as cgene

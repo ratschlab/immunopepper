@@ -1,10 +1,12 @@
 """Contain functions to help compute, to preprocess"""
-import itertools
-import numpy as np
 
-import sys
 import bisect
+import itertools
 import logging
+import numpy as np
+import os
+import psutil
+import sys
 
 from .constant import NOT_EXIST
 from .namedtuples import Coord
@@ -409,4 +411,16 @@ def check_chr_consistence(ann_chr_set,mutation,graph_data):
         if len(new_chr_set) > 0:
             logging.error("Gene object has different chromosome naming from annotation file, please check")
             sys.exit(0)
+
+def print_memory_diags(disable_print=False):
+    """
+    Print memory diagnostics including the active resident set size
+    """
+    process = psutil.Process(os.getpid())
+    memory = process.memory_info().rss/1000000000.0
+    if not disable_print:
+        logging.info('\tMemory usage: {:.3f} GB'.format(memory))
+    return memory
+
+
 

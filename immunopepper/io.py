@@ -2,7 +2,6 @@ import gzip
 import logging
 import os
 import pickle
-import psutil
 import sys
 
 ### intermediate fix to load pickle files stored under previous version
@@ -27,17 +26,6 @@ def gz_and_normal_open(file_path,mode='r'):
         file_fp = open(file_path, mode)
 
     return file_fp
-
-
-def print_memory_diags(disable_print=False):
-    """
-    Print memory diagnostics including the active resident set size
-    """
-    process = psutil.Process(os.getpid())
-    memory = process.memory_info().rss/1000000000.0
-    if not disable_print:
-        logging.info('\tMemory usage: {:.3f} GB'.format(memory))
-    return memory
 
 
 def write_list(fp, _list):
