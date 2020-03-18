@@ -44,8 +44,8 @@ def _collect_remove_ids(exon_junction_dict):
                     removed.add(exon_pair[0])
                     break
                 if j_pos1 >= i_pos1 and j_pos2 <= i_pos2:
-                    remove_id_list.append(exon_pairs[j][0])
-                    removed.add(exon_pairs[j][0])
+                    remove_id_list.append(exon_pair_list[j][0])
+                    removed.add(exon_pair_list[j][0])
 
     return remove_id_list
 
