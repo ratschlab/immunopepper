@@ -14,6 +14,7 @@ import sys
 import timeit
 
 # immuno module
+from .tries import create_kmer_trie, write_gene_result
 from .io import convert_namedtuple_to_str
 from .io import gz_and_normal_open
 from .io import load_pickled_graph
@@ -29,6 +30,7 @@ from .preprocess import preprocess_ann
 from .traversal import collect_vertex_pairs
 from .traversal import get_and_write_background_peptide_and_kmer
 from .traversal import get_and_write_peptide_and_kmer
+from .tries import create_kmer_trie, write_gene_result, filter_onkey_trie
 from .utils import check_chr_consistence
 from .utils import create_libsize
 from .utils import get_idx
@@ -99,8 +101,8 @@ def process_gene_batch(sample, genes, genes_info, gene_idxs, total_genes, mutati
                                                                                kmer=arg.kmer)
         R['output_metadata_list'], \
         R['output_peptide_list'], \
-        R['output_kmer_lists'] = get_and_write_peptide_and_kmer(gene=gene, 
-                                                                vertex_pairs=vertex_pairs, 
+        R['output_kmer_lists'] = get_and_write_peptide_and_kmer(gene=gene,
+                                                                vertex_pairs=vertex_pairs,
                                                                 background_pep_list=R['background_peptide_list'],
                                                                 ref_mut_seq=ref_mut_seq, 
                                                                 idx=idx, 
@@ -121,45 +123,45 @@ def process_gene_batch(sample, genes, genes_info, gene_idxs, total_genes, mutati
     return results
 
 
-def write_gene_result(gene_result, filepointer):
-
-    ### define fields relevant for output
-    back_pep_field_list = ['id', 'new_line', 'peptide']
-    for peptide in gene_result['background_peptide_list']:
-        filepointer.background_peptide_fp.write(convert_namedtuple_to_str(peptide, back_pep_field_list) + '\n')
-
-    back_kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction']
-    for kmer_list in gene_result['background_kmer_lists']:
-        write_namedtuple_list(filepointer.background_kmer_fp, kmer_list, back_kmer_field_list)
-
-    junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
-    if os.path.exists(gene_result['output_peptide_list']):
-        with open(gene_result['output_peptide_list'], 'rb') as fh: 
-            for record in unpickler(fh):
-                filepointer.junction_peptide_fp.write(convert_namedtuple_to_str(record, junc_pep_field_list) + '\n')
-        os.remove(gene_result['output_peptide_list'])
-    #for peptide in gene_result['output_peptide_list']:
-    #    filepointer.junction_peptide_fp.write(convert_namedtuple_to_str(peptide, junc_pep_field_list) + '\n')
-
-    meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode', 'peptide_annotated',
-                       'junction_annotated', 'has_stop_codon', 'is_in_junction_list', 'is_isolated', 'variant_comb',
-                       'variant_seg_expr', 'modified_exons_coord','original_exons_coord', 'vertex_idx', 'junction_expr', 'segment_expr']
-    if os.path.exists(gene_result['output_metadata_list']):
-        with open(gene_result['output_metadata_list'], 'rb') as fh: 
-            for record in unpickler(fh):
-                filepointer.junction_meta_fp.write(convert_namedtuple_to_str(record, meta_field_list) + '\n')
-        os.remove(gene_result['output_metadata_list'])
-    #for output_metadata in gene_result['output_metadata_list']:
-    #    filepointer.junction_meta_fp.write(convert_namedtuple_to_str(output_metadata, meta_field_list) + '\n')
-
-    kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count']
-    if os.path.exists(gene_result['output_kmer_lists']):
-        with open(gene_result['output_kmer_lists'], 'rb') as fh:
-            for record in unpickler(fh):
-                write_namedtuple_list(filepointer.junction_kmer_fp, record, kmer_field_list)
-        os.remove(gene_result['output_kmer_lists'])
-    #for kmer_list in gene_result['output_kmer_lists']:
-    #    write_namedtuple_list(filepointer.junction_kmer_fp, kmer_list, kmer_field_list)
+# def write_gene_result(gene_result, filepointer):
+#
+#     ### define fields relevant for output
+#     back_pep_field_list = ['id', 'new_line', 'peptide']
+#     for peptide in gene_result['background_peptide_list']:
+#         filepointer.background_peptide_fp.write(convert_namedtuple_to_str(peptide, back_pep_field_list) + '\n')
+#
+#     back_kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction']
+#     for kmer_list in gene_result['background_kmer_lists']:
+#         write_namedtuple_list(filepointer.background_kmer_fp, kmer_list, back_kmer_field_list)
+#
+#     junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
+#     if os.path.exists(gene_result['output_peptide_list']):
+#         with open(gene_result['output_peptide_list'], 'rb') as fh:
+#             for record in unpickler(fh):
+#                 filepointer.junction_peptide_fp.write(convert_namedtuple_to_str(record, junc_pep_field_list) + '\n')
+#         os.remove(gene_result['output_peptide_list'])
+#     #for peptide in gene_result['output_peptide_list']:
+#     #    filepointer.junction_peptide_fp.write(convert_namedtuple_to_str(peptide, junc_pep_field_list) + '\n')
+#
+#     meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode', 'peptide_annotated',
+#                        'junction_annotated', 'has_stop_codon', 'is_in_junction_list', 'is_isolated', 'variant_comb',
+#                        'variant_seg_expr', 'modified_exons_coord','original_exons_coord', 'vertex_idx', 'junction_expr', 'segment_expr']
+#     if os.path.exists(gene_result['output_metadata_list']):
+#         with open(gene_result['output_metadata_list'], 'rb') as fh:
+#             for record in unpickler(fh):
+#                 filepointer.junction_meta_fp.write(convert_namedtuple_to_str(record, meta_field_list) + '\n')
+#         os.remove(gene_result['output_metadata_list'])
+#     #for output_metadata in gene_result['output_metadata_list']:
+#     #    filepointer.junction_meta_fp.write(convert_namedtuple_to_str(output_metadata, meta_field_list) + '\n')
+#
+#     kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count']
+#     if os.path.exists(gene_result['output_kmer_lists']):
+#         with open(gene_result['output_kmer_lists'], 'rb') as fh:
+#             for record in unpickler(fh):
+#                 write_namedtuple_list(filepointer.junction_kmer_fp, record, kmer_field_list)
+#         os.remove(gene_result['output_kmer_lists'])
+#     #for kmer_list in gene_result['output_kmer_lists']:
+#     #    write_namedtuple_list(filepointer.junction_kmer_fp, kmer_list, kmer_field_list)
 
 
 def mode_build(arg):
@@ -184,8 +186,8 @@ def mode_build(arg):
     print_memory_diags()
     
     ### DEBUG
-    #graph_data = graph_data[[3170]]
-    #graph_data = graph_data[:1000]
+    #graph_data = graph_data[[3170]] #TODO remove
+    graph_data = graph_data[:100]
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
@@ -276,6 +278,8 @@ def mode_build(arg):
 
         background_kmer_field_list =  ['kmer','gene_name','seg_expr','is_crossjunction']
         background_kmer_fp.write(('\t'.join(background_kmer_field_list)+'\n'))
+        trie_kmer_foregr = create_kmer_trie(base = False)
+        trie_kmer_back = create_kmer_trie(base = True)
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
         if arg.parallel > 1:
@@ -288,6 +292,8 @@ def mode_build(arg):
                 global filepointer
                 global gene_id_list
                 global sample
+                global trie_kmer_foregr
+                global trie_kmer_back
                 for gene_result in gene_results:
                     cnt += 1
                     logging.info('> Finished processing Gene {} ({}/{})'.format(gene_result['gene_name'], cnt, len(gene_id_list)))
@@ -296,7 +302,7 @@ def mode_build(arg):
                         expr_distr.append(gene_result['total_expr'])
                         s1 = timeit.default_timer()
                         logging.info('start writing results')
-                        write_gene_result(gene_result, filepointer)
+                        trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, filepointer, trie_kmer_foregr, trie_kmer_back)
                         logging.info('writing results took {} seconds'.format(timeit.default_timer() - s1))
                         logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample, gene_result['gene_idx'] + 1, len(gene_id_list), gene_result['time'], gene_result['memory']))
                 del gene_results
@@ -317,7 +323,7 @@ def mode_build(arg):
                 if gene_result['processed']:
                     gene_name_expr_distr.append((gene_result['gene_name'], gene_result['total_expr']))
                     expr_distr.append(gene_result['total_expr'])
-                    write_gene_result(gene_result, filepointer)
+                    trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, filepointer, trie_kmer_foregr, trie_kmer_back)
                     time_list.append(gene_result['time'])
                     memory_list.append(gene_result['memory'])
 
@@ -337,7 +343,12 @@ def mode_build(arg):
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
         create_libsize(expr_distr_dict,output_libszie_fp)
-    
+        logging.info(">>>> Background kmer total {}".format(len(trie_kmer_back)))
+        logging.info(">>>> Foreground kmer total before final filtering {}".format(len(trie_kmer_foregr)))
+        trie_kmer_foregr = filter_onkey_trie(trie_kmer_foregr, trie_kmer_back)
+        logging.info(">>>> Foreground kmer total after final filtering {}".format(len(trie_kmer_foregr)))
+        #TODO add writing trie
+        
         ### close files
         filepointer.junction_peptide_fp.flush()
         filepointer.junction_peptide_fp.close()

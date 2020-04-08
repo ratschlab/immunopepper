@@ -1,0 +1,89 @@
+# Function to be moved later to correct folders
+
+import os
+
+import datrie
+from .io import convert_namedtuple_to_str
+from .utils import unpickler
+
+def create_kmer_trie(base = False):
+    if base:
+        trie = datrie.BaseTrie(["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"])
+    else:
+        trie = datrie.Trie(["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"])
+    return trie
+
+
+def add_trie_list_forgrd(trie, _namedtuple_list, kmer_field_list, filter_trie):
+
+    for _namedtuple_kmer in _namedtuple_list:
+        meta_data = convert_namedtuple_to_str(_namedtuple_kmer, kmer_field_list[1:])
+        if _namedtuple_kmer.kmer in filter_trie:
+            continue
+        else:
+            if _namedtuple_kmer.kmer not in trie: #potential slow down here
+                trie[_namedtuple_kmer.kmer] = [meta_data]
+            else:
+                trie[_namedtuple_kmer.kmer].append(meta_data)
+    return trie
+
+
+
+def add_trie_list_back(trie, _namedtuple_list):
+    for _namedtuple_kmer in _namedtuple_list:
+        trie[_namedtuple_kmer.kmer] = 0
+    return trie
+
+def filter_onkey_trie(trie_foregr, trie_back):
+    for key_ in  trie_foregr:
+        if key_ in trie_back:
+            del trie_foregr[key_]
+    return trie_foregr
+
+
+def write_gene_result(gene_result, filepointer, trie_kmer_foregr, trie_kmer_back):
+
+    ### define fields relevant for output
+    back_pep_field_list = ['id', 'new_line', 'peptide']
+    for peptide in gene_result['background_peptide_list']:
+        filepointer.background_peptide_fp.write(convert_namedtuple_to_str(peptide, back_pep_field_list) + '\n')
+
+    back_kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction']
+    for kmer_list in gene_result['background_kmer_lists']:
+        trie_kmer_back = add_trie_list_back(trie_kmer_back, kmer_list)
+
+    junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
+    if os.path.exists(gene_result['output_peptide_list']):
+        with open(gene_result['output_peptide_list'], 'rb') as fh:
+            for record in unpickler(fh):
+                filepointer.junction_peptide_fp.write(convert_namedtuple_to_str(record, junc_pep_field_list) + '\n')
+        os.remove(gene_result['output_peptide_list'])
+    #for peptide in gene_result['output_peptide_list']:
+    #    filepointer.junction_peptide_fp.write(convert_namedtuple_to_str(peptide, junc_pep_field_list) + '\n')
+
+    meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode', 'peptide_annotated',
+                       'junction_annotated', 'has_stop_codon', 'is_in_junction_list', 'is_isolated', 'variant_comb',
+                       'variant_seg_expr', 'modified_exons_coord','original_exons_coord', 'vertex_idx', 'junction_expr', 'segment_expr']
+    if os.path.exists(gene_result['output_metadata_list']):
+        with open(gene_result['output_metadata_list'], 'rb') as fh:
+            for record in unpickler(fh):
+                filepointer.junction_meta_fp.write(convert_namedtuple_to_str(record, meta_field_list) + '\n')
+        os.remove(gene_result['output_metadata_list'])
+    #for output_metadata in gene_result['output_metadata_list']:
+    #    filepointer.junction_meta_fp.write(convert_namedtuple_to_str(output_metadata, meta_field_list) + '\n')
+
+        kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count']
+        if os.path.exists(gene_result['output_kmer_lists']):
+            with open(gene_result['output_kmer_lists'], 'rb') as fh:
+                for record in unpickler(fh):
+                    trie_kmer_foregr = add_trie_list_forgrd(trie_kmer_foregr, kmer_list, kmer_field_list,
+                                                            trie_kmer_back)
+
+            os.remove(gene_result['output_kmer_lists'])
+        #for kmer_list in gene_result['output_kmer_lists']:
+        #    write_namedtuple_list(filepointer.junction_kmer_fp, kmer_list, kmer_field_list)
+
+
+    return trie_kmer_foregr, trie_kmer_back
+
+
