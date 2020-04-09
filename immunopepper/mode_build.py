@@ -187,7 +187,7 @@ def mode_build(arg):
     
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
-    graph_data = graph_data[:100]
+    #graph_data = graph_data[:100]
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
@@ -262,6 +262,9 @@ def mode_build(arg):
         junction_kmer_fp = gz_and_normal_open(junction_kmer_file_path, 'w')
         background_kmer_fp = gz_and_normal_open(background_kmer_file_path, 'w')
         gene_expr_fp = gz_and_normal_open(gene_expr_file_path, 'w')
+
+        junction_kmer_trie_path = os.path.join(output_path, mutation.mode + '_junction_kmer.pickle')
+        junction_kmer_trie_fp = gz_and_normal_open(junction_kmer_trie_path, 'wb')
 
         filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp, junction_kmer_fp, background_kmer_fp)
 
@@ -348,6 +351,7 @@ def mode_build(arg):
         trie_kmer_foregr = filter_onkey_trie(trie_kmer_foregr, trie_kmer_back)
         logging.info(">>>> Foreground kmer total after final filtering {}".format(len(trie_kmer_foregr)))
         #TODO add writing trie
+        pickle.dump(trie_kmer_foregr, junction_kmer_trie_fp)
         
         ### close files
         filepointer.junction_peptide_fp.flush()
