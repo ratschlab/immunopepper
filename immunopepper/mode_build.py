@@ -187,7 +187,7 @@ def mode_build(arg):
     
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
-    #graph_data = graph_data[:100]
+    graph_data = graph_data[:1000]
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
@@ -234,6 +234,9 @@ def mode_build(arg):
         global filepointer
         global gene_id_list
         global sample
+        global trie_kmer_foregr
+        global trie_kmer_back
+
 
     for sample in arg.samples:
         logging.info(">>>> Processing sample {}, there are {} graphs in total".format(sample,num))
@@ -287,6 +290,7 @@ def mode_build(arg):
         gene_id_list = list(range(0,num))
         if arg.parallel > 1:
             cnt = 0
+            logging.info('Parallel: {} Threads'.format(arg.parallel)) #TODO Remove
 
             def process_result(gene_results):
                 global cnt
@@ -306,6 +310,8 @@ def mode_build(arg):
                         s1 = timeit.default_timer()
                         logging.info('start writing results')
                         trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, filepointer, trie_kmer_foregr, trie_kmer_back)
+                        logging.info('Gene {}: Background kmer  {}'.format(gene_result['gene_name'], len(trie_kmer_back)))  #TODO Remove, testing purpose
+                        logging.info('Gene {}: Foreground kmer filtered {}'.format(gene_result['gene_name'], len(trie_kmer_foregr)))#TODO Remove, testing purpose
                         logging.info('writing results took {} seconds'.format(timeit.default_timer() - s1))
                         logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample, gene_result['gene_idx'] + 1, len(gene_id_list), gene_result['time'], gene_result['memory']))
                 del gene_results
@@ -317,9 +323,13 @@ def mode_build(arg):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_%i' % i)
                 _ = pool.apply_async(process_gene_batch, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg, outbase,), callback=process_result)
+                logging.info('Batch {}: Background kmer  {}'.format(i ,  len(trie_kmer_back)))  # TODO Remove, testing purpose
+                logging.info('Batch {}: Foreground kmer filtered {}'.format(i, len(trie_kmer_foregr)))  # TODO Remove, testing purpose
+
             pool.close()
             pool.join()
         else:
+            logging.info('Not Parallel')
             for gene_idx in gene_id_list:
                 outbase = os.path.join(output_path, 'tmp_out')
                 gene_result = process_gene_batch(sample, [graph_data[gene_idx]], [graph_info[gene_idx]], [gene_idx], len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg, outbase)[0]
@@ -342,7 +352,7 @@ def mode_build(arg):
                          "Average memory cost:{} GB, Average time cost:{} seconds".format(sample,error_gene_num,num,max_memory,max_time,max_memory_id,max_time_id,
                                                                                mean_memory,mean_time))
         else:
-            logging.info(">>>> No gene is processed during this running.")
+            logging.info(">>>> No gene is processed during this run.")
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
         create_libsize(expr_distr_dict,output_libszie_fp)
