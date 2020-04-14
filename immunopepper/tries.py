@@ -20,11 +20,10 @@ def add_trie_list_forgrd(trie, _namedtuple_list, kmer_field_list, filter_trie):
         meta_data = convert_namedtuple_to_str(_namedtuple_kmer, kmer_field_list[1:])
         if _namedtuple_kmer.kmer in filter_trie:
             continue
+        if _namedtuple_kmer.kmer not in trie: #potential slow down here
+            trie[_namedtuple_kmer.kmer] = [meta_data]
         else:
-            if _namedtuple_kmer.kmer not in trie: #potential slow down here
-                trie[_namedtuple_kmer.kmer] = [meta_data]
-            else:
-                trie[_namedtuple_kmer.kmer].append(meta_data)
+            trie[_namedtuple_kmer.kmer].append(meta_data)
     return trie
 
 

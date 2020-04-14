@@ -187,7 +187,8 @@ def mode_build(arg):
     
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
-    graph_data = graph_data[:1000]
+    #graph_data = graph_data[:100]
+    
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
@@ -323,8 +324,6 @@ def mode_build(arg):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_%i' % i)
                 _ = pool.apply_async(process_gene_batch, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg, outbase,), callback=process_result)
-                logging.info('Batch {}: Background kmer  {}'.format(i ,  len(trie_kmer_back)))  # TODO Remove, testing purpose
-                logging.info('Batch {}: Foreground kmer filtered {}'.format(i, len(trie_kmer_foregr)))  # TODO Remove, testing purpose
 
             pool.close()
             pool.join()
