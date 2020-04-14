@@ -1,6 +1,8 @@
 # Function to be moved later to correct folders
 
 import os
+import pandas as pd
+import fastparquet
 
 import datrie
 from .io import convert_namedtuple_to_str
@@ -15,15 +17,20 @@ def create_kmer_trie(base = False):
 
 
 def add_trie_list_forgrd(trie, _namedtuple_list, kmer_field_list, filter_trie):
-
+    base_dict = {}
     for _namedtuple_kmer in _namedtuple_list:
         meta_data = convert_namedtuple_to_str(_namedtuple_kmer, kmer_field_list[1:])
-        if _namedtuple_kmer.kmer in filter_trie:
-            continue
+        #if _namedtuple_kmer.kmer in filter_trie: #TODO add Back
+        #    continue
         if _namedtuple_kmer.kmer not in trie: #potential slow down here
-            trie[_namedtuple_kmer.kmer] = [meta_data]
+            for field in kmer_field_list[1:]:
+                base_dict[field] = [ getattr(_namedtuple_kmer, field) ]
+            trie[_namedtuple_kmer.kmer] = base_dict
         else:
-            trie[_namedtuple_kmer.kmer].append(meta_data)
+            for field in kmer_field_list[1:]:
+                item_= getattr(_namedtuple_kmer, field)
+                if item_ not in trie[_namedtuple_kmer.kmer][field]:
+                    trie[_namedtuple_kmer.kmer][field].append(item_)
     return trie
 
 
@@ -86,3 +93,13 @@ def write_gene_result(gene_result, filepointer, trie_kmer_foregr, trie_kmer_back
     return trie_kmer_foregr, trie_kmer_back
 
 
+
+def save_backgrd_trie(trie, save_path):
+        df = pd.DataFrame(trie.keys(), columns = ['kmer'])
+        df.to_parquet(save_path,  engine='fastparquet',
+                  compression='gzip')
+def save_forgrd_trie(trie, save_path):
+        df = pd.DataFrame(trie.values(), index = trie.keys())
+        df = df.rename_axis('kmer').reset_index()
+        df.to_parquet(save_path, engine='fastparquet',
+                  compression='gzip')
