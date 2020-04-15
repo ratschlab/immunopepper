@@ -16,7 +16,7 @@ from .mode_makebg import mode_makebg
 def _add_general_args(parser):
     general = parser.add_argument_group('GENERAL')
     general.add_argument("--verbose", type=int, help="specify output verbosity (0 - warn, 1 - info, 2 - debug) [1]", required=False, default=1)
-    general.add_argument("--compressed", help="compress output files", action="store_true", default=False)
+    general.add_argument("--compressed", help="compress output files", action="store_true", default=True)
     general.add_argument("--parallel", type=int, help="number of threads to be used [1]", required=False, default=1)
 
 def parse_arguments(argv):

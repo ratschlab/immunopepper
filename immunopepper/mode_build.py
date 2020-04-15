@@ -32,8 +32,10 @@ from .traversal import get_and_write_background_peptide_and_kmer
 from .traversal import get_and_write_peptide_and_kmer
 from .tries import create_kmer_trie
 from .tries import filter_onkey_trie
-from .tries import save_backgrd_trie
-from .tries import save_forgrd_trie
+from .tries import save_backgrd_kmer_trie
+from .tries import save_backgrd_pep_trie
+from .tries import save_forgrd_kmer_trie
+from .tries import save_forgrd_pep_trie
 from .tries import write_gene_result
 from .utils import check_chr_consistence
 from .utils import create_libsize
@@ -196,11 +198,12 @@ def mode_build(arg):
         global cnt
         global gene_name_expr_distr
         global expr_distr
-        global filepointer
         global gene_id_list
         global sample
         global trie_kmer_foregr
         global trie_kmer_back
+        global trie_pept_forgrd
+        global trie_pept_backgrd
 
 
     for sample in arg.samples:
@@ -215,36 +218,23 @@ def mode_build(arg):
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
 
-        junction_meta_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz')
-        meta_peptide_fp = gz_and_normal_open(junction_meta_file_path,'w')
+        junction_meta_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz.pq')
         gzip_tag = ''
         if arg.compressed:
             gzip_tag = '.gz'
-        junction_peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa'+gzip_tag)
-        background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa'+gzip_tag)
+        junction_peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa.pq'+gzip_tag)
+        background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa.pq'+gzip_tag)
         junction_kmer_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.pq'+gzip_tag)
         background_kmer_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.pq'+gzip_tag)
         gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.tsv'+gzip_tag)
-        peptide_fp = gz_and_normal_open(junction_peptide_file_path, 'w')
-        background_fp = gz_and_normal_open(background_peptide_file_path, 'w')
         gene_expr_fp = gz_and_normal_open(gene_expr_file_path, 'w')
 
 
-        filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp)
 
-        meta_field_list = ['output_id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode',
-                           'peptide_annotated',
-                           'junction_annotated', 'has_stop_codon', 'is_in_junction_list', 'is_isolated', 'variant_comb',
-                           'variant_seg_expr',
-                           'modified_exons_coord', 'original_exons_coord', 'vertex_idx', 'junction_expr',
-                           'segment_expr']
-        meta_peptide_fp.write(('\t'.join(meta_field_list) + '\n'))
-
-        junction_kmer_field_list = ['kmer','gene_name','seg_expr','is_crossjunction','junction_expr']
-
-        background_kmer_field_list =  ['kmer','gene_name','seg_expr','is_crossjunction']
         trie_kmer_foregr = create_kmer_trie(base = False)
         trie_kmer_back = create_kmer_trie(base = True)
+        trie_pept_forgrd = create_kmer_trie(base = False)
+        trie_pept_backgrd = create_kmer_trie(base = False)
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
         if arg.parallel > 1:
@@ -255,11 +245,12 @@ def mode_build(arg):
                 global cnt
                 global gene_name_expr_distr
                 global expr_distr
-                global filepointer
                 global gene_id_list
                 global sample
                 global trie_kmer_foregr
                 global trie_kmer_back
+                global trie_pept_forgrd
+                global trie_pept_backgrd
                 for gene_result in gene_results:
                     cnt += 1
                     logging.info('> Finished processing Gene {} ({}/{})'.format(gene_result['gene_name'], cnt, len(gene_id_list)))
@@ -268,7 +259,7 @@ def mode_build(arg):
                         expr_distr.append(gene_result['total_expr'])
                         s1 = timeit.default_timer()
                         logging.debug('start writing results')
-                        trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, filepointer, trie_kmer_foregr, trie_kmer_back)
+                        trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back)
                         logging.debug('Gene {}: Background kmer  {}'.format(gene_result['gene_name'], len(trie_kmer_back)))  #TODO Remove, testing purpose
                         logging.debug('Gene {}: Foreground kmer filtered {}'.format(gene_result['gene_name'], len(trie_kmer_foregr)))#TODO Remove, testing purpose
                         logging.debug('writing results took {} seconds'.format(timeit.default_timer() - s1))
@@ -293,7 +284,7 @@ def mode_build(arg):
                 if gene_result['processed']:
                     gene_name_expr_distr.append((gene_result['gene_name'], gene_result['total_expr']))
                     expr_distr.append(gene_result['total_expr'])
-                    trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, filepointer, trie_kmer_foregr, trie_kmer_back)
+                    trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back)
                     time_list.append(gene_result['time'])
                     memory_list.append(gene_result['memory'])
 
@@ -315,22 +306,25 @@ def mode_build(arg):
         create_libsize(expr_distr_dict,output_libszie_fp)
         logging.info(">>>> Background kmer total {}".format(len(trie_kmer_back)))
         logging.info(">>>> Foreground kmer total before final filtering {}".format(len(trie_kmer_foregr)))
-        #trie_kmer_foregr = filter_onkey_trie(trie_kmer_foregr, trie_kmer_back) #TODO add back
+        #trie_kmer_foregr = filter_onkey_trie(trie_kmtrie_pept_backgrder_foregr, trie_kmer_back) #TODO add back
         logging.info(">>>> Foreground kmer total after final filtering {}".format(len(trie_kmer_foregr)))
-        save_backgrd_trie(trie_kmer_back, background_kmer_file_path )
+
+
+        if arg.compressed:
+            compression = 'gzip'
+        else:
+            compression = None
+        save_backgrd_kmer_trie(trie_kmer_back, background_kmer_file_path,  compression)
         del trie_kmer_back
         if len(trie_kmer_foregr):
-            save_forgrd_trie(trie_kmer_foregr, junction_kmer_file_path)
+            save_forgrd_kmer_trie(trie_kmer_foregr, junction_kmer_file_path, compression)
         else:
             logging.info(">>>> No foreground kmers are left after filtering on annotation")
+        del trie_kmer_foregr
+        save_backgrd_pep_trie(trie_pept_backgrd, background_peptide_file_path, compression)
+        del trie_pept_backgrd
+        save_forgrd_pep_trie(trie_pept_forgrd, junction_peptide_file_path, junction_meta_file_path, compression)
+        del trie_pept_forgrd
 
-
-        ### close files
-        filepointer.junction_peptide_fp.flush()
-        filepointer.junction_peptide_fp.close()
-        filepointer.junction_meta_fp.flush()
-        filepointer.junction_meta_fp.close()
-        filepointer.background_peptide_fp.flush()
-        filepointer.background_peptide_fp.close()
     logging.info(">>>>>>>>> Build: Finish traversing splicegraph in mutation mode {}.\n".format(mutation.mode))
 

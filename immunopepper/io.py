@@ -32,11 +32,14 @@ def write_list(fp, _list):
     fp.writelines([l + '\n' for l in _list])
 
 
-def convert_namedtuple_to_str(_namedtuple, field_list):
-    def _convert_list_to_str(_list):
-        remove_none_list = filter(lambda x:x is not None, _list)
-        return ';'.join([str(_item) for _item in remove_none_list])
+def _convert_list_to_str(_list):
+    remove_none_list = filter(lambda x:x is not None, _list)
+    return ';'.join([str(_item) for _item in remove_none_list])
 
+def convert_namedtuple_to_str(_namedtuple, field_list = None, sep = '\t'):
+
+    if field_list is None:
+        field_list = _namedtuple._fields
     line = ''
     for field in field_list:
         if field == 'new_line':
@@ -47,9 +50,9 @@ def convert_namedtuple_to_str(_namedtuple, field_list):
             sys.exit(1)
         item = getattr(_namedtuple, field)
         if isinstance(item, (list, tuple)):
-            line += _convert_list_to_str(item)+'\t'
+            line += _convert_list_to_str(item)+sep
         else:
-            line += str(item)+'\t'
+            line += str(item)+sep
     return line[:-1] # remove the last '\t'
 
 
