@@ -50,7 +50,7 @@ Output_metadata namedtuple.
 - segment_expr. float. The weighted sum of segment expression. We split the junction into segments and compute the segment 
     expression with the length-weighted-sum expression.
 """
-OutputMetadata = namedtuple('OutputMetadata', ['output_id', 'read_frame', 'gene_name', 'gene_chr',
+OutputMetadata = namedtuple('OutputMetadata', ['peptide', 'output_id', 'read_frame', 'gene_name', 'gene_chr',
                                                  'gene_strand',	'mutation_mode', 'peptide_annotated',
                                                  'junction_annotated',	'has_stop_codon',
                                                  'is_in_junction_list',	'is_isolated',

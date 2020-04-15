@@ -270,7 +270,7 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
                     edge_expr = NOT_EXIST
 
                 #output_metadata_list.append(OutputMetadata(output_id=new_output_id,
-                tmp = OutputMetadata(output_id=new_output_id,
+                tmp = OutputMetadata(peptide=peptide.mut, output_id=new_output_id,
                                                            read_frame=vertex_pair.read_frame.read_phase,
                                                            gene_name=gene.name,
                                                            gene_chr=gene.chr,
@@ -296,8 +296,6 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
                                                 peptide=peptide.mut,
                                                 exons_coor=modi_coord,
                                                 junction_count=edge_expr)
-                #output_peptide_list.append(output_peptide)
-                pickle.dump(output_peptide, output_peptide_pickle, pickle.HIGHEST_PROTOCOL)
                 if kmer > 0:
                     #output_kmer_lists.append(create_output_kmer(output_peptide, kmer, expr_list))
                     pickle.dump(create_output_kmer(output_peptide, kmer, expr_list), output_kmer_pickle, pickle.HIGHEST_PROTOCOL)
