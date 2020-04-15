@@ -155,7 +155,7 @@ def junction_tuple_is_annotated(junction_flag, vertex_id_tuple):
 
     """
     if NOT_EXIST in vertex_id_tuple:
-        return NOT_EXIST
+        return np.nan
     for i in range(len(vertex_id_tuple) - 1):
         if junction_flag[vertex_id_tuple[i], vertex_id_tuple[i+1]]:
             return 1
