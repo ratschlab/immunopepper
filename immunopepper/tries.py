@@ -63,21 +63,12 @@ def write_gene_result(gene_result, trie_pept_forgrd, trie_pept_backgrd, trie_kme
         trie_kmer_back = add_trie_kmer_back(trie_kmer_back, kmer_list)
 
     #junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
-<<<<<<< HEAD
-    if os.path.exists(gene_result['output_metadata_list']):
-        with open(gene_result['output_metadata_list'], 'rb') as fh:
-            for record in unpickler(fh):
-                trie_pept_forgrd = add_trie_peptide(trie_pept_forgrd, record)
-        os.remove(gene_result['output_metadata_list'])
-=======
-        for record in gene_result['output_metadata_list']:
-            trie_pept_forgrd = add_trie_peptide(trie_pept_forgrd, record)
->>>>>>> 3a408cb82f611351784fd20289f3e4d7b486b240
+    for record in gene_result['output_metadata_list']:
+        trie_pept_forgrd = add_trie_peptide(trie_pept_forgrd, record)
 
-
-        kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count']
-        for kmer_list in gene_result['output_kmer_lists']:
-            trie_kmer_foregr = add_trie_kmer_forgrd(trie_kmer_foregr, kmer_list, kmer_field_list,
+    kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count']
+    for kmer_list in gene_result['output_kmer_lists']:
+        trie_kmer_foregr = add_trie_kmer_forgrd(trie_kmer_foregr, kmer_list, kmer_field_list,
                                                             trie_kmer_back)
 
 
