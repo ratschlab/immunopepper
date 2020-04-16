@@ -106,7 +106,6 @@ def process_gene_batch(sample, genes, genes_info, gene_idxs, total_genes, mutati
                                                                                Idx=idx,
                                                                                kmer=arg.kmer)
         R['output_metadata_list'], \
-        R['output_peptide_list'], \
         R['output_kmer_lists'] = get_and_write_peptide_and_kmer(gene=gene,
                                                                 vertex_pairs=vertex_pairs,
                                                                 background_pep_list=R['background_peptide_list'],
@@ -306,7 +305,7 @@ def mode_build(arg):
         create_libsize(expr_distr_dict,output_libszie_fp)
         logging.info(">>>> Background kmer total {}".format(len(trie_kmer_back)))
         logging.info(">>>> Foreground kmer total before final filtering {}".format(len(trie_kmer_foregr)))
-        #trie_kmer_foregr = filter_onkey_trie(trie_kmtrie_pept_backgrder_foregr, trie_kmer_back) #TODO add back
+        trie_kmer_foregr = filter_onkey_trie(trie_kmer_foregr, trie_kmer_back) #TODO add back
         logging.info(">>>> Foreground kmer total after final filtering {}".format(len(trie_kmer_foregr)))
 
 
