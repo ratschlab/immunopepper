@@ -258,9 +258,9 @@ def mode_build(arg):
                         expr_distr.append(gene_result['total_expr'])
                         s1 = timeit.default_timer()
                         logging.debug('start writing results')
-                        trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back)
-                        logging.info('Gene {}: Background kmer  {}'.format(gene_result['gene_name'], len(trie_kmer_back)))  #TODO Remove, testing purpose
-                        logging.info('Gene {}: Foreground kmer filtered {}'.format(gene_result['gene_name'], len(trie_kmer_foregr)))#TODO Remove, testing purpose
+                        trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back, logging)
+                        #logging.info('Gene {}: Background kmer  {}'.format(gene_result['gene_name'], len(trie_kmer_back)))  #TODO Remove, testing purpose
+                        #logging.info('Gene {}: Foreground kmer filtered {}'.format(gene_result['gene_name'], len(trie_kmer_foregr)))#TODO Remove, testing purpose
                         logging.info('writing results took {} seconds'.format(timeit.default_timer() - s1))
                         logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample, gene_result['gene_idx'] + 1, len(gene_id_list), gene_result['time'], gene_result['memory']))
                 del gene_results

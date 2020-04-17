@@ -16,22 +16,6 @@ def create_kmer_trie(base = False):
         trie = datrie.Trie(["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"])
     return trie
 
-def add_trie_kmer_forgrd1(trie, _namedtuple_list, kmer_field_list, filter_trie):
-    base_dict = {}
-    for _namedtuple_kmer in _namedtuple_list:
-        meta_data = convert_namedtuple_to_str(_namedtuple_kmer, kmer_field_list[1:])
-        if _namedtuple_kmer.kmer in filter_trie: #TODO add Back
-            continue
-        if _namedtuple_kmer.kmer not in trie: #potential slow down here
-            for field in kmer_field_list[1:]:
-                base_dict[field] = [ getattr(_namedtuple_kmer, field) ]
-            trie[_namedtuple_kmer.kmer] = base_dict
-        else:
-            for field in kmer_field_list[1:]:
-                item_= getattr(_namedtuple_kmer, field)
-                if item_ not in trie[_namedtuple_kmer.kmer][field]:
-                    trie[_namedtuple_kmer.kmer][field].append(item_)
-    return trie
 
 def add_trie_kmer_forgrd2(trie, _namedtuple_list, kmer_field_list, filter_trie):
 
@@ -52,21 +36,13 @@ def add_trie_kmer_forgrd2(trie, _namedtuple_list, kmer_field_list, filter_trie):
     return trie
 
 
-def add_trie_kmer_forgrd3(trie, _namedtuple_list, kmer_field_list, filter_trie):
-
-    for _namedtuple_kmer in _namedtuple_list:
-        ord_dict = _namedtuple_kmer._asdict()
-        del ord_dict['kmer']
-
-        if _namedtuple_kmer.kmer in filter_trie: #TODO add Back
-            continue
-        trie[_namedtuple_kmer.kmer] = ord_dict
-
-    return trie
-
 def add_trie_kmer_back(trie, _namedtuple_list):
     for _namedtuple_kmer in _namedtuple_list:
+        if _namedtuple_kmer.kmer in trie: 
+            continue
+        start_time = timeit.default_timer()
         trie[_namedtuple_kmer.kmer] = 0
+        logging.info('background_kmer trie single  update {}'.format(timeit.default_timer() - start_time))
     return trie
 
 def filter_onkey_trie(trie_foregr, trie_back):
@@ -82,33 +58,25 @@ def add_trie_peptide(trie, _namedtuple ):
     return trie
 
 
-def write_gene_result(gene_result, trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back):
+def write_gene_result(gene_result, trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back, logging):
 
-    start_time = timeit.default_timer()
     ### define fields relevant for output
     #back_pep_field_list = ['id', 'new_line', 'peptide']
     for peptide in gene_result['background_peptide_list']:
         trie_pept_backgrd = add_trie_peptide(trie_pept_backgrd, peptide)
-    print('background_peptide trie update {}'.format(timeit.default_timer() - start_time))
 
-    start_time = timeit.default_timer()
     #back_kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction']
     for kmer_list in gene_result['background_kmer_lists']:
         trie_kmer_back = add_trie_kmer_back(trie_kmer_back, kmer_list)
-    print('background_kmer trie update {}'.format(timeit.default_timer() - start_time))
 
-    start_time = timeit.default_timer()
     #junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
     for record in gene_result['output_metadata_list']:
         trie_pept_forgrd = add_trie_peptide(trie_pept_forgrd, record)
-    print('Foreground_peptide trie update {}'.format(timeit.default_timer() - start_time))
 
-    start_time = timeit.default_timer()
     kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count']
     for kmer_list in gene_result['output_kmer_lists']:
-        trie_kmer_foregr = add_trie_kmer_forgrd1(trie_kmer_foregr, kmer_list, kmer_field_list,
+        trie_kmer_foregr = add_trie_kmer_forgrd2(trie_kmer_foregr, kmer_list, kmer_field_list,
                                                             trie_kmer_back)
-    print('Foreground_kmer trie update {}'.format(timeit.default_timer() - start_time))
 
 
     return trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back
