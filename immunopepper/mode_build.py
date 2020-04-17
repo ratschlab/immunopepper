@@ -259,10 +259,10 @@ def mode_build(arg):
                         s1 = timeit.default_timer()
                         logging.debug('start writing results')
                         trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back)
-                        logging.debug('Gene {}: Background kmer  {}'.format(gene_result['gene_name'], len(trie_kmer_back)))  #TODO Remove, testing purpose
-                        logging.debug('Gene {}: Foreground kmer filtered {}'.format(gene_result['gene_name'], len(trie_kmer_foregr)))#TODO Remove, testing purpose
-                        logging.debug('writing results took {} seconds'.format(timeit.default_timer() - s1))
-                        logging.debug(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample, gene_result['gene_idx'] + 1, len(gene_id_list), gene_result['time'], gene_result['memory']))
+                        logging.info('Gene {}: Background kmer  {}'.format(gene_result['gene_name'], len(trie_kmer_back)))  #TODO Remove, testing purpose
+                        logging.info('Gene {}: Foreground kmer filtered {}'.format(gene_result['gene_name'], len(trie_kmer_foregr)))#TODO Remove, testing purpose
+                        logging.info('writing results took {} seconds'.format(timeit.default_timer() - s1))
+                        logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample, gene_result['gene_idx'] + 1, len(gene_id_list), gene_result['time'], gene_result['memory']))
                 del gene_results
 
             pool = mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
@@ -303,10 +303,10 @@ def mode_build(arg):
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
         create_libsize(expr_distr_dict,output_libszie_fp)
-        logging.info(">>>> Background kmer total {}".format(len(trie_kmer_back)))
-        logging.info(">>>> Foreground kmer total before final filtering {}".format(len(trie_kmer_foregr)))
+        logging.info(">>>> Background kmer TOTAL {}".format(len(trie_kmer_back)))
+        logging.info(">>>> Foreground kmer TOTAL before final filtering {}".format(len(trie_kmer_foregr)))
         trie_kmer_foregr = filter_onkey_trie(trie_kmer_foregr, trie_kmer_back) #TODO add back
-        logging.info(">>>> Foreground kmer total after final filtering {}".format(len(trie_kmer_foregr)))
+        logging.info(">>>> Foreground kmer TOTAL after final filtering {}".format(len(trie_kmer_foregr)))
 
 
         if arg.compressed:
