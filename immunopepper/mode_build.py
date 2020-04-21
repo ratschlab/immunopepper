@@ -283,7 +283,7 @@ def mode_build(arg):
                 if gene_result['processed']:
                     gene_name_expr_distr.append((gene_result['gene_name'], gene_result['total_expr']))
                     expr_distr.append(gene_result['total_expr'])
-                    trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back)
+                    trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back, logging)
                     time_list.append(gene_result['time'])
                     memory_list.append(gene_result['memory'])
 

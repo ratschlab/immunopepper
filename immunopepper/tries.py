@@ -1,13 +1,14 @@
 # Function to be moved later to correct folders
-
+from collections import OrderedDict
+import datrie
 import os
 import pandas as pd
+import timeit
 
-import datrie
 from .io import convert_namedtuple_to_str
 from .io import _convert_list_to_str
 from .utils import unpickler
-import timeit
+
 
 def create_kmer_trie(base = False):
     if base:
@@ -17,9 +18,9 @@ def create_kmer_trie(base = False):
     return trie
 
 
-def add_trie_kmer_forgrd2(trie, _namedtuple_list, kmer_field_list, filter_trie):
+def add_trie_kmer_forgrd(trie, _namedtuple_od, filter_trie):
 
-    for _namedtuple_kmer in _namedtuple_list:
+    for _namedtuple_kmer in _namedtuple_od.values():
         ord_dict = _namedtuple_kmer._asdict()
         del ord_dict['kmer']
 
@@ -36,8 +37,8 @@ def add_trie_kmer_forgrd2(trie, _namedtuple_list, kmer_field_list, filter_trie):
     return trie
 
 
-def add_trie_kmer_back(trie, _namedtuple_list):
-    for _namedtuple_kmer in _namedtuple_list:
+def add_trie_kmer_back(trie, _namedtuple_od, logging):
+    for _namedtuple_kmer in _namedtuple_od.values():
         if _namedtuple_kmer.kmer in trie: 
             continue
         start_time = timeit.default_timer()
@@ -45,38 +46,50 @@ def add_trie_kmer_back(trie, _namedtuple_list):
         logging.info('background_kmer trie single  update {}'.format(timeit.default_timer() - start_time))
     return trie
 
+
 def filter_onkey_trie(trie_foregr, trie_back):
     for key_ in  trie_foregr:
         if key_ in trie_back:
             del trie_foregr[key_]
     return trie_foregr
 
-def add_trie_peptide(trie, _namedtuple ):
-    meta_data =  dict(_namedtuple._asdict())
-    del meta_data['peptide']
-    trie[_namedtuple.peptide] = meta_data
-    return trie
+def add_trie_peptide(trie, _namedtuple_od ):
+    for _namedtuple_peptide in _namedtuple_od.values():
+        meta_data =  dict(_namedtuple_peptide._asdict())
+        del meta_data['peptide']
+        trie[_namedtuple_peptide.peptide] = meta_data
+        return trie
+
+
+def sort_records_kmer(nestedlist_of_namedtuples):
+    records = dict([(record.kmer, record) for transcript_list in nestedlist_of_namedtuples for record in
+                    transcript_list])
+    records = OrderedDict(sorted(records.items()))
+    return records
+
+def sort_records_peptide(list_of_namedtuples):
+    records = dict([(record.peptide, record) for record in list_of_namedtuples])
+    records = OrderedDict(sorted(records.items()))
+    return records
 
 
 def write_gene_result(gene_result, trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back, logging):
 
-    ### define fields relevant for output
-    #back_pep_field_list = ['id', 'new_line', 'peptide']
-    for peptide in gene_result['background_peptide_list']:
-        trie_pept_backgrd = add_trie_peptide(trie_pept_backgrd, peptide)
+    if len(gene_result['background_peptide_list']):
+        sorted_record_odict = sort_records_peptide(gene_result['background_peptide_list'])
+        trie_pept_backgrd = add_trie_peptide(trie_pept_backgrd, sorted_record_odict)
 
-    #back_kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction']
-    for kmer_list in gene_result['background_kmer_lists']:
-        trie_kmer_back = add_trie_kmer_back(trie_kmer_back, kmer_list)
+    if len(gene_result['background_kmer_lists']):
+        sorted_record_odict = sort_records_kmer(gene_result['background_kmer_lists'])
+        trie_kmer_back = add_trie_kmer_back(trie_kmer_back, sorted_record_odict, logging)
 
-    #junc_pep_field_list = ['output_id', 'id', 'new_line', 'peptide']
-    for record in gene_result['output_metadata_list']:
-        trie_pept_forgrd = add_trie_peptide(trie_pept_forgrd, record)
+    if len(gene_result['output_metadata_list']):
+        sorted_record_odict = sort_records_peptide(gene_result['output_metadata_list'])
+        trie_pept_forgrd = add_trie_peptide(trie_pept_forgrd, sorted_record_odict)
 
-    kmer_field_list = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count']
-    for kmer_list in gene_result['output_kmer_lists']:
-        trie_kmer_foregr = add_trie_kmer_forgrd2(trie_kmer_foregr, kmer_list, kmer_field_list,
-                                                            trie_kmer_back)
+    if len(gene_result['output_kmer_lists']):
+        sorted_record_odict = sort_records_kmer(gene_result['output_kmer_lists'])
+        trie_kmer_foregr = add_trie_kmer_forgrd(trie_kmer_foregr, sorted_record_odict,  trie_kmer_back)
 
 
     return trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back
