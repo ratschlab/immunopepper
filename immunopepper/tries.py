@@ -17,6 +17,9 @@ def create_kmer_trie(base = False):
         trie = datrie.Trie(["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"])
     return trie
 
+def replace_trie_by_dict():
+    return {}
+
 
 def add_trie_kmer_forgrd(trie, _namedtuple_od, filter_trie):
 
