@@ -44,8 +44,6 @@ from .utils import get_total_gene_expr
 from .utils import unpickler
 from .utils import print_memory_diags
 
-from .tries import replace_trie_by_dict # TODO remove
-
 ### intermediate fix to load pickle files stored under previous version
 from spladder.classes import gene as cgene
 from spladder.classes import splicegraph as csplicegraph
@@ -232,15 +230,10 @@ def mode_build(arg):
 
 
 
-        # trie_kmer_foregr = create_kmer_trie(base = False)
-        # trie_kmer_back = create_kmer_trie(base = True)
-        # trie_pept_forgrd = create_kmer_trie(base = False)
-        # trie_pept_backgrd = create_kmer_trie(base = False)
-
-        trie_kmer_foregr = replace_trie_by_dict() #TODO: Temporary test setup
-        trie_kmer_back = replace_trie_by_dict()
-        trie_pept_forgrd = replace_trie_by_dict()
-        trie_pept_backgrd = replace_trie_by_dict()
+        trie_kmer_foregr = create_kmer_trie(base = False)
+        trie_kmer_back = create_kmer_trie(base = True)
+        trie_pept_forgrd = create_kmer_trie(base = False)
+        trie_pept_backgrd = create_kmer_trie(base = False)
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
         if arg.parallel > 1:
