@@ -103,6 +103,7 @@ def save_backgrd_kmer_trie(trie, save_path, compression = None):
 
 def save_forgrd_kmer_trie(trie, save_path, compression = None):
         df = pd.DataFrame(trie.values(), index = trie.keys())
+        df = df.applymap(repr)
         df = df.rename_axis('kmer').reset_index()
         df.to_parquet(save_path, engine='fastparquet',
                   compression=compression, index=False)
@@ -120,16 +121,10 @@ def save_forgrd_pep_trie(trie, save_path_forgr_pep, save_path_meta_pep, compress
     fasta = pd.DataFrame(fasta, columns=['fasta'])
     df = df.drop(['output_id', 'index'], axis=1)
     fasta.to_parquet(save_path_forgr_pep, engine='fastparquet',
-                  compression=compression)
+                  compression=compression, index=False)
     del fasta
-    # TODO potential slow down here?
     df['original_exons_coord'] = df['original_exons_coord'].apply(convert_namedtuple_to_str, args=(None, ';'))
     df['modified_exons_coord'] = df['modified_exons_coord'].apply(convert_namedtuple_to_str, args=(None, ';'))
-    df['junction_expr'] = df['junction_expr'].apply(_convert_list_to_str)
-    df['variant_comb'] = df['variant_comb'].apply(_convert_list_to_str)
-    df['variant_seg_expr'] = df['variant_seg_expr'].apply(_convert_list_to_str)
-    df['vertex_idx'] = df['vertex_idx'].apply(_convert_list_to_str)
-    df['junction_expr'] = df['junction_expr'].apply(_convert_list_to_str)
+    df = df.applymap(repr)
     df.to_parquet(save_path_meta_pep, engine='fastparquet',
-                  compression=compression)
-    del df
+                  compression=compression, index=False)
