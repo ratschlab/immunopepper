@@ -114,3 +114,6 @@ tests/None/*
 /tests/mouse_usecase/*fa
 /tests/mouse_usecase/*fai
 /tests/.DS_Store
+/data_test
+/data_test/*
+

@@ -7,7 +7,7 @@ import sys
 import pandas as pd
 
 from .constant import NOT_EXIST
-from .io import gz_and_normal_open
+from .io_ import gz_and_normal_open
 
 def mode_filter(arg):
     logging.info(">>>>>>>>> filter: Start")

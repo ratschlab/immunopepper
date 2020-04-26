@@ -8,9 +8,9 @@ import numpy as np
 
 from immunopepper.constant import NOT_EXIST
 from immunopepper.filter import junction_tuple_is_annotated
-from immunopepper.io import convert_namedtuple_to_str
-from immunopepper.io import gz_and_normal_open
-from immunopepper.io import load_pickled_graph
+from immunopepper.io_ import convert_namedtuple_to_str
+from immunopepper.io_ import gz_and_normal_open
+from immunopepper.io_ import load_pickled_graph
 from immunopepper.mutations import apply_germline_mutation
 from immunopepper.mutations import construct_mut_seq_with_str_concat
 from immunopepper.mutations import get_mutation_mode_from_parser

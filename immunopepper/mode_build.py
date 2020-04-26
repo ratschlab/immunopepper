@@ -15,11 +15,11 @@ import timeit
 
 # immuno module
 from .tries import create_kmer_trie, write_gene_result
-from .io import convert_namedtuple_to_str
-from .io import gz_and_normal_open
-from .io import load_pickled_graph
-from .io import write_gene_expr
-from .io import write_namedtuple_list
+from .io_ import convert_namedtuple_to_str
+from .io_ import gz_and_normal_open
+from .io_ import load_pickled_graph
+from .io_ import write_gene_expr
+from .io_ import write_namedtuple_list
 from .mutations import get_mutation_mode_from_parser
 from .mutations import get_sub_mutation_tuple
 from .namedtuples import Filepointer

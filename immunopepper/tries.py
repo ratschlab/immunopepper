@@ -5,8 +5,8 @@ import os
 import pandas as pd
 import timeit
 
-from .io import convert_namedtuple_to_str
-from .io import _convert_list_to_str
+from .io_ import convert_namedtuple_to_str
+from .io_ import _convert_list_to_str
 from .utils import unpickler
 
 

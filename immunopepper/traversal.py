@@ -11,8 +11,8 @@ from .filter import junction_is_annotated
 from .filter import junction_is_in_given_list
 from .filter import junction_tuple_is_annotated
 from .filter import peptide_is_annotated
-from .io import convert_namedtuple_to_str
-from .io import write_namedtuple_list
+from .io_ import convert_namedtuple_to_str
+from .io_ import write_namedtuple_list
 from .mutations import apply_germline_mutation
 from .mutations import get_exon_som_dict
 from .mutations import get_mut_comb
