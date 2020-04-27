@@ -483,7 +483,7 @@ def parse_mutation_from_maf(maf_path, output_dir='', mut_pickle=False):
         print(i)
         items = line.strip().split('\t')
         if items[9] == 'SNP':  # only consider snp
-            sample_id = '-'.join(items[15].split('-')[:3])
+            sample_id = items[15]
             chr = items[4]
             pos = int(items[5])-1
             var_dict = {}
