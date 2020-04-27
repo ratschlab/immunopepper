@@ -1,6 +1,7 @@
 # Python libraries
 """"""
 # Core operation of ImmunoPepper. Traverse splicegraph and get kmer/peptide output
+from collections import defaultdict
 from functools import partial
 import gzip
 import h5py
@@ -14,7 +15,6 @@ import sys
 import timeit
 
 # immuno module
-from .tries import create_kmer_trie, write_gene_result
 from .io_ import convert_namedtuple_to_str
 from .io_ import gz_and_normal_open
 from .io_ import load_pickled_graph
@@ -30,13 +30,12 @@ from .preprocess import preprocess_ann
 from .traversal import collect_vertex_pairs
 from .traversal import get_and_write_background_peptide_and_kmer
 from .traversal import get_and_write_peptide_and_kmer
-from .tries import create_kmer_trie
-from .tries import filter_onkey_trie
-from .tries import save_backgrd_kmer_trie
-from .tries import save_backgrd_pep_trie
-from .tries import save_forgrd_kmer_trie
-from .tries import save_forgrd_pep_trie
-from .tries import write_gene_result
+from .inmemory import filter_onkey_dict
+from .inmemory import save_backgrd_kmer_dict
+from .inmemory import save_backgrd_pep_dict
+from .inmemory import save_forgrd_kmer_dict
+from .inmemory import save_forgrd_pep_dict
+from .inmemory import write_gene_result
 from .utils import check_chr_consistence
 from .utils import create_libsize
 from .utils import get_idx
@@ -199,10 +198,10 @@ def mode_build(arg):
         global expr_distr
         global gene_id_list
         global sample
-        global trie_kmer_foregr
-        global trie_kmer_back
-        global trie_pept_forgrd
-        global trie_pept_backgrd
+        global dict_kmer_foregr
+        global dict_kmer_back
+        global dict_pept_forgrd
+        global dict_pept_backgrd
 
 
     for sample in arg.samples:
@@ -230,10 +229,10 @@ def mode_build(arg):
 
 
 
-        trie_kmer_foregr = create_kmer_trie(base = False)
-        trie_kmer_back = create_kmer_trie(base = True)
-        trie_pept_forgrd = create_kmer_trie(base = False)
-        trie_pept_backgrd = create_kmer_trie(base = False)
+        dict_kmer_foregr = {}
+        dict_kmer_back = {} 
+        dict_pept_forgrd = {}
+        dict_pept_backgrd = {}
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
         if arg.parallel > 1:
@@ -246,10 +245,10 @@ def mode_build(arg):
                 global expr_distr
                 global gene_id_list
                 global sample
-                global trie_kmer_foregr
-                global trie_kmer_back
-                global trie_pept_forgrd
-                global trie_pept_backgrd
+                global dict_kmer_foregr
+                global dict_kmer_back
+                global dict_pept_forgrd
+                global dict_pept_backgrd
                 for gene_result in gene_results:
                     cnt += 1
                     logging.info('> Finished processing Gene {} ({}/{})'.format(gene_result['gene_name'], cnt, len(gene_id_list)))
@@ -258,9 +257,9 @@ def mode_build(arg):
                         expr_distr.append(gene_result['total_expr'])
                         s1 = timeit.default_timer()
                         logging.debug('start writing results')
-                        trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back, logging)
-                        #logging.info('Gene {}: Background kmer  {}'.format(gene_result['gene_name'], len(trie_kmer_back)))  #TODO Remove, testing purpose
-                        #logging.info('Gene {}: Foreground kmer filtered {}'.format(gene_result['gene_name'], len(trie_kmer_foregr)))#TODO Remove, testing purpose
+                        dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, logging)
+                        #logging.info('Gene {}: Background kmer  {}'.format(gene_result['gene_name'], len(dict_kmer_back)))  #TODO Remove, testing purpose
+                        #logging.info('Gene {}: Foreground kmer filtered {}'.format(gene_result['gene_name'], len(dict_kmer_foregr)))#TODO Remove, testing purpose
                         logging.info('writing results took {} seconds'.format(timeit.default_timer() - s1))
                         logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample, gene_result['gene_idx'] + 1, len(gene_id_list), gene_result['time'], gene_result['memory']))
                 del gene_results
@@ -283,7 +282,7 @@ def mode_build(arg):
                 if gene_result['processed']:
                     gene_name_expr_distr.append((gene_result['gene_name'], gene_result['total_expr']))
                     expr_distr.append(gene_result['total_expr'])
-                    trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back = write_gene_result(gene_result, trie_pept_forgrd, trie_pept_backgrd, trie_kmer_foregr, trie_kmer_back, logging)
+                    dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, logging)
                     time_list.append(gene_result['time'])
                     memory_list.append(gene_result['memory'])
 
@@ -303,27 +302,27 @@ def mode_build(arg):
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
         create_libsize(expr_distr_dict,output_libszie_fp)
-        logging.info(">>>> Background kmer TOTAL {}".format(len(trie_kmer_back)))
-        logging.info(">>>> Foreground kmer TOTAL before final filtering {}".format(len(trie_kmer_foregr)))
-        trie_kmer_foregr = filter_onkey_trie(trie_kmer_foregr, trie_kmer_back) #TODO add back
-        logging.info(">>>> Foreground kmer TOTAL after final filtering {}".format(len(trie_kmer_foregr)))
+        logging.info(">>>> Background kmer TOTAL {}".format(len(dict_kmer_back)))
+        logging.info(">>>> Foreground kmer TOTAL before final filtering {}".format(len(dict_kmer_foregr)))
+        dict_kmer_foregr = filter_onkey_dict(dict_kmer_foregr, dict_kmer_back) #TODO add back
+        logging.info(">>>> Foreground kmer TOTAL after final filtering {}".format(len(dict_kmer_foregr)))
 
 
         if arg.compressed:
             compression = 'gzip'
         else:
             compression = None
-        save_backgrd_kmer_trie(trie_kmer_back, background_kmer_file_path,  compression)
-        del trie_kmer_back
-        if len(trie_kmer_foregr):
-            save_forgrd_kmer_trie(trie_kmer_foregr, junction_kmer_file_path, compression)
+        save_backgrd_kmer_dict(dict_kmer_back, background_kmer_file_path,  compression)
+        del dict_kmer_back
+        if len(dict_kmer_foregr):
+            save_forgrd_kmer_dict(dict_kmer_foregr, junction_kmer_file_path, compression)
         else:
             logging.info(">>>> No foreground kmers are left after filtering on annotation")
-        del trie_kmer_foregr
-        save_backgrd_pep_trie(trie_pept_backgrd, background_peptide_file_path, compression)
-        del trie_pept_backgrd
-        save_forgrd_pep_trie(trie_pept_forgrd, junction_peptide_file_path, junction_meta_file_path, compression)
-        del trie_pept_forgrd
+        del dict_kmer_foregr
+        save_backgrd_pep_dict(dict_pept_backgrd, background_peptide_file_path, compression)
+        del dict_pept_backgrd
+        save_forgrd_pep_dict(dict_pept_forgrd, junction_peptide_file_path, junction_meta_file_path, compression)
+        del dict_pept_forgrd
 
     logging.info(">>>>>>>>> Build: Finish traversing splicegraph in mutation mode {}.\n".format(mutation.mode))
 

@@ -53,7 +53,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode):
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
-mutation_mode ='somatic'
+mutation_mode ='somatic_and_germline'
 test_end_to_end_build_mouse(tmpdir, mutation_mode)
 
 ### Human Test
