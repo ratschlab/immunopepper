@@ -38,7 +38,8 @@ def add_dict_kmer_back(backgrd_dict, _namedtuple_list):
 
 
 def filter_onkey_dict(dict_foregr, dict_back):
-    for key_ in  dict_foregr:
+    pre_filt_kmers = dict_foregr.keys()
+    for key_ in  pre_filt_kmers:
         if key_ in dict_back:
             del dict_foregr[key_]
     return dict_foregr
