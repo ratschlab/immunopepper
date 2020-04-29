@@ -16,17 +16,16 @@ except:
 Output_junc_peptide namedtuple
 - output_id: (gene_id).(junction_id). gene_id is the index of given gene in the splicegraph array.
     junction_id is the index of given junction pair in all junction pair (in descending or ascending order)
-- id: (gene_name)_(first_vertex_id)_(second_vertex_id). Detail information of output_id. 
-    We can know clearly from which gene and which vertex pair the given peptide is translated.
 - peptide: (peptide_string). The peptide translated from junction pairs.
 - exons_coor: Coord namedtuple
 """
-OutputJuncPeptide = namedtuple('OutputJuncPeptide', ['output_id','id','peptide','exons_coor','junction_count'])
+OutputJuncPeptide = namedtuple('OutputJuncPeptide', ['output_id','peptide','exons_coor','junction_count'])
 
 
 """
 Output_metadata namedtuple. 
-- output_id: the same with that in Output_junc_peptide
+- id:  the same with that in Output_junc_peptide
+- output_id: the same with that in Output_junc_peptide with '>'
 - read_frame: int (0,1,2). The number of base left to the next junction pair. 
 - gene_name: str. The name of Gene.
 - gene_chr: str. The Chromosome id where the gene is located.
@@ -50,7 +49,7 @@ Output_metadata namedtuple.
 - segment_expr. float. The weighted sum of segment expression. We split the junction into segments and compute the segment 
     expression with the length-weighted-sum expression.
 """
-OutputMetadata = namedtuple('OutputMetadata', ['peptide', 'output_id', 'read_frame', 'gene_name', 'gene_chr',
+OutputMetadata = namedtuple('OutputMetadata', ['peptide', 'id', 'output_id', 'read_frame', 'gene_name', 'gene_chr',
                                                  'gene_strand',	'mutation_mode', 'peptide_annotated',
                                                  'junction_annotated',	'has_stop_codon',
                                                  'is_in_junction_list',	'is_isolated',
@@ -66,7 +65,7 @@ Output_backgrouond namedtuple.
 - id: transcript name
 - peptide: background peptide
 """
-OutputBackground = namedtuple('OutputBackground', ['id', 'peptide'])
+OutputBackground = namedtuple('OutputBackground', ['output_id', 'peptide'])
 
 
 """
@@ -138,8 +137,11 @@ namedtuple that contain all the filepointers
 - junction_peptide_fp:
 - junction_meta_fp:
 - background_peptide_fp:
+- background_kmer_fp:
+- junction_kmer_fp:
 """
-Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp','background_peptide_fp'])
+Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp','background_peptide_fp','junction_kmer_fp','background_kmer_fp'])
+
 
 
 """

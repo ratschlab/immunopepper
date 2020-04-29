@@ -31,6 +31,7 @@ from .traversal import collect_vertex_pairs
 from .traversal import get_and_write_background_peptide_and_kmer
 from .traversal import get_and_write_peptide_and_kmer
 from .inmemory import filter_onkey_dict
+from .inmemory import initialize_parquet
 from .inmemory import save_backgrd_kmer_dict
 from .inmemory import save_backgrd_pep_dict
 from .inmemory import save_forgrd_kmer_dict
@@ -152,7 +153,7 @@ def mode_build(arg):
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
     #graph_data = graph_data[:100]
-    
+    remove_annot = False #TODO add to command line arguments
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
@@ -202,6 +203,7 @@ def mode_build(arg):
         global dict_kmer_back
         global dict_pept_forgrd
         global dict_pept_backgrd
+        global filepointer
 
 
     for sample in arg.samples:
@@ -226,7 +228,8 @@ def mode_build(arg):
         background_kmer_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.pq'+gzip_tag)
         gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.tsv'+gzip_tag)
         gene_expr_fp = gz_and_normal_open(gene_expr_file_path, 'w')
-
+        filepointer = initialize_parquet(junction_peptide_file_path, junction_meta_file_path, background_peptide_file_path,
+                    junction_kmer_file_path, background_kmer_file_path)
 
 
         dict_kmer_foregr = {}
@@ -249,6 +252,7 @@ def mode_build(arg):
                 global dict_kmer_back
                 global dict_pept_forgrd
                 global dict_pept_backgrd
+                global filepointer
                 for gene_result in gene_results:
                     cnt += 1
                     logging.info('> Finished processing Gene {} ({}/{})'.format(gene_result['gene_name'], cnt, len(gene_id_list)))
@@ -257,7 +261,7 @@ def mode_build(arg):
                         expr_distr.append(gene_result['total_expr'])
                         s1 = timeit.default_timer()
                         logging.debug('start writing results')
-                        dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, logging)
+                        dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, filepointer, remove_annot)
                         #logging.info('Gene {}: Background kmer  {}'.format(gene_result['gene_name'], len(dict_kmer_back)))  #TODO Remove, testing purpose
                         #logging.info('Gene {}: Foreground kmer filtered {}'.format(gene_result['gene_name'], len(dict_kmer_foregr)))#TODO Remove, testing purpose
                         logging.info('writing results took {} seconds'.format(timeit.default_timer() - s1))
@@ -282,7 +286,7 @@ def mode_build(arg):
                 if gene_result['processed']:
                     gene_name_expr_distr.append((gene_result['gene_name'], gene_result['total_expr']))
                     expr_distr.append(gene_result['total_expr'])
-                    dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, logging)
+                    dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back,  filepointer, remove_annot)
                     time_list.append(gene_result['time'])
                     memory_list.append(gene_result['memory'])
 
@@ -302,27 +306,37 @@ def mode_build(arg):
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
         create_libsize(expr_distr_dict,output_libszie_fp)
-        logging.info(">>>> Background kmer TOTAL {}".format(len(dict_kmer_back)))
-        logging.info(">>>> Foreground kmer TOTAL before final filtering {}".format(len(dict_kmer_foregr)))
-        dict_kmer_foregr = filter_onkey_dict(dict_kmer_foregr, dict_kmer_back) #TODO add back
-        logging.info(">>>> Foreground kmer TOTAL after final filtering {}".format(len(dict_kmer_foregr)))
 
 
         if arg.compressed:
             compression = 'gzip'
         else:
             compression = None
-        save_backgrd_kmer_dict(dict_kmer_back, background_kmer_file_path,  compression)
-        del dict_kmer_back
-        if len(dict_kmer_foregr):
-            save_forgrd_kmer_dict(dict_kmer_foregr, junction_kmer_file_path, compression)
-        else:
-            logging.info(">>>> No foreground kmers are left after filtering on annotation")
-        del dict_kmer_foregr
-        save_backgrd_pep_dict(dict_pept_backgrd, background_peptide_file_path, compression)
-        del dict_pept_backgrd
-        save_forgrd_pep_dict(dict_pept_forgrd, junction_peptide_file_path, junction_meta_file_path, compression)
-        del dict_pept_forgrd
 
+
+        if remove_annot:
+            save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression)
+            del dict_pept_forgrd
+
+            logging.info(">>>> Foreground kmer TOTAL before final filtering {}".format(len(dict_kmer_foregr)))
+            dict_kmer_back = pickle.load(open(filepointer.background_kmer_fp['pickle_path'] , 'rb'))
+            os.remove(filepointer.background_kmer_fp['pickle_path'])
+            dict_kmer_foregr = filter_onkey_dict(dict_kmer_foregr, dict_kmer_back)
+            logging.info(">>>> Foreground kmer TOTAL after final filtering {}".format(len(dict_kmer_foregr)))
+            if len(dict_kmer_foregr) == 0 :
+                logging.info(">>>> No foreground kmers are left after filtering on annotation")
+
+            save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, compression)
+            del dict_kmer_foregr
+
+            save_backgrd_kmer_dict(dict_kmer_back, filepointer, compression)
+            del dict_kmer_back
+
+
+        filepointer.junction_peptide_fp['filepointer'].close()
+        filepointer.junction_meta_fp['filepointer'].close()
+        filepointer.background_peptide_fp['filepointer'].close()
+        filepointer.junction_kmer_fp['filepointer'].close()
+        filepointer.background_kmer_fp['filepointer'].close()
     logging.info(">>>>>>>>> Build: Finish traversing splicegraph in mutation mode {}.\n".format(mutation.mode))
 

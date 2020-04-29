@@ -193,7 +193,7 @@ def peptide_is_annotated(background_peptide_list, peptide):
     match_ts_list = []
     for background_peptide in background_peptide_list:
         ref_peptide = background_peptide.peptide
-        transcript_id = background_peptide.id
+        transcript_id = background_peptide.output_id
         if not re.search(peptide, ref_peptide) is None:
             match_ts_list.append(transcript_id)
     return match_ts_list

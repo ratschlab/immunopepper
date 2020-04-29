@@ -264,7 +264,8 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
             else:
                 edge_expr = NOT_EXIST
 
-            output_metadata_list.append( OutputMetadata(peptide=peptide.mut, output_id=new_output_id,
+            output_metadata_list.append( OutputMetadata(peptide=peptide.mut, id=new_output_id,
+                                                        output_id= '>'+ new_output_id,
                                                        read_frame=vertex_pair.read_frame.read_phase,
                                                        gene_name=gene.name,
                                                        gene_chr=gene.chr,
@@ -284,8 +285,7 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
                                                        segment_expr=segment_expr
             ))
             variant_id += 1
-            output_peptide = OutputJuncPeptide(output_id='>' + new_output_id,
-                                            id=new_output_id,
+            output_peptide = OutputJuncPeptide(output_id= new_output_id,
                                             peptide=peptide.mut,
                                             exons_coor=modi_coord,
                                             junction_count=edge_expr)
@@ -325,7 +325,7 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, cou
         if ts not in transcript_cds_table:
             continue
         cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_mut_seq['background'], transcript_cds_table[ts], countinfo, Idx, mode='back')
-        peptide = OutputBackground(ts, cds_peptide)
+        peptide = OutputBackground(output_id='>' + ts, peptide=cds_peptide)
         background_peptide_list.append(peptide)
         if kmer > 0:
             output_kmer_lists.append(create_output_kmer(peptide, kmer, cds_expr_list))
@@ -375,7 +375,7 @@ def create_output_kmer(output_peptide, k, expr_list):
 
     output_kmer_list = []
     peptide = output_peptide.peptide
-    peptide_head = output_peptide.id
+    peptide_head = output_peptide.output_id
     if hasattr(output_peptide,'exons_coor'):
         coord = output_peptide.exons_coor
         spanning_index1, spanning_index2 = get_spanning_index(coord, k)
