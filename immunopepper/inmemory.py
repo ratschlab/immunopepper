@@ -59,23 +59,22 @@ def filter_onkey_dict(dict_foregr, dict_back):
 
 
 def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, filepointer,
-                      remove_annot = True):
+                      remove_annot = True, outbase = None):
 
-    print(os.path.exists(filepointer.background_kmer_fp['pickle_path'] ) and remove_annot)
     if os.path.exists(filepointer.background_kmer_fp['pickle_path'] ) and remove_annot:
         dict_kmer_back = pickle.load(open(filepointer.background_kmer_fp['pickle_path']  , 'rb'))
 
     if len(gene_result['background_peptide_list']):
         records = gene_result['background_peptide_list']
         dict_pept_backgrd = add_dict_peptide(dict_pept_backgrd, records)
-        save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression=None)
+        save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression=None, outbase = outbase)
         dict_pept_backgrd = {}
 
     if len(gene_result['background_kmer_lists']):
         records = [item for sublist in gene_result['background_kmer_lists'] for item in sublist]
         dict_kmer_back = add_dict_kmer_back(dict_kmer_back, records)
         if not remove_annot:
-            save_backgrd_kmer_dict(dict_kmer_back, filepointer, compression=None)
+            save_backgrd_kmer_dict(dict_kmer_back, filepointer, compression=None, outbase = outbase)
         else:
             pickle.dump(dict_kmer_back, open(filepointer.background_kmer_fp['pickle_path'] , 'wb'), pickle.HIGHEST_PROTOCOL)
         dict_kmer_back = {}
@@ -84,67 +83,75 @@ def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kme
         records = gene_result['output_metadata_list']
         dict_pept_forgrd = add_dict_peptide(dict_pept_forgrd, records)
         if not remove_annot:
-            save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression=None)
+            save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression=None, outbase = outbase)
             dict_pept_forgrd = {}
 
     if len(gene_result['output_kmer_lists']):
         records = [item for sublist in gene_result['output_kmer_lists'] for item in sublist]
         dict_kmer_foregr = add_dict_kmer_forgrd(dict_kmer_foregr, records,  dict_kmer_back, remove_annot)
         if not remove_annot:
-            save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, compression=None)
+            save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, compression=None, outbase = outbase)
             dict_kmer_foregr = {}
 
     return dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back
 
 
+def switch_tmp_path(filepointer_item, outbase=None):
+    if outbase:
+        fp = None
+        path = os.path.join(outbase, os.path.basename(filepointer_item['path']))
+    else:
+        fp = filepointer_item['filepointer']
+        path = filepointer_item['path']
+    print(path)
+    return fp, path
 
 
-def save_backgrd_kmer_dict(dict_, filepointer, compression = None):
+def save_backgrd_kmer_dict(dict_, filepointer, compression = None, outbase = None):
+    fp, path = switch_tmp_path(filepointer.background_kmer_fp, outbase)
     if dict_:
         df = pd.DataFrame(dict_.keys(), columns = ['kmer'])
-        save_pd_toparquet(filepointer.background_kmer_fp['filepointer'],
-                          filepointer.background_kmer_fp['path'], df,compression)
+        save_pd_toparquet(fp, path, df, compression)
 
-def save_forgrd_kmer_dict(dict_, filepointer, compression = None):
+def save_forgrd_kmer_dict(dict_, filepointer, compression = None, outbase=None):
+    fp, path = switch_tmp_path(filepointer.junction_kmer_fp, outbase)
     if dict_:
         df = pd.DataFrame(dict_.values(), index = dict_.keys())
         df = df.applymap(repr)
         df = df.rename_axis('kmer').reset_index()
-        save_pd_toparquet(filepointer.junction_kmer_fp['filepointer'],
-                          filepointer.junction_kmer_fp['path'], df, compression)
+        save_pd_toparquet(fp, path, df, compression)
 
-def save_backgrd_pep_dict(dict_, filepointer, compression = None):
+def save_backgrd_pep_dict(dict_, filepointer, compression = None, outbase=None):
+    fp, path = switch_tmp_path(filepointer.background_peptide_fp, outbase)
     if dict_:
         fasta = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
         fasta = pd.concat([fasta['output_id'], fasta['index']]).sort_index().reset_index(drop = True)
         fasta = pd.DataFrame(fasta, columns=['fasta'])
-        save_pd_toparquet(filepointer.background_peptide_fp['filepointer'],
-                          filepointer.background_peptide_fp['path'], fasta, compression)
+        save_pd_toparquet(fp, path, fasta, compression)
 
-def save_forgrd_pep_dict(dict_, filepointer, compression = None):
+def save_forgrd_pep_dict(dict_, filepointer, compression = None, outbase=None):
+    fp_fa, path_fa = switch_tmp_path(filepointer.junction_peptide_fp, outbase)
+    fp_meta, path_meta = switch_tmp_path(filepointer.junction_meta_fp, outbase)
     if dict_:
         df = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
         fasta = pd.concat([df['output_id'], df['index']]).sort_index().reset_index(drop = True)
         fasta = pd.DataFrame(fasta, columns=['fasta'])
         df = df.drop(['output_id', 'index'], axis=1)
-        save_pd_toparquet(filepointer.junction_peptide_fp['filepointer'],
-                          filepointer.junction_peptide_fp['path'], fasta, compression)
+        save_pd_toparquet(fp_fa, path_fa, fasta, compression)
         del fasta
         df['original_exons_coord'] = df['original_exons_coord'].apply(convert_namedtuple_to_str, args=(None, ';'))
         df['modified_exons_coord'] = df['modified_exons_coord'].apply(convert_namedtuple_to_str, args=(None, ';'))
         df = df.applymap(repr)
-        save_pd_toparquet(filepointer.junction_meta_fp['filepointer'],
-                          filepointer.junction_meta_fp['path'], df, compression)
+        save_pd_toparquet(fp_meta, path_meta, df, compression)
 
 
 def initialize_parquet(junction_peptide_file_path, junction_meta_file_path, background_peptide_file_path,
                     junction_kmer_file_path, background_kmer_file_path , remove_annot=True):
     fields_forgrd_pep_dict = ['fasta']
-    fields_meta_peptide_dict = ['id','read_frame', 'gene_name', 'gene_chr', 'gene_strand', 'mutation_mode',
-           'peptide_annotated', 'junction_annotated', 'has_stop_codon',
-           'is_in_junction_list', 'is_isolated', 'variant_comb',
-           'variant_seg_expr', 'modified_exons_coord', 'original_exons_coord',
-           'vertex_idx', 'junction_expr', 'segment_expr']
+    fields_meta_peptide_dict = ['id','read_frame','gene_name','gene_chr','gene_strand','mutation_mode',
+                                'peptide_annotated','junction_annotated','has_stop_codon','is_in_junction_list',
+                                'is_isolated','variant_comb','variant_seg_expr','modified_exons_coord',
+                                'original_exons_coord','vertex_idx','junction_expr','segment_expr']
     fields_backgrd_pep_dict = ['fasta']
     fields_forgrd_kmer_dict = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count'] ## Needs to be in memory, Unless no filtering
     fields_backgrd_kmer_dict = ['kmer']
@@ -174,6 +181,8 @@ def save_pd_toparquet(filepointer, path, pd_df, compression = None):
     table = pa.Table.from_pandas(pd_df, preserve_index=False)
     if filepointer is None:
         pqwriter = pq.ParquetWriter(path, table.schema, compression)
+        pqwriter.write_table(table)
+        pqwriter.close()
     else:
         pqwriter = filepointer
-    pqwriter.write_table(table)
+        pqwriter.write_table(table)

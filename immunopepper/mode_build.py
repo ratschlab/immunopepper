@@ -9,6 +9,7 @@ import logging
 import multiprocessing as mp
 import numpy as np
 import os
+import pathlib
 import pickle
 import signal as sig
 import sys
@@ -123,6 +124,7 @@ def process_gene_batch(sample, genes, genes_info, gene_idxs, total_genes, mutati
 
         R['time'] = timeit.default_timer() - start_time
         R['memory'] = print_memory_diags(disable_print=True)
+        R['outbase'] = outbase
         results.append(R)
 
     return results
@@ -261,9 +263,7 @@ def mode_build(arg):
                         expr_distr.append(gene_result['total_expr'])
                         s1 = timeit.default_timer()
                         logging.debug('start writing results')
-                        dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, filepointer, remove_annot)
-                        #logging.info('Gene {}: Background kmer  {}'.format(gene_result['gene_name'], len(dict_kmer_back)))  #TODO Remove, testing purpose
-                        #logging.info('Gene {}: Foreground kmer filtered {}'.format(gene_result['gene_name'], len(dict_kmer_foregr)))#TODO Remove, testing purpose
+                        dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, filepointer, remove_annot, gene_result['outbase'])
                         logging.info('writing results took {} seconds'.format(timeit.default_timer() - s1))
                         logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample, gene_result['gene_idx'] + 1, len(gene_id_list), gene_result['time'], gene_result['memory']))
                 del gene_results
@@ -274,6 +274,7 @@ def mode_build(arg):
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_%i' % i)
+                pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
                 _ = pool.apply_async(process_gene_batch, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg, outbase,), callback=process_result)
 
             pool.close()
@@ -286,7 +287,7 @@ def mode_build(arg):
                 if gene_result['processed']:
                     gene_name_expr_distr.append((gene_result['gene_name'], gene_result['total_expr']))
                     expr_distr.append(gene_result['total_expr'])
-                    dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back,  filepointer, remove_annot)
+                    dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back,  filepointer, remove_annot, outbase)
                     time_list.append(gene_result['time'])
                     memory_list.append(gene_result['memory'])
 
