@@ -31,6 +31,7 @@ from .preprocess import preprocess_ann
 from .traversal import collect_vertex_pairs
 from .traversal import get_and_write_background_peptide_and_kmer
 from .traversal import get_and_write_peptide_and_kmer
+from .inmemory import collect_results
 from .inmemory import filter_onkey_dict
 from .inmemory import initialize_parquet
 from .inmemory import save_backgrd_kmer_dict
@@ -155,7 +156,7 @@ def mode_build(arg):
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
     #graph_data = graph_data[:100]
-    remove_annot = False #TODO add to command line arguments
+    remove_annot = True #TODO add to command line arguments
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
@@ -279,6 +280,12 @@ def mode_build(arg):
 
             pool.close()
             pool.join()
+            collect_results(filepointer.background_peptide_fp, output_path, logging)
+            collect_results(filepointer.junction_peptide_fp,output_path,logging)
+            collect_results(filepointer.junction_meta_fp,output_path,logging)
+            collect_results(filepointer.junction_kmer_fp,output_path,logging)
+            collect_results(filepointer.background_kmer_fp,output_path,logging)
+
         else:
             logging.info('Not Parallel')
             for gene_idx in gene_id_list:
@@ -320,8 +327,6 @@ def mode_build(arg):
             del dict_pept_forgrd
 
             logging.info(">>>> Foreground kmer TOTAL before final filtering {}".format(len(dict_kmer_foregr)))
-            dict_kmer_back = pickle.load(open(filepointer.background_kmer_fp['pickle_path'] , 'rb'))
-            os.remove(filepointer.background_kmer_fp['pickle_path'])
             dict_kmer_foregr = filter_onkey_dict(dict_kmer_foregr, dict_kmer_back)
             logging.info(">>>> Foreground kmer TOTAL after final filtering {}".format(len(dict_kmer_foregr)))
             if len(dict_kmer_foregr) == 0 :

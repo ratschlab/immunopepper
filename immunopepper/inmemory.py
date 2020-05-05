@@ -1,5 +1,6 @@
 # Function to be moved later to correct folders
 from collections import OrderedDict
+import glob
 import os
 import pandas as pd
 import pickle
@@ -12,7 +13,7 @@ import timeit
 from .io_ import convert_namedtuple_to_str
 from .io_ import _convert_list_to_str
 
-
+### Move to Filter
 def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list, filter_dict, remove_annot=True):
 
     for _namedtuple_kmer in _namedtuple_list:
@@ -57,12 +58,10 @@ def filter_onkey_dict(dict_foregr, dict_back):
             del dict_foregr[key_]
     return dict_foregr
 
-
+### Move to mode_build
 def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, filepointer,
                       remove_annot = True, outbase = None):
 
-    if os.path.exists(filepointer.background_kmer_fp['pickle_path'] ) and remove_annot:
-        dict_kmer_back = pickle.load(open(filepointer.background_kmer_fp['pickle_path']  , 'rb'))
 
     if len(gene_result['background_peptide_list']):
         records = gene_result['background_peptide_list']
@@ -75,9 +74,8 @@ def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kme
         dict_kmer_back = add_dict_kmer_back(dict_kmer_back, records)
         if not remove_annot:
             save_backgrd_kmer_dict(dict_kmer_back, filepointer, compression=None, outbase = outbase)
-        else:
-            pickle.dump(dict_kmer_back, open(filepointer.background_kmer_fp['pickle_path'] , 'wb'), pickle.HIGHEST_PROTOCOL)
-        dict_kmer_back = {}
+            dict_kmer_back = {}
+
 
     if len(gene_result['output_metadata_list']):
         records = gene_result['output_metadata_list']
@@ -95,7 +93,7 @@ def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kme
 
     return dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back
 
-
+### Move to io_
 def switch_tmp_path(filepointer_item, outbase=None):
     if outbase:
         fp = None
@@ -103,7 +101,6 @@ def switch_tmp_path(filepointer_item, outbase=None):
     else:
         fp = filepointer_item['filepointer']
         path = filepointer_item['path']
-    print(path)
     return fp, path
 
 
@@ -171,9 +168,9 @@ def fp_with_pq_schema(path, file_columns, compression = None):
         data = pd.DataFrame(data, index=[0])
         table = pa.Table.from_pandas(data,  preserve_index=False)
         pqwriter = pq.ParquetWriter(path, table.schema, compression)
-        file_info = {'path':path, 'pickle_path': path + '.pickle', 'filepointer':pqwriter}
+        file_info = {'path':path,'filepointer':pqwriter}
     else:
-        file_info = {'path': path, 'pickle_path': path + '.pickle', 'filepointer': None}
+        file_info = {'path': path,'filepointer': None}
     return file_info
 
 
@@ -186,3 +183,14 @@ def save_pd_toparquet(filepointer, path, pd_df, compression = None):
     else:
         pqwriter = filepointer
         pqwriter.write_table(table)
+
+def collect_results(filepointer_item,outbase,logging):
+    s1=timeit.default_timer()
+    file_name=os.path.basename(filepointer_item['path'])
+    tmp_file_list=glob.glob(os.path.join(outbase,'tmp_out_*',file_name))
+    pqwriter=filepointer_item['filepointer']
+    for tmp_file in tmp_file_list:
+        table=pq.read_table(tmp_file)
+        pqwriter.write_table(table)
+    if tmp_file_list:
+        logging.info('Collecting results {} took {} seconds'.format(file_name,timeit.default_timer()-s1))
