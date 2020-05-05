@@ -1,10 +1,12 @@
 """Contain functions to help compute, to preprocess"""
+from collections import defaultdict
 import bisect
 import h5py
 import itertools
 import logging
 import numpy as np
 import os
+import pandas as pd
 import pickle
 import psutil
 import sys
@@ -333,18 +335,20 @@ def create_libsize(expr_distr_dict, output_fp, debug=False):
     debug: Bool. In debug mode, return the libsize_count dictionary.
     """
     # filter the dict
-    libsize_count = {}
-    for sample,expr_list in expr_distr_dict.items():
-        if np.array(expr_list).dtype in  [np.float,np.int]:
-            libsize_count[sample] = (np.percentile(expr_list,75),np.sum(expr_list))
-    #libsize_count = {sample:(np.percentile(expr_list,75),np.sum(expr_list)) for sample,expr_list in list(expr_distr_dict.items())}
+    libsize_count = defaultdict(list, {})
+    for sample, expr_list in expr_distr_dict.items():
+        if np.array(expr_list).dtype in  [np.float, np.int]:
+            libsize_count['sample'].append(sample)
+            libsize_count['libsize_75percent'].append(np.percentile(expr_list,75))
+            libsize_count['libsize_total_count'].append(np.sum(expr_list))
     if debug:
         return libsize_count
-    with open(output_fp,'w') as f:
-        f.write('\t'.join(['sample','libsize_75percent','libsize_total_count'])+'\n')
-        for sample,count_tuple in list(libsize_count.items()):
-            line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
-            f.write(line)
+
+    df_libsize = pd.DataFrame(libsize_count)
+    if os.path.isfile(output_fp):
+        previous_libsize =  pd.read_csv(output_fp, sep = '\t')
+        df_libsize = pd.concat([previous_libsize, df_libsize], axis=0).drop_duplicates(subset=['sample'], keep='last')
+    df_libsize.to_csv(output_fp, sep='\t', index=False)
 
 
 def get_concat_peptide(front_coord_pair, back_coord_pair, front_peptide, back_peptide, strand, k=None):

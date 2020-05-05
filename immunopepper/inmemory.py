@@ -193,8 +193,10 @@ def collect_results(filepointer_item,outbase,logging):
     file_name=os.path.basename(filepointer_item['path'])
     tmp_file_list=glob.glob(os.path.join(outbase,'tmp_out_*',file_name))
     pqwriter=filepointer_item['filepointer']
+    tot_shape = 0
     for tmp_file in tmp_file_list:
         table=pq.read_table(tmp_file)
         pqwriter.write_table(table)
+        tot_shape += table.shape[0]
     if tmp_file_list:
-        logging.info('Collecting results {} took {} seconds'.format(file_name,timeit.default_timer()-s1))
+        logging.info('Collecting {} with {} lines. Took {} seconds'.format(file_name, tot_shape, timeit.default_timer()-s1))
