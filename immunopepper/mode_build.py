@@ -156,7 +156,7 @@ def mode_build(arg):
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
     #graph_data = graph_data[:100]
-    remove_annot = arg.remove_annot #TODO add to command line arguments
+    remove_annot = arg.remove_annot
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
 

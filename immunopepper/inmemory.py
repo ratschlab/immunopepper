@@ -116,6 +116,8 @@ def save_forgrd_kmer_dict(dict_, filepointer, compression = None, outbase=None):
         df = pd.DataFrame(dict_.values(), index = dict_.keys())
         df = df.applymap(repr)
         df = df.rename_axis('kmer').reset_index()
+        if filepointer.junction_kmer_fp['columns']:
+            df = df.loc[:, filepointer.junction_kmer_fp['columns'] ]
         save_pd_toparquet(fp, path, df, compression)
 
 def save_backgrd_pep_dict(dict_, filepointer, compression = None, outbase=None):
@@ -139,19 +141,20 @@ def save_forgrd_pep_dict(dict_, filepointer, compression = None, outbase=None):
         df['original_exons_coord'] = df['original_exons_coord'].apply(convert_namedtuple_to_str, args=(None, ';'))
         df['modified_exons_coord'] = df['modified_exons_coord'].apply(convert_namedtuple_to_str, args=(None, ';'))
         df = df.applymap(repr)
+        if filepointer.junction_meta_fp['columns']:
+            df = df.loc[:, filepointer.junction_meta_fp['columns'] ]
         save_pd_toparquet(fp_meta, path_meta, df, compression)
 
 
 def initialize_parquet(junction_peptide_file_path, junction_meta_file_path, background_peptide_file_path,
                     junction_kmer_file_path, background_kmer_file_path , remove_annot=True):
     fields_forgrd_pep_dict = ['fasta']
-    fields_meta_peptide_dict = ['gene_chr', 'gene_name', 'gene_strand', 'has_stop_codon', 'id',
-       'is_in_junction_list', 'is_isolated', 'junction_annotated',
-       'junction_expr', 'modified_exons_coord', 'mutation_mode',
-       'original_exons_coord', 'peptide_annotated', 'read_frame',
-       'segment_expr', 'variant_comb', 'variant_seg_expr', 'vertex_idx']
+    fields_meta_peptide_dict = ['id','read_frame','gene_name','gene_chr','gene_strand','mutation_mode',
+                                'peptide_annotated','junction_annotated','has_stop_codon','is_in_junction_list',
+                                'is_isolated','variant_comb','variant_seg_expr','modified_exons_coord',
+                                'original_exons_coord','vertex_idx','junction_expr','segment_expr']
     fields_backgrd_pep_dict = ['fasta']
-    fields_forgrd_kmer_dict = ['kmer', 'expr', 'id', 'is_cross_junction', 'junction_count']
+    fields_forgrd_kmer_dict = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count'] ## Needs to be in memory, Unless no filtering
     fields_backgrd_kmer_dict = ['kmer']
 
     peptide_fp = fp_with_pq_schema(junction_peptide_file_path, fields_forgrd_pep_dict)
@@ -169,9 +172,9 @@ def fp_with_pq_schema(path, file_columns, compression = None):
         data = pd.DataFrame(data, index=[0])
         table = pa.Table.from_pandas(data,  preserve_index=False)
         pqwriter = pq.ParquetWriter(path, table.schema, compression)
-        file_info = {'path':path,'filepointer':pqwriter }
+        file_info = {'path':path,'filepointer':pqwriter, 'columns':file_columns}
     else:
-        file_info = {'path': path,'filepointer': None}
+        file_info = {'path': path,'filepointer': None, 'columns': None}
     return file_info
 
 
