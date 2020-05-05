@@ -35,6 +35,7 @@ def parse_arguments(argv):
     outputs.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
     outputs.add_argument("--disable-concat",help="switch off concatenation of short exons to increase speed",action="store_true",default=False)
     outputs.add_argument("--use-mut-pickle", help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
+    outputs.add_argument("--remove_annot",help="The kmers found in the nnotation file will be removed during the generation process", action="store_true", default=False)
 
     additional_file = parser_build.add_argument_group('ADDITIONAL FILES')
     additional_file.add_argument("--germline", help="absolute path of germline mutation file", required=False, default='')
