@@ -1,6 +1,5 @@
 import gzip
 import logging
-import os
 import pickle
 import sys
 

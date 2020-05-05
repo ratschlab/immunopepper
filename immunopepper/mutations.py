@@ -6,7 +6,6 @@ import numpy as np
 import pysam
 import h5py
 
-from collections import namedtuple
 from functools import reduce
 
 from .constant import NOT_EXIST

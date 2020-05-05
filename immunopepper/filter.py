@@ -3,10 +3,8 @@ import sys
 import re
 
 import numpy as np
-from functools import reduce
 
 from .constant import NOT_EXIST
-from .namedtuples import OutputBackground
 
 def _collect_remove_ids(exon_junction_dict):
     """ For all exon pairs around the same intron, keep the longest one.

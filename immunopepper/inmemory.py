@@ -1,17 +1,14 @@
 # Function to be moved later to correct folders
-from collections import OrderedDict
 import glob
 import os
 import pandas as pd
-import pickle
 import pyarrow as pa
 import pyarrow.parquet as pq
-from .namedtuples import Filepointer
+import shutil
 import timeit
 
-
 from .io_ import convert_namedtuple_to_str
-from .io_ import _convert_list_to_str
+from .namedtuples import Filepointer
 
 ### Move to Filter
 def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list, filter_dict, remove_annot=True):
@@ -189,14 +186,20 @@ def save_pd_toparquet(filepointer, path, pd_df, compression = None):
         pqwriter.write_table(table)
 
 def collect_results(filepointer_item,outbase,logging):
-    s1=timeit.default_timer()
-    file_name=os.path.basename(filepointer_item['path'])
-    tmp_file_list=glob.glob(os.path.join(outbase,'tmp_out_*',file_name))
-    pqwriter=filepointer_item['filepointer']
+    s1 = timeit.default_timer()
+    file_name = os.path.basename(filepointer_item['path'])
+    tmp_file_list = glob.glob(os.path.join(outbase,'tmp_out_*',file_name))
+    pqwriter = filepointer_item['filepointer']
     tot_shape = 0
     for tmp_file in tmp_file_list:
-        table=pq.read_table(tmp_file)
+        table = pq.read_table(tmp_file)
         pqwriter.write_table(table)
         tot_shape += table.shape[0]
     if tmp_file_list:
         logging.info('Collecting {} with {} lines. Took {} seconds'.format(file_name, tot_shape, timeit.default_timer()-s1))
+
+
+def remove_folder_list(commun_base):
+    folder_list = glob.glob(commun_base + '*')
+    for dir_path in folder_list:
+        shutil.rmtree(dir_path, ignore_errors=True)

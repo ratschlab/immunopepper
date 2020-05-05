@@ -12,7 +12,6 @@ import psutil
 import sys
 
 from .constant import NOT_EXIST
-from .namedtuples import Coord
 from .namedtuples import Idx
 
 def to_adj_list(adj_matrix):

@@ -1,10 +1,6 @@
 # Python libraries
 """"""
 # Core operation of ImmunoPepper. Traverse splicegraph and get kmer/peptide output
-from collections import defaultdict
-from functools import partial
-import gzip
-import h5py
 import logging
 import multiprocessing as mp
 import numpy as np
@@ -16,14 +12,10 @@ import sys
 import timeit
 
 # immuno module
-from .io_ import convert_namedtuple_to_str
 from .io_ import gz_and_normal_open
-from .io_ import load_pickled_graph
 from .io_ import write_gene_expr
-from .io_ import write_namedtuple_list
 from .mutations import get_mutation_mode_from_parser
 from .mutations import get_sub_mutation_tuple
-from .namedtuples import Filepointer
 from .preprocess import genes_preprocess_all
 from .preprocess import parse_junction_meta_info
 from .preprocess import parse_gene_metadata_info
@@ -34,8 +26,8 @@ from .traversal import get_and_write_peptide_and_kmer
 from .inmemory import collect_results
 from .inmemory import filter_onkey_dict
 from .inmemory import initialize_parquet
+from .inmemory import remove_folder_list
 from .inmemory import save_backgrd_kmer_dict
-from .inmemory import save_backgrd_pep_dict
 from .inmemory import save_forgrd_kmer_dict
 from .inmemory import save_forgrd_pep_dict
 from .inmemory import write_gene_result
@@ -43,7 +35,6 @@ from .utils import check_chr_consistence
 from .utils import create_libsize
 from .utils import get_idx
 from .utils import get_total_gene_expr
-from .utils import unpickler
 from .utils import print_memory_diags
 
 ### intermediate fix to load pickle files stored under previous version
@@ -285,6 +276,7 @@ def mode_build(arg):
             collect_results(filepointer.junction_meta_fp,output_path,logging)
             collect_results(filepointer.junction_kmer_fp,output_path,logging)
             collect_results(filepointer.background_kmer_fp,output_path,logging)
+            remove_folder_list(os.path.join(output_path, 'tmp_out_'))
 
         else:
             logging.info('Not Parallel')
