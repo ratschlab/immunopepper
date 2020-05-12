@@ -154,11 +154,11 @@ def initialize_parquet(junction_peptide_file_path, junction_meta_file_path, back
     fields_forgrd_kmer_dict = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count'] ## Needs to be in memory, Unless no filtering
     fields_backgrd_kmer_dict = ['kmer']
 
-    peptide_fp = fp_with_pq_schema(junction_peptide_file_path, fields_forgrd_pep_dict)
-    meta_peptide_fp = fp_with_pq_schema(junction_meta_file_path, fields_meta_peptide_dict)
-    background_fp = fp_with_pq_schema(background_peptide_file_path, fields_backgrd_pep_dict)
-    junction_kmer_fp = fp_with_pq_schema(junction_kmer_file_path, fields_forgrd_kmer_dict)
-    background_kmer_fp = fp_with_pq_schema(background_kmer_file_path, fields_backgrd_kmer_dict)
+    peptide_fp = fp_with_pq_schema(junction_peptide_file_path, None)#fields_forgrd_pep_dict ) #TODO add back file pointer creation
+    meta_peptide_fp = fp_with_pq_schema(junction_meta_file_path, None) # fields_meta_peptide_dict)
+    background_fp = fp_with_pq_schema(background_peptide_file_path, None) #fields_backgrd_pep_dict)
+    junction_kmer_fp = fp_with_pq_schema(junction_kmer_file_path, None ) #fields_forgrd_kmer_dict)
+    background_kmer_fp = fp_with_pq_schema(background_kmer_file_path, None) #fields_backgrd_kmer_dict)
     filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp, junction_kmer_fp, background_kmer_fp)
     return filepointer
 
@@ -172,6 +172,7 @@ def fp_with_pq_schema(path, file_columns, compression = None):
         file_info = {'path':path,'filepointer':pqwriter, 'columns':file_columns}
     else:
         file_info = {'path': path,'filepointer': None, 'columns': None}
+        print('file pointer is not initialized')
     return file_info
 
 
@@ -193,6 +194,8 @@ def collect_results(filepointer_item,outbase,logging):
     tot_shape = 0
     for tmp_file in tmp_file_list:
         table = pq.read_table(tmp_file)
+        if tot_shape == 0: #TODO do not keep open filepointers
+            pqwriter = pq.ParquetWriter(file_name, table.schema, compression = None)
         pqwriter.write_table(table)
         tot_shape += table.shape[0]
     if tmp_file_list:

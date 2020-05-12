@@ -147,7 +147,7 @@ def mode_build(arg):
     
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
-    graph_data = graph_data[400:1400]
+    graph_data = graph_data[400:1000]
     remove_annot = arg.remove_annot
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
@@ -266,13 +266,13 @@ def mode_build(arg):
 
             pool = mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
             #for gene_idx in gene_id_list:
-            batch_size = 10
+            batch_size = 1
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_%i' % i)
                 pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
                 _ = pool.apply_async(process_gene_batch, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg, outbase,), callback=process_result)
-
+            
             pool.close()
             pool.join()
             logging.debug('start collecting results')
@@ -336,10 +336,10 @@ def mode_build(arg):
             del dict_kmer_back
 
 
-        filepointer.junction_peptide_fp['filepointer'].close()
-        filepointer.junction_meta_fp['filepointer'].close()
-        filepointer.background_peptide_fp['filepointer'].close()
-        filepointer.junction_kmer_fp['filepointer'].close()
-        filepointer.background_kmer_fp['filepointer'].close()
+        #filepointer.junction_peptide_fp['filepointer'].close()
+        #filepointer.junction_meta_fp['filepointer'].close()
+        #filepointer.background_peptide_fp['filepointer'].close()
+        #filepointer.junction_kmer_fp['filepointer'].close()
+        #filepointer.background_kmer_fp['filepointer'].close()
     logging.info(">>>>>>>>> Build: Finish traversing splicegraph in mutation mode {}.\n".format(mutation.mode))
 
