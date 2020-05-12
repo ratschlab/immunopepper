@@ -125,11 +125,11 @@ GeneTable = namedtuple('GeneTable', ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_
 CountInfo namedtuple
 - sample_idx_dict: Dictionary mapping a sample name to an index
 - gene_idx_dict: Dictionary mapping a gene name to an index
-- gene_ids_segs: ordered list of gene IDs for all segments
-- gene_ids_edges: ordered list of gene IDs for all edges
-- h5f: file handle of the count hdf5 file
+- gene_id_to_segrange: map gene ids to the appropriate segment range in count HDF5
+- gene_id_to_edgerange: map gene ids to the appropriate edge range in count HDF5
+- h5f: file name of the count hdf5 file
 """
-CountInfo = namedtuple('CountInfo', ['sample_idx_dict', 'gene_idx_dict', 'gene_ids_segs', 'gene_ids_edges', 'h5f'])
+CountInfo = namedtuple('CountInfo', ['sample_idx_dict', 'gene_idx_dict', 'gene_id_to_segrange', 'gene_id_to_edgerange', 'h5fname'])
 
 
 """
@@ -153,4 +153,4 @@ namedtuple that contains all mutation information
 """
 Mutation = namedtuple('Mutation', ['mode', 'germline_mutation_dict', 'somatic_mutation_dict'])
 
-
+GeneInfo = namedtuple('GeneInfo', ['vertex_succ_list', 'vertex_order', 'reading_frames', 'vertex_len_dict', 'nvertices'])

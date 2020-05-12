@@ -2,8 +2,8 @@ import gzip
 import os
 import pickle
 
-import Bio.SeqIO as BioIO
 import pytest
+import pysam
 import numpy as np
 
 from immunopepper.constant import NOT_EXIST
@@ -15,7 +15,7 @@ from immunopepper.mutations import apply_germline_mutation
 from immunopepper.mutations import construct_mut_seq_with_str_concat
 from immunopepper.mutations import get_mutation_mode_from_parser
 from immunopepper.mutations import get_sub_mutation_tuple
-from immunopepper.preprocess import genes_preprocess
+from immunopepper.preprocess import genes_preprocess_all
 from immunopepper.preprocess import parse_mutation_from_vcf
 from immunopepper.preprocess import parse_mutation_from_maf
 from immunopepper.preprocess import preprocess_ann
@@ -46,15 +46,11 @@ def load_gene_data():
     (graph_data, graph_meta) = load_pickled_graph(f)  # cPickle.load(f)
     genetable,chr_set = preprocess_ann(ann_path)
     interesting_chr = list(map(str, range(1, 23))) + ["X", "Y", "MT"]
-    seq_dict = {}
-    for record in BioIO.parse(ref_path, "fasta"):
-        if record.id in interesting_chr:
-            seq_dict[record.id] = str(record.seq).strip()
 
     gene = graph_data[0]
     chrm = gene.chr.strip()
-    ref_seq = seq_dict[chrm]
-    return graph_data, ref_seq, genetable.gene_to_cds_begin
+    ref_seq = ref_path # seq_dict[chrm]
+    return graph_data, ref_path, genetable.gene_to_cds_begin
 
 
 @pytest.fixture
@@ -68,17 +64,18 @@ def load_mutation_data():
 
 
 def test_preprocess(load_gene_data):
-    graph_data, seq_dict, gene_cds_begin_dict = load_gene_data
-    genes_preprocess(graph_data, gene_cds_begin_dict)
-    assert graph_data[0].nvertices == 8
+    graph_data, _, gene_cds_begin_dict = load_gene_data
+    gene_info = genes_preprocess_all(graph_data, gene_cds_begin_dict)
+    assert gene_info[0].nvertices == 8
 
 
 def test_germline_mutation(load_gene_data, load_mutation_data):
-    graph_data, ref_seq, gene_cds_begin_dict = load_gene_data
+    graph_data, ref_path, gene_cds_begin_dict = load_gene_data
     mutation_dic_vcf, mutation_dic_maf = load_mutation_data
     gene = graph_data[0]
     mutation_sub_dic_vcf = mutation_dic_vcf['test1pos', gene.chr]
-    ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq,
+    ref_mut_seq = apply_germline_mutation(ref_sequence_file=ref_path,
+                                          chrm=gene.chr,
                                           pos_start=gene.start,
                                           pos_end=gene.stop,
                                           mutation_sub_dict=mutation_sub_dic_vcf)
@@ -86,7 +83,7 @@ def test_germline_mutation(load_gene_data, load_mutation_data):
 
 
 def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
-    graph_data, ref_seq, gene_cds_begin_dict = load_gene_data
+    graph_data, ref_path, gene_cds_begin_dict = load_gene_data
     mutation_dic_vcf, mutation_dic_maf = load_mutation_data
     gene = graph_data[0]
 
@@ -105,9 +102,11 @@ def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
     variant_comb = [(38,), (38, 41), '.']
     strand = ['+', '+', '+']
     for i, vlist in enumerate(test_list):
+        with pysam.FastaFile(ref_path) as fh:
+            ref_seq = fh.fetch(gene.chr, vlist[0], vlist[3])
         coord = Coord(vlist[0], vlist[1], vlist[2], vlist[3])
         sub_dna = get_sub_mut_dna(ref_seq, coord, variant_comb[i],
-                                  mutation_sub_dic_maf, strand[i])
+                                  mutation_sub_dic_maf, strand[i], vlist[0])
         assert sub_dna == groundtruth[i]
 
 
@@ -152,12 +151,12 @@ def test_construct_mut_seq_with_str_concat():
     mut_dict[10] = {'mut_base':'*','ref_base':'A'}
     mut_dict[25] = {'mut_base':'A','ref_base':'G'}
     mut_dict[26] = {'mut_base':'C','ref_base':'G'}
-    mut_seq1 = construct_mut_seq_with_str_concat(ref_seq, 45, 46, mut_dict) # test unclear mut_base
-    assert mut_seq1 == ref_seq
-    mut_seq2 = construct_mut_seq_with_str_concat(ref_seq, 25, 27, mut_dict) # [25,27) include 26
-    assert mut_seq2 == gt_mut_seq2
-    mut_seq3 = construct_mut_seq_with_str_concat(ref_seq, 25, 26, mut_dict) # [25,26) not include 26
-    assert mut_seq3 == gt_mut_seq3
+    mut_seq1 = construct_mut_seq_with_str_concat(ref_seq[45:], 45, 46, mut_dict) # test unclear mut_base
+    assert mut_seq1 == ref_seq[45:]
+    mut_seq2 = construct_mut_seq_with_str_concat(ref_seq[25:], 25, 27, mut_dict) # [25,27) include 26
+    assert mut_seq2 == gt_mut_seq2[25:]
+    mut_seq3 = construct_mut_seq_with_str_concat(ref_seq[25:], 25, 26, mut_dict) # [25,26) not include 26
+    assert mut_seq3 == gt_mut_seq3[25:]
 
 
 
@@ -287,7 +286,7 @@ def test_get_junction_ann_flag():
     assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 1
 
 def test_check_chr_consistence(load_gene_data, load_mutation_data):
-    graph_data, ref_seq, gene_cds_begin_dict = load_gene_data
+    graph_data, _, gene_cds_begin_dict = load_gene_data
     mutation_dic_vcf, mutation_dic_maf = load_mutation_data
     mutation = Mutation(None,mutation_dic_maf,mutation_dic_vcf) # vcf_dict[('test1pos','X')]
     ann_path = os.path.join(data_dir, 'test1pos.gtf')
@@ -348,14 +347,19 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
 
     # read genome file
     seq_dict = {}
-    for record in BioIO.parse(genome_file, "fasta"):
-        seq_dict[record.id] = str(record.seq).strip()
-        if mutation_mode in ['germline','somatic_and_germline']:
-            if (sample,record.id) in mutation.germline_mutation_dict:
-                seq_dict[record.id] = apply_germline_mutation(ref_sequence=seq_dict[record.id],
-                                                  pos_start=0,
-                                                  pos_end=len(seq_dict[record.id]),
-                                                  mutation_sub_dict=mutation.germline_mutation_dict[(sample,record.id)])['background']
+    with pysam.FastaFile(genome_file) as fh:
+        refs = fh.references
+        lens = fh.lengths
+        for i,ref in enumerate(refs):
+            if mutation_mode in ['germline', 'somatic_and_germline']:
+                if (sample, ref) in mutation.germline_mutation_dict:
+                    seq_dict[ref] = apply_germline_mutation(ref_sequence_file=genome_file,
+                                                      chrm=ref,
+                                                      pos_start=0,
+                                                      pos_end=lens[i],
+                                                      mutation_sub_dict=mutation.germline_mutation_dict[(sample, ref)])['background']
+            else: 
+                seq_dict[ref] = fh.fetch(ref)
 
     f = gz_and_normal_open(new_junction_file,'r')
     headline = next(f)
