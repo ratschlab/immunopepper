@@ -199,3 +199,90 @@ def peptide_is_annotated(background_peptide_list, peptide):
 
 
 
+def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list, filter_dict, remove_annot=True):
+    """...
+
+        Parameters
+        ----------
+        foregrd_dict:
+        _namedtuple_list:
+        filter_dict:
+
+        Returns
+        -------
+        foregrd_dict:
+        """
+    for _namedtuple_kmer in _namedtuple_list:
+        ### Prepare metadata
+        ord_dict = _namedtuple_kmer._asdict()
+        del ord_dict['kmer']
+
+        ### Remove annotation
+        if (remove_annot) and (_namedtuple_kmer.kmer) in filter_dict:
+            continue
+
+        if _namedtuple_kmer.kmer not in foregrd_dict:
+            dic_with_sets = dict(zip(ord_dict.keys(), [{i} for i in ord_dict.values()]))
+            foregrd_dict[_namedtuple_kmer.kmer] = dic_with_sets
+        else:
+            for field, value in ord_dict.items():
+                foregrd_dict[_namedtuple_kmer.kmer][field].add(value)
+
+    return foregrd_dict
+
+
+def add_dict_kmer_back(backgrd_dict, _namedtuple_list):
+    """...
+
+        Parameters
+        ----------
+        backgrd_dict:
+        _namedtuple_list:
+
+        Returns
+        -------
+        backgrd_dict:
+        """
+    for _namedtuple_kmer in _namedtuple_list:
+        if _namedtuple_kmer.kmer in backgrd_dict:
+            continue
+        backgrd_dict[_namedtuple_kmer.kmer] = 0
+    return backgrd_dict
+
+
+def add_dict_peptide(dict_peptides, _namedtuple_list ):
+    """...
+
+        Parameters
+        ----------
+        dict_peptides:
+        _namedtuple_list:
+
+        Returns
+        -------
+        dict_peptides:
+        """
+    for _namedtuple_peptide in _namedtuple_list:
+        meta_data =  dict(_namedtuple_peptide._asdict())
+        del meta_data['peptide']
+        dict_peptides[_namedtuple_peptide.peptide] = meta_data
+    return dict_peptides
+
+
+def filter_onkey_dict(dict_foregr, dict_back):
+    """...
+
+        Parameters
+        ----------
+        dict_foregr:
+        dict_back:
+
+        Returns
+        -------
+        dict_foregr:
+        """
+    pre_filt_kmers = list(dict_foregr.keys())
+    for key_ in  pre_filt_kmers:
+        if key_ in dict_back:
+            del dict_foregr[key_]
+    return dict_foregr

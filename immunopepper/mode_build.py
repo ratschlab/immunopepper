@@ -13,7 +13,18 @@ import sys
 import timeit
 
 # immuno module
+from .filter import add_dict_kmer_back
+from .filter import add_dict_kmer_forgrd
+from .filter import add_dict_peptide
+from .filter import filter_onkey_dict #TODO update filter mode
+from .io_ import collect_results
 from .io_ import gz_and_normal_open
+from .io_ import initialize_fp
+from .io_ import remove_folder_list
+from .io_ import save_backgrd_kmer_dict
+from .io_ import save_backgrd_pep_dict
+from .io_ import save_forgrd_kmer_dict
+from .io_ import save_forgrd_pep_dict
 from .io_ import write_gene_expr
 from .mutations import get_mutation_mode_from_parser
 from .mutations import get_sub_mutation_tuple
@@ -24,14 +35,6 @@ from .preprocess import preprocess_ann
 from .traversal import collect_vertex_pairs
 from .traversal import get_and_write_background_peptide_and_kmer
 from .traversal import get_and_write_peptide_and_kmer
-from .inmemory import collect_results
-from .inmemory import filter_onkey_dict
-from .inmemory import initialize_fp
-from .inmemory import remove_folder_list
-from .inmemory import save_backgrd_kmer_dict
-from .inmemory import save_forgrd_kmer_dict
-from .inmemory import save_forgrd_pep_dict
-from .inmemory import write_gene_result
 from .utils import check_chr_consistence
 from .utils import create_libsize
 from .utils import get_idx
@@ -122,6 +125,40 @@ def process_gene_batch(sample, genes, genes_info, gene_idxs, total_genes, mutati
 
     return results
 
+
+def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, filepointer,
+                      remove_annot=True, compression=None, outbase=None):
+
+
+    if len(gene_result['background_peptide_list']):
+        records = gene_result['background_peptide_list']
+        dict_pept_backgrd = add_dict_peptide(dict_pept_backgrd, records)
+        save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression, outbase)
+        dict_pept_backgrd = {}
+
+    if len(gene_result['background_kmer_lists']):
+        records = [item for sublist in gene_result['background_kmer_lists'] for item in sublist]
+        dict_kmer_back = add_dict_kmer_back(dict_kmer_back, records)
+        if not remove_annot:
+            save_backgrd_kmer_dict(dict_kmer_back, filepointer, compression, outbase)
+            dict_kmer_back = {}
+
+
+    if len(gene_result['output_metadata_list']):
+        records = gene_result['output_metadata_list']
+        dict_pept_forgrd = add_dict_peptide(dict_pept_forgrd, records)
+        if not remove_annot:
+            save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase)
+            dict_pept_forgrd = {}
+
+    if len(gene_result['output_kmer_lists']):
+        records = [item for sublist in gene_result['output_kmer_lists'] for item in sublist]
+        dict_kmer_foregr = add_dict_kmer_forgrd(dict_kmer_foregr, records,  dict_kmer_back, remove_annot)
+        if not remove_annot:
+            save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, compression, outbase)
+            dict_kmer_foregr = {}
+
+    return dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back
 
 
 def mode_build(arg):
@@ -317,7 +354,7 @@ def mode_build(arg):
                          "Average memory cost:{} GB, Average time cost:{} seconds".format(sample,error_gene_num,num,max_memory,max_time,max_memory_id,max_time_id,
                                                                                mean_memory,mean_time))
         else:
-            logging.info(">>>> No gene is processed during this run.")
+            logging.info(">>>> No gene is processed during this run or Parallel") #TODO Update the metric collection in parallel mode
 
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)

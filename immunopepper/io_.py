@@ -1,7 +1,16 @@
+import glob
 import gzip
+import os
 import logging
+import pandas as pd
 import pickle
+import pyarrow as pa
+import pyarrow.parquet as pq
+import shutil
 import sys
+import timeit
+
+from .namedtuples import Filepointer
 
 ### intermediate fix to load pickle files stored under previous version
 import spladder.classes.gene as gene
@@ -74,3 +83,118 @@ def decodeUTF8(s):
     return s.decode('utf-8')
 
 
+def switch_tmp_path(filepointer_item, outbase=None):
+    if outbase:
+        fp = None
+        path = os.path.join(outbase, os.path.basename(filepointer_item['path']))
+    else:
+        fp = filepointer_item['filepointer']
+        path = filepointer_item['path']
+    return fp, path
+
+
+
+def save_backgrd_kmer_dict(dict_, filepointer, compression = None, outbase = None):
+    fp, path = switch_tmp_path(filepointer.background_kmer_fp, outbase)
+    if dict_:
+        df = pd.DataFrame(dict_.keys(), columns = ['kmer'])
+        save_pd_toparquet(fp, path, df, compression)
+
+def save_forgrd_kmer_dict(dict_, filepointer, compression = None, outbase=None):
+    fp, path = switch_tmp_path(filepointer.junction_kmer_fp, outbase)
+    if dict_:
+        df = pd.DataFrame(dict_.values(), index=dict_.keys())
+        df = df.applymap(repr)
+        df = df.rename_axis('kmer').reset_index()
+        df = df.loc[:, filepointer.junction_kmer_fp['columns']]
+        save_pd_toparquet(fp, path, df, compression)
+
+def save_backgrd_pep_dict(dict_, filepointer, compression = None, outbase=None):
+    fp, path = switch_tmp_path(filepointer.background_peptide_fp, outbase)
+    if dict_:
+        fasta = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
+        fasta = pd.concat([fasta['output_id'], fasta['index']]).sort_index().reset_index(drop = True)
+        fasta = pd.DataFrame(fasta, columns=['fasta'])
+        save_pd_toparquet(fp, path, fasta, compression)
+
+def save_forgrd_pep_dict(dict_, filepointer, compression = None, outbase=None):
+    fp_fa, path_fa = switch_tmp_path(filepointer.junction_peptide_fp, outbase)
+    fp_meta, path_meta = switch_tmp_path(filepointer.junction_meta_fp, outbase)
+    if dict_:
+        df = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
+        fasta = pd.concat([df['output_id'], df['index']]).sort_index().reset_index(drop = True)
+        fasta = pd.DataFrame(fasta, columns=['fasta'])
+        df = df.drop(['output_id', 'index'], axis=1)
+        save_pd_toparquet(fp_fa, path_fa, fasta, compression)
+        del fasta
+        df['original_exons_coord'] = df['original_exons_coord'].apply(convert_namedtuple_to_str, args=(None, ';'))
+        df['modified_exons_coord'] = df['modified_exons_coord'].apply(convert_namedtuple_to_str, args=(None, ';'))
+        df = df.applymap(repr)
+        df = df.loc[:, filepointer.junction_meta_fp['columns']]
+        save_pd_toparquet(fp_meta, path_meta, df, compression)
+
+
+def initialize_fp(junction_peptide_file_path, junction_meta_file_path, background_peptide_file_path,
+                    junction_kmer_file_path, background_kmer_file_path, open_fp=False, compression=None):
+
+    fields_forgrd_pep_dict = ['fasta']
+    fields_meta_peptide_dict = ['id','read_frame','gene_name','gene_chr','gene_strand','mutation_mode',
+                                'peptide_annotated','junction_annotated','has_stop_codon','is_in_junction_list',
+                                'is_isolated','variant_comb','variant_seg_expr','modified_exons_coord',
+                                'original_exons_coord','vertex_idx','junction_expr','segment_expr']
+    fields_backgrd_pep_dict = ['fasta']
+    fields_forgrd_kmer_dict = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count'] ## Needs to be in memory, Unless no filtering
+    fields_backgrd_kmer_dict = ['kmer']
+
+
+    peptide_fp = fp_with_pq_schema(junction_peptide_file_path, fields_forgrd_pep_dict, open_fp, compression)
+    meta_peptide_fp = fp_with_pq_schema(junction_meta_file_path, fields_meta_peptide_dict, open_fp, compression)
+    background_fp = fp_with_pq_schema(background_peptide_file_path, fields_backgrd_pep_dict, open_fp, compression)
+    junction_kmer_fp = fp_with_pq_schema(junction_kmer_file_path,fields_forgrd_kmer_dict, open_fp,compression )
+    background_kmer_fp = fp_with_pq_schema(background_kmer_file_path, fields_backgrd_kmer_dict, open_fp,compression)
+    filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp, junction_kmer_fp, background_kmer_fp)
+    return filepointer
+
+
+def fp_with_pq_schema(path, file_columns, open_fp=False, compression=None):
+    if open_fp:
+        data = {col: repr(set({})) for col in file_columns}
+        data = pd.DataFrame(data, index=[0])
+        table = pa.Table.from_pandas(data,  preserve_index=False)
+        pqwriter = pq.ParquetWriter(path, table.schema, compression)
+        file_info = {'path':path,'filepointer':pqwriter, 'columns':file_columns}
+    else:
+        file_info = {'path': path,'filepointer': None, 'columns': file_columns}
+    return file_info
+
+
+def save_pd_toparquet(filepointer, path, pd_df, compression = None):
+    table = pa.Table.from_pandas(pd_df, preserve_index=False)
+    if filepointer is None:
+        pqwriter = pq.ParquetWriter(path, table.schema, compression)
+        pqwriter.write_table(table)
+        pqwriter.close()
+    else:
+        pqwriter = filepointer
+        pqwriter.write_table(table)
+
+
+def collect_results(filepointer_item, outbase, logging, compression):
+    s1 = timeit.default_timer()
+    file_name = os.path.basename(filepointer_item['path'])
+    tmp_file_list = glob.glob(os.path.join(outbase,'tmp_out_*',file_name))
+    tot_shape = 0
+    for tmp_file in tmp_file_list:
+        table = pq.read_table(tmp_file)
+        if tot_shape == 0:
+            pqwriter = pq.ParquetWriter(filepointer_item['path'], table.schema, compression=compression)
+        pqwriter.write_table(table)
+        tot_shape += table.shape[0]
+    if tmp_file_list:
+        logging.info('Collecting {} with {} lines. Took {} seconds'.format(file_name, tot_shape, timeit.default_timer()-s1))
+
+
+def remove_folder_list(commun_base):
+    folder_list = glob.glob(commun_base + '*')
+    for dir_path in folder_list:
+        shutil.rmtree(dir_path, ignore_errors=True)

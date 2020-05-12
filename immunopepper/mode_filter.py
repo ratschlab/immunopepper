@@ -2,9 +2,9 @@
 Apply different filter mechanism on kmer tsv files
 """
 import logging
+import pandas as pd
 import sys
 
-import pandas as pd
 
 from .constant import NOT_EXIST
 from .io_ import gz_and_normal_open
