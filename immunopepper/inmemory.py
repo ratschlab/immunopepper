@@ -45,7 +45,7 @@ def add_dict_peptide(dict_peptides, _namedtuple_list ):
         meta_data =  dict(_namedtuple_peptide._asdict())
         del meta_data['peptide']
         dict_peptides[_namedtuple_peptide.peptide] = meta_data
-        return dict_peptides
+    return dict_peptides
 
 
 def filter_onkey_dict(dict_foregr, dict_back):
@@ -64,7 +64,7 @@ def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kme
         records = gene_result['background_peptide_list']
         dict_pept_backgrd = add_dict_peptide(dict_pept_backgrd, records)
         save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression, outbase)
-        dict_pept_backgrd = {}
+        #dict_pept_backgrd = {}
 
     if len(gene_result['background_kmer_lists']):
         records = [item for sublist in gene_result['background_kmer_lists'] for item in sublist]
