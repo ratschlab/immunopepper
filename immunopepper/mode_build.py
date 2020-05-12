@@ -26,7 +26,7 @@ from .traversal import get_and_write_background_peptide_and_kmer
 from .traversal import get_and_write_peptide_and_kmer
 from .inmemory import collect_results
 from .inmemory import filter_onkey_dict
-from .inmemory import initialize_parquet
+from .inmemory import initialize_fp
 from .inmemory import remove_folder_list
 from .inmemory import save_backgrd_kmer_dict
 from .inmemory import save_forgrd_kmer_dict
@@ -147,7 +147,7 @@ def mode_build(arg):
     
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
-    graph_data = graph_data[400:1000]
+    #graph_data = graph_data[400:1000]
     remove_annot = arg.remove_annot
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
@@ -214,18 +214,19 @@ def mode_build(arg):
             os.makedirs(output_path)
 
         junction_meta_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz.pq')
-        gzip_tag = ''
+
         if arg.compressed:
             gzip_tag = '.gz'
+            pq_compression = 'GZIP'
+        else:
+            pq_compression = None
+            gzip_tag = ''
         junction_peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa.pq'+gzip_tag)
         background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa.pq'+gzip_tag)
         junction_kmer_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.pq'+gzip_tag)
         background_kmer_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.pq'+gzip_tag)
         gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.tsv'+gzip_tag)
         gene_expr_fp = gz_and_normal_open(gene_expr_file_path, 'w')
-        filepointer = initialize_parquet(junction_peptide_file_path, junction_meta_file_path, background_peptide_file_path,
-                    junction_kmer_file_path, background_kmer_file_path)
-
 
         dict_kmer_foregr = {}
         dict_kmer_back = {} 
@@ -234,8 +235,12 @@ def mode_build(arg):
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
         if arg.parallel > 1:
+            filepointer = initialize_fp(junction_peptide_file_path, junction_meta_file_path,
+                                        background_peptide_file_path,
+                                        junction_kmer_file_path, background_kmer_file_path, open_fp=False,
+                                        compression=pq_compression)
             cnt = 0
-            logging.info('Parallel: {} Threads'.format(arg.parallel)) #TODO Remove
+            logging.info('Parallel: {} Threads'.format(arg.parallel))
 
             def process_result(gene_results):
                 global cnt
@@ -259,14 +264,15 @@ def mode_build(arg):
                             pool_genes[result_type].extend(gene_result[result_type])
                 s1 = timeit.default_timer()
                 logging.debug('start writing results')
-                dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(pool_genes, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, filepointer, remove_annot, gene_result['outbase'])
+                dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(pool_genes, dict_pept_forgrd, dict_pept_backgrd,
+                                                     dict_kmer_foregr, dict_kmer_back, filepointer, remove_annot, compression=None, outbase=gene_result['outbase'])
                 logging.info('writing results took {} seconds'.format(timeit.default_timer() - s1))
                 logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample, gene_result['gene_idx'] + 1, len(gene_id_list), gene_result['time'], gene_result['memory']))
                 del gene_results
 
             pool = mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
             #for gene_idx in gene_id_list:
-            batch_size = 1
+            batch_size = 10
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_%i' % i)
@@ -276,14 +282,18 @@ def mode_build(arg):
             pool.close()
             pool.join()
             logging.debug('start collecting results')
-            collect_results(filepointer.background_peptide_fp, output_path, logging)
-            collect_results(filepointer.junction_peptide_fp,output_path,logging)
-            collect_results(filepointer.junction_meta_fp,output_path,logging)
-            collect_results(filepointer.junction_kmer_fp,output_path,logging)
-            collect_results(filepointer.background_kmer_fp,output_path,logging)
+            collect_results(filepointer.background_peptide_fp, output_path, logging, pq_compression)
+            collect_results(filepointer.junction_peptide_fp,output_path,logging, pq_compression)
+            collect_results(filepointer.junction_meta_fp,output_path,logging, pq_compression)
+            collect_results(filepointer.junction_kmer_fp,output_path,logging, pq_compression)
+            collect_results(filepointer.background_kmer_fp,output_path,logging, pq_compression)
             #remove_folder_list(os.path.join(output_path, 'tmp_out_')) #TODO add back after development 
 
         else:
+            filepointer = initialize_fp(junction_peptide_file_path, junction_meta_file_path,
+                                        background_peptide_file_path,
+                                        junction_kmer_file_path, background_kmer_file_path, open_fp=True,
+                                        compression=pq_compression)
             logging.info('Not Parallel')
             for gene_idx in gene_id_list:
                 outbase = os.path.join(output_path, 'tmp_out')
@@ -291,7 +301,7 @@ def mode_build(arg):
                 if gene_result['processed']:
                     gene_name_expr_distr.append((gene_result['gene_name'], gene_result['total_expr']))
                     expr_distr.append(gene_result['total_expr'])
-                    dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back,  filepointer, remove_annot, outbase)
+                    dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back,  filepointer, remove_annot, compression=None, outbase=None)
                     time_list.append(gene_result['time'])
                     memory_list.append(gene_result['memory'])
 
@@ -308,19 +318,15 @@ def mode_build(arg):
                                                                                mean_memory,mean_time))
         else:
             logging.info(">>>> No gene is processed during this run.")
+
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
         create_libsize(expr_distr_dict,output_libszie_fp)
 
 
-        if arg.compressed:
-            compression = 'gzip'
-        else:
-            compression = None
-
 
         if remove_annot:
-            save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression)
+            save_forgrd_pep_dict(dict_pept_forgrd, filepointer, pq_compression)
             del dict_pept_forgrd
 
             logging.info(">>>> Foreground kmer TOTAL before final filtering {}".format(len(dict_kmer_foregr)))
@@ -329,17 +335,19 @@ def mode_build(arg):
             if len(dict_kmer_foregr) == 0 :
                 logging.info(">>>> No foreground kmers are left after filtering on annotation")
 
-            save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, compression)
+            save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, pq_compression)
             del dict_kmer_foregr
 
-            save_backgrd_kmer_dict(dict_kmer_back, filepointer, compression)
+            save_backgrd_kmer_dict(dict_kmer_back, filepointer, pq_compression)
             del dict_kmer_back
 
+        if not arg.parallel:
+            filepointer.junction_peptide_fp['filepointer'].close()
+            filepointer.junction_meta_fp['filepointer'].close()
+            filepointer.background_peptide_fp['filepointer'].close()
+            filepointer.junction_kmer_fp['filepointer'].close()
+            filepointer.background_kmer_fp['filepointer'].close()
 
-        #filepointer.junction_peptide_fp['filepointer'].close()
-        #filepointer.junction_meta_fp['filepointer'].close()
-        #filepointer.background_peptide_fp['filepointer'].close()
-        #filepointer.junction_kmer_fp['filepointer'].close()
-        #filepointer.background_kmer_fp['filepointer'].close()
+
     logging.info(">>>>>>>>> Build: Finish traversing splicegraph in mutation mode {}.\n".format(mutation.mode))
 
