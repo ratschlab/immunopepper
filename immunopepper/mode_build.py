@@ -1,6 +1,7 @@
 # Python libraries
 """"""
 # Core operation of ImmunoPepper. Traverse splicegraph and get kmer/peptide output
+from collections import defaultdict
 import logging
 import multiprocessing as mp
 import numpy as np
@@ -146,7 +147,7 @@ def mode_build(arg):
     
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
-    #graph_data = graph_data[:100]
+    graph_data = graph_data[400:1400]
     remove_annot = arg.remove_annot
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
@@ -247,17 +248,20 @@ def mode_build(arg):
                 global dict_pept_forgrd
                 global dict_pept_backgrd
                 global filepointer
+                pool_genes = defaultdict(list, {})
                 for gene_result in gene_results:
                     cnt += 1
                     logging.info('> Finished processing Gene {} ({}/{})'.format(gene_result['gene_name'], cnt, len(gene_id_list)))
                     if gene_result['processed']:
                         gene_name_expr_distr.append((gene_result['gene_name'], gene_result['total_expr']))
                         expr_distr.append(gene_result['total_expr'])
-                        s1 = timeit.default_timer()
-                        logging.debug('start writing results')
-                        dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, filepointer, remove_annot, gene_result['outbase'])
-                        logging.info('writing results took {} seconds'.format(timeit.default_timer() - s1))
-                        logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample, gene_result['gene_idx'] + 1, len(gene_id_list), gene_result['time'], gene_result['memory']))
+                        for result_type in ['background_peptide_list', 'background_kmer_lists', 'output_metadata_list', 'output_kmer_lists' ]:
+                            pool_genes[result_type].extend(gene_result[result_type])
+                s1 = timeit.default_timer()
+                logging.debug('start writing results')
+                dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(pool_genes, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, filepointer, remove_annot, gene_result['outbase'])
+                logging.info('writing results took {} seconds'.format(timeit.default_timer() - s1))
+                logging.info(">{}: {}/{} processed, time cost: {}, memory cost:{} GB ".format(sample, gene_result['gene_idx'] + 1, len(gene_id_list), gene_result['time'], gene_result['memory']))
                 del gene_results
 
             pool = mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
@@ -271,12 +275,13 @@ def mode_build(arg):
 
             pool.close()
             pool.join()
+            logging.debug('start collecting results')
             collect_results(filepointer.background_peptide_fp, output_path, logging)
             collect_results(filepointer.junction_peptide_fp,output_path,logging)
             collect_results(filepointer.junction_meta_fp,output_path,logging)
             collect_results(filepointer.junction_kmer_fp,output_path,logging)
             collect_results(filepointer.background_kmer_fp,output_path,logging)
-            remove_folder_list(os.path.join(output_path, 'tmp_out_'))
+            #remove_folder_list(os.path.join(output_path, 'tmp_out_')) #TODO add back after development 
 
         else:
             logging.info('Not Parallel')
