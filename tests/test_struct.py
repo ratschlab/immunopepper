@@ -45,7 +45,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode):
                '--germline', os.path.join(data_dir,'ImmunoPepper_usecase.vcf'),
                '--somatic', os.path.join(data_dir,'ImmunoPepper_usecase.maf'),
                 '--mutation-mode', mutation_mode,
-                '--kmer', '9' ]#,'--parallel', '4']
+                '--kmer', '9' ,'--parallel', '4']
 
     my_args = my_args_build
     immunopepper.split_mode(my_args)

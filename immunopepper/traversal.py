@@ -27,6 +27,36 @@ from .translate import get_peptide_result
 from .translate import cross_peptide_result
 from .utils import get_segment_expr
 
+def collect_background_transcripts(gene=None, ref_seq_file=None, chrm=None, mutation=None):
+    """Calculte the background peptide""
+
+       Parameters
+       ----------
+       gene: Object, returned by SplAdder.
+       ref_seq: Str, reference sequnce of specific chromosome
+       mutation: Namedtuple Mutation, store the mutation information of specific chromosome and sample.
+           has the attribute ['mode', 'maf_dict', 'vcf_dict']
+
+       Returns
+       -------
+       ref_mut_seq: Dict. (sequence_type) -> list[char].
+       """
+    gene.from_sparse()
+    sg = gene.splicegraph
+    min_pos = np.min(sg.vertices[0])
+    max_pos = np.max(sg.vertices[1])
+
+    # apply germline mutation
+    # when germline mutation is applied, background_seq != ref_seq
+    # otherwise, background_seq = ref_seq
+    ref_mut_seq = apply_germline_mutation(ref_sequence_file=ref_seq_file,
+                                          chrm=chrm,
+                                          pos_start=min_pos,
+                                          pos_end=max_pos,
+                                          mutation_sub_dict=mutation.germline_mutation_dict)
+    return ref_mut_seq
+
+
 
 def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None, idx=None, mutation=None, disable_concat=False, kmer=None, filter_redundant=False):
     """Calculte the output peptide for every exon-pairs in the splicegraph

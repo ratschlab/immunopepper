@@ -208,9 +208,6 @@ def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list, filter_dict, remove_ann
         _namedtuple_list:
         filter_dict:
 
-        Returns
-        -------
-        foregrd_dict:
         """
     for _namedtuple_kmer in _namedtuple_list:
         ### Prepare metadata
@@ -228,7 +225,6 @@ def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list, filter_dict, remove_ann
             for field, value in ord_dict.items():
                 foregrd_dict[_namedtuple_kmer.kmer][field].add(value)
 
-    return foregrd_dict
 
 
 def add_dict_kmer_back(backgrd_dict, _namedtuple_list):
@@ -239,15 +235,11 @@ def add_dict_kmer_back(backgrd_dict, _namedtuple_list):
         backgrd_dict:
         _namedtuple_list:
 
-        Returns
-        -------
-        backgrd_dict:
         """
     for _namedtuple_kmer in _namedtuple_list:
         if _namedtuple_kmer.kmer in backgrd_dict:
             continue
         backgrd_dict[_namedtuple_kmer.kmer] = 0
-    return backgrd_dict
 
 
 def add_dict_peptide(dict_peptides, _namedtuple_list ):
@@ -258,15 +250,11 @@ def add_dict_peptide(dict_peptides, _namedtuple_list ):
         dict_peptides:
         _namedtuple_list:
 
-        Returns
-        -------
-        dict_peptides:
         """
     for _namedtuple_peptide in _namedtuple_list:
         meta_data =  dict(_namedtuple_peptide._asdict())
         del meta_data['peptide']
         dict_peptides[_namedtuple_peptide.peptide] = meta_data
-    return dict_peptides
 
 
 def filter_onkey_dict(dict_foregr, dict_back):
@@ -277,12 +265,8 @@ def filter_onkey_dict(dict_foregr, dict_back):
         dict_foregr:
         dict_back:
 
-        Returns
-        -------
-        dict_foregr:
         """
     pre_filt_kmers = list(dict_foregr.keys())
     for key_ in  pre_filt_kmers:
         if key_ in dict_back:
             del dict_foregr[key_]
-    return dict_foregr
