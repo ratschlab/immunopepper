@@ -53,7 +53,7 @@ sys.modules['modules.classes.segmentgraph'] = csegmentgraph
 ### end fix
 
 
-def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinfo, genetable, arg, outbase, remove_annot):
+def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinfo, genetable, arg, outbase, remove_annot, compression=None, verbose=False):
     results = []
     for i, gene in enumerate(genes):
         ### measure time
@@ -93,12 +93,11 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
         R['memory'] = print_memory_diags(disable_print=True)
         R['outbase'] = outbase
         results.append(R)
-    process_result(results, ['background_peptide_list', 'background_kmer_lists'] , remove_annot)
+    process_result(results, ['background_peptide_list', 'background_kmer_lists'] , remove_annot, compression, verbose)
     return dict_pept_backgrd, dict_kmer_back  #Does not update the dictionaries and list globally because of the subprocess
 
 
-def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, mutation, junction_dict, countinfo, genetable, arg, outbase, remove_annot):
-
+def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, mutation, junction_dict, countinfo, genetable, arg, outbase, remove_annot, compression, verbose):
     results = []
     for i, gene in enumerate(genes):
         ### measure time
@@ -172,11 +171,11 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
         R['outbase'] = outbase
         results.append(R)
 
-    process_result(results, ['output_metadata_list', 'output_kmer_lists'], remove_annot)
+    process_result(results, ['output_metadata_list', 'output_kmer_lists'], remove_annot, compression, verbose)
     return gene_name_expr_distr, expr_distr,  dict_pept_forgrd, dict_kmer_foregr #Does not update the dictionaries and list globally because of the subprocess
 
 
-def process_result(gene_results, output_name, remove_annot):
+def process_result(gene_results, output_name, remove_annot=False, compression=None, verbose=True):
     '''
     Parameters
     -----------
@@ -202,7 +201,7 @@ def process_result(gene_results, output_name, remove_annot):
 
     s1 = timeit.default_timer()
     write_gene_result(pool_genes, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back,
-                      filepointer, remove_annot, compression=None, outbase=gene_result['outbase'])
+                      filepointer, remove_annot, compression, gene_result['outbase'], verbose)
 
     logging.info("> {}: {}/{} processed, time cost: {}, memory cost:{} GB ; writing results took {} seconds ".format(sample, gene_result['gene_idx'] + 1,
                                                                                   len(gene_id_list),
@@ -211,20 +210,21 @@ def process_result(gene_results, output_name, remove_annot):
     del gene_results
 
 
+
 def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, filepointer,
-                      remove_annot=True, compression=None, outbase=None):
+                      remove_annot=True, compression=None, outbase=None,  verbose=True):
 
     if ('background_peptide_list' in gene_result) and (len(gene_result['background_peptide_list'])):
         records = gene_result['background_peptide_list']
         add_dict_peptide(dict_pept_backgrd, records)
-        save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression, outbase)
+        save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression, outbase, verbose)
         dict_pept_backgrd.clear()
 
     if ('background_kmer_lists' in gene_result) and (len(gene_result['background_kmer_lists'])):
         records = [item for sublist in gene_result['background_kmer_lists'] for item in sublist]
         add_dict_kmer_back(dict_kmer_back, records)
         if not remove_annot:
-            save_backgrd_kmer_dict(dict_kmer_back, filepointer, compression, outbase)
+            save_backgrd_kmer_dict(dict_kmer_back, filepointer, compression, outbase, verbose)
             dict_kmer_back.clear()
 
 
@@ -232,14 +232,14 @@ def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kme
         records = gene_result['output_metadata_list']
         add_dict_peptide(dict_pept_forgrd, records)
         if not remove_annot:
-            save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase)
+            save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, verbose)
             dict_pept_forgrd.clear()
 
     if ('output_kmer_lists' in gene_result) and (len(gene_result['output_kmer_lists'])):
         records = [item for sublist in gene_result['output_kmer_lists'] for item in sublist]
         add_dict_kmer_forgrd(dict_kmer_foregr, records,  dict_kmer_back, remove_annot)
         if not remove_annot:
-            save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, compression, outbase)
+            save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, compression, outbase, verbose)
             dict_kmer_foregr.clear()
 
 
@@ -269,7 +269,7 @@ def mode_build(arg):
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
     #graph_data = graph_data[400:1000]
-    remove_annot =  arg.remove_annot
+    remove_annot = arg.remove_annot
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
@@ -309,22 +309,22 @@ def mode_build(arg):
     output_libszie_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
     logging.info(">>>>>>>>> Start traversing splicegraph")
 
-    if arg.parallel > 1:
-        global cnt
-        global gene_name_expr_distr
-        global expr_distr
-        global gene_id_list
-        global sample
-        global dict_kmer_foregr
-        global dict_kmer_back
-        global dict_pept_forgrd
-        global dict_pept_backgrd
-        global filepointer
+    #if arg.parallel > 1:
+    global cnt
+    global gene_name_expr_distr
+    global expr_distr
+    global gene_id_list
+    global sample
+    global dict_kmer_foregr
+    global dict_kmer_back
+    global dict_pept_forgrd
+    global dict_pept_backgrd
+    global filepointer
 
 
     for sample in arg.samples:
         logging.info(">>>> Processing sample {}, there are {} graphs in total".format(sample,num))
-        error_gene_num = 0
+        error_gene_num = 0 #TODO update
         time_list = []
         memory_list = []
         expr_distr = []
@@ -367,7 +367,7 @@ def mode_build(arg):
 
 
             batch_size = 10
-
+            verbose_save = False
             # Build the background
             logging.info(">>>>>>>>> Start Background processing")
             pool = mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
@@ -375,7 +375,7 @@ def mode_build(arg):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_%i' % i)
                 pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
-                res = pool.apply_async(process_gene_batch_background, args=(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, remove_annot))
+                res = pool.apply_async(process_gene_batch_background, args=(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, remove_annot, pq_compression, verbose_save))
             pool.close()
             pool.join()
             dict_pept_backgrd, dict_kmer_back = res.get()
@@ -386,18 +386,18 @@ def mode_build(arg):
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_%i' % i)
-                res = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg, outbase, remove_annot))
+                res = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg, outbase, remove_annot, pq_compression, verbose_save))
             pool.close()
             pool.join()
             gene_name_expr_distr, expr_distr, dict_pept_forgrd, dict_kmer_foregr = res.get()
 
             # Collects and pools the files of each batch
             logging.debug('start collecting results')
-            collect_results(filepointer.background_peptide_fp, output_path, logging, pq_compression)
-            collect_results(filepointer.junction_peptide_fp,output_path,logging, pq_compression)
-            collect_results(filepointer.junction_meta_fp,output_path,logging, pq_compression)
-            collect_results(filepointer.junction_kmer_fp,output_path,logging, pq_compression)
-            collect_results(filepointer.background_kmer_fp,output_path,logging, pq_compression)
+            collect_results(filepointer.background_peptide_fp, output_path, pq_compression)
+            collect_results(filepointer.junction_peptide_fp,output_path, pq_compression)
+            collect_results(filepointer.junction_meta_fp,output_path, pq_compression)
+            collect_results(filepointer.junction_kmer_fp,output_path, pq_compression)
+            collect_results(filepointer.background_kmer_fp,output_path, pq_compression)
             remove_folder_list(os.path.join(output_path, 'tmp_out_')) #TODO add back after development
 
         else:
@@ -406,29 +406,28 @@ def mode_build(arg):
                                         junction_kmer_file_path, background_kmer_file_path, open_fp=True,
                                         compression=pq_compression)
             logging.info('Not Parallel')
-            for gene_idx in gene_id_list:
-                outbase = os.path.join(output_path, 'tmp_out')
-                gene_result = process_gene_batch(sample, [graph_data[gene_idx]], [graph_info[gene_idx]], [gene_idx], len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg, outbase)[0]
-                if gene_result['processed']:
-                    gene_name_expr_distr.append((gene_result['gene_name'], gene_result['total_expr']))
-                    expr_distr.append(gene_result['total_expr'])
-                    dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back = write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back,  filepointer, remove_annot, compression=None, outbase=None)
-                    time_list.append(gene_result['time'])
-                    memory_list.append(gene_result['memory'])
+            # Build the background
+            cnt = 0
+            process_gene_batch_background(sample, graph_data, gene_id_list, mutation, countinfo, genetable, arg, output_path, remove_annot, pq_compression, verbose=True)
+            # Build the foreground and remove the background if needed
+            cnt = 0
+            process_gene_batch_foreground( sample, graph_data, graph_info, gene_id_list, len(gene_id_list), mutation, junction_dict,
+                             countinfo, genetable, arg, output_path, remove_annot, pq_compression, verbose=True)
 
-        if memory_list and time_list:
-            max_memory,max_time = max(memory_list),max(time_list)
-            max_memory_id,max_time_id = np.argmax(memory_list),np.argmax(time_list)
-            if num-error_gene_num > 0:
-                mean_memory, mean_time = sum(memory_list)/(num-error_gene_num),sum(time_list)/(num-error_gene_num)
-            else:
-                mean_memory, mean_time = 0,0
-            logging.info(">>>> Finish sample {}. Errors existed in {}/{} genes. Might Need further check. "
-                         "Max memory :{} GB, Max time :{} seconds, Max memory gene ID:{}, Max time gene ID:{}, "
-                         "Average memory cost:{} GB, Average time cost:{} seconds".format(sample,error_gene_num,num,max_memory,max_time,max_memory_id,max_time_id,
-                                                                               mean_memory,mean_time))
-        else:
-            logging.info(">>>> No gene is processed during this run or Parallel") #TODO Update the metric collection in parallel mode
+        # TODO Update the metric collection
+        # if memory_list and time_list:
+        #     max_memory,max_time = max(memory_list),max(time_list)
+        #     max_memory_id,max_time_id = np.argmax(memory_list),np.argmax(time_list)
+        #     if num-error_gene_num > 0:
+        #         mean_memory, mean_time = sum(memory_list)/(num-error_gene_num),sum(time_list)/(num-error_gene_num)
+        #     else:
+        #         mean_memory, mean_time = 0,0
+        #     logging.info(">>>> Finish sample {}. Errors existed in {}/{} genes. Might Need further check. "
+        #                  "Max memory :{} GB, Max time :{} seconds, Max memory gene ID:{}, Max time gene ID:{}, "
+        #                  "Average memory cost:{} GB, Average time cost:{} seconds".format(sample,error_gene_num,num,max_memory,max_time,max_memory_id,max_time_id,
+        #                                                                        mean_memory,mean_time))
+        # else:
+        #     logging.info(">>>> No gene is processed during this run or Parallel")
 
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
@@ -437,13 +436,13 @@ def mode_build(arg):
 
         # Save the data structures kept in memory for filtering
         if remove_annot:
-            save_forgrd_pep_dict(dict_pept_forgrd, filepointer, pq_compression)
+            save_forgrd_pep_dict(dict_pept_forgrd, filepointer, pq_compression, outbase=None, verbose=True)
             del dict_pept_forgrd
 
-            save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, pq_compression)
+            save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, pq_compression, outbase=None, verbose=True)
             del dict_kmer_foregr
 
-            save_backgrd_kmer_dict(dict_kmer_back, filepointer, pq_compression)
+            save_backgrd_kmer_dict(dict_kmer_back, filepointer, pq_compression, outbase=None, verbose=True)
             del dict_kmer_back
 
         if not arg.parallel:
@@ -453,6 +452,9 @@ def mode_build(arg):
             filepointer.junction_kmer_fp['filepointer'].close()
             filepointer.background_kmer_fp['filepointer'].close()
 
-
-    logging.info(">>>>>>>>> Build: Finish traversing splicegraph in mutation mode {}.\n".format(mutation.mode))
+    if remove_annot:
+        filt_apply = "Removed kmers present in annotation from the kmer foreground output"
+    else:
+        filt_apply = "Did not apply filtering for annotation on foreground kmers"
+    logging.info(">>>>>>>>> Build: Finish traversing splicegraph in mutation mode {}. {}\n".format(mutation.mode, filt_apply))
 

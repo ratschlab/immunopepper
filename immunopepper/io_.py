@@ -94,30 +94,30 @@ def switch_tmp_path(filepointer_item, outbase=None):
 
 
 
-def save_backgrd_kmer_dict(dict_, filepointer, compression = None, outbase = None):
+def save_backgrd_kmer_dict(dict_, filepointer, compression=None, outbase=None, verbose=False):
     fp, path = switch_tmp_path(filepointer.background_kmer_fp, outbase)
     if dict_:
         df = pd.DataFrame(dict_.keys(), columns = ['kmer'])
-        save_pd_toparquet(fp, path, df, compression)
+        save_pd_toparquet(fp, path, df, compression, verbose)
 
-def save_forgrd_kmer_dict(dict_, filepointer, compression = None, outbase=None):
+def save_forgrd_kmer_dict(dict_, filepointer, compression=None, outbase=None, verbose=False):
     fp, path = switch_tmp_path(filepointer.junction_kmer_fp, outbase)
     if dict_:
         df = pd.DataFrame(dict_.values(), index=dict_.keys())
         df = df.applymap(repr)
         df = df.rename_axis('kmer').reset_index()
         df = df.loc[:, filepointer.junction_kmer_fp['columns']]
-        save_pd_toparquet(fp, path, df, compression)
+        save_pd_toparquet(fp, path, df, compression, verbose)
 
-def save_backgrd_pep_dict(dict_, filepointer, compression = None, outbase=None):
+def save_backgrd_pep_dict(dict_, filepointer, compression = None, outbase=None, verbose=False):
     fp, path = switch_tmp_path(filepointer.background_peptide_fp, outbase)
     if dict_:
         fasta = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
         fasta = pd.concat([fasta['output_id'], fasta['index']]).sort_index().reset_index(drop = True)
         fasta = pd.DataFrame(fasta, columns=['fasta'])
-        save_pd_toparquet(fp, path, fasta, compression)
+        save_pd_toparquet(fp, path, fasta, compression, verbose)
 
-def save_forgrd_pep_dict(dict_, filepointer, compression = None, outbase=None):
+def save_forgrd_pep_dict(dict_, filepointer, compression=None, outbase=None, verbose=False):
     fp_fa, path_fa = switch_tmp_path(filepointer.junction_peptide_fp, outbase)
     fp_meta, path_meta = switch_tmp_path(filepointer.junction_meta_fp, outbase)
     if dict_:
@@ -125,13 +125,13 @@ def save_forgrd_pep_dict(dict_, filepointer, compression = None, outbase=None):
         fasta = pd.concat([df['output_id'], df['index']]).sort_index().reset_index(drop = True)
         fasta = pd.DataFrame(fasta, columns=['fasta'])
         df = df.drop(['output_id', 'index'], axis=1)
-        save_pd_toparquet(fp_fa, path_fa, fasta, compression)
+        save_pd_toparquet(fp_fa, path_fa, fasta, compression, verbose)
         del fasta
         df['original_exons_coord'] = df['original_exons_coord'].apply(convert_namedtuple_to_str, args=(None, ';'))
         df['modified_exons_coord'] = df['modified_exons_coord'].apply(convert_namedtuple_to_str, args=(None, ';'))
         df = df.applymap(repr)
         df = df.loc[:, filepointer.junction_meta_fp['columns']]
-        save_pd_toparquet(fp_meta, path_meta, df, compression)
+        save_pd_toparquet(fp_meta, path_meta, df, compression, verbose)
 
 
 def initialize_fp(junction_peptide_file_path, junction_meta_file_path, background_peptide_file_path,
@@ -168,7 +168,8 @@ def fp_with_pq_schema(path, file_columns, open_fp=False, compression=None):
     return file_info
 
 
-def save_pd_toparquet(filepointer, path, pd_df, compression = None):
+def save_pd_toparquet(filepointer, path, pd_df, compression = None, verbose = False):
+    s1 = timeit.default_timer()
     table = pa.Table.from_pandas(pd_df, preserve_index=False)
     if filepointer is None:
         pqwriter = pq.ParquetWriter(path, table.schema, compression)
@@ -177,9 +178,14 @@ def save_pd_toparquet(filepointer, path, pd_df, compression = None):
     else:
         pqwriter = filepointer
         pqwriter.write_table(table)
+    if verbose:
+        file_name = os.path.basename(path)
+        tot_shape = pd_df.shape[0]
+        logging.info('Saving parquet {} with {} lines. Took {} seconds'.format(file_name, tot_shape,
+                                                                      timeit.default_timer() - s1))
 
 
-def collect_results(filepointer_item, outbase, logging, compression):
+def collect_results(filepointer_item, outbase, compression):
     s1 = timeit.default_timer()
     file_name = os.path.basename(filepointer_item['path'])
     tmp_file_list = glob.glob(os.path.join(outbase,'tmp_out_*',file_name))
