@@ -10,6 +10,7 @@ import shutil
 import sys
 import timeit
 
+from .namedtuples import Coord
 from .namedtuples import Filepointer
 
 ### intermediate fix to load pickle files stored under previous version
@@ -40,9 +41,9 @@ def write_list(fp, _list):
     fp.writelines([l + '\n' for l in _list])
 
 
-def _convert_list_to_str(_list):
+def _convert_list_to_str(_list, sep ='/'):
     remove_none_list = filter(lambda x:x is not None, _list)
-    return ';'.join([str(_item) for _item in remove_none_list])
+    return sep.join([str(_item) for _item in remove_none_list])
 
 def convert_namedtuple_to_str(_namedtuple, field_list = None, sep = '\t'):
 
@@ -53,15 +54,28 @@ def convert_namedtuple_to_str(_namedtuple, field_list = None, sep = '\t'):
         if field == 'new_line':
             line = line.strip() + '\n'
             continue
-        if not hasattr(_namedtuple, field):
-            logging.error('Namedtuple %s ' % str(_namedtuple) + ' does not have a field: ' + field)
-            sys.exit(1)
+        # if not hasattr(_namedtuple, field):
+        #     logging.error('Namedtuple %s ' % str(_namedtuple) + ' does not have a field: ' + field)
+        #     sys.exit(1)
         item = getattr(_namedtuple, field)
         if isinstance(item, (list, tuple)):
             line += _convert_list_to_str(item)+sep
         else:
             line += str(item)+sep
     return line[:-1] # remove the last '\t'
+
+
+
+def list_to_tuple(input):
+    if isinstance(input, list):
+        return tuple(input)
+    else:
+        return input
+
+def convert_to_str_Coord_namedtuple(input, sep = ';'):
+    if isinstance(input, Coord):
+        input = convert_namedtuple_to_str(input, sep = sep)
+    return input
 
 
 def write_namedtuple_list(fp, namedtuple_list, field_list):
@@ -94,17 +108,17 @@ def switch_tmp_path(filepointer_item, outbase=None):
 
 
 
-def save_backgrd_kmer_dict(dict_, filepointer, compression=None, outbase=None, verbose=False):
+def save_backgrd_kmer_set(set_, filepointer, compression=None, outbase=None, verbose=False):
     fp, path = switch_tmp_path(filepointer.background_kmer_fp, outbase)
-    if dict_:
-        df = pd.DataFrame(dict_.keys(), columns = ['kmer'])
+    if set_:
+        df = pd.DataFrame(set_, columns=['kmer'])
         save_pd_toparquet(fp, path, df, compression, verbose)
 
 def save_forgrd_kmer_dict(dict_, filepointer, compression=None, outbase=None, verbose=False):
     fp, path = switch_tmp_path(filepointer.junction_kmer_fp, outbase)
     if dict_:
         df = pd.DataFrame(dict_.values(), index=dict_.keys())
-        df = df.applymap(repr)
+        df = df.applymap(_convert_list_to_str)
         df = df.rename_axis('kmer').reset_index()
         df = df.loc[:, filepointer.junction_kmer_fp['columns']]
         save_pd_toparquet(fp, path, df, compression, verbose)
@@ -113,6 +127,7 @@ def save_backgrd_pep_dict(dict_, filepointer, compression = None, outbase=None, 
     fp, path = switch_tmp_path(filepointer.background_peptide_fp, outbase)
     if dict_:
         fasta = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
+        fasta['output_id'] = fasta['output_id'].apply(lambda x: '>' + '/'.join(x))
         fasta = pd.concat([fasta['output_id'], fasta['index']]).sort_index().reset_index(drop = True)
         fasta = pd.DataFrame(fasta, columns=['fasta'])
         save_pd_toparquet(fp, path, fasta, compression, verbose)
@@ -122,15 +137,14 @@ def save_forgrd_pep_dict(dict_, filepointer, compression=None, outbase=None, ver
     fp_meta, path_meta = switch_tmp_path(filepointer.junction_meta_fp, outbase)
     if dict_:
         df = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
+        df['output_id'] = df['output_id'].apply(lambda x: '>' + '/'.join(x))
         fasta = pd.concat([df['output_id'], df['index']]).sort_index().reset_index(drop = True)
         fasta = pd.DataFrame(fasta, columns=['fasta'])
-        df = df.drop(['output_id', 'index'], axis=1)
         save_pd_toparquet(fp_fa, path_fa, fasta, compression, verbose)
         del fasta
-        df['original_exons_coord'] = df['original_exons_coord'].apply(convert_namedtuple_to_str, args=(None, ';'))
-        df['modified_exons_coord'] = df['modified_exons_coord'].apply(convert_namedtuple_to_str, args=(None, ';'))
-        df = df.applymap(repr)
+        df = df.drop(['output_id', 'index'], axis=1)
         df = df.loc[:, filepointer.junction_meta_fp['columns']]
+        df = df.applymap(_convert_list_to_str)
         save_pd_toparquet(fp_meta, path_meta, df, compression, verbose)
 
 

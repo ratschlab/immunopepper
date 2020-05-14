@@ -13,15 +13,14 @@ import sys
 import timeit
 
 # immuno module
-from .filter import add_dict_kmer_back
+from .filter import add_set_kmer_back
 from .filter import add_dict_kmer_forgrd
 from .filter import add_dict_peptide
-from .filter import filter_onkey_dict #TODO update filter mode
 from .io_ import collect_results
 from .io_ import gz_and_normal_open
 from .io_ import initialize_fp
 from .io_ import remove_folder_list
-from .io_ import save_backgrd_kmer_dict
+from .io_ import save_backgrd_kmer_set
 from .io_ import save_backgrd_pep_dict
 from .io_ import save_forgrd_kmer_dict
 from .io_ import save_forgrd_pep_dict
@@ -94,7 +93,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
         R['outbase'] = outbase
         results.append(R)
     process_result(results, ['background_peptide_list', 'background_kmer_lists'] , remove_annot, compression, verbose)
-    return dict_pept_backgrd, dict_kmer_back  #Does not update the dictionaries and list globally because of the subprocess
+    return dict_pept_backgrd, set_kmer_back  #Does not update the dictionaries and list globally because of the subprocess
 
 
 def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, mutation, junction_dict, countinfo, genetable, arg, outbase, remove_annot, compression, verbose):
@@ -187,7 +186,7 @@ def process_result(gene_results, output_name, remove_annot=False, compression=No
     global cnt
     global sample
     global dict_kmer_foregr
-    global dict_kmer_back
+    global set_kmer_back
     global dict_pept_forgrd
     global dict_pept_backgrd
     global filepointer
@@ -200,7 +199,7 @@ def process_result(gene_results, output_name, remove_annot=False, compression=No
                 pool_genes[result_type].extend(gene_result[result_type])
 
     s1 = timeit.default_timer()
-    write_gene_result(pool_genes, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back,
+    write_gene_result(pool_genes, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, set_kmer_back,
                       filepointer, remove_annot, compression, gene_result['outbase'], verbose)
 
     logging.info("> {}: {}/{} processed, time cost: {}, memory cost:{} GB ; writing results took {} seconds ".format(sample, gene_result['gene_idx'] + 1,
@@ -211,7 +210,7 @@ def process_result(gene_results, output_name, remove_annot=False, compression=No
 
 
 
-def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, dict_kmer_back, filepointer,
+def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, set_kmer_back, filepointer,
                       remove_annot=True, compression=None, outbase=None,  verbose=True):
 
     if ('background_peptide_list' in gene_result) and (len(gene_result['background_peptide_list'])):
@@ -222,10 +221,10 @@ def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kme
 
     if ('background_kmer_lists' in gene_result) and (len(gene_result['background_kmer_lists'])):
         records = [item for sublist in gene_result['background_kmer_lists'] for item in sublist]
-        add_dict_kmer_back(dict_kmer_back, records)
+        add_set_kmer_back(set_kmer_back, records)
         if not remove_annot:
-            save_backgrd_kmer_dict(dict_kmer_back, filepointer, compression, outbase, verbose)
-            dict_kmer_back.clear()
+            save_backgrd_kmer_set(set_kmer_back, filepointer, compression, outbase, verbose)
+            set_kmer_back.clear()
 
 
     if ('output_metadata_list' in gene_result) and (len(gene_result['output_metadata_list'])):
@@ -237,7 +236,7 @@ def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kme
 
     if ('output_kmer_lists' in gene_result) and (len(gene_result['output_kmer_lists'])):
         records = [item for sublist in gene_result['output_kmer_lists'] for item in sublist]
-        add_dict_kmer_forgrd(dict_kmer_foregr, records,  dict_kmer_back, remove_annot)
+        add_dict_kmer_forgrd(dict_kmer_foregr, records,  set_kmer_back, remove_annot)
         if not remove_annot:
             save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, compression, outbase, verbose)
             dict_kmer_foregr.clear()
@@ -316,7 +315,7 @@ def mode_build(arg):
     global gene_id_list
     global sample
     global dict_kmer_foregr
-    global dict_kmer_back
+    global set_kmer_back
     global dict_pept_forgrd
     global dict_pept_backgrd
     global filepointer
@@ -330,7 +329,7 @@ def mode_build(arg):
         expr_distr = []
         gene_name_expr_distr = []
         dict_kmer_foregr = {}
-        dict_kmer_back = {}
+        set_kmer_back = set()
         dict_pept_forgrd = {}
         dict_pept_backgrd = {}
 
@@ -378,7 +377,7 @@ def mode_build(arg):
                 res = pool.apply_async(process_gene_batch_background, args=(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, remove_annot, pq_compression, verbose_save))
             pool.close()
             pool.join()
-            dict_pept_backgrd, dict_kmer_back = res.get()
+            dict_pept_backgrd, set_kmer_back = res.get()
 
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
@@ -442,8 +441,8 @@ def mode_build(arg):
             save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, pq_compression, outbase=None, verbose=True)
             del dict_kmer_foregr
 
-            save_backgrd_kmer_dict(dict_kmer_back, filepointer, pq_compression, outbase=None, verbose=True)
-            del dict_kmer_back
+            save_backgrd_kmer_set(set_kmer_back, filepointer, pq_compression, outbase=None, verbose=True)
+            del set_kmer_back
 
         if not arg.parallel:
             filepointer.junction_peptide_fp['filepointer'].close()

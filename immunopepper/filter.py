@@ -5,6 +5,8 @@ import re
 import numpy as np
 
 from .constant import NOT_EXIST
+from .io_ import convert_to_str_Coord_namedtuple
+from .io_ import list_to_tuple
 
 def _collect_remove_ids(exon_junction_dict):
     """ For all exon pairs around the same intron, keep the longest one.
@@ -201,6 +203,10 @@ def peptide_is_annotated(background_peptide_list, peptide):
 
 def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list, filter_dict, remove_annot=True):
     """...
+        From a namedtuple
+        Updates the following dictionnary:
+        keys = unique peptides,
+        values = collapsed metadata, each metadata item is converted to a set. {'output_id' : set(), 'chr' : set()}
 
         Parameters
         ----------
@@ -211,23 +217,23 @@ def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list, filter_dict, remove_ann
         """
     for _namedtuple_kmer in _namedtuple_list:
         ### Prepare metadata
-        ord_dict = _namedtuple_kmer._asdict()
-        del ord_dict['kmer']
+        ord_dict_metadata = _namedtuple_kmer._asdict()
+        del ord_dict_metadata['kmer']
 
         ### Remove annotation
         if (remove_annot) and (_namedtuple_kmer.kmer) in filter_dict:
             continue
-
+        ### aggregate metadata of unique kmers
         if _namedtuple_kmer.kmer not in foregrd_dict:
-            dic_with_sets = dict(zip(ord_dict.keys(), [{i} for i in ord_dict.values()]))
+            dic_with_sets = dict(zip(ord_dict_metadata.keys(), [{i} for i in ord_dict_metadata.values()]))
             foregrd_dict[_namedtuple_kmer.kmer] = dic_with_sets
         else:
-            for field, value in ord_dict.items():
+            for field, value in ord_dict_metadata.items():
                 foregrd_dict[_namedtuple_kmer.kmer][field].add(value)
 
 
 
-def add_dict_kmer_back(backgrd_dict, _namedtuple_list):
+def add_set_kmer_back(backgrd_dict, _namedtuple_list):
     """...
 
         Parameters
@@ -239,11 +245,19 @@ def add_dict_kmer_back(backgrd_dict, _namedtuple_list):
     for _namedtuple_kmer in _namedtuple_list:
         if _namedtuple_kmer.kmer in backgrd_dict:
             continue
-        backgrd_dict[_namedtuple_kmer.kmer] = 0
+        backgrd_dict.add(_namedtuple_kmer.kmer)
+
+
+
 
 
 def add_dict_peptide(dict_peptides, _namedtuple_list ):
     """...
+        From a namedtuple
+        Updates the following dictionnary:
+        keys = unique peptides,
+        values = collapsed metadata, each metadata item is converted to a set. {'output_id' : set(), 'chr' : set()}
+        Lists and nested namedtuples are converted to tuples prior to addition to the set.
 
         Parameters
         ----------
@@ -252,21 +266,16 @@ def add_dict_peptide(dict_peptides, _namedtuple_list ):
 
         """
     for _namedtuple_peptide in _namedtuple_list:
-        meta_data =  dict(_namedtuple_peptide._asdict())
-        del meta_data['peptide']
-        dict_peptides[_namedtuple_peptide.peptide] = meta_data
+        ord_dict_metadata =  dict(_namedtuple_peptide._asdict())
+        ord_dict_metadata = {k: list_to_tuple(v) for k, v in ord_dict_metadata.items()}
+        ord_dict_metadata = {k: (convert_to_str_Coord_namedtuple(v,';')) for k, v in ord_dict_metadata.items()}
+        del ord_dict_metadata['peptide']
 
+        ### aggregate metadata of unique peptides
+        if _namedtuple_peptide.peptide not in dict_peptides:
+            dic_with_sets = dict(zip(ord_dict_metadata.keys(), [{i} for i in ord_dict_metadata.values()]))
+            dict_peptides[_namedtuple_peptide.peptide] = dic_with_sets
+        else:
+            for field, value in ord_dict_metadata.items():
+                dict_peptides[_namedtuple_peptide.peptide][field].add(value)
 
-def filter_onkey_dict(dict_foregr, dict_back):
-    """...
-
-        Parameters
-        ----------
-        dict_foregr:
-        dict_back:
-
-        """
-    pre_filt_kmers = list(dict_foregr.keys())
-    for key_ in  pre_filt_kmers:
-        if key_ in dict_back:
-            del dict_foregr[key_]

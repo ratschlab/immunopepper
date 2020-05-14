@@ -14,6 +14,7 @@ import sys
 from .constant import NOT_EXIST
 from .namedtuples import Idx
 
+
 def to_adj_list(adj_matrix):
     """
     Converts a binary adjacency matrix to a list of directed edges
@@ -436,5 +437,4 @@ def print_memory_diags(disable_print=False):
     if not disable_print:
         logging.info('\tMemory usage: {:.3f} GB'.format(memory))
     return memory
-
 
