@@ -96,7 +96,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
     return dict_pept_backgrd, set_kmer_back  #Does not update the dictionaries and list globally because of the subprocess
 
 
-def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, mutation, junction_dict, countinfo, genetable, arg, outbase, remove_annot, uniq_foreground, compression, verbose):
+def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, remove_annot, uniq_foreground, compression, verbose):
     results = []
     for i, gene in enumerate(genes):
         ### measure time
@@ -139,17 +139,10 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                                              kmer=arg.kmer,
                                              filter_redundant=arg.filter_redundant)
 
-        R['background_peptide_list'], \
-        R['background_kmer_lists'] = get_and_write_background_peptide_and_kmer(gene=gene,
-                                                                               ref_mut_seq=ref_mut_seq,
-                                                                               gene_table=genetable,
-                                                                               countinfo=countinfo,
-                                                                               Idx=idx,
-                                                                               kmer=arg.kmer)
         R['output_metadata_list'], \
         R['output_kmer_lists'] = get_and_write_peptide_and_kmer(gene=gene,
                                                                 vertex_pairs=vertex_pairs,
-                                                                background_pep_list=R['background_peptide_list'],
+                                                                background_pep_dict=dict_pept_backgrd,
                                                                 ref_mut_seq=ref_mut_seq,
                                                                 idx=idx,
                                                                 exon_som_dict=exon_som_dict,
@@ -217,7 +210,6 @@ def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kme
         records = gene_result['background_peptide_list']
         add_dict_peptide(dict_pept_backgrd, records)
         save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression, outbase, verbose)
-        dict_pept_backgrd.clear()
 
     if ('background_kmer_lists' in gene_result) and (len(gene_result['background_kmer_lists'])):
         records = [item for sublist in gene_result['background_kmer_lists'] for item in sublist]
@@ -388,7 +380,7 @@ def mode_build(arg):
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_%i' % i)
-                res = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg, outbase, remove_annot, uniq_foreground, pq_compression, verbose_save))
+                res = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, remove_annot, uniq_foreground, pq_compression, verbose_save))
             pool.close()
             pool.join()
             gene_name_expr_distr, expr_distr, dict_pept_forgrd, dict_kmer_foregr = res.get()
@@ -414,7 +406,7 @@ def mode_build(arg):
             # Build the foreground and remove the background if needed
             cnt = 0
             process_gene_batch_foreground( sample, graph_data, graph_info, gene_id_list, len(gene_id_list), mutation, junction_dict,
-                             countinfo, genetable, arg, output_path, remove_annot, uniq_foreground, pq_compression, verbose=True)
+                             countinfo, genetable, arg, output_path, dict_pept_backgrd, remove_annot, uniq_foreground, pq_compression, verbose=True)
 
         # TODO Update the metric collection
         # if memory_list and time_list:

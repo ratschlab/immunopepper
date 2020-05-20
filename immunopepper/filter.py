@@ -178,26 +178,20 @@ def junction_is_in_given_list(splicegraph, vertex_id_list, strand, junction_list
     return 0
 
 
-def peptide_is_annotated(background_peptide_list, peptide):
+def peptide_is_annotated(background_peptide_dict, peptide):
     """Check if the translated exon-pair peptide also appears in the background peptide translated from annotation file.
 
     Parameters
     ----------
-    background_peptide_list: List(OutputBackground) All the peptide translated from transcripts in annotation file
+    background_peptide_dict: dict with all all the peptide translated from transcripts in annotation file across genes
     peptide: str. peptide translated from certain exon-pairs
 
     Returns
     -------
     count: int. Count how many matches exist between background peptide and given peptide
     """
-    match_ts_list = []
-    for background_peptide in background_peptide_list:
-        ref_peptide = background_peptide.peptide
-        transcript_id = background_peptide.output_id
-        if not re.search(peptide, ref_peptide) is None:
-            match_ts_list.append(transcript_id)
-    return match_ts_list
-
+    count = len(re.findall(peptide, '_'.join(background_peptide_dict)))
+    return count
 
 
 

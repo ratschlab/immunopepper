@@ -211,7 +211,7 @@ def collect_vertex_triples(gene, vertex_pairs, k):
     return concat_vertex_pair_list
 
 
-def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_list=None, ref_mut_seq=None, idx=None,
+def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_dict=None, ref_mut_seq=None, idx=None,
                          exon_som_dict=None, countinfo=None, mutation=None,table=None,
                          size_factor=None, junction_list=None, output_silence=False, kmer=None, outbase=None):
     """
@@ -220,7 +220,7 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
     ----------
     gene: Object, returned by SplAdder.
     vertex_pairs: List of VertexPair
-    background_pep_list: List[str]. List of all the peptide translated from the given splicegraph and annotation.
+    background_pep_dict: dict() Dict of all the peptide translated from the full splicegraph and annotation.
     ref_mut_seq: Str, reference sequnce of specific chromosome
     idx: Namedtuple Idx, has attribute idx.gene and idx.sample
     exon_som_dict: Dict. (exon_id) |-> (mutation_postion)
@@ -272,7 +272,7 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
                 continue
 
             new_output_id = ':'.join([gene.name, '_'.join([str(v) for v in vertex_list]), str(variant_id), str(tran_start_pos)])
-            peptide_is_annotated_flag = len(peptide_is_annotated(background_pep_list, peptide.mut))
+            peptide_is_annotated_flag = peptide_is_annotated(background_pep_dict, peptide.mut)
             vertex_tuple_anno_flag = junction_tuple_is_annotated(junction_flag, vertex_list)
             junction_is_in_given_list_flag = junction_is_in_given_list(gene.splicegraph, vertex_list, gene.strand, junction_list)
 
