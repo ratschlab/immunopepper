@@ -175,7 +175,7 @@ def fp_with_pq_schema(path, file_columns, open_fp=False, compression=None):
         data = {col: repr(set({})) for col in file_columns}
         data = pd.DataFrame(data, index=[0])
         table = pa.Table.from_pandas(data,  preserve_index=False)
-        pqwriter = pq.ParquetWriter(path, table.schema, compression)
+        pqwriter = pq.ParquetWriter(path, table.schema, compression=compression)
         file_info = {'path':path,'filepointer':pqwriter, 'columns':file_columns}
     else:
         file_info = {'path': path,'filepointer': None, 'columns': file_columns}
@@ -186,7 +186,7 @@ def save_pd_toparquet(filepointer, path, pd_df, compression = None, verbose = Fa
     s1 = timeit.default_timer()
     table = pa.Table.from_pandas(pd_df, preserve_index=False)
     if filepointer is None:
-        pqwriter = pq.ParquetWriter(path, table.schema, compression)
+        pqwriter = pq.ParquetWriter(path, table.schema, compression=compression)
         pqwriter.write_table(table)
         pqwriter.close()
     else:

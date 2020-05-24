@@ -4,6 +4,7 @@ import argparse
 import logging
 import os
 import sys
+import cProfile
 
 from datetime import datetime
 
@@ -163,9 +164,15 @@ def split_mode(options):
     if mode == 'filter':
         mode_filter(arg)
 
+    return arg.output_dir
+
 def cmd_entry():
     options = sys.argv[1:]
-    split_mode(options)
+    pr = cProfile.Profile()
+    pr.enable()
+    out_dir = split_mode(options)
+    pr.disable()
+    pr.dump_stats(os.path.join(out_dir, 'cProfile.pstats'))
 
 if __name__ == "__main__":
     cmd_entry()

@@ -176,7 +176,6 @@ def process_result(gene_results, output_name, remove_annot=False, uniq_foregroun
     remove_annot: whether to remove the background
 
     '''
-    global cnt
     global sample
     global dict_kmer_foregr
     global set_kmer_back
@@ -185,8 +184,6 @@ def process_result(gene_results, output_name, remove_annot=False, uniq_foregroun
     global filepointer
     pool_genes = defaultdict(list, {})
     for gene_result in gene_results:
-        cnt += 1
-        logging.info('> Finished processing Gene {} ({}/{})'.format(gene_result['gene_name'], cnt, len(gene_id_list)))
         if gene_result['processed']:
             for result_type in output_name:
                 pool_genes[result_type].extend(gene_result[result_type])
@@ -259,7 +256,7 @@ def mode_build(arg):
     
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
-    #graph_data = graph_data[400:1000]
+    #graph_data = graph_data[400:1400]
     remove_annot = arg.remove_annot
     uniq_foreground = arg.uniq_foreground or remove_annot
     if uniq_foreground:
@@ -304,7 +301,6 @@ def mode_build(arg):
     logging.info(">>>>>>>>> Start traversing splicegraph")
 
     #if arg.parallel > 1:
-    global cnt
     global gene_name_expr_distr
     global expr_distr
     global gene_id_list
@@ -356,7 +352,6 @@ def mode_build(arg):
                                         background_peptide_file_path,
                                         junction_kmer_file_path, background_kmer_file_path, open_fp=False,
                                         compression=pq_compression)
-            cnt = 0
             logging.info('Parallel: {} Threads'.format(arg.parallel))
 
 
@@ -401,10 +396,8 @@ def mode_build(arg):
                                         compression=pq_compression)
             logging.info('Not Parallel')
             # Build the background
-            cnt = 0
             process_gene_batch_background(sample, graph_data, gene_id_list, mutation, countinfo, genetable, arg, output_path, remove_annot, uniq_foreground, pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
-            cnt = 0
             process_gene_batch_foreground( sample, graph_data, graph_info, gene_id_list, len(gene_id_list), mutation, junction_dict,
                              countinfo, genetable, arg, output_path, dict_pept_backgrd, remove_annot, uniq_foreground, pq_compression, verbose=True)
 
