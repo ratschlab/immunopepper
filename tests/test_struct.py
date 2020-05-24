@@ -1,6 +1,6 @@
 from immunopepper import immunopepper
 import os
-
+import cProfile
 import pathlib
 
 
@@ -30,11 +30,10 @@ def test_end_to_end_build(test_id, case, mutation_mode, tmpdir):
     immunopepper.split_mode(my_args)
 
 
-def test_end_to_end_build_mouse(tmpdir, mutation_mode):
+def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True):
     data_dir = os.path.join(os.path.dirname(__file__), 'mouse_usecase')
     out_dir = str(tmpdir)
     #sample_dir_build = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'diff','{}'.format(case),'test{}{}'.format(test_id,case))
-
     my_args_build = ['build',
                '--samples', 'ERR2130621',
                '--output-dir', out_dir,
@@ -45,7 +44,9 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode):
                '--germline', os.path.join(data_dir,'ImmunoPepper_usecase.vcf'),
                '--somatic', os.path.join(data_dir,'ImmunoPepper_usecase.maf'),
                 '--mutation-mode', mutation_mode,
-                '--kmer', '9' , '--parallel', '4']
+                '--kmer', '9' ]
+    if is_parallel:
+        my_args_build.extend(['--parallel', '4'])
 
     my_args = my_args_build
     immunopepper.split_mode(my_args)
@@ -54,7 +55,15 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode):
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
 mutation_mode ='somatic_and_germline'
-test_end_to_end_build_mouse(tmpdir, mutation_mode)
+pr = cProfile.Profile()
+pr.enable()
+test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True)
+pr.disable()
+pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
+
+
+
+
 
 ### Human Test
 # test_id ='1'

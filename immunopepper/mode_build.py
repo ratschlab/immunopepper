@@ -257,7 +257,7 @@ def mode_build(arg):
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
     #graph_data = graph_data[400:1400]
-    remove_annot = arg.remove_annot
+    remove_annot =  arg.remove_annot
     uniq_foreground = arg.uniq_foreground or remove_annot
     if uniq_foreground:
         logging.info('INFO: kmers and peptides will be kept in memory')
@@ -430,6 +430,9 @@ def mode_build(arg):
             del dict_kmer_foregr
 
         if remove_annot:
+            save_backgrd_pep_dict(dict_pept_backgrd , filepointer, pq_compression, outbase=None, verbose=True)
+            del dict_pept_backgrd
+
             save_backgrd_kmer_set(set_kmer_back, filepointer, pq_compression, outbase=None, verbose=True)
             del set_kmer_back
 
