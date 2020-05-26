@@ -57,7 +57,7 @@ tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer/h5pytest'
 mutation_mode ='somatic_and_germline'
 pr = cProfile.Profile()
 pr.enable()
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True)
+test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False)
 pr.disable()
 pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 
