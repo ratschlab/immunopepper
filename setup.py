@@ -4,6 +4,10 @@
 """The setup script."""
 
 from setuptools import setup, find_packages
+from Cython.Build import cythonize
+
+
+
 
 with open('README.md') as readme_file:
     readme = readme_file.read()
@@ -47,4 +51,5 @@ setup(
     url='https://github.com/ratschlab/immunopepper',
     version='1.1.0',
     zip_safe=False,
+    ext_modules = cythonize("cpython_functions.pyx")
 )

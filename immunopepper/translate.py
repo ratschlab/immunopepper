@@ -1,7 +1,9 @@
 """Countains code related to translation"""
 
+from cpython_functions import translate_dna_to_peptide
 import numpy as np
-import pyximport; pyximport.install()
+#TODO For developement
+#import pyximport; pyximport.install()
 
 from .namedtuples import Coord
 from .namedtuples import Flag
@@ -9,7 +11,6 @@ from .namedtuples import Peptide
 from .namedtuples import ReadingFrameTuple
 from .constant import NOT_EXIST
 from .utils import get_exon_expr,get_sub_mut_dna
-from .cpython_functions import translate_dna_to_peptide
 
 # def translate_dna_to_peptide(dna_str):
 #     """ Translate a DNA sequence encoding a peptide to amino-acid sequence via RNA.
