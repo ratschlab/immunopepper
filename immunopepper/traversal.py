@@ -1,7 +1,6 @@
 """Contains all the output computation based on gene splicegraph"""
 
 import logging
-import h5py
 import numpy as np
 
 from .constant import NOT_EXIST
@@ -212,7 +211,9 @@ def collect_vertex_triples(gene, vertex_pairs, k):
 
 
 def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_dict=None, ref_mut_seq=None, idx=None,
-                         exon_som_dict=None, countinfo=None, mutation=None,table=None,
+                         exon_som_dict=None, countinfo=None,
+                         edge_idxs=None, edge_counts=None, seg_counts=None,
+                         mutation=None,table=None,
                          size_factor=None, junction_list=None, output_silence=False, kmer=None, outbase=None):
     """
 
@@ -242,14 +243,6 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
     som_exp_dict = get_som_expr_dict(gene, list(mutation.somatic_mutation_dict.keys()), countinfo, idx)
 
     ### collect the relevant count infor for the current gene
-    if countinfo:
-        gidx = countinfo.gene_idx_dict[gene.name]
-        edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
-        with h5py.File(countinfo.h5fname, 'r') as h5f:
-            edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
-            edge_counts = h5f['edges'][edge_gene_idxs, idx.sample] 
-            seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
-            seg_counts = h5f['segments'][seg_gene_idxs, idx.sample] 
 
     output_metadata_list = []
     output_kmer_lists = []
@@ -325,7 +318,7 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
     return output_metadata_list, output_kmer_lists
 
 
-def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, countinfo, Idx, kmer):
+def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, countinfo, seg_counts, Idx, kmer):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
     Parameters
@@ -343,6 +336,7 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, cou
     background_peptide_list: List[str]. List of all the peptide translated from the given
        splicegraph and annotation.
     """
+
     gene_to_transcript_table, transcript_cds_table = gene_table.gene_to_ts, gene_table.ts_to_cds
     background_peptide_list = []
     output_kmer_lists = []
@@ -351,7 +345,7 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, cou
         # No CDS entries for transcript in annotation file...
         if ts not in transcript_cds_table:
             continue
-        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_mut_seq['background'], transcript_cds_table[ts], countinfo, Idx, mode='back')
+        cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_mut_seq['background'], transcript_cds_table[ts], countinfo, seg_counts, Idx, mode='back')
         peptide = OutputBackground(output_id=ts, peptide=cds_peptide)
         background_peptide_list.append(peptide)
         if kmer > 0:

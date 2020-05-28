@@ -62,7 +62,7 @@ def translate_dna_to_peptide(dna_str):
     return ''.join(aa_str), has_stop_codon
 
 
-def get_full_peptide(gene, seq, cds_list, countinfo, Idx, mode):
+def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts, Idx, mode):
     """ 
     Output translated peptide and segment expression list given cds_list
 
@@ -72,6 +72,7 @@ def get_full_peptide(gene, seq, cds_list, countinfo, Idx, mode):
     seq: str. Gene sequence.
     cds_list: List[Tuple(v_start,v_stop,reading_frame)]
     countinfo: Namedtuple, SplAdder count information
+    seg_counts: np.array, array of spladder segment counts from gene and sample of interest
     Idx: Namedtuple Idx, has attribute idx.gene and idx.sample
     mode: [temporal argument]. Due to the different meaning of cds_tuple in gene.splicegraph.reading_frame
         and that in gene_to_cds dict (the formal v_start and v_stop has already considered reading_frame and
@@ -102,7 +103,7 @@ def get_full_peptide(gene, seq, cds_list, countinfo, Idx, mode):
             else:
                 coord_right -= frameshift
             first_cds = False
-        cds_expr = get_exon_expr(gene, coord_left, coord_right, countinfo, Idx)
+        cds_expr = get_exon_expr(gene, coord_left, coord_right, countinfo, Idx, seg_counts)
         cds_expr_list.extend(cds_expr)
         nuc_seq = seq[coord_left - gene_start:coord_right - gene_start]
 

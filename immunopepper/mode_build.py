@@ -2,6 +2,7 @@
 """"""
 # Core operation of ImmunoPepper. Traverse splicegraph and get kmer/peptide output
 from collections import defaultdict
+import h5py
 import logging
 import multiprocessing as mp
 import numpy as np
@@ -80,11 +81,19 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
         sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
         ref_mut_seq = collect_background_transcripts(gene=gene, ref_seq_file=arg.ref_path, chrm=chrm, mutation=sub_mutation)
 
+        # Gene counts information
+        if countinfo:
+            gidx = countinfo.gene_idx_dict[gene.name]
+            count_segments = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
+            with h5py.File(countinfo.h5fname, 'r') as h5f:
+                seg_counts = h5f['segments'][count_segments, idx.sample]
+
         R['background_peptide_list'], \
         R['background_kmer_lists'] = get_and_write_background_peptide_and_kmer(gene=gene,
                                                                                ref_mut_seq=ref_mut_seq,
                                                                                gene_table=genetable,
-                                                                               countinfo=countinfo, 
+                                                                               countinfo=countinfo,
+                                                                               seg_counts=seg_counts,
                                                                                Idx=idx,
                                                                                kmer=arg.kmer)
 
@@ -117,8 +126,21 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
             continue
         R['processed'] = True
 
+
         idx = get_idx(countinfo, sample, gene_idxs[i])
-        R['total_expr'] = get_total_gene_expr(gene, countinfo, idx)
+
+        # Gene counts information
+        if countinfo:
+            gidx = countinfo.gene_idx_dict[gene.name]
+            edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
+            with h5py.File(countinfo.h5fname, 'r') as h5f:
+                edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
+                edge_counts = h5f['edges'][edge_gene_idxs, idx.sample]
+                seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
+                                          countinfo.gene_id_to_segrange[gidx][1])
+                seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
+
+        R['total_expr'] = get_total_gene_expr(gene, countinfo, idx, seg_counts)
         R['gene_idx'] = gene_idxs[i]
 
         chrm = gene.chr.strip()
@@ -139,6 +161,7 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                                              kmer=arg.kmer,
                                              filter_redundant=arg.filter_redundant)
 
+
         R['output_metadata_list'], \
         R['output_kmer_lists'] = get_and_write_peptide_and_kmer(gene=gene,
                                                                 vertex_pairs=vertex_pairs,
@@ -153,7 +176,11 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                                                                 junction_list=junction_list,
                                                                 kmer=arg.kmer,
                                                                 output_silence=arg.output_silence,
-                                                                outbase=outbase)
+                                                                outbase=outbase,
+                                                                edge_idxs=edge_idxs,
+                                                                edge_counts=edge_counts,
+                                                                seg_counts=seg_counts
+                                                                )
         # Gene expression and sample library size
         gene_name_expr_distr.append((R['gene_name'], R['total_expr']))
         expr_distr.append(R['total_expr'])
