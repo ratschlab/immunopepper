@@ -101,7 +101,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
         R['memory'] = print_memory_diags(disable_print=True)
         R['outbase'] = outbase
         results.append(R)
-    process_result(results, ['background_peptide_list', 'background_kmer_lists'], remove_annot, uniq_foreground, compression, verbose)
+    process_result(results, ['background_peptide_list', 'background_kmer_lists'], outbase, remove_annot, uniq_foreground, compression, verbose)
     return dict_pept_backgrd, set_kmer_back  #Does not update the dictionaries and list globally because of the subprocess
 
 
@@ -190,11 +190,11 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
         R['outbase'] = outbase
         results.append(R)
 
-    process_result(results, ['output_metadata_list', 'output_kmer_lists'], remove_annot, uniq_foreground, compression, verbose)
+    process_result(results, ['output_metadata_list', 'output_kmer_lists'], outbase, remove_annot, uniq_foreground, compression, verbose)
     return gene_name_expr_distr, expr_distr,  dict_pept_forgrd, dict_kmer_foregr #Does not update the dictionaries and list globally because of the subprocess
 
 
-def process_result(gene_results, output_name, remove_annot=False, uniq_foreground=False, compression=None, verbose=True):
+def process_result(gene_results, output_name, outbase, remove_annot=False, uniq_foreground=False, compression=None, verbose=True):
     '''
     Parameters
     -----------
@@ -210,19 +210,26 @@ def process_result(gene_results, output_name, remove_annot=False, uniq_foregroun
     global dict_pept_backgrd
     global filepointer
     pool_genes = defaultdict(list, {})
+    time_per_gene = []
+    mem_per_gene = []
+    gene_idxs = []
     for gene_result in gene_results:
         if gene_result['processed']:
             for result_type in output_name:
                 pool_genes[result_type].extend(gene_result[result_type])
-
+                time_per_gene.append(gene_result['time'])
+                mem_per_gene.append(gene_result['memory'])
+                gene_idxs.append(gene_result['gene_idx'])
     s1 = timeit.default_timer()
     write_gene_result(pool_genes, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, set_kmer_back,
-                      filepointer, remove_annot, uniq_foreground, compression, gene_result['outbase'], verbose)
+                      filepointer, remove_annot, uniq_foreground, compression, outbase, verbose)
 
-    logging.info("> {}: {}/{} processed, time cost: {}, memory cost:{} GB ; writing results took {} seconds ".format(sample, gene_result['gene_idx'] + 1,
+    if gene_idxs:
+        logging.info("> {}: {}/{} processed, mean time cost: {}, memory cost:{} GB for per gene; writing results took {} seconds ".format(sample, gene_idxs[-1]  + 1,
                                                                                   len(gene_id_list),
-                                                                                  gene_result['time'],
-                                                                                  gene_result['memory'], timeit.default_timer() - s1))
+                                                                                  np.mean(time_per_gene),
+                                                                                  np.mean(mem_per_gene), 
+                                                                                  timeit.default_timer() - s1))
     del gene_results
 
 
@@ -283,7 +290,7 @@ def mode_build(arg):
     
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
-    #graph_data = graph_data[400:1400]
+    #graph_data = graph_data[400:5400]
     remove_annot =  arg.remove_annot
     uniq_foreground = arg.uniq_foreground or remove_annot
     if uniq_foreground:
@@ -295,7 +302,7 @@ def mode_build(arg):
         num = len(graph_data)
     else:
         num = arg.process_num
-
+    
     # load graph metadata
     start_time = timeit.default_timer()
     if arg.count_path is not None:
@@ -309,6 +316,7 @@ def mode_build(arg):
     else:
         countinfo = None
         size_factor = None
+   
 
     # read the intron of interest file gtex_junctions.hdf5
     junction_dict = parse_junction_meta_info(arg.gtex_junction_path)
