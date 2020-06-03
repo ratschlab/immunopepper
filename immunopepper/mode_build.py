@@ -382,6 +382,7 @@ def mode_build(arg):
 
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
+
         if arg.parallel > 1:
             filepointer = initialize_fp(junction_peptide_file_path, junction_meta_file_path,
                                         background_peptide_file_path,
@@ -427,7 +428,7 @@ def mode_build(arg):
         else:
             filepointer = initialize_fp(junction_peptide_file_path, junction_meta_file_path,
                                         background_peptide_file_path,
-                                        junction_kmer_file_path, background_kmer_file_path, open_fp=True,
+                                        junction_kmer_file_path, background_kmer_file_path, open_fp=False,
                                         compression=pq_compression)
             logging.info('Not Parallel')
             # Build the background
@@ -471,12 +472,12 @@ def mode_build(arg):
             save_backgrd_kmer_set(set_kmer_back, filepointer, pq_compression, outbase=None, verbose=True)
             del set_kmer_back
 
-        if not arg.parallel:
-            filepointer.junction_peptide_fp['filepointer'].close()
-            filepointer.junction_meta_fp['filepointer'].close()
-            filepointer.background_peptide_fp['filepointer'].close()
-            filepointer.junction_kmer_fp['filepointer'].close()
-            filepointer.background_kmer_fp['filepointer'].close()
+        # if arg.parallel > 1:
+        #     filepointer.junction_peptide_fp['filepointer'].close()
+        #     filepointer.junction_meta_fp['filepointer'].close()
+        #     filepointer.background_peptide_fp['filepointer'].close()
+        #     filepointer.junction_kmer_fp['filepointer'].close()
+        #     filepointer.background_kmer_fp['filepointer'].close()
 
     if uniq_foreground:
         uniq_apply = "Foreground kmers/peptides are made unique across genes and the metadata is aggregated per kmer/peptide"

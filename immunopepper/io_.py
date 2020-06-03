@@ -202,7 +202,7 @@ def save_pd_toparquet(filepointer, path, pd_df, compression = None, verbose = Fa
 def collect_results(filepointer_item, outbase, compression):
     s1 = timeit.default_timer()
     file_name = os.path.basename(filepointer_item['path'])
-    tmp_file_list = glob.glob(os.path.join(outbase,'tmp_out_*',file_name))
+    tmp_file_list = glob.glob(os.path.join(outbase, 'tmp_out_*', file_name))
     tot_shape = 0
     for tmp_file in tmp_file_list:
         table = pq.read_table(tmp_file)
@@ -210,6 +210,7 @@ def collect_results(filepointer_item, outbase, compression):
             pqwriter = pq.ParquetWriter(filepointer_item['path'], table.schema, compression=compression)
         pqwriter.write_table(table)
         tot_shape += table.shape[0]
+    pqwriter.close()
     if tmp_file_list:
         logging.info('Collecting {} with {} lines. Took {} seconds'.format(file_name, tot_shape, timeit.default_timer()-s1))
 
