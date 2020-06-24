@@ -128,7 +128,7 @@ def save_backgrd_pep_dict(dict_, filepointer, compression = None, outbase=None, 
     if dict_:
         fasta = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
         fasta['output_id'] = fasta['output_id'].apply(lambda x: '>' + '/'.join(x))
-        fasta = pd.concat([fasta['output_id'], fasta['index']]).sort_index().reset_index(drop = True)
+        fasta = pd.concat([fasta['output_id'], fasta['index']]).sort_index(kind="mergesort").reset_index(drop = True)
         fasta = pd.DataFrame(fasta, columns=['fasta'])
         save_pd_toparquet(fp, path, fasta, compression, verbose)
 
@@ -138,7 +138,7 @@ def save_forgrd_pep_dict(dict_, filepointer, compression=None, outbase=None, ver
     if dict_:
         df = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
         df['output_id'] = df['output_id'].apply(lambda x: '>' + '/'.join(x))
-        fasta = pd.concat([df['output_id'], df['index']]).sort_index().reset_index(drop = True)
+        fasta = pd.concat([df['output_id'], df['index']]).sort_index(kind="mergesort").reset_index(drop = True)
         fasta = pd.DataFrame(fasta, columns=['fasta'])
         save_pd_toparquet(fp_fa, path_fa, fasta, compression, verbose)
         del fasta
