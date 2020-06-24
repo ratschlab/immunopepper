@@ -391,7 +391,7 @@ def mode_build(arg):
             logging.info('Parallel: {} Threads'.format(arg.parallel))
 
 
-            batch_size = 10
+            batch_size = min(num, arg.batch-size)
             verbose_save = False
             # Build the background
             logging.info(">>>>>>>>> Start Background processing")
