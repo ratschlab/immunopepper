@@ -210,8 +210,8 @@ def collect_results(filepointer_item, outbase, compression):
             pqwriter = pq.ParquetWriter(filepointer_item['path'], table.schema, compression=compression)
         pqwriter.write_table(table)
         tot_shape += table.shape[0]
-    pqwriter.close()
     if tmp_file_list:
+        pqwriter.close()
         logging.info('Collecting {} with {} lines. Took {} seconds'.format(file_name, tot_shape, timeit.default_timer()-s1))
 
 
