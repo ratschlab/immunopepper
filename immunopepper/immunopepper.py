@@ -58,7 +58,7 @@ def parse_arguments(argv):
     experimental.add_argument("--output-silence",help=argparse.SUPPRESS, action="store_true",default=False)
     # if count expression data is provided in h5 format, specify the code for heterzygous
     experimental.add_argument("--heter-code", type=int, help=argparse.SUPPRESS, default=0)
-    experimental.add_argument("--batch-size", type=int, help="batch size for parallel processing", default=1000)
+    experimental.add_argument("--batch_size", type=int, help="batch size for parallel processing", default=1000)
         
     parser_makebg = subparsers.add_parser('make_bg', help='integrate multiple kmer files and generate the single background kmer file')
     required = parser_makebg.add_argument_group('MANDATORY')

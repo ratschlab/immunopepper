@@ -65,9 +65,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
 
         # Genes not contained in the annotation...
         if gene.name not in genetable.gene_to_cds_begin or \
-           gene.name not in genetable.gene_to_ts or \
-           countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_edgerange or \
-           countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_segrange:
+                gene.name not in genetable.gene_to_ts:
             #logger.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
             R['processed'] = False
             results.append(R)
@@ -391,7 +389,7 @@ def mode_build(arg):
             logging.info('Parallel: {} Threads'.format(arg.parallel))
 
 
-            batch_size = min(num, arg.batch-size)
+            batch_size = min(num, arg.batch_size)
             verbose_save = False
             # Build the background
             logging.info(">>>>>>>>> Start Background processing")
