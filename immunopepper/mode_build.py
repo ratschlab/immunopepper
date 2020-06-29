@@ -384,7 +384,7 @@ def mode_build(arg):
         if arg.parallel > 1:
             filepointer = initialize_fp(junction_peptide_file_path, junction_meta_file_path,
                                         background_peptide_file_path,
-                                        junction_kmer_file_path, background_kmer_file_path, open_fp=False,
+                                        junction_kmer_file_path, background_kmer_file_path,
                                         compression=pq_compression)
             logging.info('Parallel: {} Threads'.format(arg.parallel))
 
@@ -426,7 +426,7 @@ def mode_build(arg):
         else:
             filepointer = initialize_fp(junction_peptide_file_path, junction_meta_file_path,
                                         background_peptide_file_path,
-                                        junction_kmer_file_path, background_kmer_file_path, open_fp=False,
+                                        junction_kmer_file_path, background_kmer_file_path,
                                         compression=pq_compression)
             logging.info('Not Parallel')
             # Build the background
@@ -435,20 +435,6 @@ def mode_build(arg):
             process_gene_batch_foreground( sample, graph_data, graph_info, gene_id_list, len(gene_id_list), mutation, junction_dict,
                              countinfo, genetable, arg, output_path, dict_pept_backgrd, remove_annot, uniq_foreground, pq_compression, verbose=True)
 
-        # TODO Update the metric collection
-        # if memory_list and time_list:
-        #     max_memory,max_time = max(memory_list),max(time_list)
-        #     max_memory_id,max_time_id = np.argmax(memory_list),np.argmax(time_list)
-        #     if num-error_gene_num > 0:
-        #         mean_memory, mean_time = sum(memory_list)/(num-error_gene_num),sum(time_list)/(num-error_gene_num)
-        #     else:
-        #         mean_memory, mean_time = 0,0
-        #     logging.info(">>>> Finish sample {}. Errors existed in {}/{} genes. Might Need further check. "
-        #                  "Max memory :{} GB, Max time :{} seconds, Max memory gene ID:{}, Max time gene ID:{}, "
-        #                  "Average memory cost:{} GB, Average time cost:{} seconds".format(sample,error_gene_num,num,max_memory,max_time,max_memory_id,max_time_id,
-        #                                                                        mean_memory,mean_time))
-        # else:
-        #     logging.info(">>>> No gene is processed during this run or Parallel")
 
         expr_distr_dict[sample] = expr_distr
         write_gene_expr(gene_expr_fp,gene_name_expr_distr)
@@ -470,12 +456,6 @@ def mode_build(arg):
             save_backgrd_kmer_set(set_kmer_back, filepointer, pq_compression, outbase=None, verbose=True)
             del set_kmer_back
 
-        # if arg.parallel > 1:
-        #     filepointer.junction_peptide_fp['filepointer'].close()
-        #     filepointer.junction_meta_fp['filepointer'].close()
-        #     filepointer.background_peptide_fp['filepointer'].close()
-        #     filepointer.junction_kmer_fp['filepointer'].close()
-        #     filepointer.background_kmer_fp['filepointer'].close()
 
     if uniq_foreground:
         uniq_apply = "Foreground kmers/peptides are made unique across genes and the metadata is aggregated per kmer/peptide"

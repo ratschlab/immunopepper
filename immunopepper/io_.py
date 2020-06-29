@@ -97,59 +97,57 @@ def decodeUTF8(s):
     return s.decode('utf-8')
 
 
-def switch_tmp_path(filepointer_item, outbase=None):
+def switch_tmp_path(file_info, outbase=None):
+    '''switches between temporary output folder in parallel mode and main output folder'''
     if outbase:
-        fp = None
-        path = os.path.join(outbase, os.path.basename(filepointer_item['path']))
+        path = os.path.join(outbase, os.path.basename(file_info['path']))
     else:
-        fp = filepointer_item['filepointer']
         path = filepointer_item['path']
-    return fp, path
-
+    return path
 
 
 def save_backgrd_kmer_set(set_, filepointer, compression=None, outbase=None, verbose=False):
-    fp, path = switch_tmp_path(filepointer.background_kmer_fp, outbase)
+    path = switch_tmp_path(filepointer.background_kmer_fp, outbase)
     if set_:
         df = pd.DataFrame(set_, columns=['kmer'])
-        save_pd_toparquet(fp, path, df, compression, verbose)
+        save_pd_toparquet(path, df, compression, verbose)
 
 def save_forgrd_kmer_dict(dict_, filepointer, compression=None, outbase=None, verbose=False):
-    fp, path = switch_tmp_path(filepointer.junction_kmer_fp, outbase)
+    path = switch_tmp_path(filepointer.junction_kmer_fp, outbase)
     if dict_:
         df = pd.DataFrame(dict_.values(), index=dict_.keys())
         df = df.applymap(_convert_list_to_str)
         df = df.rename_axis('kmer').reset_index()
         df = df.loc[:, filepointer.junction_kmer_fp['columns']]
-        save_pd_toparquet(fp, path, df, compression, verbose)
+        save_pd_toparquet(path, df, compression, verbose)
 
 def save_backgrd_pep_dict(dict_, filepointer, compression = None, outbase=None, verbose=False):
-    fp, path = switch_tmp_path(filepointer.background_peptide_fp, outbase)
+    path = switch_tmp_path(filepointer.background_peptide_fp, outbase)
     if dict_:
         fasta = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
         fasta['output_id'] = fasta['output_id'].apply(lambda x: '>' + '/'.join(x))
         fasta = pd.concat([fasta['output_id'], fasta['index']]).sort_index(kind="mergesort").reset_index(drop = True)
         fasta = pd.DataFrame(fasta, columns=['fasta'])
-        save_pd_toparquet(fp, path, fasta, compression, verbose)
+        save_pd_toparquet(path, fasta, compression, verbose)
 
 def save_forgrd_pep_dict(dict_, filepointer, compression=None, outbase=None, verbose=False):
-    fp_fa, path_fa = switch_tmp_path(filepointer.junction_peptide_fp, outbase)
-    fp_meta, path_meta = switch_tmp_path(filepointer.junction_meta_fp, outbase)
+    path_fa = switch_tmp_path(filepointer.junction_peptide_fp, outbase)
+    path_meta = switch_tmp_path(filepointer.junction_meta_fp, outbase)
     if dict_:
         df = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
         df['output_id'] = df['output_id'].apply(lambda x: '>' + '/'.join(x))
         fasta = pd.concat([df['output_id'], df['index']]).sort_index(kind="mergesort").reset_index(drop = True)
         fasta = pd.DataFrame(fasta, columns=['fasta'])
-        save_pd_toparquet(fp_fa, path_fa, fasta, compression, verbose)
+        save_pd_toparquet(path_fa, fasta, compression, verbose)
         del fasta
         df = df.drop(['output_id', 'index'], axis=1)
         df = df.loc[:, filepointer.junction_meta_fp['columns']]
         df = df.applymap(_convert_list_to_str)
-        save_pd_toparquet(fp_meta, path_meta, df, compression, verbose)
+        save_pd_toparquet(path_meta, df, compression, verbose)
 
 
 def initialize_fp(junction_peptide_file_path, junction_meta_file_path, background_peptide_file_path,
-                    junction_kmer_file_path, background_kmer_file_path, open_fp=False, compression=None):
+                    junction_kmer_file_path, background_kmer_file_path, compression=None):
 
     fields_forgrd_pep_dict = ['fasta']
     fields_meta_peptide_dict = ['id','read_frame','gene_name','gene_chr','gene_strand','mutation_mode',
@@ -157,41 +155,30 @@ def initialize_fp(junction_peptide_file_path, junction_meta_file_path, backgroun
                                 'is_isolated','variant_comb','variant_seg_expr','modified_exons_coord',
                                 'original_exons_coord','vertex_idx','junction_expr','segment_expr']
     fields_backgrd_pep_dict = ['fasta']
-    fields_forgrd_kmer_dict = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count'] ## Needs to be in memory, Unless no filtering
+    fields_forgrd_kmer_dict = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count']
     fields_backgrd_kmer_dict = ['kmer']
 
 
-    peptide_fp = fp_with_pq_schema(junction_peptide_file_path, fields_forgrd_pep_dict, open_fp, compression)
-    meta_peptide_fp = fp_with_pq_schema(junction_meta_file_path, fields_meta_peptide_dict, open_fp, compression)
-    background_fp = fp_with_pq_schema(background_peptide_file_path, fields_backgrd_pep_dict, open_fp, compression)
-    junction_kmer_fp = fp_with_pq_schema(junction_kmer_file_path,fields_forgrd_kmer_dict, open_fp,compression )
-    background_kmer_fp = fp_with_pq_schema(background_kmer_file_path, fields_backgrd_kmer_dict, open_fp,compression)
+    peptide_fp = output_info(junction_peptide_file_path, fields_forgrd_pep_dict, compression)
+    meta_peptide_fp = output_info(junction_meta_file_path, fields_meta_peptide_dict, compression)
+    background_fp = output_info(background_peptide_file_path, fields_backgrd_pep_dict, compression)
+    junction_kmer_fp = output_info(junction_kmer_file_path,fields_forgrd_kmer_dict, compression )
+    background_kmer_fp = output_info(background_kmer_file_path, fields_backgrd_kmer_dict, compression)
     filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp, junction_kmer_fp, background_kmer_fp)
     return filepointer
 
 
-def fp_with_pq_schema(path, file_columns, open_fp=False, compression=None):
-    if open_fp:
-        data = {col: repr(set({})) for col in file_columns}
-        data = pd.DataFrame(data, index=[0])
-        table = pa.Table.from_pandas(data,  preserve_index=False)
-        pqwriter = pq.ParquetWriter(path, table.schema, compression=compression)
-        file_info = {'path':path,'filepointer':pqwriter, 'columns':file_columns}
-    else:
-        file_info = {'path': path,'filepointer': None, 'columns': file_columns}
+def output_info(path, file_columns, compression=None):
+    file_info = {'path': path, 'columns': file_columns}
     return file_info
 
 
-def save_pd_toparquet(filepointer, path, pd_df, compression = None, verbose = False):
+def save_pd_toparquet(path, pd_df, compression = None, verbose = False):
     s1 = timeit.default_timer()
     table = pa.Table.from_pandas(pd_df, preserve_index=False)
-    if filepointer is None:
-        pqwriter = pq.ParquetWriter(path, table.schema, compression=compression)
-        pqwriter.write_table(table)
-        pqwriter.close()
-    else:
-        pqwriter = filepointer
-        pqwriter.write_table(table)
+    pqwriter = pq.ParquetWriter(path, table.schema, compression=compression)
+    pqwriter.write_table(table)
+    pqwriter.close()
     if verbose:
         file_name = os.path.basename(path)
         tot_shape = pd_df.shape[0]
