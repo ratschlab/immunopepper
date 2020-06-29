@@ -1,6 +1,6 @@
 """Countains code related to translation"""
 
-from cpython_functions import translate_dna_to_peptide
+from immunopepper.cpython_functions import translate_dna_to_peptide
 import numpy as np
 #TODO For developement
 #import pyximport; pyximport.install()

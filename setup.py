@@ -51,5 +51,5 @@ setup(
     url='https://github.com/ratschlab/immunopepper',
     version='1.1.0',
     zip_safe=False,
-    ext_modules = cythonize("cpython_functions.pyx")
+    ext_modules = cythonize("./immunopepper/cpython_functions.pyx")
 )
