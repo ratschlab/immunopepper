@@ -14,6 +14,7 @@ import sys
 import timeit
 
 # immuno module
+from .constant import NOT_EXIST
 from .filter import add_set_kmer_back
 from .filter import add_dict_kmer_forgrd
 from .filter import add_dict_peptide
@@ -115,9 +116,8 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
 
         # Genes not contained in the annotation...
         if gene.name not in genetable.gene_to_cds_begin or \
-           gene.name not in genetable.gene_to_ts or \
-           countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_edgerange or \
-           countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_segrange:
+           gene.name not in genetable.gene_to_ts:
+
             #logger.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
             R['processed'] = False
             results.append(R)
@@ -130,10 +130,17 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
         # Gene counts information
         if countinfo:
             gidx = countinfo.gene_idx_dict[gene.name]
-            edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
+
             with h5py.File(countinfo.h5fname, 'r') as h5f:
-                edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
-                edge_counts = h5f['edges'][edge_gene_idxs, idx.sample]
+                if countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_edgerange or \
+                        countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_segrange:
+                    edge_idxs = None
+                    edge_counts = None
+
+                else:
+                    edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
+                    edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
+                    edge_counts = h5f['edges'][edge_gene_idxs, idx.sample]
                 seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
                                           countinfo.gene_id_to_segrange[gidx][1])
                 seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]

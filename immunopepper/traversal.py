@@ -279,9 +279,15 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
                 segment_expr, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts)
             else:
                 segment_expr, expr_list = NOT_EXIST, None
-            if countinfo and not flag.is_isolated: ## Will flag is isolated overlap with edge_counts is None?
+            if countinfo and not flag.is_isolated and edge_counts is not None: ## Will flag is isolated overlap with edge_counts is None?
                 edge_expr = search_edge_metadata_segmentgraph(gene, modi_coord, countinfo, idx, edge_idxs, edge_counts)
             else:
+                no_edges = edge_counts is None
+                is_isolated = flag.is_isolated
+                if no_edges == is_isolated:
+                    logging.info('{} gene is isolated and no edges - shared '.format(gene.name))
+                else:
+                    logging.info('{} gene discrepancy isolated and no edges'.format(gene.name))
                 edge_expr = NOT_EXIST
 
             output_metadata_list.append( OutputMetadata(peptide=peptide.mut, id=new_output_id,

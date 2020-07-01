@@ -253,7 +253,7 @@ def search_edge_metadata_segmentgraph(gene, coord, countinfo, Idx, edge_idxs=Non
     -------
     count: tuple of float. Expression level for the given edges.
     """
-    def get_segmentgraph_edge_expr(sorted_pos, h5f, edge_idxs, edge_counts=None):
+    def get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts=None):
         a = np.searchsorted(segmentgraph.segments[1, :], sorted_pos[1])
         b = np.searchsorted(segmentgraph.segments[0, :], sorted_pos[2])
         if a < b:
@@ -261,33 +261,18 @@ def search_edge_metadata_segmentgraph(gene, coord, countinfo, Idx, edge_idxs=Non
         else:
             idx = np.ravel_multi_index([b, a], segmentgraph.seg_edges.shape)
         cidx = np.searchsorted(edge_idxs, idx)
-        # if edge_counts is None:
-        #     return h5f['edges'][edge_gene_idxs[cidx], Idx.sample] # SHOULD BE REMOVED BECAUSE IS NEVER NONE
-        # else:
         return edge_counts[cidx]
 
     segmentgraph = gene.segmentgraph
     sorted_pos = np.sort(np.array([coord.start_v1, coord.stop_v1, coord.start_v2, coord.stop_v2]))
 
-    h5f = None
-    if edge_counts is None:
-        h5f = h5py.File(countinfo.h5fname, 'r')
-
-    # if edge_idxs is None or edge_counts is None: # SHOULD SUPPRESS THIS CASE
-    #     edge_gene_idxs = np.where(countinfo.gene_ids_edges == countinfo.gene_idx_dict[gene.name])[0] #countinfo.gene_id_to_edgerange[countinfo.gene_idx_dict[gene.name]]
-    #     edge_idxs = h5f['edge_idx'][edge_gene_idxs].astype('int')
-    #     count = get_segmentgraph_edge_expr(sorted_pos, h5f, edge_idxs)
-    # else:
-    count = get_segmentgraph_edge_expr(sorted_pos, h5f, edge_idxs, edge_counts)
+    count = get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts)
 
     if coord.start_v3 is None:
         return (count,)
     else:
         sorted_pos = np.sort(np.array([coord.start_v2, coord.stop_v2, coord.start_v3, coord.stop_v3]))
-        # if edge_idxs is None or edge_counts is None:
-        #     count2 = get_segmentgraph_edge_expr(sorted_pos, h5f, edge_idxs) # SHOULD SUPPRESS THIS CASE
-        # else:
-        count2 = get_segmentgraph_edge_expr(sorted_pos, h5f, edge_idxs, edge_counts)
+        count2 = get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts)
         return (count, count2)
 
 
