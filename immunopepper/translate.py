@@ -1,9 +1,10 @@
 """Countains code related to translation"""
 
-from immunopepper.cpython_functions import translate_dna_to_peptide
 import numpy as np
 #TODO For developement
-#import pyximport; pyximport.install()
+import pyximport; pyximport.install()
+
+from immunopepper.cpython_functions import translate_dna_to_peptide
 
 from .namedtuples import Coord
 from .namedtuples import Flag

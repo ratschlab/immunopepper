@@ -279,7 +279,7 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
                 segment_expr, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts)
             else:
                 segment_expr, expr_list = NOT_EXIST, None
-            if countinfo and not flag.is_isolated:
+            if countinfo and not flag.is_isolated: ## Will flag is isolated overlap with edge_counts is None?
                 edge_expr = search_edge_metadata_segmentgraph(gene, modi_coord, countinfo, idx, edge_idxs, edge_counts)
             else:
                 edge_expr = NOT_EXIST
