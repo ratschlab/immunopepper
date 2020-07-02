@@ -292,3 +292,23 @@ def get_peptide_result(simple_meta_data, strand, variant_comb, somatic_mutation_
     return peptide,flag
 
 
+def get_exhaustive_reading_frames(splicegraph, gene_strand, vertex_order):
+
+    # get the reading_frames
+    reading_frames = {}
+    for idx in vertex_order:
+        reading_frames[idx] = set()
+        v_start = splicegraph.vertices[0, idx]
+        v_stop = splicegraph.vertices[1, idx]
+
+
+        # Initialize reading regions from the CDS transcript annotations
+        for cds_phase in [0, 1, 2]:
+            if gene_strand== "-":
+                cds_right_modi = max(v_stop - cds_phase, v_start)
+                cds_left_modi = v_start
+            else: #gene_strand == "+":
+                cds_left_modi = min(v_start + cds_phase, v_stop)
+                cds_right_modi = v_stop
+            reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, cds_phase))
+    return reading_frames

@@ -20,6 +20,7 @@ from .namedtuples import OutputKmer
 from .namedtuples import OutputMetadata
 from .namedtuples import VertexPair
 from .preprocess import search_edge_metadata_segmentgraph
+from .translate import get_exhaustive_reading_frames
 from .translate import get_full_peptide
 from .translate import isolated_peptide_result
 from .translate import get_peptide_result
@@ -57,7 +58,7 @@ def collect_background_transcripts(gene=None, ref_seq_file=None, chrm=None, muta
 
 
 
-def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None, idx=None, mutation=None, disable_concat=False, kmer=None, filter_redundant=False):
+def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None, idx=None, mutation=None, all_ORFs=False, disable_concat=False, kmer=None, filter_redundant=False):
     """Calculte the output peptide for every exon-pairs in the splicegraph
 
        Parameters
@@ -101,7 +102,10 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
         exon_som_dict = get_exon_som_dict(gene, mutation.somatic_mutation_dict)
 
     vertex_pair_list = []
-    reading_frame_dict = dict(gene_info.reading_frames)
+    if all_ORFs:
+        reading_frame_dict = dict(get_exhaustive_reading_frames(sg, gene.strand, gene_info.vertex_order))
+    else: # use reading frames from annotation
+        reading_frame_dict = dict(gene_info.reading_frames)
 
     for v_id in gene_info.vertex_order:
         n_read_frames = len(reading_frame_dict[v_id])

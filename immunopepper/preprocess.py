@@ -18,7 +18,7 @@ from .utils import find_overlapping_cds_simple
 from .utils import get_successor_list
 from .utils import leq_strand
 
-def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, verbose=False):
+def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_ORFs=False):
 
     gene_info = []
     for gene in genes:
@@ -40,41 +40,42 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, verbose=False)
         # get the reading_frames
         reading_frames = {}
         vertex_len_dict = {}
-        for idx in vertex_order:
-            reading_frames[idx] = set()
-            v_start = gene.splicegraph.vertices[0, idx]
-            v_stop = gene.splicegraph.vertices[1, idx]
-            cds_begins = find_overlapping_cds_simple(v_start, v_stop, gene_cds_begin_dict[gene.name], gene.strand)
-            vertex_len_dict[idx] = v_stop - v_start
+        if not all_ORFs:
+            for idx in vertex_order:
+                reading_frames[idx] = set()
+                v_start = gene.splicegraph.vertices[0, idx]
+                v_stop = gene.splicegraph.vertices[1, idx]
+                cds_begins = find_overlapping_cds_simple(v_start, v_stop, gene_cds_begin_dict[gene.name], gene.strand)
+                vertex_len_dict[idx] = v_stop - v_start
 
-            # Initialize reading regions from the CDS transcript annotations
-            for cds_begin in cds_begins:
-                line_elems = cds_begin[2]
-                cds_strand = line_elems[6]
-                assert (cds_strand == gene.strand)
-                cds_phase = int(line_elems[7])
-                cds_left = int(line_elems[3])-1
-                cds_right = int(line_elems[4])
+                # Initialize reading regions from the CDS transcript annotations
+                for cds_begin in cds_begins:
+                    line_elems = cds_begin[2]
+                    cds_strand = line_elems[6]
+                    assert (cds_strand == gene.strand)
+                    cds_phase = int(line_elems[7])
+                    cds_left = int(line_elems[3])-1
+                    cds_right = int(line_elems[4])
 
-                #TODO: need to remove the redundance of (cds_start, cds_stop, item)
-                if gene.strand == "-":
-                    cds_right_modi = max(cds_right - cds_phase,v_start)
-                    cds_left_modi = v_start
-                    n_trailing_bases = cds_right_modi - cds_left_modi
-                else:
-                    cds_left_modi = min(cds_left + cds_phase,v_stop)
-                    cds_right_modi = v_stop
-                    n_trailing_bases = cds_right_modi - cds_left_modi
+                    #TODO: need to remove the redundance of (cds_start, cds_stop, item)
+                    if gene.strand == "-":
+                        cds_right_modi = max(cds_right - cds_phase,v_start)
+                        cds_left_modi = v_start
+                        n_trailing_bases = cds_right_modi - cds_left_modi
+                    else:
+                        cds_left_modi = min(cds_left + cds_phase,v_stop)
+                        cds_right_modi = v_stop
+                        n_trailing_bases = cds_right_modi - cds_left_modi
 
-                read_phase = n_trailing_bases % 3
-                reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, read_phase))
+                    read_phase = n_trailing_bases % 3
+                    reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, read_phase))
         gene.to_sparse()
         gene_info.append(GeneInfo(vertex_succ_list, vertex_order, reading_frames, vertex_len_dict, gene.splicegraph.vertices.shape[1]))
     
     return gene_info, gene_idxs
 
 
-def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1):
+def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_ORFs=False):
     """ Preprocess the gene and generate new attributes under gene object
         Modify the gene object directly
 
@@ -105,11 +106,11 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1):
         pool = mp.Pool(processes=parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN)) 
         for i in range(0, genes.shape[0], 100):
             gene_idx = np.arange(i, min(i + 100, genes.shape[0]))
-            _ = pool.apply_async(genes_preprocess_batch, args=(genes[gene_idx], gene_idx, gene_cds_begin_dict,), callback=update_gene_info) 
+            _ = pool.apply_async(genes_preprocess_batch, args=(genes[gene_idx], gene_idx, gene_cds_begin_dict, all_ORFs,), callback=update_gene_info)
         pool.close() 
         pool.join()
     else:
-        genes_info = genes_preprocess_batch(genes, np.arange(genes.shape[0]), gene_cds_begin_dict, verbose=True)[0]
+        genes_info = genes_preprocess_batch(genes, np.arange(genes.shape[0]), gene_cds_begin_dict, all_ORFs)[0]
 
     return genes_info
 
