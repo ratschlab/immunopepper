@@ -102,7 +102,7 @@ def switch_tmp_path(file_info, outbase=None):
     if outbase:
         path = os.path.join(outbase, os.path.basename(file_info['path']))
     else:
-        path = filepointer_item['path']
+        path = file_info['path']
     return path
 
 
