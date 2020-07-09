@@ -405,7 +405,7 @@ def mode_build(arg):
             pool = mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
-                outbase = os.path.join(output_path, 'tmp_out_%i' % i)
+                outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation-mode, i))
                 pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
                 res = pool.apply_async(process_gene_batch_background, args=(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, remove_annot, uniq_foreground, pq_compression, verbose_save))
             pool.close()
@@ -417,7 +417,7 @@ def mode_build(arg):
             pool = mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
-                outbase = os.path.join(output_path, 'tmp_out_%i' % i)
+                outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation-mode, i))
                 res = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_ORFs, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, remove_annot, uniq_foreground, pq_compression, verbose_save))
             pool.close()
             pool.join()
