@@ -42,9 +42,8 @@ def collect_background_transcripts(gene=None, ref_seq_file=None, chrm=None, muta
        ref_mut_seq: Dict. (sequence_type) -> list[char].
        """
     gene.from_sparse()
-    sg = gene.splicegraph
-    min_pos = np.min(sg.vertices[0])
-    max_pos = np.max(sg.vertices[1])
+    min_pos = gene.splicegraph.vertices.min()
+    max_pos = gene.splicegraph.vertices.max()
 
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
@@ -81,8 +80,8 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
 
     gene.from_sparse()
     sg = gene.splicegraph
-    min_pos = np.min(sg.vertices[0])
-    max_pos = np.max(sg.vertices[1])
+    min_pos = gene.splicegraph.vertices.min()
+    max_pos = gene.splicegraph.vertices.max()
 
     output_id = 0
 
