@@ -106,19 +106,21 @@ def switch_tmp_path(file_info, outbase=None):
     return path
 
 
-def save_backgrd_kmer_set(set_, filepointer, compression=None, outbase=None, verbose=False):
+def save_backgrd_kmer_set(set_, filepointer, kmer_length, compression=None, outbase=None, verbose=False):
     path = switch_tmp_path(filepointer.background_kmer_fp, outbase)
     if set_:
         df = pd.DataFrame(set_, columns=['kmer'])
+        path = path.replace('kmer.pq', '{}mer.pq'.format(kmer_length))
         save_pd_toparquet(path, df, compression, verbose)
 
-def save_forgrd_kmer_dict(dict_, filepointer, compression=None, outbase=None, verbose=False):
+def save_forgrd_kmer_dict(dict_, filepointer, kmer_length, compression=None, outbase=None, verbose=False):
     path = switch_tmp_path(filepointer.junction_kmer_fp, outbase)
     if dict_:
         df = pd.DataFrame(dict_.values(), index=dict_.keys())
         df = df.applymap(_convert_list_to_str)
         df = df.rename_axis('kmer').reset_index()
         df = df.loc[:, filepointer.junction_kmer_fp['columns']]
+        path = path.replace('kmer.pq', '{}mer.pq'.format(kmer_length))
         save_pd_toparquet(path, df, compression, verbose)
 
 def save_backgrd_pep_dict(dict_, filepointer, compression = None, outbase=None, verbose=False):

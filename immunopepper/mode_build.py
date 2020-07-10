@@ -170,7 +170,7 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
 
         R['output_metadata_list'], \
         R['output_kmer_lists'] = get_and_write_peptide_and_kmer(gene=gene,
-                                                                vertex_pairs=vertex_pairs,
+                                                                all_vertex_pairs=vertex_pairs,
                                                                 background_pep_dict=dict_pept_backgrd,
                                                                 ref_mut_seq=ref_mut_seq,
                                                                 idx=idx,
@@ -215,17 +215,29 @@ def process_result(gene_results, output_name, outbase, remove_annot=False, uniq_
     global dict_pept_forgrd
     global dict_pept_backgrd
     global filepointer
-    pool_genes = defaultdict(list, {})
+    pool_genes= defaultdict(list, {})
+    pool_kmers = defaultdict(dict, {})
+    kmer_key = ''
     time_per_gene = []
     mem_per_gene = []
     gene_idxs = []
+    kmers = defaultdict(list)
     for gene_result in gene_results:
         if gene_result['processed']:
             for result_type in output_name:
-                pool_genes[result_type].extend(gene_result[result_type])
+                if 'peptide' in result_type:
+                    pool_genes[result_type].extend(gene_result[result_type])
+                elif 'kmer' in result_type:
+                    kmer_key = result_type
+                    for kmer_length, kmer_lists in gene_result[result_type].items():
+                        if kmer_length not in pool_kmers:
+                            pool_kmers[kmer_length] = []
+                        records = [item for sublist in kmer_lists for item in sublist]
+                        pool_kmers[kmer_length].extend(records)
                 time_per_gene.append(gene_result['time'])
                 mem_per_gene.append(gene_result['memory'])
                 gene_idxs.append(gene_result['gene_idx'])
+    pool_genes[kmer_key] = pool_kmers
     s1 = timeit.default_timer()
     write_gene_result(pool_genes, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, set_kmer_back,
                       filepointer, remove_annot, uniq_foreground, compression, outbase, verbose)
@@ -247,27 +259,28 @@ def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kme
         records = gene_result['background_peptide_list']
         add_dict_peptide(dict_pept_backgrd, records)
         save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression, outbase, verbose)
+        dict_pept_backgrd.clear()
 
     if ('background_kmer_lists' in gene_result) and (len(gene_result['background_kmer_lists'])):
-        records = [item for sublist in gene_result['background_kmer_lists'] for item in sublist]
-        add_set_kmer_back(set_kmer_back, records)
-        if not remove_annot:
-            save_backgrd_kmer_set(set_kmer_back, filepointer, compression, outbase, verbose)
+        for kmer_length, records in gene_result['background_kmer_lists'].items():
+            add_set_kmer_back(set_kmer_back, records)
+            #if not remove_annot:
+            save_backgrd_kmer_set(set_kmer_back, filepointer, kmer_length, compression, outbase, verbose)
             set_kmer_back.clear()
 
 
     if ('output_metadata_list' in gene_result) and (len(gene_result['output_metadata_list'])):
         records = gene_result['output_metadata_list']
         add_dict_peptide(dict_pept_forgrd, records)
-        if not uniq_foreground:
-            save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, verbose)
-            dict_pept_forgrd.clear()
+        #if not uniq_foreground:
+        save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, verbose)
+        dict_pept_forgrd.clear()
 
     if ('output_kmer_lists' in gene_result) and (len(gene_result['output_kmer_lists'])):
-        records = [item for sublist in gene_result['output_kmer_lists'] for item in sublist]
-        add_dict_kmer_forgrd(dict_kmer_foregr, records,  set_kmer_back, remove_annot)
-        if not uniq_foreground:
-            save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, compression, outbase, verbose)
+        for kmer_length, records in gene_result['output_kmer_lists'].items():
+            add_dict_kmer_forgrd(dict_kmer_foregr, records,  set_kmer_back, remove_annot)
+            #if not uniq_foreground:
+            save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, kmer_length, compression, outbase, verbose)
             dict_kmer_foregr.clear()
 
 
@@ -451,30 +464,30 @@ def mode_build(arg):
 
 
         # Save the data structures kept in memory for filtering
-        if uniq_foreground:
-            save_forgrd_pep_dict(dict_pept_forgrd, filepointer, pq_compression, outbase=None, verbose=True)
-            del dict_pept_forgrd
+        # if uniq_foreground:
+        #     save_forgrd_pep_dict(dict_pept_forgrd, filepointer, pq_compression, outbase=None, verbose=True)
+        #     del dict_pept_forgrd
+        #
+        #     save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, pq_compression, outbase=None, verbose=True)
+        #     del dict_kmer_foregr
+        #
+        # if remove_annot:
+        #     save_backgrd_pep_dict(dict_pept_backgrd , filepointer, pq_compression, outbase=None, verbose=True)
+        #     del dict_pept_backgrd
+        #
+        #     save_backgrd_kmer_set(set_kmer_back, filepointer, pq_compression, outbase=None, verbose=True)
+        #     del set_kmer_back
 
-            save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, pq_compression, outbase=None, verbose=True)
-            del dict_kmer_foregr
 
-        if remove_annot:
-            save_backgrd_pep_dict(dict_pept_backgrd , filepointer, pq_compression, outbase=None, verbose=True)
-            del dict_pept_backgrd
-
-            save_backgrd_kmer_set(set_kmer_back, filepointer, pq_compression, outbase=None, verbose=True)
-            del set_kmer_back
-
-
-    if uniq_foreground:
-        uniq_apply = "Foreground kmers/peptides are made unique across genes and the metadata is aggregated per kmer/peptide"
-    else:
-        uniq_apply = "Foreground kmers/peptides were not made unique across genes. Metadata is aggregated for kmer/peptide within each gene"
-    if remove_annot:
-        filt_apply = "Removed kmers present in annotation from the kmer foreground output"
-    else:
-        filt_apply = "Did not apply filtering for annotation on foreground kmers"
-    logging.info(">>>>>>>>> Build: Finish traversing splicegraph in mutation mode {}')".format(mutation.mode))
-    logging.info(">>>>>>>>> {}".format(filt_apply))
-    logging.info(">>>>>>>>> {}".format(uniq_apply))
+    # if uniq_foreground:
+    #     uniq_apply = "Foreground kmers/peptides are made unique across genes and the metadata is aggregated per kmer/peptide"
+    # else:
+    #     uniq_apply = "Foreground kmers/peptides were not made unique across genes. Metadata is aggregated for kmer/peptide within each gene"
+    # if remove_annot:
+    #     filt_apply = "Removed kmers present in annotation from the kmer foreground output"
+    # else:
+    #     filt_apply = "Did not apply filtering for annotation on foreground kmers"
+    # logging.info(">>>>>>>>> Build: Finish traversing splicegraph in mutation mode {}')".format(mutation.mode))
+    # logging.info(">>>>>>>>> {}".format(filt_apply))
+    # logging.info(">>>>>>>>> {}".format(uniq_apply))
 

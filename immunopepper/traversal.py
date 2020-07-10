@@ -1,5 +1,6 @@
 """Contains all the output computation based on gene splicegraph"""
 
+from collections import defaultdict
 import logging
 import numpy as np
 
@@ -140,15 +141,15 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
                 vertex_pair_list.append(vertex_pair)
                 output_id += 1
 
-    if  disable_concat:
-        concat_vertex_pair_list = []
-    else:
-        concat_vertex_pair_list = collect_vertex_triples(gene, vertex_pair_list, kmer)
     if filter_redundant:
         vertex_pair_list = get_filtered_metadata_list(vertex_pair_list, gene.strand)
-    vertex_pair_list += concat_vertex_pair_list
+    concat_vertex_pair_list = defaultdict(list, {'vertice_pair': vertex_pair_list})
+    if not disable_concat:
+        for kmer_length in kmer:
+            concat_vertex_pair_list['vertice_triplet_{}mer'.format(kmer_length)] = collect_vertex_triples(gene, vertex_pair_list, kmer_length)
+    #vertex_pair_list += concat_vertex_pair_list
 
-    return vertex_pair_list, ref_mut_seq, exon_som_dict
+    return concat_vertex_pair_list, ref_mut_seq, exon_som_dict
 
 
 def collect_vertex_triples(gene, vertex_pairs, k):
@@ -213,7 +214,7 @@ def collect_vertex_triples(gene, vertex_pairs, k):
     return concat_vertex_pair_list
 
 
-def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_dict=None, ref_mut_seq=None, idx=None,
+def get_and_write_peptide_and_kmer(gene=None, all_vertex_pairs=None, background_pep_dict=None, ref_mut_seq=None, idx=None,
                          exon_som_dict=None, countinfo=None,
                          edge_idxs=None, edge_counts=None, seg_counts=None,
                          mutation=None,table=None,
@@ -248,77 +249,83 @@ def get_and_write_peptide_and_kmer(gene=None, vertex_pairs=None, background_pep_
     ### collect the relevant count infor for the current gene
 
     output_metadata_list = []
-    output_kmer_lists = []
+    output_kmer_dict = defaultdict(list)
 
         ### iterate over all vertex pairs and translate
-    for ii,vertex_pair in enumerate(vertex_pairs):
-        modi_coord = vertex_pair.modified_exons_coord
-        vertex_list = vertex_pair.vertex_idxs
-        tran_start_pos = modi_coord.start_v1 if gene.strand == '+' else modi_coord.stop_v1
-        mut_seq_comb = get_mut_comb(exon_som_dict, vertex_pair.vertex_idxs)
+    for kmer_type, vertex_pairs in all_vertex_pairs.items():
+        for ii,vertex_pair in enumerate(vertex_pairs):
+            modi_coord = vertex_pair.modified_exons_coord
+            vertex_list = vertex_pair.vertex_idxs
+            tran_start_pos = modi_coord.start_v1 if gene.strand == '+' else modi_coord.stop_v1
+            mut_seq_comb = get_mut_comb(exon_som_dict, vertex_pair.vertex_idxs)
 
-        variant_id = 0
-        for variant_comb in mut_seq_comb:  # go through each variant combination
-            peptide,flag = get_peptide_result(vertex_pair, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq, np.min(gene.splicegraph.vertices))
+            variant_id = 0
+            for variant_comb in mut_seq_comb:  # go through each variant combination
+                peptide,flag = get_peptide_result(vertex_pair, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq, np.min(gene.splicegraph.vertices))
 
-            # If cross junction peptide has a stop-codon in it, the frame
-            # will not be propagated because the read is truncated before it reaches the end of the exon.
-            # also in mutation mode, only output the case where ref is different from mutated
-            if not peptide.mut or not (peptide.mut != peptide.ref or mutation.mode == 'ref' or output_silence):
-                continue
+                # If cross junction peptide has a stop-codon in it, the frame
+                # will not be propagated because the read is truncated before it reaches the end of the exon.
+                # also in mutation mode, only output the case where ref is different from mutated
+                if not peptide.mut or not (peptide.mut != peptide.ref or mutation.mode == 'ref' or output_silence):
+                    continue
 
-            new_output_id = ':'.join([gene.name, '_'.join([str(v) for v in vertex_list]), str(variant_id), str(tran_start_pos)])
-            peptide_is_annotated_flag = peptide_is_annotated(background_pep_dict, peptide.mut)
-            vertex_tuple_anno_flag = junction_tuple_is_annotated(junction_flag, vertex_list)
-            junction_is_in_given_list_flag = junction_is_in_given_list(gene.splicegraph, vertex_list, gene.strand, junction_list)
+                new_output_id = ':'.join([gene.name, '_'.join([str(v) for v in vertex_list]), str(variant_id), str(tran_start_pos)])
+                peptide_is_annotated_flag = peptide_is_annotated(background_pep_dict, peptide.mut)
+                vertex_tuple_anno_flag = junction_tuple_is_annotated(junction_flag, vertex_list)
+                junction_is_in_given_list_flag = junction_is_in_given_list(gene.splicegraph, vertex_list, gene.strand, junction_list)
 
-            if variant_comb != NOT_EXIST and som_exp_dict is not None:  # which means there exist mutations
-                seg_exp_variant_comb = [int(som_exp_dict[ipos]) for ipos in variant_comb]
-            else:
-                seg_exp_variant_comb = NOT_EXIST  # if no mutation or no count file,  the segment expression is .
+                if variant_comb != NOT_EXIST and som_exp_dict is not None:  # which means there exist mutations
+                    seg_exp_variant_comb = [int(som_exp_dict[ipos]) for ipos in variant_comb]
+                else:
+                    seg_exp_variant_comb = NOT_EXIST  # if no mutation or no count file,  the segment expression is .
 
-            # collect expression data
-            if  countinfo:
-                segment_expr, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts)
-            else:
-                segment_expr, expr_list = NOT_EXIST, None
-            if countinfo and not flag.is_isolated and edge_counts is not None: ## Will flag is isolated overlap with edge_counts is None?
-                edge_expr = search_edge_metadata_segmentgraph(gene, modi_coord, countinfo, idx, edge_idxs, edge_counts)
-            else:
-                edge_expr = NOT_EXIST
+                # collect expression data
+                if  countinfo:
+                    segment_expr, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts)
+                else:
+                    segment_expr, expr_list = NOT_EXIST, None
+                if countinfo and not flag.is_isolated and edge_counts is not None: ## Will flag is isolated overlap with edge_counts is None?
+                    edge_expr = search_edge_metadata_segmentgraph(gene, modi_coord, countinfo, idx, edge_idxs, edge_counts)
+                else:
+                    edge_expr = NOT_EXIST
 
-            output_metadata_list.append( OutputMetadata(peptide=peptide.mut, id=new_output_id,
-                                                        output_id= new_output_id,
-                                                       read_frame=vertex_pair.read_frame.read_phase,
-                                                       gene_name=gene.name,
-                                                       gene_chr=gene.chr,
-                                                       gene_strand=gene.strand,
-                                                       mutation_mode=mutation.mode,
-                                                       peptide_annotated=peptide_is_annotated_flag,
-                                                       junction_annotated=vertex_tuple_anno_flag,
-                                                       has_stop_codon=int(flag.has_stop),
-                                                       is_in_junction_list=junction_is_in_given_list_flag,
-                                                       is_isolated=int(flag.is_isolated),
-                                                       variant_comb=variant_comb,
-                                                       variant_seg_expr=seg_exp_variant_comb,
-                                                       modified_exons_coord=modi_coord,
-                                                       original_exons_coord=vertex_pair.original_exons_coord,
-                                                       vertex_idx=vertex_list,
-                                                       junction_expr=edge_expr,
-                                                       segment_expr=segment_expr
-            ))
-            variant_id += 1
-            output_peptide = OutputJuncPeptide(output_id= new_output_id,
-                                            peptide=peptide.mut,
-                                            exons_coor=modi_coord,
-                                            junction_count=edge_expr)
-            if kmer > 0:
-                output_kmer_lists.append(create_output_kmer(output_peptide, kmer, expr_list))
+                output_metadata_list.append( OutputMetadata(peptide=peptide.mut, id=new_output_id,
+                                                            output_id= new_output_id,
+                                                           read_frame=vertex_pair.read_frame.read_phase,
+                                                           gene_name=gene.name,
+                                                           gene_chr=gene.chr,
+                                                           gene_strand=gene.strand,
+                                                           mutation_mode=mutation.mode,
+                                                           peptide_annotated=peptide_is_annotated_flag,
+                                                           junction_annotated=vertex_tuple_anno_flag,
+                                                           has_stop_codon=int(flag.has_stop),
+                                                           is_in_junction_list=junction_is_in_given_list_flag,
+                                                           is_isolated=int(flag.is_isolated),
+                                                           variant_comb=variant_comb,
+                                                           variant_seg_expr=seg_exp_variant_comb,
+                                                           modified_exons_coord=modi_coord,
+                                                           original_exons_coord=vertex_pair.original_exons_coord,
+                                                           vertex_idx=vertex_list,
+                                                           junction_expr=edge_expr,
+                                                           segment_expr=segment_expr,
+                                                           kmer_type=kmer_type
+                ))
+                variant_id += 1
+                output_peptide = OutputJuncPeptide(output_id= new_output_id,
+                                                peptide=peptide.mut,
+                                                exons_coor=modi_coord,
+                                                junction_count=edge_expr)
+                if kmer:
+                    if 'vertice_pair' in kmer_type:
+                        for kmer_length in kmer:
+                            output_kmer_dict[kmer_length].append(create_output_kmer(output_peptide, kmer_length, expr_list))
+                    else:
+                        output_kmer_dict[int(kmer_type.split('_')[-1][0])].append(create_output_kmer(output_peptide, int(kmer_type.split('_')[-1][0]), expr_list))
 
-    if not gene.splicegraph.edges is None:
-        gene.to_sparse()
+        if not gene.splicegraph.edges is None:
+            gene.to_sparse()
 
-    return output_metadata_list, output_kmer_lists
+    return output_metadata_list, output_kmer_dict
 
 
 def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, countinfo, seg_counts, Idx, kmer):
@@ -342,7 +349,7 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, cou
 
     gene_to_transcript_table, transcript_cds_table = gene_table.gene_to_ts, gene_table.ts_to_cds
     background_peptide_list = []
-    output_kmer_lists = []
+    output_kmer_dict = defaultdict(list)
     # Generate a background peptide for every variant transcript
     for ts in gene_to_transcript_table[gene.name]:
         # No CDS entries for transcript in annotation file...
@@ -351,10 +358,11 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, cou
         cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_mut_seq['background'], transcript_cds_table[ts], countinfo, seg_counts, Idx, mode='back')
         peptide = OutputBackground(output_id=ts, peptide=cds_peptide)
         background_peptide_list.append(peptide)
-        if kmer > 0:
-            output_kmer_lists.append(create_output_kmer(peptide, kmer, cds_expr_list))
+        if kmer:
+            for kmer_length in kmer:
+                output_kmer_dict[kmer_length].append(create_output_kmer(peptide, kmer_length, cds_expr_list))
 
-    return background_peptide_list, output_kmer_lists
+    return background_peptide_list, output_kmer_dict
 
 
 def create_output_kmer(output_peptide, k, expr_list):

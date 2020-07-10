@@ -33,7 +33,7 @@ def parse_arguments(argv):
     required.add_argument("--mutation-mode", help="mutation mode (options: ref, somatic, germline, somatic_germline) [ref]", required=True, default='ref')
 
     outputs = parser_build.add_argument_group('OUTPUT OPTIONS')
-    outputs.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
+    outputs.add_argument("--kmer", nargs='+', type=int, help="list which specifys the different k for kmer output", required=False, default=[])
     outputs.add_argument("--disable-concat",help="switch off concatenation of short exons to increase speed",action="store_true",default=False)
     outputs.add_argument("--use-mut-pickle", help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
     outputs.add_argument("--remove-annot",help="The kmers found in the nnotation file will be removed during the generation process", action="store_true", default=False)
