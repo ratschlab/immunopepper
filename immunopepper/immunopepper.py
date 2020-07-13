@@ -36,8 +36,8 @@ def parse_arguments(argv):
     outputs.add_argument("--kmer", type=int, help="specify the k for kmer output", required=False, default=0)
     outputs.add_argument("--disable-concat",help="switch off concatenation of short exons to increase speed",action="store_true",default=False)
     outputs.add_argument("--use-mut-pickle", help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
-    outputs.add_argument("--remove_annot",help="The kmers found in the nnotation file will be removed during the generation process", action="store_true", default=False)
-    outputs.add_argument("--uniq_foreground",
+    outputs.add_argument("--remove-annot",help="The kmers found in the nnotation file will be removed during the generation process", action="store_true", default=False)
+    outputs.add_argument("--uniq-foreground",
                          help="Kmers and the peptides made unique, the metadata will be aggregated per kmer. Automaticaly True when --remove_annot is used. WARNING the data will be kept in memory",
                          action="store_true", default=False)
 
@@ -58,8 +58,8 @@ def parse_arguments(argv):
     experimental.add_argument("--output-silence",help=argparse.SUPPRESS, action="store_true",default=False)
     # if count expression data is provided in h5 format, specify the code for heterzygous
     experimental.add_argument("--heter-code", type=int, help=argparse.SUPPRESS, default=0)
-    experimental.add_argument("--batch_size", type=int, help="batch size for parallel processing", default=1000)
-    experimental.add_argument("--all_ORFs", action="store_true", required=False, default=False)
+    experimental.add_argument("--batch-size", type=int, help="batch size for parallel processing", default=1000)
+    experimental.add_argument("--all-read-frames", action="store_true", required=False, default=False)
         
     parser_makebg = subparsers.add_parser('make_bg', help='integrate multiple kmer files and generate the single background kmer file')
     required = parser_makebg.add_argument_group('MANDATORY')

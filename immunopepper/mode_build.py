@@ -104,7 +104,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
     return dict_pept_backgrd, set_kmer_back  #Does not update the dictionaries and list globally because of the subprocess
 
 
-def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, all_ORFs, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, remove_annot, uniq_foreground, compression, verbose):
+def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, remove_annot, uniq_foreground, compression, verbose):
     results = []
     for i, gene in enumerate(genes):
         ### measure time
@@ -162,7 +162,7 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                                              chrm=chrm,
                                              idx=idx,
                                              mutation=sub_mutation,
-                                             all_ORFs=all_ORFs,
+                                             all_read_frames=all_read_frames,
                                              disable_concat=arg.disable_concat,
                                              kmer=arg.kmer,
                                              filter_redundant=arg.filter_redundant)
@@ -297,7 +297,7 @@ def mode_build(arg):
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
     #graph_data = graph_data[400:5400]
-    all_ORFs = arg.all_ORFs
+    all_read_frames = arg.all_read_frames
     remove_annot =  arg.remove_annot
     uniq_foreground = arg.uniq_foreground or remove_annot
     if uniq_foreground:
@@ -332,7 +332,7 @@ def mode_build(arg):
     # add CDS starts and reading frames to the respective nodes
     logging.info('Add reading frame to splicegraph ...')
     start_time = timeit.default_timer()
-    graph_info = genes_preprocess_all(graph_data, genetable.gene_to_cds_begin, arg.parallel, all_ORFs)
+    graph_info = genes_preprocess_all(graph_data, genetable.gene_to_cds_begin, arg.parallel, all_read_frames)
     end_time = timeit.default_timer()
     logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
@@ -405,7 +405,7 @@ def mode_build(arg):
             pool = mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
-                outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation-mode, i))
+                outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
                 pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
                 res = pool.apply_async(process_gene_batch_background, args=(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, remove_annot, uniq_foreground, pq_compression, verbose_save))
             pool.close()
@@ -417,8 +417,8 @@ def mode_build(arg):
             pool = mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
-                outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation-mode, i))
-                res = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_ORFs, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, remove_annot, uniq_foreground, pq_compression, verbose_save))
+                outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
+                res = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, remove_annot, uniq_foreground, pq_compression, verbose_save))
             pool.close()
             pool.join()
             gene_name_expr_distr, expr_distr, dict_pept_forgrd, dict_kmer_foregr = res.get()
@@ -441,7 +441,7 @@ def mode_build(arg):
             # Build the background
             process_gene_batch_background(sample, graph_data, gene_id_list, mutation, countinfo, genetable, arg, output_path, remove_annot, uniq_foreground, pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
-            process_gene_batch_foreground( sample, graph_data, graph_info, gene_id_list, len(gene_id_list), all_ORFs, mutation, junction_dict,
+            process_gene_batch_foreground( sample, graph_data, graph_info, gene_id_list, len(gene_id_list), all_read_frames, mutation, junction_dict,
                              countinfo, genetable, arg, output_path, dict_pept_backgrd, remove_annot, uniq_foreground, pq_compression, verbose=True)
 
 

@@ -18,7 +18,7 @@ from .utils import find_overlapping_cds_simple
 from .utils import get_successor_list
 from .utils import leq_strand
 
-def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_ORFs=False):
+def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frames=False):
 
     gene_info = []
     for gene in genes:
@@ -40,7 +40,7 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_ORFs=False
         # get the reading_frames
         reading_frames = {}
         vertex_len_dict = {}
-        if not all_ORFs:
+        if not all_read_frames:
             for idx in vertex_order:
                 reading_frames[idx] = set()
                 v_start = gene.splicegraph.vertices[0, idx]
@@ -75,7 +75,7 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_ORFs=False
     return gene_info, gene_idxs
 
 
-def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_ORFs=False):
+def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames=False):
     """ Preprocess the gene and generate new attributes under gene object
         Modify the gene object directly
 
@@ -106,11 +106,11 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_ORFs=False)
         pool = mp.Pool(processes=parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN)) 
         for i in range(0, genes.shape[0], 100):
             gene_idx = np.arange(i, min(i + 100, genes.shape[0]))
-            _ = pool.apply_async(genes_preprocess_batch, args=(genes[gene_idx], gene_idx, gene_cds_begin_dict, all_ORFs,), callback=update_gene_info)
+            _ = pool.apply_async(genes_preprocess_batch, args=(genes[gene_idx], gene_idx, gene_cds_begin_dict, all_read_frames,), callback=update_gene_info)
         pool.close() 
         pool.join()
     else:
-        genes_info = genes_preprocess_batch(genes, np.arange(genes.shape[0]), gene_cds_begin_dict, all_ORFs)[0]
+        genes_info = genes_preprocess_batch(genes, np.arange(genes.shape[0]), gene_cds_begin_dict, all_read_frames)[0]
 
     return genes_info
 

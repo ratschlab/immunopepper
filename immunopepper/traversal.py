@@ -57,7 +57,7 @@ def collect_background_transcripts(gene=None, ref_seq_file=None, chrm=None, muta
 
 
 
-def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None, idx=None, mutation=None, all_ORFs=False, disable_concat=False, kmer=None, filter_redundant=False):
+def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None, idx=None, mutation=None, all_read_frames=False, disable_concat=False, kmer=None, filter_redundant=False):
     """Calculte the output peptide for every exon-pairs in the splicegraph
 
        Parameters
@@ -101,7 +101,7 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
         exon_som_dict = get_exon_som_dict(gene, mutation.somatic_mutation_dict)
 
     vertex_pair_list = []
-    if all_ORFs:
+    if all_read_frames:
         reading_frame_dict = dict(get_exhaustive_reading_frames(sg, gene.strand, gene_info.vertex_order))
     else: # use reading frames from annotation
         reading_frame_dict = dict(gene_info.reading_frames)
