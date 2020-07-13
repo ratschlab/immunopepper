@@ -243,10 +243,10 @@ def process_result(gene_results, output_name, outbase, remove_annot=False, uniq_
                       filepointer, remove_annot, uniq_foreground, compression, outbase, verbose)
 
     if gene_idxs:
-        logging.info("> {}: {}/{} processed, mean time cost: {}, memory cost:{} GB for per gene; writing results took {} seconds ".format(sample, gene_idxs[-1]  + 1,
+        logging.info("> {}: {}/{} processed, max time cost: {}, memory cost:{} GB for in gene batch; writing results took {} seconds ".format(sample, gene_idxs[-1]  + 1,
                                                                                   len(gene_id_list),
-                                                                                  np.mean(time_per_gene),
-                                                                                  np.mean(mem_per_gene), 
+                                                                                  np.max(time_per_gene),
+                                                                                  np.max(mem_per_gene), 
                                                                                   timeit.default_timer() - s1))
     del gene_results
 
