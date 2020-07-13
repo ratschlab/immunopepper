@@ -310,5 +310,7 @@ def get_exhaustive_reading_frames(splicegraph, gene_strand, vertex_order):
             else: #gene_strand == "+":
                 cds_left_modi = min(v_start + cds_phase, v_stop)
                 cds_right_modi = v_stop
-            reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, cds_phase))
+            n_trailing_bases = cds_right_modi - cds_left_modi
+            read_phase = n_trailing_bases % 3
+            reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, read_phase))
     return reading_frames
