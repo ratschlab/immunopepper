@@ -92,7 +92,7 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
     somatic_mutation_sub_dict: Dict. variant position -> variant details.
     strand: gene strand
 
-    Returns
+    Returnvariant_combs
     -------
     sub_dna: str. dna when applied somatic mutation.
 

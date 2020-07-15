@@ -188,20 +188,29 @@ def save_pd_toparquet(path, pd_df, compression = None, verbose = False):
                                                                       timeit.default_timer() - s1))
 
 
-def collect_results(filepointer_item, outbase, compression):
+def collect_results(filepointer_item, kmer, outbase, compression):
     s1 = timeit.default_timer()
-    file_name = os.path.basename(filepointer_item['path'])
-    tmp_file_list = glob.glob(os.path.join(outbase, 'tmp_out_*', file_name))
-    tot_shape = 0
-    for tmp_file in tmp_file_list:
-        table = pq.read_table(tmp_file)
-        if tot_shape == 0:
-            pqwriter = pq.ParquetWriter(filepointer_item['path'], table.schema, compression=compression)
-        pqwriter.write_table(table)
-        tot_shape += table.shape[0]
-    if tmp_file_list:
-        pqwriter.close()
-        logging.info('Collecting {} with {} lines. Took {} seconds'.format(file_name, tot_shape, timeit.default_timer()-s1))
+    file_type = os.path.basename(filepointer_item['path'])
+    file_to_collect = []
+
+    if 'kmer' in file_type:
+        for kmer_length in kmer:
+            file_to_collect.append(file_type.replace('kmer.pq', '{}mer.pq'.format(kmer_length)))
+    else:
+        file_to_collect.append(file_type)
+
+    for file_name in file_to_collect:
+        tmp_file_list = glob.glob(os.path.join(outbase, 'tmp_out_*', file_name))
+        tot_shape = 0
+        for tmp_file in tmp_file_list:
+            table = pq.read_table(tmp_file)
+            if tot_shape == 0:
+                pqwriter = pq.ParquetWriter(filepointer_item['path'], table.schema, compression=compression)
+            pqwriter.write_table(table)
+            tot_shape += table.shape[0]
+        if tmp_file_list:
+            pqwriter.close()
+            logging.info('Collecting {} with {} lines. Took {} seconds'.format(file_name, tot_shape, timeit.default_timer()-s1))
 
 
 def remove_folder_list(commun_base):

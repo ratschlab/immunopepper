@@ -54,10 +54,10 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True):
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer/h5pytest'
-mutation_mode ='somatic_and_germline'
+mutation_mode ='germline'
 pr = cProfile.Profile()
 pr.enable()
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False)
+test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True)
 pr.disable()
 pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 

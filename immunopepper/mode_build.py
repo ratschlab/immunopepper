@@ -224,8 +224,8 @@ def process_result(gene_results, output_name, outbase, remove_annot=False, uniq_
     kmers = defaultdict(list)
     for gene_result in gene_results:
         if gene_result['processed']:
-            for result_type in output_name:
-                if 'peptide' in result_type:
+            for result_type in gene_result:
+                if ('peptide' in result_type) or ('metadata' in result_type):
                     pool_genes[result_type].extend(gene_result[result_type])
                 elif 'kmer' in result_type:
                     kmer_key = result_type
@@ -438,12 +438,12 @@ def mode_build(arg):
 
             # Collects and pools the files of each batch
             logging.debug('start collecting results')
-            collect_results(filepointer.background_peptide_fp, output_path, pq_compression)
-            collect_results(filepointer.junction_peptide_fp,output_path, pq_compression)
-            collect_results(filepointer.junction_meta_fp,output_path, pq_compression)
-            collect_results(filepointer.junction_kmer_fp,output_path, pq_compression)
-            collect_results(filepointer.background_kmer_fp,output_path, pq_compression)
-            remove_folder_list(os.path.join(output_path, 'tmp_out_')) #TODO add back after development
+            collect_results(filepointer.background_peptide_fp, arg.kmer, output_path, pq_compression)
+            collect_results(filepointer.junction_peptide_fp, arg.kmer,output_path, pq_compression)
+            collect_results(filepointer.junction_meta_fp, arg.kmer, output_path, pq_compression)
+            collect_results(filepointer.junction_kmer_fp, arg.kmer,output_path, pq_compression)
+            collect_results(filepointer.background_kmer_fp, arg.kmer,output_path, pq_compression)
+            #remove_folder_list(os.path.join(output_path, 'tmp_out_')) #TODO add back after development
 
         else:
             filepointer = initialize_fp(junction_peptide_file_path, junction_meta_file_path,
