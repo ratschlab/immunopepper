@@ -407,7 +407,7 @@ def mode_build(arg):
             filepointer = initialize_fp(junction_peptide_file_path, junction_meta_file_path,
                                         background_peptide_file_path,
                                         junction_kmer_file_path, background_kmer_file_path,
-                                        compression=pq_compression)
+                                        arg.kmer)
             logging.info('Parallel: {} Threads'.format(arg.parallel))
 
 
@@ -423,7 +423,6 @@ def mode_build(arg):
                 res = pool.apply_async(process_gene_batch_background, args=(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, remove_annot, uniq_foreground, pq_compression, verbose_save))
             pool.close()
             pool.join()
-            dict_pept_backgrd, set_kmer_back = res.get()
 
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
@@ -438,18 +437,18 @@ def mode_build(arg):
 
             # Collects and pools the files of each batch
             logging.debug('start collecting results')
-            collect_results(filepointer.background_peptide_fp, arg.kmer, output_path, pq_compression)
-            collect_results(filepointer.junction_peptide_fp, arg.kmer,output_path, pq_compression)
-            collect_results(filepointer.junction_meta_fp, arg.kmer, output_path, pq_compression)
-            collect_results(filepointer.junction_kmer_fp, arg.kmer,output_path, pq_compression)
-            collect_results(filepointer.background_kmer_fp, arg.kmer,output_path, pq_compression)
+            collect_results(filepointer.background_peptide_fp, output_path, pq_compression, arg.mutation_mode)
+            collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, arg.mutation_mode)
+            collect_results(filepointer.junction_meta_fp, output_path, pq_compression, arg.mutation_mode)
+            collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
+            collect_results(filepointer.background_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
             #remove_folder_list(os.path.join(output_path, 'tmp_out_')) #TODO add back after development
 
         else:
             filepointer = initialize_fp(junction_peptide_file_path, junction_meta_file_path,
                                         background_peptide_file_path,
                                         junction_kmer_file_path, background_kmer_file_path,
-                                        compression=pq_compression)
+                                        arg.kmer)
             logging.info('Not Parallel')
             # Build the background
             process_gene_batch_background(sample, graph_data, gene_id_list, mutation, countinfo, genetable, arg, output_path, remove_annot, uniq_foreground, pq_compression, verbose=True)

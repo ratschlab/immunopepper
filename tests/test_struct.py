@@ -44,7 +44,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True):
                '--germline', os.path.join(data_dir,'ImmunoPepper_usecase.vcf'),
                '--somatic', os.path.join(data_dir,'ImmunoPepper_usecase.maf'),
                 '--mutation-mode', mutation_mode,
-                '--kmer', '9', '8']
+                '--kmer', '9', '11']
     if is_parallel:
         my_args_build.extend(['--parallel', '4'])
 
@@ -54,12 +54,12 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True):
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer/h5pytest'
-mutation_mode ='germline'
-pr = cProfile.Profile()
-pr.enable()
+mutation_mode ='somatic_and_germline'
+#pr = cProfile.Profile()
+#pr.enable()
 test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True)
-pr.disable()
-pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
+#pr.disable()
+#pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 
 
 
