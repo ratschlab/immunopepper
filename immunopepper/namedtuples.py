@@ -134,14 +134,15 @@ CountInfo = namedtuple('CountInfo', ['sample_idx_dict', 'gene_idx_dict', 'gene_i
 
 """
 filepointer namedtuple
-namedtuple that contain all the filepointers
+namedtuple that contain all the file paths objects 
 - junction_peptide_fp:
 - junction_meta_fp:
 - background_peptide_fp:
 - background_kmer_fp:
 - junction_kmer_fp:
+- gene_expr_file_fp:
 """
-Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp','background_peptide_fp','junction_kmer_fp','background_kmer_fp'])
+Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp','background_peptide_fp','junction_kmer_fp','background_kmer_fp', 'gene_expr_fp'])
 
 
 

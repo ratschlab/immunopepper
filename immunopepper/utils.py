@@ -9,6 +9,7 @@ import os
 import pandas as pd
 import pickle
 import psutil
+import pyarrow as pa
 import sys
 
 from .constant import NOT_EXIST
@@ -311,7 +312,7 @@ def get_idx(countinfo, sample, gene_idx):
     return Idx(gene_idx, sample_idx)
 
 
-def create_libsize(expr_distr_dict, output_fp, debug=False):
+def create_libsize(expr_distr_fp, output_fp, sample, debug=False):
     """ create library_size text file.
 
     Calculate the 75% expression and sum of expression for each sample
@@ -323,17 +324,12 @@ def create_libsize(expr_distr_dict, output_fp, debug=False):
     output_fp: file pointer. library_size text
     debug: Bool. In debug mode, return the libsize_count dictionary.
     """
-    # filter the dict
-    libsize_count = defaultdict(list, {})
-    for sample, expr_list in expr_distr_dict.items():
-        if np.array(expr_list).dtype in  [np.float, np.int]:
-            libsize_count['sample'].append(sample)
-            libsize_count['libsize_75percent'].append(np.percentile(expr_list,75))
-            libsize_count['libsize_total_count'].append(np.sum(expr_list))
-    if debug:
-        return libsize_count
+    sample_expr_distr = pa.parquet.read_table(expr_distr_fp['path']).to_pandas()
 
+    libsize_count= pd.DataFrame([[sample, np.percentile(sample_expr_distr['total_expr'], 75), np.sum(sample_expr_distr['total_expr'])]],
+                    columns = ['sample', 'libsize_75percent', 'libsize_total_count'])
     df_libsize = pd.DataFrame(libsize_count)
+
     if os.path.isfile(output_fp):
         previous_libsize =  pd.read_csv(output_fp, sep = '\t')
         df_libsize = pd.concat([previous_libsize, df_libsize], axis=0).drop_duplicates(subset=['sample'], keep='last')

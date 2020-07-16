@@ -149,9 +149,15 @@ def save_forgrd_pep_dict(dict_, filepointer, compression=None, outbase=None, ver
         df = df.applymap(_convert_list_to_str)
         save_pd_toparquet(path_meta, df, compression, verbose)
 
+def save_gene_expr_distr(gene_expr_distr_list, filepointer, outbase, compression, verbose):
+    df = pd.DataFrame(gene_expr_distr_list)
+    path = switch_tmp_path(filepointer.gene_expr_fp, outbase)
+    df.columns = filepointer.gene_expr_fp['columns']
+    save_pd_toparquet(path, df, compression, verbose)
+
 
 def initialize_fp(junction_peptide_file_path, junction_meta_file_path, background_peptide_file_path,
-                    junction_kmer_file_path, background_kmer_file_path, kmer_list):
+                    junction_kmer_file_path, background_kmer_file_path, gene_expr_file_path, kmer_list):
 
     fields_forgrd_pep_dict = ['fasta']
     fields_meta_peptide_dict = ['id','read_frame','gene_name','gene_chr','gene_strand','mutation_mode',
@@ -161,6 +167,7 @@ def initialize_fp(junction_peptide_file_path, junction_meta_file_path, backgroun
     fields_backgrd_pep_dict = ['fasta']
     fields_forgrd_kmer_dict = ['kmer', 'id', 'expr', 'is_cross_junction', 'junction_count']
     fields_backgrd_kmer_dict = ['kmer']
+    fields_gene_expr_file = ['gene', 'total_expr']
 
 
     peptide_fp = output_info(junction_peptide_file_path, fields_forgrd_pep_dict)
@@ -168,7 +175,8 @@ def initialize_fp(junction_peptide_file_path, junction_meta_file_path, backgroun
     background_fp = output_info(background_peptide_file_path, fields_backgrd_pep_dict )
     junction_kmer_fp = output_info(junction_kmer_file_path,fields_forgrd_kmer_dict , kmer_list )
     background_kmer_fp = output_info(background_kmer_file_path, fields_backgrd_kmer_dict ,kmer_list )
-    filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp, junction_kmer_fp , background_kmer_fp )
+    gene_expr_fp = output_info(gene_expr_file_path, fields_gene_expr_file)
+    filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp, junction_kmer_fp, background_kmer_fp, gene_expr_fp )
     return filepointer
 
 

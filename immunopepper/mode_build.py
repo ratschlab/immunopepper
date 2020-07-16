@@ -24,6 +24,7 @@ from .io_ import initialize_fp
 from .io_ import remove_folder_list
 from .io_ import save_backgrd_kmer_set
 from .io_ import save_backgrd_pep_dict
+from .io_ import save_gene_expr_distr
 from .io_ import save_forgrd_kmer_dict
 from .io_ import save_forgrd_pep_dict
 from .io_ import write_gene_expr
@@ -187,16 +188,13 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                                                                 edge_counts=edge_counts,
                                                                 seg_counts=seg_counts
                                                                 )
-        # Gene expression and sample library size
-        gene_name_expr_distr.append((R['gene_name'], R['total_expr']))
-        expr_distr.append(R['total_expr'])
 
         R['time'] = timeit.default_timer() - start_time
         R['memory'] = print_memory_diags(disable_print=True)
         R['outbase'] = outbase
         results.append(R)
 
-    process_result(results, ['output_metadata_list', 'output_kmer_lists'], outbase, remove_annot, uniq_foreground, compression, verbose)
+    process_result(results, ['output_metadata_list', 'output_kmer_lists', 'total_expr'], outbase, remove_annot, uniq_foreground, compression, verbose)
     return gene_name_expr_distr, expr_distr,  dict_pept_forgrd, dict_kmer_foregr #Does not update the dictionaries and list globally because of the subprocess
 
 
@@ -221,10 +219,13 @@ def process_result(gene_results, output_name, outbase, remove_annot=False, uniq_
     time_per_gene = []
     mem_per_gene = []
     gene_idxs = []
+    gene_expr = []
     kmers = defaultdict(list)
     for gene_result in gene_results:
         if gene_result['processed']:
             for result_type in gene_result:
+                if 'total_expr' in result_type:
+                    gene_expr.append((gene_result['gene_name'], gene_result['total_expr']))
                 if ('peptide' in result_type) or ('metadata' in result_type):
                     pool_genes[result_type].extend(gene_result[result_type])
                 elif 'kmer' in result_type:
@@ -238,6 +239,7 @@ def process_result(gene_results, output_name, outbase, remove_annot=False, uniq_
                 mem_per_gene.append(gene_result['memory'])
                 gene_idxs.append(gene_result['gene_idx'])
     pool_genes[kmer_key] = pool_kmers
+    pool_genes['gene_expr_distr'] = gene_expr
     s1 = timeit.default_timer()
     write_gene_result(pool_genes, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, set_kmer_back,
                       filepointer, remove_annot, uniq_foreground, compression, outbase, verbose)
@@ -254,6 +256,9 @@ def process_result(gene_results, output_name, outbase, remove_annot=False, uniq_
 
 def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, set_kmer_back, filepointer,
                       remove_annot=True, uniq_foreground=False, compression=None, outbase=None,  verbose=True):
+
+    if 'gene_expr_distr' in gene_result:
+        save_gene_expr_distr(gene_result['gene_expr_distr'], filepointer, outbase, compression, verbose)
 
     if ('background_peptide_list' in gene_result) and (len(gene_result['background_peptide_list'])):
         records = gene_result['background_peptide_list']
@@ -282,6 +287,7 @@ def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kme
             #if not uniq_foreground:
             save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, kmer_length, compression, outbase, verbose)
             dict_kmer_foregr.clear()
+
 
 
 
@@ -396,18 +402,20 @@ def mode_build(arg):
         background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa.pq'+gzip_tag)
         junction_kmer_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.pq'+gzip_tag)
         background_kmer_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.pq'+gzip_tag)
-        gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.tsv'+gzip_tag)
-        gene_expr_fp = gz_and_normal_open(gene_expr_file_path, 'w')
-
+        gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.pq'+gzip_tag)
+        filepointer = initialize_fp(junction_peptide_file_path,
+                                    junction_meta_file_path,
+                                    background_peptide_file_path,
+                                    junction_kmer_file_path,
+                                    background_kmer_file_path,
+                                    gene_expr_file_path,
+                                    arg.kmer)
 
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
 
         if arg.parallel > 1:
-            filepointer = initialize_fp(junction_peptide_file_path, junction_meta_file_path,
-                                        background_peptide_file_path,
-                                        junction_kmer_file_path, background_kmer_file_path,
-                                        arg.kmer)
+
             logging.info('Parallel: {} Threads'.format(arg.parallel))
 
 
@@ -420,7 +428,7 @@ def mode_build(arg):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
                 pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
-                res = pool.apply_async(process_gene_batch_background, args=(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, remove_annot, uniq_foreground, pq_compression, verbose_save))
+                _ = pool.apply_async(process_gene_batch_background, args=(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, remove_annot, uniq_foreground, pq_compression, verbose_save))
             pool.close()
             pool.join()
 
@@ -430,10 +438,9 @@ def mode_build(arg):
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
-                res = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, remove_annot, uniq_foreground, pq_compression, verbose_save))
+                _ = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, remove_annot, uniq_foreground, pq_compression, verbose_save))
             pool.close()
             pool.join()
-            gene_name_expr_distr, expr_distr, dict_pept_forgrd, dict_kmer_foregr = res.get()
 
             # Collects and pools the files of each batch
             logging.debug('start collecting results')
@@ -442,13 +449,10 @@ def mode_build(arg):
             collect_results(filepointer.junction_meta_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
             collect_results(filepointer.background_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
-            #remove_folder_list(os.path.join(output_path, 'tmp_out_')) #TODO add back after development
+            collect_results(filepointer.gene_expr_fp, output_path, pq_compression, arg.mutation_mode)
+            remove_folder_list(os.path.join(output_path, 'tmp_out_')) #TODO add back after development
 
         else:
-            filepointer = initialize_fp(junction_peptide_file_path, junction_meta_file_path,
-                                        background_peptide_file_path,
-                                        junction_kmer_file_path, background_kmer_file_path,
-                                        arg.kmer)
             logging.info('Not Parallel')
             # Build the background
             process_gene_batch_background(sample, graph_data, gene_id_list, mutation, countinfo, genetable, arg, output_path, remove_annot, uniq_foreground, pq_compression, verbose=True)
@@ -457,9 +461,7 @@ def mode_build(arg):
                              countinfo, genetable, arg, output_path, dict_pept_backgrd, remove_annot, uniq_foreground, pq_compression, verbose=True)
 
 
-        expr_distr_dict[sample] = expr_distr
-        write_gene_expr(gene_expr_fp,gene_name_expr_distr)
-        create_libsize(expr_distr_dict,output_libszie_fp)
+        create_libsize(filepointer.gene_expr_fp,output_libszie_fp, sample)
 
 
         # Save the data structures kept in memory for filtering
