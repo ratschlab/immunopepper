@@ -143,10 +143,10 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
 
     if filter_redundant:
         vertex_pair_list = get_filtered_metadata_list(vertex_pair_list, gene.strand)
-    concat_vertex_pair_list = defaultdict(list, {'2exons': vertex_pair_list})
+    concat_vertex_pair_list = defaultdict(list, {'2-exons': vertex_pair_list})
     if not disable_concat:
-        for kmer_length in kmer:
-            concat_vertex_pair_list['3exons_{}mer'.format(kmer_length)] = collect_vertex_triples(gene, vertex_pair_list, kmer_length)
+        for kmer_length in kmer: #
+            concat_vertex_pair_list['3-exons_{}-mer'.format(kmer_length)] = collect_vertex_triples(gene, vertex_pair_list, kmer_length)
     #vertex_pair_list += concat_vertex_pair_list
 
     return concat_vertex_pair_list, ref_mut_seq, exon_som_dict
@@ -316,11 +316,12 @@ def get_and_write_peptide_and_kmer(gene=None, all_vertex_pairs=None, background_
                                                 exons_coor=modi_coord,
                                                 junction_count=edge_expr)
                 if kmer:
-                    if 'vertice_pair' in kmer_type:
+                    if '2-exons' in kmer_type:
                         for kmer_length in kmer:
                             output_kmer_dict[kmer_length].append(create_output_kmer(output_peptide, kmer_length, expr_list))
                     else:
-                        output_kmer_dict[int(kmer_type.split('_')[-1][0])].append(create_output_kmer(output_peptide, int(kmer_type.split('_')[-1][0]), expr_list))
+                        kmer_length = int(kmer_type.split('_')[-1].split('-')[0])
+                        output_kmer_dict[kmer_length].append(create_output_kmer(output_peptide, kmer_length, expr_list))
 
         if not gene.splicegraph.edges is None:
             gene.to_sparse()

@@ -78,8 +78,8 @@ tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
 mutation_mode ='somatic_and_germline'
 #pr = cProfile.Profile()
 #pr.enable()
-#test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
-test_end_to_end_makebg('ERR2130621', tmpdir, "9")
+test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
+#test_end_to_end_makebg('ERR2130621', tmpdir, "9")
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 
