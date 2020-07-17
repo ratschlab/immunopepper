@@ -51,22 +51,38 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True):
     my_args = my_args_build
     immunopepper.split_mode(my_args)
 
+def test_end_to_end_makebg(sample, tmpdir, kmer):
+    out_dir = os.path.join(tmpdir, sample)
+    output_file_name = os.path.join(tmpdir, sample, 'integrated_background_kmer.txt')
+    back_file_dir = os.path.join(tmpdir, sample)
+    bg_file_list = [os.path.join(back_file_dir, '{}_back_{}mer.pq.gz'.format(mode, kmer)) for mode in
+                    ['ref', 'somatic', 'somatic_and_germline', 'germline']]
+    my_args_makebg = ['make_bg', '--kmer-files'] + bg_file_list + ['--output-file-path', output_file_name] + [
+        '--output-dir', out_dir]
+
+    immunopepper.split_mode(my_args_makebg)
+
+# def test_end_to_end_diff(test_id, case, tmpdir, mutation_mode):
+#     out_dir = str(tmpdir)
+#     out_dir = os.path.join(os.path.dirname(__file__), 'mouse_usecase')
+#     my_args_diff = ['diff', '--junction-kmer-file', junction_kmer_file_path,
+#                    '--bg-file-path', bg_kmer_file_path,
+#                    '--output-file-path', output_file_path,
+#                    '--output-dir', out_dir]
+
+    # immunopepper.split_mode(my_args_diff)
+
 
 ### Mouse Test
-tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer/h5pytest'
+tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
 mutation_mode ='somatic_and_germline'
 #pr = cProfile.Profile()
 #pr.enable()
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True)
+#test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
+test_end_to_end_makebg('ERR2130621', tmpdir, "9")
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 
 
 
 
-
-### Human Test
-# test_id ='1'
-# case = 'pos'
-# mutation_mode ='germline'
-# test_end_to_end_build(test_id, case, mutation_mode, tmpdir)
