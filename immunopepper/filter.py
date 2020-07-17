@@ -195,7 +195,7 @@ def peptide_is_annotated(background_peptide_dict, peptide):
 
 
 
-def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list, filter_dict, remove_annot=True):
+def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list, filter_dict):
     """...
         From a namedtuple
         Updates the following dictionnary:
@@ -214,9 +214,6 @@ def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list, filter_dict, remove_ann
         ord_dict_metadata = _namedtuple_kmer._asdict()
         del ord_dict_metadata['kmer']
 
-        ### Remove annotation
-        if (remove_annot) and (_namedtuple_kmer.kmer) in filter_dict:
-            continue
         ### aggregate metadata of unique kmers
         if _namedtuple_kmer.kmer not in foregrd_dict:
             dic_with_sets = dict(zip(ord_dict_metadata.keys(), [{i} for i in ord_dict_metadata.values()]))

@@ -269,7 +269,6 @@ def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kme
     if ('background_kmer_lists' in gene_result) and (len(gene_result['background_kmer_lists'])):
         for kmer_length, records in gene_result['background_kmer_lists'].items():
             add_set_kmer_back(set_kmer_back, records)
-            #if not remove_annot:
             save_backgrd_kmer_set(set_kmer_back, filepointer, kmer_length, compression, outbase, verbose)
             set_kmer_back.clear()
 
@@ -277,14 +276,12 @@ def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kme
     if ('output_metadata_list' in gene_result) and (len(gene_result['output_metadata_list'])):
         records = gene_result['output_metadata_list']
         add_dict_peptide(dict_pept_forgrd, records)
-        #if not uniq_foreground:
         save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, verbose)
         dict_pept_forgrd.clear()
 
     if ('output_kmer_lists' in gene_result) and (len(gene_result['output_kmer_lists'])):
         for kmer_length, records in gene_result['output_kmer_lists'].items():
-            add_dict_kmer_forgrd(dict_kmer_foregr, records,  set_kmer_back, remove_annot)
-            #if not uniq_foreground:
+            add_dict_kmer_forgrd(dict_kmer_foregr, records,  set_kmer_back)
             save_forgrd_kmer_dict(dict_kmer_foregr, filepointer, kmer_length, compression, outbase, verbose)
             dict_kmer_foregr.clear()
 

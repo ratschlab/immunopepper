@@ -150,10 +150,11 @@ def save_forgrd_pep_dict(dict_, filepointer, compression=None, outbase=None, ver
         save_pd_toparquet(path_meta, df, compression, verbose)
 
 def save_gene_expr_distr(gene_expr_distr_list, filepointer, outbase, compression, verbose):
-    df = pd.DataFrame(gene_expr_distr_list)
-    path = switch_tmp_path(filepointer.gene_expr_fp, outbase)
-    df.columns = filepointer.gene_expr_fp['columns']
-    save_pd_toparquet(path, df, compression, verbose)
+    if gene_expr_distr_list:
+        df = pd.DataFrame(gene_expr_distr_list)
+        path = switch_tmp_path(filepointer.gene_expr_fp, outbase)
+        df.columns = filepointer.gene_expr_fp['columns']
+        save_pd_toparquet(path, df, compression, verbose)
 
 
 def initialize_fp(junction_peptide_file_path, junction_meta_file_path, background_peptide_file_path,
