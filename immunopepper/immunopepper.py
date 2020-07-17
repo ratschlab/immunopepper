@@ -36,10 +36,7 @@ def parse_arguments(argv):
     outputs.add_argument("--kmer", nargs='+', type=int, help="list which specifys the different k for kmer output", required=False, default=[])
     outputs.add_argument("--disable-concat",help="switch off concatenation of short exons to increase speed",action="store_true",default=False)
     outputs.add_argument("--use-mut-pickle", help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
-    outputs.add_argument("--remove-annot",help="The kmers found in the nnotation file will be removed during the generation process", action="store_true", default=False)
-    outputs.add_argument("--uniq-foreground",
-                         help="Kmers and the peptides made unique, the metadata will be aggregated per kmer. Automaticaly True when --remove_annot is used. WARNING the data will be kept in memory",
-                         action="store_true", default=False)
+    #outputs.add_argument("--peptides_tsv", help="save the peptides outputs as tsv files instead of fasta files", action="store_true", default=False)
 
     additional_file = parser_build.add_argument_group('ADDITIONAL FILES')
     additional_file.add_argument("--germline", help="absolute path of germline mutation file", required=False, default='')

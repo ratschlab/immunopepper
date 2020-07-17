@@ -143,10 +143,10 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
 
     if filter_redundant:
         vertex_pair_list = get_filtered_metadata_list(vertex_pair_list, gene.strand)
-    concat_vertex_pair_list = defaultdict(list, {'vertice_pair': vertex_pair_list})
+    concat_vertex_pair_list = defaultdict(list, {'2exons': vertex_pair_list})
     if not disable_concat:
         for kmer_length in kmer:
-            concat_vertex_pair_list['vertice_triplet_{}mer'.format(kmer_length)] = collect_vertex_triples(gene, vertex_pair_list, kmer_length)
+            concat_vertex_pair_list['3exons_{}mer'.format(kmer_length)] = collect_vertex_triples(gene, vertex_pair_list, kmer_length)
     #vertex_pair_list += concat_vertex_pair_list
 
     return concat_vertex_pair_list, ref_mut_seq, exon_som_dict
@@ -269,7 +269,7 @@ def get_and_write_peptide_and_kmer(gene=None, all_vertex_pairs=None, background_
                 if not peptide.mut or not (peptide.mut != peptide.ref or mutation.mode == 'ref' or output_silence):
                     continue
 
-                new_output_id = ':'.join([gene.name, '_'.join([str(v) for v in vertex_list]), str(variant_id), str(tran_start_pos)])
+                new_output_id = ':'.join([gene.name, '_'.join([str(v) for v in vertex_list]), str(variant_id), str(tran_start_pos), kmer_type])
                 peptide_is_annotated_flag = peptide_is_annotated(background_pep_dict, peptide.mut)
                 vertex_tuple_anno_flag = junction_tuple_is_annotated(junction_flag, vertex_list)
                 junction_is_in_given_list_flag = junction_is_in_given_list(gene.splicegraph, vertex_list, gene.strand, junction_list)

@@ -55,7 +55,7 @@ sys.modules['modules.classes.segmentgraph'] = csegmentgraph
 ### end fix
 
 
-def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinfo, genetable, arg, outbase, remove_annot, uniq_foreground, compression=None, verbose=False):
+def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinfo, genetable, arg, outbase, compression=None, verbose=False):
     results = []
     for i, gene in enumerate(genes):
         ### measure time
@@ -101,11 +101,11 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
         R['memory'] = print_memory_diags(disable_print=True)
         R['outbase'] = outbase
         results.append(R)
-    process_result(results, ['background_peptide_list', 'background_kmer_lists'], outbase, remove_annot, uniq_foreground, compression, verbose)
+    process_result(results, ['background_peptide_list', 'background_kmer_lists'], outbase, compression, verbose)
     return dict_pept_backgrd, set_kmer_back  #Does not update the dictionaries and list globally because of the subprocess
 
 
-def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, remove_annot, uniq_foreground, compression, verbose):
+def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, compression, verbose):
     results = []
     for i, gene in enumerate(genes):
         ### measure time
@@ -194,11 +194,11 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
         R['outbase'] = outbase
         results.append(R)
 
-    process_result(results, ['output_metadata_list', 'output_kmer_lists', 'total_expr'], outbase, remove_annot, uniq_foreground, compression, verbose)
+    process_result(results, ['output_metadata_list', 'output_kmer_lists', 'total_expr'], outbase, compression, verbose)
     return gene_name_expr_distr, expr_distr,  dict_pept_forgrd, dict_kmer_foregr #Does not update the dictionaries and list globally because of the subprocess
 
 
-def process_result(gene_results, output_name, outbase, remove_annot=False, uniq_foreground=False, compression=None, verbose=True):
+def process_result(gene_results, output_name, outbase, compression=None, verbose=True):
     '''
     Parameters
     -----------
@@ -242,7 +242,7 @@ def process_result(gene_results, output_name, outbase, remove_annot=False, uniq_
     pool_genes['gene_expr_distr'] = gene_expr
     s1 = timeit.default_timer()
     write_gene_result(pool_genes, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, set_kmer_back,
-                      filepointer, remove_annot, uniq_foreground, compression, outbase, verbose)
+                      filepointer, compression, outbase, verbose)
 
     if gene_idxs:
         logging.info("> {}: {}/{} processed, max time cost: {}, memory cost:{} GB for in gene batch; writing results took {} seconds ".format(sample, gene_idxs[-1]  + 1,
@@ -255,7 +255,7 @@ def process_result(gene_results, output_name, outbase, remove_annot=False, uniq_
 
 
 def write_gene_result(gene_result, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, set_kmer_back, filepointer,
-                      remove_annot=True, uniq_foreground=False, compression=None, outbase=None,  verbose=True):
+                       compression=None, outbase=None,  verbose=True):
 
     if 'gene_expr_distr' in gene_result:
         save_gene_expr_distr(gene_result['gene_expr_distr'], filepointer, outbase, compression, verbose)
@@ -317,10 +317,6 @@ def mode_build(arg):
     #graph_data = graph_data[[3170]] #TODO remove
     #graph_data = graph_data[400:5400]
     all_read_frames = arg.all_read_frames
-    remove_annot =  arg.remove_annot
-    uniq_foreground = arg.uniq_foreground or remove_annot
-    if uniq_foreground:
-        logging.info('INFO: kmers and peptides will be kept in memory')
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
@@ -428,7 +424,7 @@ def mode_build(arg):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
                 pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
-                _ = pool.apply_async(process_gene_batch_background, args=(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, remove_annot, uniq_foreground, pq_compression, verbose_save))
+                _ = pool.apply_async(process_gene_batch_background, args=(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
             pool.close()
             pool.join()
 
@@ -438,7 +434,7 @@ def mode_build(arg):
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
-                _ = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, remove_annot, uniq_foreground, pq_compression, verbose_save))
+                _ = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, pq_compression, verbose_save))
             pool.close()
             pool.join()
 
@@ -455,10 +451,10 @@ def mode_build(arg):
         else:
             logging.info('Not Parallel')
             # Build the background
-            process_gene_batch_background(sample, graph_data, gene_id_list, mutation, countinfo, genetable, arg, output_path, remove_annot, uniq_foreground, pq_compression, verbose=True)
+            process_gene_batch_background(sample, graph_data, gene_id_list, mutation, countinfo, genetable, arg, output_path, pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
             process_gene_batch_foreground( sample, graph_data, graph_info, gene_id_list, len(gene_id_list), all_read_frames, mutation, junction_dict,
-                             countinfo, genetable, arg, output_path, dict_pept_backgrd, remove_annot, uniq_foreground, pq_compression, verbose=True)
+                             countinfo, genetable, arg, output_path, dict_pept_backgrd, pq_compression, verbose=True)
 
 
         create_libsize(filepointer.gene_expr_fp,output_libszie_fp, sample)
