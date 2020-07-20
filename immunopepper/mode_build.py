@@ -443,7 +443,7 @@ def mode_build(arg):
             collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
             collect_results(filepointer.background_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
             collect_results(filepointer.gene_expr_fp, output_path, pq_compression, arg.mutation_mode)
-            remove_folder_list(os.path.join(output_path, 'tmp_out_')) #TODO add back after development
+            remove_folder_list(os.path.join(output_path, 'tmp_out_{}'.format(arg.mutation_mode)))
 
         else:
             logging.info('Not Parallel')
