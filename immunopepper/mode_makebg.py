@@ -4,10 +4,10 @@ Integrate multiple background kmer files and generate background kmer file
 
 import logging
 import pandas as pd
-import pyarrow as pa
 
-from .io_ import save_pd_toparquet
 from .io_ import read_pq_with_dict
+from .io_ import save_pd_toparquet
+
 
 def mode_makebg(arg):
     logging.info(">>>>>>>>> make_bg: Start")

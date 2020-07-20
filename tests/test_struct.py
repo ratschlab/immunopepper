@@ -53,7 +53,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True):
 
 def test_end_to_end_makebg(sample, tmpdir, kmer):
     out_dir = os.path.join(tmpdir, sample)
-    output_file_name = os.path.join(tmpdir, sample, 'integrated_background_kmer.txt')
+    output_file_name = os.path.join(tmpdir, sample, 'integrated_background_kmer.pq.gz')
     back_file_dir = os.path.join(tmpdir, sample)
     bg_file_list = [os.path.join(back_file_dir, '{}_back_{}mer.pq.gz'.format(mode, kmer)) for mode in
                     ['ref', 'somatic', 'somatic_and_germline', 'germline']]
@@ -65,12 +65,13 @@ def test_end_to_end_makebg(sample, tmpdir, kmer):
 def test_end_to_end_diff(tmpdir, sample, kmer_length, mutation_mode):
     out_dir = str(tmpdir)
     junction_kmer_file_path = os.path.join(out_dir, sample, '{}_junction_{}mer.pq.gz'.format(mutation_mode, kmer_length))
-    bg_kmer_file_path = os.path.join(out_dir, sample, 'integrated_background_kmer.txt')
-    output_file_path = out_dir
+    bg_kmer_file_path = os.path.join(out_dir, sample, 'integrated_background_kmer.pq.gz')
+    output_file_path = os.path.join(out_dir,'{}_junction_{}mer_with_bg.pq.gz'.format(mutation_mode, kmer_length))
     my_args_diff = ['diff', '--junction-kmer-file', junction_kmer_file_path,
                    '--bg-file-path', bg_kmer_file_path,
                    '--output-file-path', output_file_path,
-                   '--output-dir', out_dir]
+                   '--output-dir', out_dir,
+                   '--remove-bg']
 
     immunopepper.split_mode(my_args_diff)
 
@@ -83,7 +84,7 @@ mutation_mode ='ref'
 #pr.enable()
 #test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
 test_end_to_end_makebg('ERR2130621', tmpdir, "9")
-#test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
+test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 
