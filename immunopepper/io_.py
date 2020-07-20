@@ -203,6 +203,16 @@ def save_pd_toparquet(path, pd_df, compression = None, verbose = False):
         logging.info('Saving parquet {} with {} lines. Took {} seconds'.format(file_name, tot_shape,
                                                                       timeit.default_timer() - s1))
 
+# def save_dict_toparquet(path, my_dict, columns, compression = None, verbose = False):
+#     s1 = timeit.default_timer()
+#     table = pa.Table.from_arrays([my_dict], columns["kmer"])
+#     pa.parquet.write_table(table=my_dict, where=path, compression=compression, use_dictionary=columns)
+#     if verbose:
+#         file_name = os.path.basename(path)
+#         tot_shape = len(my_dict[columns[0]])
+#         logging.info('Saving parquet {} with {} lines. Took {} seconds'.format(file_name, tot_shape,
+#                                                                       timeit.default_timer() - s1))
+
 
 def collect_results(filepointer_item, outbase, compression, mutation_mode,  kmer_list = None):
     s1 = timeit.default_timer()
@@ -232,3 +242,10 @@ def remove_folder_list(commun_base):
     folder_list = glob.glob(commun_base + '*')
     for dir_path in folder_list:
         shutil.rmtree(dir_path, ignore_errors=True)
+
+
+def read_pq_with_dict(file_path, columns):
+    return pa.parquet.read_table(file_path, read_dictionary=columns)
+
+def read_pq_with_pd(file_path):
+    return pa.parquet.read_table(file_path).to_pandas()

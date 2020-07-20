@@ -58,28 +58,32 @@ def test_end_to_end_makebg(sample, tmpdir, kmer):
     bg_file_list = [os.path.join(back_file_dir, '{}_back_{}mer.pq.gz'.format(mode, kmer)) for mode in
                     ['ref', 'somatic', 'somatic_and_germline', 'germline']]
     my_args_makebg = ['make_bg', '--kmer-files'] + bg_file_list + ['--output-file-path', output_file_name] + [
-        '--output-dir', out_dir]
+        '--output-dir', out_dir, '--compressed']
 
     immunopepper.split_mode(my_args_makebg)
 
-# def test_end_to_end_diff(test_id, case, tmpdir, mutation_mode):
-#     out_dir = str(tmpdir)
-#     out_dir = os.path.join(os.path.dirname(__file__), 'mouse_usecase')
-#     my_args_diff = ['diff', '--junction-kmer-file', junction_kmer_file_path,
-#                    '--bg-file-path', bg_kmer_file_path,
-#                    '--output-file-path', output_file_path,
-#                    '--output-dir', out_dir]
+def test_end_to_end_diff(tmpdir, sample, kmer_length, mutation_mode):
+    out_dir = str(tmpdir)
+    junction_kmer_file_path = os.path.join(out_dir, sample, '{}_junction_{}mer.pq.gz'.format(mutation_mode, kmer_length))
+    bg_kmer_file_path = os.path.join(out_dir, sample, 'integrated_background_kmer.txt')
+    output_file_path = out_dir
+    my_args_diff = ['diff', '--junction-kmer-file', junction_kmer_file_path,
+                   '--bg-file-path', bg_kmer_file_path,
+                   '--output-file-path', output_file_path,
+                   '--output-dir', out_dir]
 
-    # immunopepper.split_mode(my_args_diff)
+    immunopepper.split_mode(my_args_diff)
+
 
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
-mutation_mode ='somatic_and_germline'
+mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
-#test_end_to_end_makebg('ERR2130621', tmpdir, "9")
+#test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
+test_end_to_end_makebg('ERR2130621', tmpdir, "9")
+#test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 

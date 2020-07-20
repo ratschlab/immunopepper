@@ -7,6 +7,7 @@ import pandas as pd
 import pyarrow as pa
 
 from .io_ import save_pd_toparquet
+from .io_ import read_pq_with_dict
 
 def mode_makebg(arg):
     logging.info(">>>>>>>>> make_bg: Start")
@@ -15,12 +16,16 @@ def mode_makebg(arg):
     uniq_kmer_set = set()
     for kmer_file in kmer_file_list:
         logging.info("consider background file:{}".format(kmer_file))
-        f = pa.parquet.read_table(kmer_file).to_pandas()
-        uniq_kmer_set.update(f['kmer'].values)
+        f = read_pq_with_dict(kmer_file, ['kmer'])
+        uniq_kmer_set.update(f['kmer'])
 
-    uniq_kmer_set = sorted(uniq_kmer_set)
-    save_pd_toparquet(output_file_path, pd.DataFrame(uniq_kmer_set, columns = ['kmer']).head(),
-                      compression=None, verbose=True)
+    if arg.compressed:
+        compression = 'gzip'
+    else:
+        compression = None
+
+    save_pd_toparquet(output_file_path, pd.DataFrame(uniq_kmer_set, columns = ['kmer'],  dtype='str'),
+                  compression=compression, verbose=True)
 
     logging.info("generate unique background kmer file in {}".format(output_file_path))
     logging.info(">>>>>>>>> make_bg: Finish\n")
