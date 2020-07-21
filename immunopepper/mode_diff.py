@@ -36,8 +36,6 @@ def mode_diff(arg):
     save_pd_toparquet(output_file, kmer_df,
                   compression=compression, verbose=True)
 
-    kmer_df.to_csv(output_file,sep='\t',index=False,compression='gzip')
-
     logging.info("output bg-removed kmer file : {}".format(output_file))
     logging.info(">>>>>>>>> diff: Finish\n")
 

@@ -86,9 +86,9 @@ def parse_arguments(argv):
     optional = parser_filter.add_argument_group('OPTIONAL')
     optional.add_argument("--cross-junction", help="only output the cross-junction kmers", action="store_true",default=False)
     optional.add_argument("--seg-expr", help="only output kmers that have segment expression greater than threshold", action="store_true",default=False)
-    optional.add_argument("--seg-expr-thresh", type=int, help="segment expression threshold [0]", default=0)
+    optional.add_argument("--seg-expr-thresh", type=float, help="segment expression threshold [0]", default=0)
     optional.add_argument("--junc-expr", help="only output kmers that have junction expression greater than threshold", action="store_true",default=False)
-    optional.add_argument("--junc-expr-thresh", type=int, help="junction expression threshold [0]", default=0)
+    optional.add_argument("--junc-expr-thresh", type=float, help="junction expression threshold [0]", default=0)
     optional.add_argument("--meta-file-path",help="specify the meta data file for more filters")
     optional.add_argument('--peptide-annotated',help="filter the kmers based on whether their original kmers appear in background peptide, 0 means keeping"
                                                      "the kmers whose original peptide does not show in background peptide. 1 means the opposite")

@@ -66,25 +66,53 @@ def test_end_to_end_diff(tmpdir, sample, kmer_length, mutation_mode):
     out_dir = str(tmpdir)
     junction_kmer_file_path = os.path.join(out_dir, sample, '{}_junction_{}mer.pq.gz'.format(mutation_mode, kmer_length))
     bg_kmer_file_path = os.path.join(out_dir, sample, 'integrated_background_kmer.pq.gz')
-    output_file_path = os.path.join(out_dir,'{}_junction_{}mer_with_bg.pq.gz'.format(mutation_mode, kmer_length))
+    output_file_path = os.path.join(out_dir, sample,'{}_junction_{}mer_with_bg.pq.gz'.format(mutation_mode, kmer_length))
     my_args_diff = ['diff', '--junction-kmer-file', junction_kmer_file_path,
                    '--bg-file-path', bg_kmer_file_path,
                    '--output-file-path', output_file_path,
                    '--output-dir', out_dir,
                    '--remove-bg']
-
     immunopepper.split_mode(my_args_diff)
+
+
+def test_end_to_end_filter(tmpdir, sample, kmer_length, mutation_mode):
+    out_dir = str(tmpdir)
+    junction_kmer_file_path = os.path.join(out_dir, sample,
+                            '{}_junction_{}mer_with_bg.pq.gz'.format(mutation_mode, kmer_length))
+    meta_file_path = os.path.join(out_dir, sample,
+                                  '{}_metadata.tsv.gz.pq'.format(mutation_mode))
+
+    # segment expression 1300 filter and junction expression 500
+    output_filtered_file_name = 'junc_expr_500_seg_expr_1300_cj_{}_junction_{}mer_with_bg.pq.gz'.format(mutation_mode, kmer_length)
+    output_file_path = os.path.join(out_dir, sample, output_filtered_file_name)
+
+    my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_file_path,
+               '--output-file-path', output_file_path,
+               '--output-dir', out_dir,
+               '--seg-expr',
+               '--seg-expr-thresh', '0.12',
+               #'--junc-expr',
+               #'--junc-expr-thresh', '0',
+               '--meta-file-path', meta_file_path,
+               '--peptide-annotated', '0',
+               '--junction-annotated', '0',
+               '--has-stop-codon', '0',
+               '--is-in-junction-list', '1',
+               '--is-isolated', '0']
+    immunopepper.split_mode(my_args)
+
 
 
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
-mutation_mode ='ref'
+mutation_mode ='germline'
 #pr = cProfile.Profile()
 #pr.enable()
 #test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
-test_end_to_end_makebg('ERR2130621', tmpdir, "9")
-test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
+#test_end_to_end_makebg('ERR2130621', tmpdir, "9")
+#test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
+test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 

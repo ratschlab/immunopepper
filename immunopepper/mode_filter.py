@@ -7,7 +7,9 @@ import sys
 
 
 from .constant import NOT_EXIST
-from .io_ import gz_and_normal_open
+from .io_ import save_pd_toparquet
+from .io_ import read_pq_with_pd
+
 
 def mode_filter(arg):
     logging.info(">>>>>>>>> filter: Start")
@@ -24,66 +26,119 @@ def mode_filter(arg):
         logging.info(">>>>>>>>> filter: Finish\n")
         return
 
-    kmer_df = pd.read_csv(junction_kmer_tsv_path,sep='\t')
-    if arg.cross_junction:
-        logging.info('apply cross junction filter')
-        kmer_df = kmer_df[kmer_df['is_crossjunction']]
+    kmer_df = read_pq_with_pd(junction_kmer_tsv_path)
 
-    if arg.seg_expr:
+
+
+    if arg.cross_junction and kmer_df.shape[0]:
+        logging.info('Apply cross junction filter')
+        initial_shape = kmer_df.shape[0]
+        is_cross_junction = kmer_df['is_cross_junction'].apply(lambda x: 'True' in x.split('/'))
+        kmer_df = kmer_df[is_cross_junction]
+        final_shape = kmer_df.shape[0]
+        logging.info('...Initial size: {} kmers, Final size: {} kmers'.format(initial_shape, final_shape))
+
+    if arg.seg_expr and kmer_df.shape[0]:
         seg_expr_thre = arg.seg_expr_thresh
-        logging.info('apply segment expression filter, threshold is {}'.format(seg_expr_thre))
-        kmer_df = kmer_df[kmer_df['seg_expr']>seg_expr_thre]
+        logging.info('Apply segment expression filter, threshold is {}'.format(seg_expr_thre))
+        initial_shape = kmer_df.shape[0]
+        seg_expr = kmer_df['expr'].apply(lambda x: max(x.split('/')))
+        seg_expr = seg_expr.astype('float')
+        kmer_df = kmer_df[seg_expr>seg_expr_thre]
+        final_shape = kmer_df.shape[0]
+        logging.info('...Initial size: {} kmers, Final size: {} kmers'.format(initial_shape, final_shape))
 
-    if arg.junc_expr:
+    if arg.junc_expr and kmer_df.shape[0]:
         # if we want to filter based on junction expression
         # we actually also do cross_junction filter because
         # only cross junction kmers have junction expression
         junc_expr_thre = arg.junc_expr_thresh
-        logging.info('apply junction expression filter, threshold is {}'.format(junc_expr_thre))
-        kmer_df = kmer_df[kmer_df['is_crossjunction']]
-        kmer_df['junction_expr'] = pd.to_numeric(kmer_df['junction_expr'])
-        kmer_df = kmer_df[kmer_df['junction_expr']>junc_expr_thre]
+        logging.info('Apply junction expression filter, threshold is {}'.format(junc_expr_thre))
+        initial_shape = kmer_df.shape[0]
+        is_cross_junction = kmer_df['is_cross_junction'].apply(lambda x: 'True' in x.split('/'))
+        kmer_df = kmer_df[is_cross_junction]
+        junction_expr = kmer_df['junction_count'].apply(lambda x: max(x.split('/')))
+        junction_expr = junction_expr.astype('float')
+        kmer_df = kmer_df[junction_expr>junc_expr_thre]
+        final_shape = kmer_df.shape[0]
+        logging.info('...Initial size: {} kmers, Final size: {} kmers'.format(initial_shape, final_shape))
 
     if arg.meta_file_path:
+        initial_shape = kmer_df.shape[0]
         meta_file_path = arg.meta_file_path
-        meta_df = pd.read_csv(meta_file_path,sep='\t')
-        total_keep_id = set(meta_df['output_id'])
+        meta_df = read_pq_with_pd(meta_file_path)
+        meta_initial = meta_df.shape[0]
+        total_keep_id = set(meta_df['id'])
         if arg.peptide_annotated:
-            keep_id = meta_df[meta_df['peptide_annotated']==int(arg.peptide_annotated)]['output_id']
+            # annotated if 1 or 1/0 (metadata collapsed per gene)
+            if arg.peptide_annotated in '1':
+                keep_id = meta_df.loc[meta_df['peptide_annotated'].apply(lambda x: '1' in x.split('/')), 'id']
+
+            else:
+                keep_id = meta_df.loc[meta_df['peptide_annotated']=='0', 'id']
             total_keep_id = total_keep_id.intersection(keep_id)
-            logging.info('apply peptide_annotated filter, value is {}'.format(arg.peptide_annotated))
+            logging.info('Apply peptide_annotated filter, value is {}'.format(arg.peptide_annotated))
+            logging.info('... {}/{} peptides satisfy condition'.format(len(keep_id), meta_initial))
 
         if arg.junction_annotated:
-            if int(arg.junction_annotated):
-                keep_id = meta_df[meta_df['junction_annotated'].isin(['1'])]['output_id']
+            # annotated if 1 or 1/0 (metadata collapsed per gene)
+            if arg.junction_annotated in '1':
+                keep_id = meta_df.loc[meta_df['junction_annotated'].apply(lambda x: '1' in x.split('/')), 'id']
+
             else:
-                keep_id = meta_df[meta_df['junction_annotated'].isin(['0'])]['output_id']
+                keep_id = meta_df.loc[meta_df['junction_annotated'] == '0', 'id']
             total_keep_id = total_keep_id.intersection(keep_id)
-            logging.info('apply junction_annotated filter, value is {}'.format(arg.junction_annotated))
+            logging.info('Apply junction_annotated filter, value is {}'.format(arg.junction_annotated))
+            logging.info('... {}/{} peptides satisfy condition'.format(len(keep_id), meta_initial))
 
         if arg.has_stop_codon:
-            keep_id = meta_df[meta_df['has_stop_codon']==int(arg.has_stop_codon)]['output_id']
+            # has_stop_codon if strictly 1 (metadata collapsed per gene)
+            if arg.has_stop_codon in '1':
+                keep_id = meta_df.loc[meta_df['has_stop_codon'] == '1', 'id']
+            else:
+                keep_id = meta_df.loc[meta_df['has_stop_codon'].apply(lambda x: '0' in x.split('/')), 'id']
             total_keep_id = total_keep_id.intersection(keep_id)
-            logging.info('apply has_stop_codon filter, value is {}'.format(arg.has_stop_codon))
+            logging.info('Apply has_stop_codon filter, value is {}'.format(arg.has_stop_codon))
+            logging.info('... {}/{} peptides satisfy condition'.format(len(keep_id), meta_initial))
 
         if arg.is_in_junction_list:
-            if int(arg.junction_annotated):
-                keep_id = meta_df[meta_df['junction_annotated'].isin(['1'])]['output_id']
-            else:
-                keep_id = meta_df[meta_df['junction_annotated'].isin(['0'])]['output_id']
-            total_keep_id = total_keep_id.intersection(keep_id)
-            logging.info('apply junction whitelist filter, value is {}'.format(arg.is_in_junction_list))
+            if '.' not in meta_df['is_in_junction_list'].values: # no whitelist provided
+                # is_in_junction_list if 1 or 0/1 (metadata collapsed per gene)
+                if arg.is_in_junction_list in '1':
+                    keep_id = meta_df.loc[meta_df['is_in_junction_list'].apply(lambda x: '1' in x.split('/')), 'id']
+
+                else:
+                    keep_id = meta_df.loc[meta_df['is_in_junction_list'] == '0', 'id']
+                total_keep_id = total_keep_id.intersection(keep_id)
+                logging.info('Apply junction whitelist filter, value is {}'.format(arg.is_in_junction_list))
+                logging.info('... {}/{} peptides satisfy condition'.format(len(keep_id), meta_initial))
 
         if arg.is_isolated:
-            keep_id = meta_df[meta_df['is_isolated']==int(arg.is_isolated)]['output_id']
+            # is_isolated if strict 1 (metadata collapsed per gene)
+            if arg.is_isolated in '1':
+                keep_id = meta_df.loc[meta_df['is_isolated'] == '1', 'id']
+            else:
+                keep_id = meta_df.loc[meta_df['is_isolated'].apply(lambda x: '0' in x.split('/')), 'id']
             total_keep_id = total_keep_id.intersection(keep_id)
-            logging.info('apply is_isolated filter, value is {}'.format(arg.is_isolated))
+            logging.info('Apply is_isolated filter, value is {}'.format(arg.is_isolated))
+            logging.info('... {}/{} peptides satisfy condition'.format(len(keep_id), meta_initial))
 
-        kmer_df = kmer_df[kmer_df['gene_name'].isin(total_keep_id)]
-    if arg.compressed:
-        kmer_df.to_csv(output_file_path, sep='\t', index=False,compression='gzip')
-    else:
-        kmer_df.to_csv(output_file_path,sep='\t',index=False)
+        #keep_id = {id for concat_id in total_keep_id for id in concat_id.split('/')}
+        total_keep_id = '/'.join(total_keep_id)
+        keep_kmer = {idx for idx, concat_id in enumerate(kmer_df['id']) for id in concat_id.split('/') if id in total_keep_id }
+        logging.info('Final table {} kmers retained after filtering on metadata'.format(len(keep_kmer)))
+        kmer_df = kmer_df.iloc[list(keep_kmer)]
+        final_shape = kmer_df.shape[0]
+        logging.info('...Initial size: {} kmers, Final size: {} kmers'.format(initial_shape, final_shape))
+
+    if kmer_df.shape[0]:
+        if arg.compressed:
+            compression = 'gzip'
+        else:
+            compression = None
+
+        save_pd_toparquet(output_file_path, kmer_df,
+                      compression=compression, verbose=True)
 
     logging.info("Apply filter to {} and save result to {}".format(junction_kmer_tsv_path,output_file_path))
     logging.info(">>>>>>>>> filter: Finish\n")
