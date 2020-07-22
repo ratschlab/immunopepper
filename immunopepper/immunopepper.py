@@ -163,11 +163,10 @@ def split_mode(options):
     if mode == 'filter':
         mode_filter(arg)
 
-    return arg.output_dir
 
 def cmd_entry():
     options = sys.argv[1:]
-    out_dir = split_mode(options)
+    split_mode(options)
 
 if __name__ == "__main__":
     cmd_entry()

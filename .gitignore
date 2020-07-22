@@ -119,3 +119,6 @@ tests/None/*
 
 
 immunopepper/cpython_functions.c
+/logs*
+/logs*/*
+

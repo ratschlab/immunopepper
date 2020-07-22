@@ -2,4 +2,5 @@ h5py==2.10.0
 numpy>=1.13
 psutil==5.4.6
 spladder==2.4.2
-datrie>=0.8
+pyarrow>=0.17
+pandas>=1.0.5

@@ -8,4 +8,3 @@ pytest>=3.4
 pytest-runner>=2.11.1
 prospector
 vulture>=0.6
-datrie>=0.8
