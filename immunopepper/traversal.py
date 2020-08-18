@@ -289,6 +289,7 @@ def get_and_write_peptide_and_kmer(gene=None, all_vertex_pairs=None, background_
                 else:
                     edge_expr = NOT_EXIST
 
+                #logging.info("going to create peptides {}".format(round(print_memory_diags(disable_print=True), 2)))
                 output_metadata_list.append( OutputMetadata(peptide=peptide.mut, id=new_output_id,
                                                             output_id= new_output_id,
                                                            read_frame=vertex_pair.read_frame.read_phase,
@@ -315,6 +316,8 @@ def get_and_write_peptide_and_kmer(gene=None, all_vertex_pairs=None, background_
                                                 peptide=peptide.mut,
                                                 exons_coor=modi_coord,
                                                 junction_count=edge_expr)
+
+                #logging.info("going to create kmers {}".format(round(print_memory_diags(disable_print=True), 2)))
                 if kmer:
                     if '2-exons' in kmer_type:
                         for kmer_length in kmer:

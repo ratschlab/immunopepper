@@ -201,7 +201,7 @@ def save_pd_toparquet(path, pd_df, compression = None, verbose = False):
         file_name = os.path.basename(path)
         tot_shape = pd_df.shape[0]
         logging.info('Saving parquet {} with {} lines. Took {} seconds'.format(file_name, tot_shape,
-                                                                      timeit.default_timer() - s1))
+                                                                      round(timeit.default_timer() - s1, 4)))
 
 # def save_dict_toparquet(path, my_dict, columns, compression = None, verbose = False):
 #     s1 = timeit.default_timer()

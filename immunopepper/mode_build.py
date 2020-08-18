@@ -106,24 +106,38 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
 
 
 def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, compression, verbose):
-    results = []
+    #results = []
+    #global dict_kmer_foregr
+    dict_kmer_foregr = defaultdict(dict, {})
+    set_kmer_back = {}
+    dict_pept_forgrd = {}
+    #global dict_pept_backgrd
+    global filepointer
+    #pool_genes= defaultdict(list, {})
+    time_per_gene = []
+    mem_per_gene = []
+    all_gene_idxs = []
+    gene_expr = []
+
+
     for i, gene in enumerate(genes):
         ### measure time
         start_time = timeit.default_timer()
 
         ### set result dict
-        R = dict()
-        R['gene_name'] = gene.name
+        #R = dict()
+        #R['gene_name'] = gene.name
+
 
         # Genes not contained in the annotation...
         if gene.name not in genetable.gene_to_cds_begin or \
            gene.name not in genetable.gene_to_ts:
 
             #logger.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
-            R['processed'] = False
-            results.append(R)
+            #R['processed'] = False
+            #results.append(R)
             continue
-        R['processed'] = True
+        #R['processed'] = True
 
 
         idx = get_idx(countinfo, sample, gene_idxs[i])
@@ -146,9 +160,14 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                                           countinfo.gene_id_to_segrange[gidx][1])
                 seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
 
-        R['total_expr'] = get_total_gene_expr(gene, countinfo, idx, seg_counts)
-        R['gene_idx'] = gene_idxs[i]
+        logging.info("going to calculate gene expression {}".format(round(print_memory_diags(disable_print=True), 2) ))
+        #R['total_expr'] = get_total_gene_expr(gene, countinfo, idx, seg_counts)
 
+        gene_expr.append((gene.name, get_total_gene_expr(gene, countinfo, idx, seg_counts)))
+
+        #R['gene_idx'] = gene_idxs[i]
+
+        #logging.info("going to get sub mutation {}".format(round(print_memory_diags(disable_print=True), 2) ))
         chrm = gene.chr.strip()
         sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
         junction_list = None
@@ -168,9 +187,9 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                                              kmer=arg.kmer,
                                              filter_redundant=arg.filter_redundant)
 
-
-        R['output_metadata_list'], \
-        R['output_kmer_lists'] = get_and_write_peptide_and_kmer(gene=gene,
+        logging.info("going to get peptide and kmer {}".format(round(print_memory_diags(disable_print=True), 2) ))
+        output_metadata_list, \
+        output_kmer_lists = get_and_write_peptide_and_kmer(gene=gene,
                                                                 all_vertex_pairs=vertex_pairs,
                                                                 background_pep_dict=dict_pept_backgrd,
                                                                 ref_mut_seq=ref_mut_seq,
@@ -188,13 +207,44 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                                                                 edge_counts=edge_counts,
                                                                 seg_counts=seg_counts
                                                                 )
+        logging.info("going to unify outputs {}".format(round(print_memory_diags(disable_print=True), 2) ))
+        add_dict_peptide(dict_pept_forgrd, output_metadata_list)
+        del output_metadata_list
+        for kmer_length, nested_records in output_kmer_lists.items():
+            records = [item for sublist in nested_records for item in sublist]
+            add_dict_kmer_forgrd(dict_kmer_foregr[kmer_length], records, set_kmer_back)
+        kmers_order = output_kmer_lists.keys()
+        del output_kmer_lists
 
-        R['time'] = timeit.default_timer() - start_time
-        R['memory'] = print_memory_diags(disable_print=True)
-        R['outbase'] = outbase
-        results.append(R)
+        time_per_gene.append(timeit.default_timer() - start_time)
+        mem_per_gene.append(print_memory_diags(disable_print=True))
+        all_gene_idxs.append(gene_idxs[i])
 
-    process_result(results, ['output_metadata_list', 'output_kmer_lists', 'total_expr'], outbase, compression, verbose)
+        #R['time'] = timeit.default_timer() - start_time
+        #R['memory'] = print_memory_diags(disable_print=True)
+        #R['outbase'] = outbase
+        #results.append(R)
+
+    logging.info("going to save output results {}".format(round(print_memory_diags(disable_print=True), 2) ))
+    save_gene_expr_distr(gene_expr, filepointer, outbase, compression, verbose)
+    save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, verbose)
+    dict_pept_forgrd.clear()
+    for kmer_length in kmers_order:
+        save_forgrd_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
+    dict_kmer_foregr.clear()
+
+
+
+    #process_result(results, ['output_metadata_list', 'output_kmer_lists', 'total_expr'], outbase, compression, verbose)
+
+    #write_gene_result(pool_genes, dict_pept_forgrd, dict_pept_backgrd, dict_kmer_foregr, set_kmer_back,
+                      #filepointer, compression, outbase, verbose)
+    if gene_idxs:
+        logging.info("> {}: {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
+                                                                                  all_gene_idxs[-1]  + 1,
+                                                                                  len(gene_id_list),
+                                                                                  np.max(time_per_gene),
+                                                                                  np.max(mem_per_gene)))
     return gene_name_expr_distr, expr_distr,  dict_pept_forgrd, dict_kmer_foregr #Does not update the dictionaries and list globally because of the subprocess
 
 
