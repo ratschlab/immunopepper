@@ -143,6 +143,7 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
         idx = get_idx(countinfo, sample, gene_idxs[i])
 
         # Gene counts information
+        logging.info("...going to retrieve count info {}".format(round(print_memory_diags(disable_print=True), 4) ))
         if countinfo:
             gidx = countinfo.gene_idx_dict[gene.name]
 
@@ -153,14 +154,16 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                     edge_counts = None
 
                 else:
+                    logging.info("going open edges {}".format(round(print_memory_diags(disable_print=True), 4)))
                     edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
                     edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
                     edge_counts = h5f['edges'][edge_gene_idxs, idx.sample]
                 seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
                                           countinfo.gene_id_to_segrange[gidx][1])
+                logging.info("going open segments {}".format(round(print_memory_diags(disable_print=True), 4)))
                 seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
 
-        logging.info("going to calculate gene expression {}".format(round(print_memory_diags(disable_print=True), 2) ))
+        logging.info("going to calculate gene expression {}".format(round(print_memory_diags(disable_print=True), 4) ))
         #R['total_expr'] = get_total_gene_expr(gene, countinfo, idx, seg_counts)
 
         gene_expr.append((gene.name, get_total_gene_expr(gene, countinfo, idx, seg_counts)))
@@ -174,6 +177,7 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
         if not junction_dict is None and chrm in junction_dict:
             junction_list = junction_dict[chrm]
 
+        logging.info("going to collect vertex pairs {}".format(round(print_memory_diags(disable_print=True), 4) ))
         vertex_pairs, \
         ref_mut_seq, \
         exon_som_dict = collect_vertex_pairs(gene=gene,
@@ -187,34 +191,29 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                                              kmer=arg.kmer,
                                              filter_redundant=arg.filter_redundant)
 
-        logging.info("going to get peptide and kmer {}".format(round(print_memory_diags(disable_print=True), 2) ))
-        output_metadata_list, \
-        output_kmer_lists = get_and_write_peptide_and_kmer(gene=gene,
-                                                                all_vertex_pairs=vertex_pairs,
-                                                                background_pep_dict=dict_pept_backgrd,
-                                                                ref_mut_seq=ref_mut_seq,
-                                                                idx=idx,
-                                                                exon_som_dict=exon_som_dict,
-                                                                countinfo=countinfo,
-                                                                mutation=sub_mutation,
-                                                                table=genetable,
-                                                                size_factor=None,
-                                                                junction_list=junction_list,
-                                                                kmer=arg.kmer,
-                                                                output_silence=arg.output_silence,
-                                                                outbase=outbase,
-                                                                edge_idxs=edge_idxs,
-                                                                edge_counts=edge_counts,
-                                                                seg_counts=seg_counts
-                                                                )
-        logging.info("going to unify outputs {}".format(round(print_memory_diags(disable_print=True), 2) ))
-        add_dict_peptide(dict_pept_forgrd, output_metadata_list)
-        del output_metadata_list
-        for kmer_length, nested_records in output_kmer_lists.items():
-            records = [item for sublist in nested_records for item in sublist]
-            add_dict_kmer_forgrd(dict_kmer_foregr[kmer_length], records, set_kmer_back)
-        kmers_order = output_kmer_lists.keys()
-        del output_kmer_lists
+        logging.info("going to get peptide and kmer {}".format(round(print_memory_diags(disable_print=True), 4) ))
+        get_and_write_peptide_and_kmer(peptide_dict = dict_pept_forgrd,
+                                        kmer_dict = dict_kmer_foregr,
+                                        kmer_annot=set_kmer_back,
+                                        gene=gene,
+                                        all_vertex_pairs=vertex_pairs,
+                                        background_pep_dict=dict_pept_backgrd,
+                                        ref_mut_seq=ref_mut_seq,
+                                        idx=idx,
+                                        exon_som_dict=exon_som_dict,
+                                        countinfo=countinfo,
+                                        mutation=sub_mutation,
+                                        table=genetable,
+                                        size_factor=None,
+                                        junction_list=junction_list,
+                                        kmer=arg.kmer,
+                                        output_silence=arg.output_silence,
+                                        outbase=outbase,
+                                        edge_idxs=edge_idxs,
+                                        edge_counts=edge_counts,
+                                        seg_counts=seg_counts,
+                                        )
+
 
         time_per_gene.append(timeit.default_timer() - start_time)
         mem_per_gene.append(print_memory_diags(disable_print=True))
@@ -229,7 +228,7 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
     save_gene_expr_distr(gene_expr, filepointer, outbase, compression, verbose)
     save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, verbose)
     dict_pept_forgrd.clear()
-    for kmer_length in kmers_order:
+    for kmer_length in dict_kmer_foregr:
         save_forgrd_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
     dict_kmer_foregr.clear()
 

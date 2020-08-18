@@ -5,6 +5,8 @@ import logging
 import numpy as np
 
 from .constant import NOT_EXIST
+from .filter import add_dict_kmer_forgrd
+from .filter import add_dict_peptide
 from .filter import get_filtered_metadata_list
 from .filter import junction_is_annotated
 from .filter import junction_is_in_given_list
@@ -214,7 +216,8 @@ def collect_vertex_triples(gene, vertex_pairs, k):
     return concat_vertex_pair_list
 
 
-def get_and_write_peptide_and_kmer(gene=None, all_vertex_pairs=None, background_pep_dict=None, ref_mut_seq=None, idx=None,
+def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None, kmer_annot=None,
+                         gene=None, all_vertex_pairs=None, background_pep_dict=None, ref_mut_seq=None, idx=None,
                          exon_som_dict=None, countinfo=None,
                          edge_idxs=None, edge_counts=None, seg_counts=None,
                          mutation=None,table=None,
@@ -248,8 +251,6 @@ def get_and_write_peptide_and_kmer(gene=None, all_vertex_pairs=None, background_
 
     ### collect the relevant count infor for the current gene
 
-    output_metadata_list = []
-    output_kmer_dict = defaultdict(list)
 
         ### iterate over all vertex pairs and translate
     for kmer_type, vertex_pairs in all_vertex_pairs.items():
@@ -290,7 +291,7 @@ def get_and_write_peptide_and_kmer(gene=None, all_vertex_pairs=None, background_
                     edge_expr = NOT_EXIST
 
                 #logging.info("going to create peptides {}".format(round(print_memory_diags(disable_print=True), 2)))
-                output_metadata_list.append( OutputMetadata(peptide=peptide.mut, id=new_output_id,
+                add_dict_peptide(peptide_dict, [OutputMetadata(peptide=peptide.mut, id=new_output_id,
                                                             output_id= new_output_id,
                                                            read_frame=vertex_pair.read_frame.read_phase,
                                                            gene_name=gene.name,
@@ -310,7 +311,9 @@ def get_and_write_peptide_and_kmer(gene=None, all_vertex_pairs=None, background_
                                                            junction_expr=edge_expr,
                                                            segment_expr=segment_expr,
                                                            kmer_type=kmer_type
-                ))
+                )]) #TODO adapt function when background updated
+
+
                 variant_id += 1
                 output_peptide = OutputJuncPeptide(output_id= new_output_id,
                                                 peptide=peptide.mut,
@@ -319,17 +322,21 @@ def get_and_write_peptide_and_kmer(gene=None, all_vertex_pairs=None, background_
 
                 #logging.info("going to create kmers {}".format(round(print_memory_diags(disable_print=True), 2)))
                 if kmer:
-                    if '2-exons' in kmer_type:
+                    if '2-exons' in kmer_type: #generate kmers for each vertex pair and each kmer_length
                         for kmer_length in kmer:
-                            output_kmer_dict[kmer_length].append(create_output_kmer(output_peptide, kmer_length, expr_list))
-                    else:
+                            add_dict_kmer_forgrd(kmer_dict[kmer_length],
+                                                 create_output_kmer(output_peptide, kmer_length, expr_list),
+                                                 kmer_annot)
+
+                    else: #generate kmers for each vertex triplets, only for the kmer_lengths that require it
                         kmer_length = int(kmer_type.split('_')[-1].split('-')[0])
-                        output_kmer_dict[kmer_length].append(create_output_kmer(output_peptide, kmer_length, expr_list))
+                        add_dict_kmer_forgrd(kmer_dict[kmer_length],
+                                             create_output_kmer(output_peptide, kmer_length, expr_list),
+                                             kmer_annot)
 
         if not gene.splicegraph.edges is None:
             gene.to_sparse()
 
-    return output_metadata_list, output_kmer_dict
 
 
 def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, countinfo, seg_counts, Idx, kmer):
