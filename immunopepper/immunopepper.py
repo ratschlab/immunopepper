@@ -105,6 +105,33 @@ def parse_arguments(argv):
 
     _add_general_args(parser_filter)
 
+    parser_crosscohort = subparsers.add_parser('crosscohort',
+                                               help='integretes kmers across cancer or normal samples. The matrices can then be used for removal of normal samples')
+
+    required = parser_crosscohort.add_argument_group('MANDATORY')
+    required.add_argument("--cores",help="number of cores for spark", required=True, default='')
+    required.add_argument("--mem_per_core", help="memory per core spark", required=True)
+
+    required.add_argument("--mutation_modes", nargs='+', help="list of all mutation modes which we would like to combine", required=True, default='')
+    required.add_argument("--kmer", help='kmer', required=True)
+    required.add_argument("--output-file-path", help="directory to save filtered kmer file", required=True)
+    required.add_argument("--remove-bg", help="indicate wheather the background has been removed from the kmer files",
+                          action="store_true", required=False, default=False)
+    required.add_argument("--samples", nargs='+', help="list of all samples which we would like to combine", required=True, default='')
+    required.add_argument("--input-dir", help="contains all the sample subdirectories",required=True, default='')
+    required.add_argument("--output-dir", help="output directory for the integrated matrix" , required=True, default='')
+    required.add_argument("--edge-count", help="used edge count in kmer x sample matrix",
+                          action="store_true", required=False, default=False)
+    required.add_argument("--segment-count", help="used edge count in kmer x sample matrix",
+                          action="store_true", required=False, default=False)
+    required.add_argument("--compressed_inputs", help="need to be used if .gz suffix is present on files",
+                          action="store_true", required=False, default=False)
+
+    optional = parser_crosscohort.add_argument_group('OPTIONAL')
+    optional.add_argument("--output-suffix", help="suffix for the integrated matrix. e.g cancer or normals" , required=False, default='')
+
+    _add_general_args(parser_crosscohort)
+
     if len(argv) < 1:
         parser.print_help()
         sys.exit(1)
