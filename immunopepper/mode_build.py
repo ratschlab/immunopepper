@@ -50,9 +50,9 @@ sys.modules['modules.classes.segmentgraph'] = csegmentgraph
 
 
 def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinfo, genetable, arg, outbase, compression=None, verbose=False):
+    global filepointer
     set_kmer_back =  defaultdict(set, {})
     dict_pept_backgrd = {}
-    global filepointer
     time_per_gene = []
     mem_per_gene = []
     all_gene_idxs = []
@@ -107,14 +107,12 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
                                                                                   len(gene_id_list),
                                                                                   np.max(time_per_gene),
                                                                                   np.max(mem_per_gene)))
-    return dict_pept_backgrd, set_kmer_back  #Does not update the dictionaries and list globally because of the subprocess
 
 
-def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, compression, verbose):
-    dict_kmer_foregr = defaultdict(dict, {})
-    set_kmer_back = {} # TODO CHANGE FUNCTION
-    dict_pept_forgrd = {}
+def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, compression, verbose):
     global filepointer
+    dict_kmer_foregr = defaultdict(dict, {})
+    dict_pept_forgrd = {}
     time_per_gene = []
     mem_per_gene = []
     all_gene_idxs = []
@@ -181,10 +179,8 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
         logging.info("going to get peptide and kmer {}".format(round(print_memory_diags(disable_print=True), 4) ))
         get_and_write_peptide_and_kmer(peptide_dict = dict_pept_forgrd,
                                         kmer_dict = dict_kmer_foregr,
-                                        kmer_annot=set_kmer_back,
                                         gene=gene,
                                         all_vertex_pairs=vertex_pairs,
-                                        background_pep_dict=dict_pept_backgrd,
                                         ref_mut_seq=ref_mut_seq,
                                         idx=idx,
                                         exon_som_dict=exon_som_dict,
@@ -220,7 +216,6 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                                                                                   len(gene_id_list),
                                                                                   np.max(time_per_gene),
                                                                                   np.max(mem_per_gene)))
-    return gene_name_expr_distr, expr_distr,  dict_pept_forgrd, dict_kmer_foregr #Does not update the dictionaries and list globally because of the subprocess
 
 
 
@@ -291,25 +286,13 @@ def mode_build(arg):
     logging.info(">>>>>>>>> Start traversing splicegraph")
 
     #if arg.parallel > 1:
-    global gene_name_expr_distr
-    global expr_distr
     global gene_id_list
     global sample
-    global dict_kmer_foregr
-    global set_kmer_back
-    global dict_pept_forgrd
-    global dict_pept_backgrd
     global filepointer
 
 
     for sample in arg.samples:
         logging.info(">>>> Processing sample {}, there are {} graphs in total".format(sample,num))
-        expr_distr = []
-        gene_name_expr_distr = []
-        dict_kmer_foregr = {}
-        set_kmer_back = set()
-        dict_pept_forgrd = {}
-        dict_pept_backgrd = {}
 
         # prepare for the output file
         output_path = os.path.join(arg.output_dir, sample)
@@ -364,7 +347,7 @@ def mode_build(arg):
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
-                _ = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, dict_pept_backgrd, pq_compression, verbose_save))
+                _ = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
             pool.close()
             pool.join()
 
@@ -381,10 +364,12 @@ def mode_build(arg):
         else:
             logging.info('Not Parallel')
             # Build the background
+            logging.info(">>>>>>>>> Start Background processing")
             process_gene_batch_background(sample, graph_data, gene_id_list, mutation, countinfo, genetable, arg, output_path, pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
+            logging.info(">>>>>>>>> Start Foreground processing")
             process_gene_batch_foreground( sample, graph_data, graph_info, gene_id_list, len(gene_id_list), all_read_frames, mutation, junction_dict,
-                             countinfo, genetable, arg, output_path, dict_pept_backgrd, pq_compression, verbose=True)
+                             countinfo, genetable, arg, output_path, pq_compression, verbose=True)
 
 
         create_libsize(filepointer.gene_expr_fp,output_libszie_fp, sample)

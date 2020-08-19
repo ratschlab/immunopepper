@@ -162,7 +162,7 @@ def initialize_fp(junction_peptide_file_path, junction_meta_file_path, backgroun
 
     fields_forgrd_pep_dict = ['fasta']
     fields_meta_peptide_dict = ['id','read_frame','gene_name','gene_chr','gene_strand','mutation_mode',
-                                'peptide_annotated','junction_annotated','has_stop_codon','is_in_junction_list',
+                                'junction_annotated','has_stop_codon','is_in_junction_list',
                                 'is_isolated','variant_comb','variant_seg_expr','modified_exons_coord',
                                 'original_exons_coord','vertex_idx','junction_expr','segment_expr', 'kmer_type']
     fields_backgrd_pep_dict = ['fasta']

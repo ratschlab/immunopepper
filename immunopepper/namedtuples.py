@@ -31,7 +31,6 @@ Output_metadata namedtuple.
 - gene_chr: str. The Chromosome id where the gene is located.
 - gene_strand: str ('+', '_'). The strand of gene.
 - mutation_mode: str ('ref', 'somatic', 'germline', 'somatic_and_germline'). Mutation mode
-- peptide_annotated: Boolean. Indicate if the junction peptide also appears in the background peptide.
 - junction_peptided: Boolean. Indicate if the junction also appear in the input annotation file.
 - has_stop_codon. Boolean. Indicate if there is stop codon in the junction pair.
 - is_in_junction_list: Boolean. Indicate if the junction pair appear in the given junction whitelist
@@ -51,7 +50,7 @@ Output_metadata namedtuple.
 - kmer_type. str indicates whether the peptide is generated from vertice_pair, or 'vertice_triplet_xmer' ie. a triplet was necessary to generate the desired kmer length 
 """
 OutputMetadata = namedtuple('OutputMetadata', ['peptide', 'id', 'output_id', 'read_frame', 'gene_name', 'gene_chr',
-                                                 'gene_strand',	'mutation_mode', 'peptide_annotated',
+                                                 'gene_strand',	'mutation_mode',
                                                  'junction_annotated',	'has_stop_codon',
                                                  'is_in_junction_list',	'is_isolated',
                                                  'variant_comb',	'variant_seg_expr',

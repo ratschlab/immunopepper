@@ -178,24 +178,9 @@ def junction_is_in_given_list(splicegraph, vertex_id_list, strand, junction_list
     return 0
 
 
-def peptide_is_annotated(background_peptide_dict, peptide):
-    """Check if the translated exon-pair peptide also appears in the background peptide translated from annotation file.
-
-    Parameters
-    ----------
-    background_peptide_dict: dict with all all the peptide translated from transcripts in annotation file across genes
-    peptide: str. peptide translated from certain exon-pairs
-
-    Returns
-    -------
-    count: int. Count how many matches exist between background peptide and given peptide
-    """
-    count = len(re.findall(peptide, '_'.join(background_peptide_dict)))
-    return count
 
 
-
-def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list, filter_dict):
+def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list):
     """...
         From a namedtuple
         Updates the following dictionnary:
@@ -206,7 +191,6 @@ def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list, filter_dict):
         ----------
         foregrd_dict:
         _namedtuple_list:
-        filter_dict:
 
         """
     for _namedtuple_kmer in _namedtuple_list:

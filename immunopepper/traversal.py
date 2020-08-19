@@ -12,7 +12,6 @@ from .filter import get_filtered_metadata_list
 from .filter import junction_is_annotated
 from .filter import junction_is_in_given_list
 from .filter import junction_tuple_is_annotated
-from .filter import peptide_is_annotated
 from .mutations import apply_germline_mutation
 from .mutations import get_exon_som_dict
 from .mutations import get_mut_comb
@@ -217,8 +216,8 @@ def collect_vertex_triples(gene, vertex_pairs, k):
     return concat_vertex_pair_list
 
 
-def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None, kmer_annot=None,
-                         gene=None, all_vertex_pairs=None, background_pep_dict=None, ref_mut_seq=None, idx=None,
+def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
+                         gene=None, all_vertex_pairs=None, ref_mut_seq=None, idx=None,
                          exon_som_dict=None, countinfo=None,
                          edge_idxs=None, edge_counts=None, seg_counts=None,
                          mutation=None,table=None,
@@ -229,7 +228,6 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None, kmer_annot
     ----------
     gene: Object, returned by SplAdder.
     vertex_pairs: List of VertexPair
-    background_pep_dict: dict() Dict of all the peptide translated from the full splicegraph and annotation.
     ref_mut_seq: Str, reference sequnce of specific chromosome
     idx: Namedtuple Idx, has attribute idx.gene and idx.sample
     exon_som_dict: Dict. (exon_id) |-> (mutation_postion)
@@ -272,7 +270,6 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None, kmer_annot
                     continue
 
                 new_output_id = ':'.join([gene.name, '_'.join([str(v) for v in vertex_list]), str(variant_id), str(tran_start_pos), kmer_type])
-                peptide_is_annotated_flag = peptide_is_annotated(background_pep_dict, peptide.mut)
                 vertex_tuple_anno_flag = junction_tuple_is_annotated(junction_flag, vertex_list)
                 junction_is_in_given_list_flag = junction_is_in_given_list(gene.splicegraph, vertex_list, gene.strand, junction_list)
 
@@ -298,7 +295,6 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None, kmer_annot
                                                            gene_chr=gene.chr,
                                                            gene_strand=gene.strand,
                                                            mutation_mode=mutation.mode,
-                                                           peptide_annotated=peptide_is_annotated_flag,
                                                            junction_annotated=vertex_tuple_anno_flag,
                                                            has_stop_codon=int(flag.has_stop),
                                                            is_in_junction_list=junction_is_in_given_list_flag,
@@ -324,14 +320,12 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None, kmer_annot
                     if '2-exons' in kmer_type: #generate kmers for each vertex pair and each kmer_length
                         for kmer_length in kmer:
                             add_dict_kmer_forgrd(kmer_dict[kmer_length],
-                                                 create_output_kmer(output_peptide, kmer_length, expr_list),
-                                                 kmer_annot)
+                                                 create_output_kmer(output_peptide, kmer_length, expr_list))
 
                     else: #generate kmers for each vertex triplets, only for the kmer_lengths that require it
                         kmer_length = int(kmer_type.split('_')[-1].split('-')[0])
                         add_dict_kmer_forgrd(kmer_dict[kmer_length],
-                                             create_output_kmer(output_peptide, kmer_length, expr_list),
-                                             kmer_annot)
+                                             create_output_kmer(output_peptide, kmer_length, expr_list))
 
         if not gene.splicegraph.edges is None:
             gene.to_sparse()
