@@ -7,6 +7,7 @@ import numpy as np
 from .constant import NOT_EXIST
 from .filter import add_dict_kmer_forgrd
 from .filter import add_dict_peptide
+from .filter import add_set_kmer_back
 from .filter import get_filtered_metadata_list
 from .filter import junction_is_annotated
 from .filter import junction_is_in_given_list
@@ -290,7 +291,6 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None, kmer_annot
                 else:
                     edge_expr = NOT_EXIST
 
-                #logging.info("going to create peptides {}".format(round(print_memory_diags(disable_print=True), 2)))
                 add_dict_peptide(peptide_dict, [OutputMetadata(peptide=peptide.mut, id=new_output_id,
                                                             output_id= new_output_id,
                                                            read_frame=vertex_pair.read_frame.read_phase,
@@ -320,7 +320,6 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None, kmer_annot
                                                 exons_coor=modi_coord,
                                                 junction_count=edge_expr)
 
-                #logging.info("going to create kmers {}".format(round(print_memory_diags(disable_print=True), 2)))
                 if kmer:
                     if '2-exons' in kmer_type: #generate kmers for each vertex pair and each kmer_length
                         for kmer_length in kmer:
@@ -339,7 +338,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None, kmer_annot
 
 
 
-def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, countinfo, seg_counts, Idx, kmer):
+def get_and_write_background_peptide_and_kmer(peptide_dict, kmer_dict, gene, ref_mut_seq, gene_table, countinfo, seg_counts, Idx, kmer):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
     Parameters
@@ -359,8 +358,6 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, cou
     """
 
     gene_to_transcript_table, transcript_cds_table = gene_table.gene_to_ts, gene_table.ts_to_cds
-    background_peptide_list = []
-    output_kmer_dict = defaultdict(list)
     # Generate a background peptide for every variant transcript
     for ts in gene_to_transcript_table[gene.name]:
         # No CDS entries for transcript in annotation file...
@@ -368,12 +365,12 @@ def get_and_write_background_peptide_and_kmer(gene, ref_mut_seq, gene_table, cou
             continue
         cds_expr_list, cds_string, cds_peptide = get_full_peptide(gene, ref_mut_seq['background'], transcript_cds_table[ts], countinfo, seg_counts, Idx, mode='back')
         peptide = OutputBackground(output_id=ts, peptide=cds_peptide)
-        background_peptide_list.append(peptide)
+        add_dict_peptide(peptide_dict, [peptide])
         if kmer:
             for kmer_length in kmer:
-                output_kmer_dict[kmer_length].append(create_output_kmer(peptide, kmer_length, cds_expr_list))
+                add_set_kmer_back(kmer_dict[kmer_length],
+                                     create_output_kmer(peptide, kmer_length, cds_expr_list))
 
-    return background_peptide_list, output_kmer_dict
 
 
 def create_output_kmer(output_peptide, k, expr_list):
