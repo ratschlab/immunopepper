@@ -108,12 +108,12 @@ input_folder = ['/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/outpu
 output_file = '/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/output/peptides_ccell_rerun_200707/15K_c5_allg_batch10_a18874e/TCGA-AR-A1AP-01A-11/test_pq/dummy/combined2_pq.gz'
 
 input_pairs = input_folder
-agg_fields = ['junction_count', 'expr', 'is_cross_junction']
+agg_fields = ['junction_expr', 'segment_expr', 'is_cross_junction']
 grp_cols = 'kmer'
 run_combine(input_pairs, output_file, grp_cols, grp_cols, agg_fields, 1, 5000, 3)
 
 
-agg_fields = 'junction_count' # Or segment expression
+agg_fields = 'junction_expr' # Or segment expression
 #grp_cols = 'kmer'
 sample_list = ['dummy1', 'dummy2']
 partitions = 3

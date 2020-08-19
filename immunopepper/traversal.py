@@ -314,7 +314,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                 output_peptide = OutputJuncPeptide(output_id= new_output_id,
                                                 peptide=peptide.mut,
                                                 exons_coor=modi_coord,
-                                                junction_count=edge_expr)
+                                                junction_expr=edge_expr)
 
                 if kmer:
                     if '2-exons' in kmer_type: #generate kmers for each vertex pair and each kmer_length
@@ -415,8 +415,8 @@ def create_output_kmer(output_peptide, k, expr_list):
         spanning_index1, spanning_index2 = get_spanning_index(coord, k)
     else:
         spanning_index1, spanning_index2 = [NOT_EXIST], [NOT_EXIST]
-    if hasattr(output_peptide, 'junction_count'):
-        junction_count = output_peptide.junction_count
+    if hasattr(output_peptide, 'junction_expr'):
+        junction_count = output_peptide.junction_expr
     else:
         junction_count = NOT_EXIST
     # decide the kmer that spans over the cross junction

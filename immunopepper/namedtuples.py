@@ -19,7 +19,7 @@ Output_junc_peptide namedtuple
 - peptide: (peptide_string). The peptide translated from junction pairs.
 - exons_coor: Coord namedtuple
 """
-OutputJuncPeptide = namedtuple('OutputJuncPeptide', ['output_id','peptide','exons_coor','junction_count'])
+OutputJuncPeptide = namedtuple('OutputJuncPeptide', ['output_id','peptide','exons_coor','junction_expr'])
 
 
 """
@@ -75,7 +75,7 @@ Output_kmer namedtuple.
 - expr: float. length-weighted sum of expression of the kmer
 - is_cross_junction: boolen. indicate if the kmer spans over the cross junction
 """
-OutputKmer= namedtuple('OutputKmer', ['kmer','id','expr','is_cross_junction','junction_count'])
+OutputKmer= namedtuple('OutputKmer', ['kmer','id','segment_expr','is_cross_junction','junction_expr'])
 
 
 """

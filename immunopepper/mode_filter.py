@@ -42,7 +42,7 @@ def mode_filter(arg):
         seg_expr_thre = arg.seg_expr_thresh
         logging.info('Apply segment expression filter, threshold is {}'.format(seg_expr_thre))
         initial_shape = kmer_df.shape[0]
-        seg_expr = kmer_df['expr'].apply(lambda x: max(x.split('/')))
+        seg_expr = kmer_df['segment_expr'].apply(lambda x: max(x.split('/')))
         seg_expr = seg_expr.astype('float')
         kmer_df = kmer_df[seg_expr>seg_expr_thre]
         final_shape = kmer_df.shape[0]
@@ -57,7 +57,7 @@ def mode_filter(arg):
         initial_shape = kmer_df.shape[0]
         is_cross_junction = kmer_df['is_cross_junction'].apply(lambda x: 'True' in x.split('/'))
         kmer_df = kmer_df[is_cross_junction]
-        junction_expr = kmer_df['junction_count'].apply(lambda x: max(x.split('/')))
+        junction_expr = kmer_df['junction_expr'].apply(lambda x: max(x.split('/')))
         junction_expr = junction_expr.astype('float')
         kmer_df = kmer_df[junction_expr>junc_expr_thre]
         final_shape = kmer_df.shape[0]

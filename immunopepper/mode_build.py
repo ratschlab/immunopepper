@@ -102,7 +102,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
     set_kmer_back.clear()
 
     if gene_idxs:
-        logging.info("> {}: {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
+        logging.info("> {}: annotation graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
                                                                                   all_gene_idxs[-1]  + 1,
                                                                                   len(gene_id_list),
                                                                                   np.max(time_per_gene),
@@ -211,7 +211,7 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
     dict_kmer_foregr.clear()
 
     if gene_idxs:
-        logging.info("> {}: {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
+        logging.info("> {}: sample graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
                                                                                   all_gene_idxs[-1]  + 1,
                                                                                   len(gene_id_list),
                                                                                   np.max(time_per_gene),
