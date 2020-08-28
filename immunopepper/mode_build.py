@@ -116,6 +116,7 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
     mem_per_gene = []
     all_gene_idxs = []
     gene_expr = []
+    complexity_cap = 20000
 
 
     for i, gene in enumerate(genes):
@@ -125,7 +126,12 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
         # Genes not contained in the annotation...
         if gene.name not in genetable.gene_to_cds_begin or \
            gene.name not in genetable.gene_to_ts:
-            #logger.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
+            logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
+            continue
+
+        # Genes with highly complex splicegraphs
+        if (len(gene.splicegraph.vertices[1]) > complexity_cap):
+            logging.warning('>Gene {} has a edge complexity > {}, not processed'.format(gene.name, complexity_cap))
             continue
 
         idx = get_idx(countinfo, sample, gene_idxs[i])
