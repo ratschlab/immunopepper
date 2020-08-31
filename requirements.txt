@@ -4,4 +4,4 @@ psutil==5.4.6
 spladder==2.4.2
 pyarrow>=0.17
 pandas>=1.0.5
-cython>=0.29.20
+cython>=0.29.17
