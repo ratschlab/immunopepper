@@ -35,7 +35,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True):
     out_dir = str(tmpdir)
     #sample_dir_build = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'diff','{}'.format(case),'test{}{}'.format(test_id,case))
     my_args_build = ['build',
-               '--samples', 'ERR2130621',
+               '--samples', 'ENCSR000BZG', 'ERR2130621',#'ERR2130621','ENCSR000BZG'
                '--output-dir', out_dir,
                '--splice-path',os.path.join(data_dir,'ImmunoPepper_usecase.pickle'),
                '--count-path', os.path.join(data_dir,'ImmunoPepper_usecase.count.hdf5'),
@@ -102,18 +102,32 @@ def test_end_to_end_filter(tmpdir, sample, kmer_length, mutation_mode):
                '--is-isolated', '0']
     immunopepper.split_mode(my_args)
 
+def test_end_to_end_crosscohort(tmpdir):
+    my_args =["crosscohort",
+              "--cores", "4",
+              "--mem-per-core", "5000",
+              "--mutation-modes","ref",
+              "--kmer", "9",
+              "--samples", "ERR2130621", "ENCSR000BZG",
+              "--input-dir", tmpdir,
+              "--output-dir", tmpdir,
+              "--output-suffix", "test",
+              "--compressed_inputs",
+              "--segment-count"]
+    immunopepper.split_mode(my_args)
 
 
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
-mutation_mode ='somatic_and_germline'
+mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
 test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
 #test_end_to_end_makebg('ERR2130621', tmpdir, "9")
 #test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
+test_end_to_end_crosscohort(tmpdir) #TODO add back
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 

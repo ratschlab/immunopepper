@@ -12,6 +12,7 @@ from .mode_build import mode_build
 from .mode_diff import mode_diff
 from .mode_filter import mode_filter
 from .mode_makebg import mode_makebg
+from .mode_crosscohort import mode_crosscohort
 
 
 def _add_general_args(parser):
@@ -110,13 +111,13 @@ def parse_arguments(argv):
                                                help='integretes kmers across cancer or normal samples. The matrices can then be used for removal of normal samples')
 
     required = parser_crosscohort.add_argument_group('MANDATORY')
-    required.add_argument("--cores",help="number of cores for spark", required=True, default='')
-    required.add_argument("--mem_per_core", help="memory per core spark", required=True)
+    required.add_argument("--cores",type=int, help="number of cores for spark", required=True, default='')
+    required.add_argument("--mem-per-core",type=int, help="memory per core spark", required=True)
 
-    required.add_argument("--mutation_modes", nargs='+', help="list of all mutation modes which we would like to combine", required=True, default='')
+    required.add_argument("--mutation-modes", nargs='+', help="list of all mutation modes which we would like to combine", required=True, default='')
     required.add_argument("--kmer", help='kmer', required=True)
-    required.add_argument("--output-file-path", help="directory to save filtered kmer file", required=True)
-    required.add_argument("--remove-bg", help="indicate wheather the background has been removed from the kmer files",
+    #required.add_argument("--output-file-path", help="directory to save filtered kmer file", required=True)
+    required.add_argument("--remove-bg", help="indicate whether the background has been removed from the kmer files",
                           action="store_true", required=False, default=False)
     required.add_argument("--samples", nargs='+', help="list of all samples which we would like to combine", required=True, default='')
     required.add_argument("--input-dir", help="contains all the sample subdirectories",required=True, default='')
@@ -126,6 +127,8 @@ def parse_arguments(argv):
     required.add_argument("--segment-count", help="used edge count in kmer x sample matrix",
                           action="store_true", required=False, default=False)
     required.add_argument("--compressed_inputs", help="need to be used if .gz suffix is present on files",
+                          action="store_true", required=False, default=False)
+    required.add_argument("--skip-filegrouping", help="if crosscohort has ben already run once, activate to skip folder reorganisation",
                           action="store_true", required=False, default=False)
 
     optional = parser_crosscohort.add_argument_group('OPTIONAL')
@@ -190,6 +193,8 @@ def split_mode(options):
         mode_diff(arg)
     if mode == 'filter':
         mode_filter(arg)
+    if mode == "crosscohort":
+        mode_crosscohort(arg)
 
 
 def cmd_entry():

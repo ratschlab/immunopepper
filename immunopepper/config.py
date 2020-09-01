@@ -70,7 +70,7 @@ def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: 
             set("spark.driver.extraJavaOptions", java_options).
             set("spark.master", "local[{}]".format(cores)).
            # set("spark.jars", jar_paths).
-            set("spark.sql.execution.arrow.enabled", str(enable_arrow))
+            set("spark.sql.execution.arrow.pyspark.enabled", str(enable_arrow))
             )
 
 

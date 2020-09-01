@@ -12,18 +12,31 @@ from .config import create_spark_session
 from .config import create_spark_session_from_config
 from .config import default_spark_config
 
-
 def organize_inputs(input_dir, backgr_suffix, kmer, samples, mutation_modes, compres_suffix):
+    to_combine = []
+    combined_dir = "junction_kmers"
     for sample in samples:
-        basedir = os.path.join(input_dir, sample)
-        pathlib.Path(os.path.join(basedir, "junction_kmers")).mkdir(exist_ok= True, parents= True)
-        jct_inputs = ['{}_junction_{}mer_{}.pq{}'.format(mutation, kmer, backgr_suffix, compres_suffix)
+        sample_basedir = os.path.join(input_dir, sample)
+        pathlib.Path(os.path.join(sample_basedir, "junction_kmers")).mkdir(exist_ok= True, parents= True)
+        jct_inputs = ['{}_junction_{}mer{}.pq{}'.format(mutation, kmer, backgr_suffix, compres_suffix)
                       for mutation in mutation_modes]
         for input_file in jct_inputs:
-            if not os.path.isfile(input_file):
-                logging.error("Error: input file {} does not exist".format(input_file))
+            source = os.path.join(sample_basedir, input_file)
+            target = os.path.join(sample_basedir, combined_dir, input_file)
+            if (not os.path.isfile(source)) and os.path.isfile(target):
+                logging.error("File {} seems to have been moved to {}, rerun with --skip-filegrouping".format(source, target))
                 sys.exit(1)
-            shutil.move(input_file, os.path.join(basedir, "junction_kmers"))
+            elif os.path.isfile(source) and os.path.isfile(target):
+                logging.warning("Overwriting {} with {} file".format(target, source))
+                shutil.move(source, target)
+            elif (not os.path.isfile(source)) and (not os.path.isfile(target)):
+                logging.error("Inputs {} not generated, run mode_build".format(source))
+                sys.exit(1)
+            else:
+                logging.info("Moving {} to {}".format(source, target))
+                shutil.move(source, target)
+        to_combine.append((os.path.join(sample_basedir, combined_dir), os.path.join(sample_basedir, "combined_junction_kmers.pq")))
+    return to_combine
 
 
 def run_combine(inf: Iterable[str],
@@ -35,7 +48,7 @@ def run_combine(inf: Iterable[str],
     spark_cfg = default_spark_config(cores, memory_per_core)
 
     with create_spark_session_from_config(spark_cfg) as spark:
-        df = spark.read.parquet(*inf)
+        df = spark.read.parquet(inf + '/') #TODO check
         agg_cols = [sf.max(c).alias('max_' + c) for c in max_aggregation_fields]
 
         df_g = (df.repartition(partitions, partition_field).
@@ -47,16 +60,6 @@ def run_combine(inf: Iterable[str],
 
 
 def run_pivot(input_, output, sample_list, aggregation_col, partitions, cores, memory_per_core):
-    #     part_id = int(os.path.basename(output).split('-')[1])
-
-    #     print(input_)
-    #     paths = input_
-
-    #     print(f'checking {paths}')
-    #     sample_set = set(sample_list.split(','))
-
-    #     part_cnt = partitions
-    #     print(f'input partitions {part_cnt}')
     sample_set = set(sample_list)
     file_info = defaultdict(list, {})
     for pq_folder in input_:
@@ -104,23 +107,47 @@ def _agg_df(df, sample_set, agg_col):
             )
 
 
-input_folder = ['/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/output/peptides_ccell_rerun_200707/15K_c5_allg_batch10_a18874e/TCGA-AR-A1AP-01A-11/test_pq/dummy']
-output_file = '/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/output/peptides_ccell_rerun_200707/15K_c5_allg_batch10_a18874e/TCGA-AR-A1AP-01A-11/test_pq/dummy/combined2_pq.gz'
+def mode_crosscohort(arg): #TODO one spark session or NOT?
 
-input_pairs = input_folder
-agg_fields = ['junction_expr', 'segment_expr', 'is_cross_junction']
-grp_cols = 'kmer'
-run_combine(input_pairs, output_file, grp_cols, grp_cols, agg_fields, 1, 5000, 3)
+    agg_fields_combine = ['junction_expr', 'segment_expr', 'is_cross_junction']
+    grp_cols = 'kmer'
+    if arg.remove_bg:
+        backgr_suffix = "_no_back"
+    else:
+        backgr_suffix = ''
+    if arg.compressed_inputs:
+        compres_suffix = '.gz'
+    if arg.edge_count and not arg.segment_count:
+        agg_fields_pivot = "junction_expr"
+    elif not arg.edge_count and arg.segment_count:
+        agg_fields_pivot = "segment_expr"
+    else:
+        logging.error("Specify aggregation on expression metric with --segment_expr OR --junction_expr (edges)")
+
+    if not arg.skip_filegrouping:
+        logging.info(">>> Reorganize folder structure")
+        paths_to_combine = organize_inputs(arg.input_dir, backgr_suffix, arg.kmer, arg.samples, arg.mutation_modes, compres_suffix)
+    path_crosssamples = []
+    logging.info(">>> Combine mutation modes per sample")
+    for kmer_files, combined_path in paths_to_combine:
+        run_combine(inf=kmer_files,
+                    outf=combined_path,
+                    partition_field=grp_cols,
+                    grp_fields=grp_cols,
+                    max_aggregation_fields=agg_fields_combine,
+                    cores = arg.cores,
+                    memory_per_core=arg.mem_per_core,
+                    partitions=arg.cores * 10)
+        path_crosssamples.append(combined_path)
+
+    logging.info(">>> Combine kmer count info in kmers x sample matrix")
+    run_pivot(input_=path_crosssamples,
+              output=os.path.join(arg.output_dir, "crosssamples_" + agg_fields_pivot + arg.output_suffix + '.pq'),
+              sample_list=arg.samples,
+              aggregation_col=agg_fields_pivot,
+              partitions=arg.cores * 10, cores=arg.cores,
+              memory_per_core=arg.mem_per_core)
 
 
-agg_fields = 'junction_expr' # Or segment expression
-#grp_cols = 'kmer'
-sample_list = ['dummy1', 'dummy2']
-partitions = 3
-cores = 1
-memory_per_core = 5000
-input_ = ['/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/output/peptides_ccell_rerun_200707/15K_c5_allg_batch10_a18874e/TCGA-AR-A1AP-01A-11/test_pq/dummy/combined_pq.gz', # fakesample
-          '/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/output/peptides_ccell_rerun_200707/15K_c5_allg_batch10_a18874e/TCGA-AR-A1AP-01A-11/test_pq/dummy2/combined_pq.gz']
 
-output = '/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/output/peptides_ccell_rerun_200707/15K_c5_allg_batch10_a18874e/TCGA-AR-A1AP-01A-11/test_pq/pivot'
-run_pivot(input_, output, sample_list, agg_fields, partitions, cores, memory_per_core)
+
