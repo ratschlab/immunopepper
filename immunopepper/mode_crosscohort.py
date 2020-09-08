@@ -4,6 +4,7 @@ import logging
 import os
 import pathlib
 from pyspark.sql import functions as sf
+from pyspark.sql import types as st
 import shutil
 import sys
 from typing import Iterable
@@ -43,12 +44,16 @@ def run_combine(inf: Iterable[str],
                 outf: str,
                 partition_field: str,
                 grp_fields: Iterable[str],
+                expression_fields: Iterable[str],
                 max_aggregation_fields: Iterable[str],
                 cores: int, memory_per_core:int, partitions: int):
     spark_cfg = default_spark_config(cores, memory_per_core)
 
     with create_spark_session_from_config(spark_cfg) as spark:
         df = spark.read.parquet(inf + '/') #TODO check
+        custom_max = sf.udf(collapse_values, st.StringType())
+        for e_col in expression_fields:
+            df = df.withColumn(e_col, custom_max(e_col))
         agg_cols = [sf.max(c).alias('max_' + c) for c in max_aggregation_fields]
 
         df_g = (df.repartition(partitions, partition_field).
@@ -59,57 +64,65 @@ def run_combine(inf: Iterable[str],
         df_g.write.mode('overwrite').parquet(outf)
 
 
-def run_pivot(input_, output, sample_list, aggregation_col, partitions, cores, memory_per_core):
+def run_pivot(input_, output_dir, output_suffix, sample_list, aggregation_col, partitions, cores, memory_per_core):
     sample_set = set(sample_list)
-    file_info = defaultdict(list, {})
-    for pq_folder in input_:
-        for partition in glob.glob(pq_folder + '/*'):
-            index_partition = '-'.join(partition.split('/')[-1].split('-')[0:2])
-            if index_partition != '_SUCCESS':
-                file_info[index_partition].append(partition)
-    print(file_info)
+    for expression_col in aggregation_col:
+        output_path = os.path.join(output_dir, "crosssamples_" + expression_col + output_suffix + '.pq')
+        file_info = defaultdict(list, {})
+        for pq_folder in input_:
+            for partition in glob.glob(pq_folder + '/*'):
+                index_partition = '-'.join(partition.split('/')[-1].split('-')[0:2])
+                if index_partition != '_SUCCESS':
+                    file_info[index_partition].append(partition)
+        print(file_info)
 
-    with create_spark_session(cores, memory_per_core) as spark:
-        for part_id in file_info:
-            print(f"working on part {part_id}")
-            part_files = file_info[part_id]
+        with create_spark_session(cores, memory_per_core) as spark:
+            for part_id in file_info:
+                print(f"working on part {part_id}")
+                part_files = file_info[part_id]
 
-            df = spark.read.parquet(*part_files)
-            print(df.show())
+                df = spark.read.parquet(*part_files)
+                print(df.show())
 
-            path_parts = sf.split(sf.input_file_name(), '/')
-            df = df.withColumn('sample', path_parts.getItem(
-                sf.size(path_parts) - 3))  # depends on the sample position in the path
-            print(df.show())
+                path_parts = sf.split(sf.input_file_name(), '/')
+                df = df.withColumn('sample', path_parts.getItem(
+                    sf.size(path_parts) - 3))  # depends on the sample position in the path
+                print(df.show())
 
-            df_junction = (df.groupBy('kmer').
-                           agg(sf.max('max_is_cross_junction').alias('is_cross_junction')).
-                           withColumnRenamed('kmer', 'kmer_junction')
-                           )
-            print(df_junction.show())
+                df_junction = (df.groupBy('kmer').
+                               agg(sf.max('max_is_cross_junction').alias('is_cross_junction')).
+                               withColumnRenamed('kmer', 'kmer_junction')
+                               )
+                print(df_junction.show())
 
-            print(aggregation_col)
-            df_pivoted = _agg_df(df, sample_set, aggregation_col)
-            print(df_pivoted.show())
+                print(expression_col)
+                df_pivoted = _agg_df(df, sample_set, expression_col)
+                print(df_pivoted.show())
 
-            (df_pivoted.join(df_junction, sf.col('kmer') == sf.col('kmer_junction'), 'left_outer').
-             drop('kmer_junction').
-             coalesce(partitions).
-             write.mode('overwrite').
-             parquet(os.path.join(output))
-             )
+                (df_pivoted.join(df_junction, sf.col('kmer') == sf.col('kmer_junction'), 'left_outer').
+                 drop('kmer_junction').
+                 coalesce(partitions).
+                 write.mode('overwrite').
+                 parquet(os.path.join(output_path))
+                 )
 
 
 def _agg_df(df, sample_set, agg_col):
-    return (df.groupby('kmer').
+    return (df.filter( f'max_{agg_col}' + '> 0' ).groupby('kmer').
             pivot('sample', values=list(sample_set)).
             agg(sf.max(f'max_{agg_col}').alias(f'max_{agg_col}'))
             )
 
+def collapse_values(value):
+    return max(value.split('/'))
+
+
 
 def mode_crosscohort(arg): #TODO one spark session or NOT?
-
-    agg_fields_combine = ['junction_expr', 'segment_expr', 'is_cross_junction']
+    junction_field = 'junction_expr'
+    segment_field = 'segment_expr'
+    agg_fields_combine = [junction_field, segment_field, 'is_cross_junction']
+    expression_fields = [junction_field, segment_field]
     grp_cols = 'kmer'
     if arg.remove_bg:
         backgr_suffix = "_no_back"
@@ -117,12 +130,6 @@ def mode_crosscohort(arg): #TODO one spark session or NOT?
         backgr_suffix = ''
     if arg.compressed_inputs:
         compres_suffix = '.gz'
-    if arg.edge_count and not arg.segment_count:
-        agg_fields_pivot = "junction_expr"
-    elif not arg.edge_count and arg.segment_count:
-        agg_fields_pivot = "segment_expr"
-    else:
-        logging.error("Specify aggregation on expression metric with --segment_expr OR --junction_expr (edges)")
 
     if not arg.skip_filegrouping:
         logging.info(">>> Reorganize folder structure")
@@ -134,20 +141,27 @@ def mode_crosscohort(arg): #TODO one spark session or NOT?
                     outf=combined_path,
                     partition_field=grp_cols,
                     grp_fields=grp_cols,
+                    expression_fields=expression_fields,
                     max_aggregation_fields=agg_fields_combine,
                     cores = arg.cores,
                     memory_per_core=arg.mem_per_core,
-                    partitions=arg.cores * 10)
+                    partitions=1) # arg.cores * 10)
         path_crosssamples.append(combined_path)
 
     logging.info(">>> Combine kmer count info in kmers x sample matrix")
     run_pivot(input_=path_crosssamples,
-              output=os.path.join(arg.output_dir, "crosssamples_" + agg_fields_pivot + arg.output_suffix + '.pq'),
+              output_dir=arg.output_dir,
+              output_suffix=arg.output_suffix, # os.path.join(arg.output_dir, "crosssamples_" + agg_fields_pivot + arg.output_suffix + '.pq'),
               sample_list=arg.samples,
-              aggregation_col=agg_fields_pivot,
-              partitions=arg.cores * 10, cores=arg.cores,
+              aggregation_col=expression_fields,
+              partitions=1, #arg.cores * 10,
+              cores=arg.cores,
               memory_per_core=arg.mem_per_core)
 
 
 
 
+# All edge ans segment matrixes
+#filter zeros
+# add split '/'
+# rewrite test
