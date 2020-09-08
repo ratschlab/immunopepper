@@ -122,10 +122,6 @@ def parse_arguments(argv):
     required.add_argument("--samples", nargs='+', help="list of all samples which we would like to combine", required=True, default='')
     required.add_argument("--input-dir", help="contains all the sample subdirectories",required=True, default='')
     required.add_argument("--output-dir", help="output directory for the integrated matrix" , required=True, default='')
-    required.add_argument("--edge-count", help="used edge count in kmer x sample matrix",
-                          action="store_true", required=False, default=False)
-    required.add_argument("--segment-count", help="used edge count in kmer x sample matrix",
-                          action="store_true", required=False, default=False)
     required.add_argument("--compressed_inputs", help="need to be used if .gz suffix is present on files",
                           action="store_true", required=False, default=False)
     required.add_argument("--skip-filegrouping", help="if crosscohort has ben already run once, activate to skip folder reorganisation",

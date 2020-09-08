@@ -13,7 +13,7 @@ from .config import create_spark_session
 from .config import create_spark_session_from_config
 from .config import default_spark_config
 
-def organize_inputs(input_dir, backgr_suffix, kmer, samples, mutation_modes, compres_suffix):
+def organize_inputs(input_dir, backgr_suffix, kmer, samples, mutation_modes, compres_suffix, skip_reorganize):
     to_combine = []
     combined_dir = "junction_kmers"
     for sample in samples:
@@ -21,21 +21,22 @@ def organize_inputs(input_dir, backgr_suffix, kmer, samples, mutation_modes, com
         pathlib.Path(os.path.join(sample_basedir, "junction_kmers")).mkdir(exist_ok= True, parents= True)
         jct_inputs = ['{}_junction_{}mer{}.pq{}'.format(mutation, kmer, backgr_suffix, compres_suffix)
                       for mutation in mutation_modes]
-        for input_file in jct_inputs:
-            source = os.path.join(sample_basedir, input_file)
-            target = os.path.join(sample_basedir, combined_dir, input_file)
-            if (not os.path.isfile(source)) and os.path.isfile(target):
-                logging.error("File {} seems to have been moved to {}, rerun with --skip-filegrouping".format(source, target))
-                sys.exit(1)
-            elif os.path.isfile(source) and os.path.isfile(target):
-                logging.warning("Overwriting {} with {} file".format(target, source))
-                shutil.move(source, target)
-            elif (not os.path.isfile(source)) and (not os.path.isfile(target)):
-                logging.error("Inputs {} not generated, run mode_build".format(source))
-                sys.exit(1)
-            else:
-                logging.info("Moving {} to {}".format(source, target))
-                shutil.move(source, target)
+        if not skip_reorganize:
+            for input_file in jct_inputs:
+                source = os.path.join(sample_basedir, input_file)
+                target = os.path.join(sample_basedir, combined_dir, input_file)
+                if (not os.path.isfile(source)) and os.path.isfile(target):
+                    logging.error("File {} seems to have been moved to {}, rerun with --skip-filegrouping".format(source, target))
+                    sys.exit(1)
+                elif os.path.isfile(source) and os.path.isfile(target):
+                    logging.warning("Overwriting {} with {} file".format(target, source))
+                    shutil.move(source, target)
+                elif (not os.path.isfile(source)) and (not os.path.isfile(target)):
+                    logging.error("Inputs {} not generated, run mode_build".format(source))
+                    sys.exit(1)
+                else:
+                    logging.info("Moving {} to {}".format(source, target))
+                    shutil.move(source, target)
         to_combine.append((os.path.join(sample_basedir, combined_dir), os.path.join(sample_basedir, "combined_junction_kmers.pq")))
     return to_combine
 
@@ -119,8 +120,8 @@ def collapse_values(value):
 
 
 def mode_crosscohort(arg): #TODO one spark session or NOT?
-    junction_field = 'junction_expr'
-    segment_field = 'segment_expr'
+    junction_field = 'junction_count'#'junction_expr'
+    segment_field = 'expr'#'segment_expr'
     agg_fields_combine = [junction_field, segment_field, 'is_cross_junction']
     expression_fields = [junction_field, segment_field]
     grp_cols = 'kmer'
@@ -133,7 +134,7 @@ def mode_crosscohort(arg): #TODO one spark session or NOT?
 
     if not arg.skip_filegrouping:
         logging.info(">>> Reorganize folder structure")
-        paths_to_combine = organize_inputs(arg.input_dir, backgr_suffix, arg.kmer, arg.samples, arg.mutation_modes, compres_suffix)
+    paths_to_combine = organize_inputs(arg.input_dir, backgr_suffix, arg.kmer, arg.samples, arg.mutation_modes, compres_suffix, arg.skip_filegrouping)
     path_crosssamples = []
     logging.info(">>> Combine mutation modes per sample")
     for kmer_files, combined_path in paths_to_combine:

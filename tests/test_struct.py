@@ -116,18 +116,34 @@ def test_end_to_end_crosscohort(tmpdir):
               "--segment-count"]
     immunopepper.split_mode(my_args)
 
+def mini_crosscohort():
 
+    cancer_dir = "/Users/laurieprelot/Documents/Projects/tmp_kmer/dev_samples/cancer"
+    my_args =["crosscohort",
+              "--cores", "4",
+              "--mem-per-core", "5000",
+              "--mutation-modes","ref", "germline", "somatic", "somatic_and_germline",
+              "--kmer", "9",
+              "--samples", "TCGA-AO-A12D-01A-11", "TCGA-AR-A0TT-01A-31",
+              "--input-dir", cancer_dir,
+              "--output-dir", cancer_dir,
+              "--output-suffix", "_test",
+              "--compressed_inputs",
+              "--remove-bg",
+              "--skip-filegrouping"]
+    immunopepper.split_mode(my_args)
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
 mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
+#test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
 #test_end_to_end_makebg('ERR2130621', tmpdir, "9")
 #test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
-test_end_to_end_crosscohort(tmpdir) #TODO add back
+#test_end_to_end_crosscohort(tmpdir) #TODO add back
+mini_crosscohort()
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 
