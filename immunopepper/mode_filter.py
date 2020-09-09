@@ -2,11 +2,12 @@
 Apply different filter mechanism on kmer tsv files
 """
 import logging
+import numpy as np
 import pandas as pd
 import sys
 
 
-from .constant import NOT_EXIST
+
 from .io_ import save_pd_toparquet
 from .io_ import read_pq_with_pd
 
@@ -184,8 +185,8 @@ def get_start_pos_for_kmer_unfiltered(meta_file_path,junction_kmer_tsv_path,outp
             if num_dup > 1: # initialize the buffer
                 line_buffer.append(line)
             cur_modi_coord = cur_meta_line['modified_exons_coord'].values[0].split(';')
-            cur_modi_coord = [int(coord) if coord != NOT_EXIST else coord for coord in cur_modi_coord]
-            vertex_len = [int(cur_modi_coord[2*i+1])-int(cur_modi_coord[2*i]) if cur_modi_coord[2*i+1] != NOT_EXIST else 0 for i in range(len(cur_modi_coord)//2)]
+            cur_modi_coord = [int(coord) if coord is not np.nan else coord for coord in cur_modi_coord]
+            vertex_len = [int(cur_modi_coord[2*i+1])-int(cur_modi_coord[2*i]) if cur_modi_coord[2*i+1] is not np.nan else 0 for i in range(len(cur_modi_coord)//2)]
             strand = cur_meta_line['gene_strand'].values[0]
             chr = cur_meta_line['gene_chr'].values[0]
             cur_variant_comb = cur_meta_line['variant_comb'].values[0]

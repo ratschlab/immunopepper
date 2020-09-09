@@ -4,7 +4,6 @@ from collections import defaultdict
 import logging
 import numpy as np
 
-from .constant import NOT_EXIST
 from .filter import add_dict_kmer_forgrd
 from .filter import add_dict_peptide
 from .filter import add_set_kmer_back
@@ -113,8 +112,8 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
         n_read_frames = len(reading_frame_dict[v_id])
         if n_read_frames == 0:  # no cds start, skip the vertex
             continue
-        if len(gene_info.vertex_succ_list[v_id]) == 0: # if no successive vertex, we add a flag NOT_EXIST, translate and output it
-            gene_info.vertex_succ_list[v_id].append(NOT_EXIST)
+        if len(gene_info.vertex_succ_list[v_id]) == 0: # if no successive vertex, we set it to np.nan, translate and output it
+            gene_info.vertex_succ_list[v_id].append(np.nan)
 
         for prop_vertex in gene_info.vertex_succ_list[v_id]:
             vertex_list = [v_id, prop_vertex]
@@ -123,14 +122,14 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
                 has_stop_flag = True
                 for variant_comb in mut_seq_comb:  # go through each variant combination
                     logging.debug(' '.join([str(v_id), str(prop_vertex), str(variant_comb), str(read_frame_tuple.read_phase)]))
-                    if prop_vertex != NOT_EXIST:
+                    if prop_vertex is not np.nan:
                         peptide, modi_coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq, sg.vertices[:, prop_vertex], min_pos)
                         orig_coord = Coord(sg.vertices[0, v_id], sg.vertices[1, v_id], sg.vertices[0, prop_vertex], sg.vertices[1, prop_vertex])
                         if not flag.has_stop:
                             reading_frame_dict[prop_vertex].add(next_reading_frame)
                     else:
                         peptide, modi_coord, flag = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq, min_pos)
-                        orig_coord = Coord(sg.vertices[0, v_id],sg.vertices[1, v_id], NOT_EXIST, NOT_EXIST)
+                        orig_coord = Coord(sg.vertices[0, v_id],sg.vertices[1, v_id], np.nan, np.nan)
                     has_stop_flag = has_stop_flag and flag.has_stop
                 gene_outputid = str(idx.gene) + ':' + str(output_id)
                 vertex_pair = VertexPair(output_id=gene_outputid,
@@ -182,7 +181,7 @@ def collect_vertex_triples(gene, vertex_pairs, k):
         front_id_list = [i for i, vp in enumerate(vertex_pairs) if vp.vertex_idxs[1] == key_id
                          and not vp.has_stop_codon]
         back_id_list = [i for i, vp in enumerate(vertex_pairs) if vp.vertex_idxs[0] == key_id
-                        and vp.vertex_idxs[1] != NOT_EXIST]
+                        and vp.vertex_idxs[1] is not np.nan]
         for front_id in front_id_list:
             for back_id in back_id_list:
                 front_pair = vertex_pairs[front_id]
@@ -273,20 +272,20 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                 vertex_tuple_anno_flag = junction_tuple_is_annotated(junction_flag, vertex_list)
                 junction_is_in_given_list_flag = junction_is_in_given_list(gene.splicegraph, vertex_list, gene.strand, junction_list)
 
-                if variant_comb != NOT_EXIST and som_exp_dict is not None:  # which means there exist mutations
+                if variant_comb is not np.nan and som_exp_dict is not None:  # which means there exist mutations
                     seg_exp_variant_comb = [int(som_exp_dict[ipos]) for ipos in variant_comb]
                 else:
-                    seg_exp_variant_comb = NOT_EXIST  # if no mutation or no count file,  the segment expression is .
+                    seg_exp_variant_comb = np.nan  # if no mutation or no count file,  the segment expression is .
 
                 # collect expression data
                 if  countinfo:
                     segment_expr, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts)
                 else:
-                    segment_expr, expr_list = NOT_EXIST, None
+                    segment_expr, expr_list = np.nan, None
                 if countinfo and not flag.is_isolated and edge_counts is not None: ## Will flag is isolated overlap with edge_counts is None?
                     edge_expr = search_edge_metadata_segmentgraph(gene, modi_coord, countinfo, idx, edge_idxs, edge_counts)
                 else:
-                    edge_expr = NOT_EXIST
+                    edge_expr = np.nan
 
                 add_dict_peptide(peptide_dict, [OutputMetadata(peptide=peptide.mut, id=new_output_id,
                                                             output_id= new_output_id,
@@ -383,8 +382,8 @@ def create_output_kmer(output_peptide, k, expr_list):
     """
     def get_spanning_index(coord, k):
         L1 = coord.stop_v1-coord.start_v1
-        if coord.start_v2 == NOT_EXIST:
-            return [NOT_EXIST],[NOT_EXIST]
+        if coord.start_v2 is np.nan:
+            return [np.nan],[np.nan]
         else:
             L2 = coord.stop_v2 - coord.start_v2
 
@@ -397,7 +396,7 @@ def create_output_kmer(output_peptide, k, expr_list):
 
         # consider the second junction
         if coord.start_v3 is None:
-            spanning_id_range2 = [NOT_EXIST]
+            spanning_id_range2 = [np.nan]
         else:
             m2 = int((L1 + L2) / 3)
             if (L1 + L2) % 3 == 0:
@@ -414,11 +413,11 @@ def create_output_kmer(output_peptide, k, expr_list):
         coord = output_peptide.exons_coor
         spanning_index1, spanning_index2 = get_spanning_index(coord, k)
     else:
-        spanning_index1, spanning_index2 = [NOT_EXIST], [NOT_EXIST]
+        spanning_index1, spanning_index2 = [np.nan], [np.nan]
     if hasattr(output_peptide, 'junction_expr'):
         junction_count = output_peptide.junction_expr
     else:
-        junction_count = NOT_EXIST
+        junction_count = np.nan
     # decide the kmer that spans over the cross junction
     if expr_list is None:
         expr_array = None
@@ -428,18 +427,18 @@ def create_output_kmer(output_peptide, k, expr_list):
         for j in range(len(peptide) - k + 1):
             kmer_peptide = peptide[j:j+k]
             if expr_array is None:
-                kmer_peptide_expr = NOT_EXIST
+                kmer_peptide_expr = np.nan
             else:
                 kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]), 2)
             if j in spanning_index1:
                 is_in_junction = True
-                kmer_junction_count = junction_count[0] if junction_count != NOT_EXIST else NOT_EXIST
+                kmer_junction_count = junction_count[0] if junction_count is not np.nan else np.nan
             elif j in spanning_index2 :
                 is_in_junction = True
-                kmer_junction_count = junction_count[1] if junction_count != NOT_EXIST else NOT_EXIST
+                kmer_junction_count = junction_count[1] if junction_count is not np.nan else np.nan
             else:
                 is_in_junction = False
-                kmer_junction_count = NOT_EXIST
+                kmer_junction_count = np.nan
             kmer = OutputKmer(kmer_peptide, peptide_head, kmer_peptide_expr, is_in_junction, kmer_junction_count)
             output_kmer_list.append(kmer)
     return output_kmer_list

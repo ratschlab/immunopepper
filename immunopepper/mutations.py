@@ -8,7 +8,6 @@ import h5py
 
 from functools import reduce
 
-from .constant import NOT_EXIST
 from .namedtuples import Mutation
 from .preprocess import parse_mutation_from_maf
 from .preprocess import parse_mutation_from_vcf
@@ -85,7 +84,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
 
 def parse_mutation_file(mutation_tag, mutation_file_path,output_dir,heter_code,mut_pickle=False,target_sample_list=None, name_eq_dict={}):
     if mutation_file_path.lower().endswith('.maf'):
-        mutation_dict = parse_mutation_from_maf(mutation_tag=mutation_tag, sample_list=target_sample_list, maf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle,sample_eq_dict=name_eq_dict)
+        mutation_dict = parse_mutation_from_maf(mutation_tag=mutation_tag, target_sample_list=target_sample_list, maf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle,sample_eq_dict=name_eq_dict)
     elif mutation_file_path.lower().endswith('.vcf') or mutation_file_path.lower().endswith('.h5'): # we also accept hdf5 file format
         mutation_dict = parse_mutation_from_vcf(mutation_tag=mutation_tag, vcf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle,
                                                 heter_code=heter_code,target_sample_list=target_sample_list, sample_eq_dict=name_eq_dict)
@@ -164,7 +163,7 @@ def get_exon_som_dict(gene, mutation_pos):
         for i in range(exon_list.shape[1]):
             if ipos in range(exon_list[0,i], exon_list[1,i]):
                 exon_som_dict[i].append(ipos)
-    exon_som_dict[NOT_EXIST] = []  # for single cds case
+    exon_som_dict[np.nan] = []  # for single cds case
     return exon_som_dict
 
 
@@ -203,7 +202,7 @@ def get_mut_comb(exon_som_dict, vertex_list):
     mut_comb: list of tuple, list of mutation combination
 
     """
-    mut_comb = [NOT_EXIST]
+    mut_comb = [np.nan]
     if exon_som_dict is not None:
         exon_list = map(lambda x: exon_som_dict[x], vertex_list)
         all_comb = get_all_comb(reduce(lambda x, y: x + y, exon_list))

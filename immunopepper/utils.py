@@ -12,7 +12,6 @@ import psutil
 import pyarrow as pa
 import sys
 
-from .constant import NOT_EXIST
 from .namedtuples import Idx
 
 
@@ -112,9 +111,9 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
             else:
                 offset = p2 - p1
 
-        return offset if takes_effect else NOT_EXIST
+        return offset if takes_effect else np.nan
 
-    real_coord = list(filter(lambda x: x != NOT_EXIST and x != None, coord))
+    real_coord = list(filter(lambda x: x is not np.nan and x != None, coord))
     assert len(real_coord) % 2 == 0
     coord_pair_list = list(zip(real_coord[::2], real_coord[1::2]))
 
@@ -123,7 +122,7 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
     else:
         sub_dna = ''.join([background_seq[pair[0] - gene_start:pair[1] - gene_start][::-1] for pair in coord_pair_list])
 
-    if variant_comb == NOT_EXIST : # no mutation exist
+    if variant_comb is np.nan : # no mutation exist
         return sub_dna
 
     relative_variant_pos = [_get_variant_pos_offset(variant_ipos, coord_pair_list, strand) for variant_ipos in variant_comb]
@@ -131,7 +130,7 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
         mut_base = somatic_mutation_sub_dict[variant_ipos]['mut_base']
         ref_base = somatic_mutation_sub_dict[variant_ipos]['ref_base']
         pos = relative_variant_pos[i]
-        if pos != NOT_EXIST:
+        if pos is not np.nan:
             sub_dna = sub_dna[:pos] + mut_base + sub_dna[pos+1:]
     return sub_dna
 
@@ -220,10 +219,10 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
 
     """
     # Todo: deal with absense of count file
-    if vstart == NOT_EXIST or vstop == NOT_EXIST:  # isolated exon case
+    if vstart is np.nan or vstop is np.nan:  # isolated exon case
         return np.zeros((0, 2), dtype='float')
     if countinfo is None or Idx.sample is None:
-        return np.zeros((0, 2), dtype='float') #[NOT_EXIST]
+        return np.zeros((0, 2), dtype='float') #[np.nan]
 
     segments = gene.segmentgraph.segments
 
@@ -283,7 +282,7 @@ def get_total_gene_expr(gene, countinfo, Idx, seg_expr):
     actually total_expr = reads_length*total_reads_counts
     """
     if countinfo is None or Idx.sample is None:
-        return NOT_EXIST
+        return np.nan
     seg_len = gene.segmentgraph.segments[1] - gene.segmentgraph.segments[0]
     total_expr = np.sum(seg_len*seg_expr)
     return total_expr

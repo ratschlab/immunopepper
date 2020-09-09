@@ -4,7 +4,6 @@ import re
 
 import numpy as np
 
-from .constant import NOT_EXIST
 from .io_ import convert_to_str_Coord_namedtuple
 from .io_ import list_to_tuple
 
@@ -154,7 +153,7 @@ def junction_tuple_is_annotated(junction_flag, vertex_id_tuple):
     int or list of int depends on it being a 2-vertex junction of 3-vertex junction.
 
     """
-    if NOT_EXIST in vertex_id_tuple:
+    if np.nan in vertex_id_tuple:
         return np.nan
     for i in range(len(vertex_id_tuple) - 1):
         if junction_flag[vertex_id_tuple[i], vertex_id_tuple[i+1]]:
@@ -165,8 +164,8 @@ def junction_tuple_is_annotated(junction_flag, vertex_id_tuple):
 def junction_is_in_given_list(splicegraph, vertex_id_list, strand, junction_list):
     """Check if the intron is in the user provided list of junctions"""
 
-    if NOT_EXIST in vertex_id_list or junction_list is None:
-        return NOT_EXIST
+    if np.nan in vertex_id_list or junction_list is None:
+        return np.nan
 
     vertex_coord_list = splicegraph.vertices
     if strand == '-':
