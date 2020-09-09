@@ -1,5 +1,31 @@
+import multiprocessing as mp
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
+import threading
+
+
+class MaxQueuePool:
+    """This Class wraps a Semaphore
+    limiting the size of its task queue.
+    If `max_queue_size` tasks are submitted, the next call to submit will block
+    until a previously submitted one is completed.
+    """
+    def __init__(self, max_queue_size, *args, **kwargs):
+        self.pool = mp.Pool( *args, **kwargs)
+        self.workers = threading.Semaphore(max_queue_size)
+
+    def submit(self, function, my_args):
+        """Submits a new task to the pool, blocks if Pool queue is full."""
+        self.workers.acquire()
+        self.pool.apply_async(function, args=my_args, callback=self.task_done)
+
+    def task_done(self, _):
+        """Called once task is done, releases one queue slot."""
+        self.workers.release()
+
+    def terminate(self):
+        self.pool.close()
+        self.pool.join()
 
 
 def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: int = 2000,

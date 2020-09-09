@@ -8,9 +8,9 @@ import shutil
 import sys
 from typing import Iterable
 
-from .config_spark import create_spark_session
-from .config_spark import create_spark_session_from_config
-from .config_spark import default_spark_config
+from .config import create_spark_session
+from .config import create_spark_session_from_config
+from .config import default_spark_config
 
 
 def organize_inputs(input_dir, backgr_suffix, kmer, samples, mutation_modes, compres_suffix):

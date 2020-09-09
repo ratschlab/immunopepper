@@ -4,7 +4,6 @@
 from collections import defaultdict
 import h5py
 import logging
-import multiprocessing as mp
 import numpy as np
 import os
 import pathlib
@@ -13,7 +12,9 @@ import signal as sig
 import sys
 import timeit
 
+
 # immuno module
+from .config import MaxQueuePool
 from .io_ import collect_results
 from .io_ import initialize_fp
 from .io_ import remove_folder_list
@@ -324,30 +325,28 @@ def mode_build(arg):
         if arg.parallel > 1:
 
             logging.info('Parallel: {} Threads'.format(arg.parallel))
-
-
+            pool_queue_size = 10
             batch_size = min(num, arg.batch_size)
             verbose_save = False
             # Build the background
             logging.info(">>>>>>>>> Start Background processing")
-            pool = mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
+            pool_f = MaxQueuePool(pool_queue_size, processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
                 pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
-                _ = pool.apply_async(process_gene_batch_background, args=(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
-            pool.close()
-            pool.join()
+                _ = pool_f.submit(process_gene_batch_background, (sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
+            pool_f.terminate()
 
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
-            pool = mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
+            pool_f = MaxQueuePool(pool_queue_size, processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
+
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
-                _ = pool.apply_async(process_gene_batch_foreground, args=(sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
-            pool.close()
-            pool.join()
+                _ = pool_f.submit(process_gene_batch_foreground, (sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
+            pool_f.terminate()
 
             # Collects and pools the files of each batch
             logging.debug('start collecting results')
