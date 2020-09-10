@@ -366,7 +366,7 @@ def parse_mutation_from_vcf(mutation_tag, vcf_path, output_dir='', heter_code=0,
 
     file_type = vcf_path.split('.')[-1]
     if file_type == 'h5': # hdf5 filr
-        mutation_dic = parse_mutation_from_vcf_h5(vcf_path,target_sample_list,heter_code)
+        mutation_dic = parse_mutation_from_vcf_h5(vcf_path,target_sample_list,heter_code, sample_eq_dict)
         logging.info("Get germline mutation dict from h5 file in {}. No pickle file created".format(vcf_path))
         return mutation_dic
     else: # vcf text file
@@ -438,7 +438,7 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, target_sample_list, heter_code=0, sa
             logging.error("No mutations for sample {} found in vcf_h5 file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
             sys.exit(1)
             continue
-        col_id = [i for (i, item) in file_sample_list if item == sample_eq_dict[target_sample]][0]
+        col_id = [i for (i, item) in enumerate(file_sample_list) if item == sample_eq_dict[target_sample]][0]
         row_id = np.where(np.logical_or(a['gt'][:,col_id] == heter_code,a['gt'][:,col_id] == 1))[0]
         for irow in row_id:
             chromo = encode_chromosome(a['pos'][irow,0])
