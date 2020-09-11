@@ -14,6 +14,7 @@ import timeit
 
 
 # immuno module
+from .config import ExceptionWrapper
 from .config import MaxQueuePool
 from .io_ import collect_results
 from .io_ import initialize_fp
@@ -51,170 +52,184 @@ sys.modules['modules.classes.segmentgraph'] = csegmentgraph
 
 
 def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinfo, genetable, arg, outbase, compression=None, verbose=False):
-    global filepointer
-    set_kmer_back =  defaultdict(set, {})
-    dict_pept_backgrd = {}
-    time_per_gene = []
-    mem_per_gene = []
-    all_gene_idxs = []
+    try:
 
-    for i, gene in enumerate(genes):
-        ### measure time
-        start_time = timeit.default_timer()
+        global filepointer
+        set_kmer_back =  defaultdict(set, {})
+        dict_pept_backgrd = {}
+        time_per_gene = []
+        mem_per_gene = []
+        all_gene_idxs = []
 
-        # Genes not contained in the annotation...
-        if gene.name not in genetable.gene_to_cds_begin or \
-                gene.name not in genetable.gene_to_ts:
-            #logger.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
-            continue
+        for i, gene in enumerate(genes):
+            ### measure time
+            start_time = timeit.default_timer()
 
-        idx = get_idx(countinfo, sample, gene_idxs[i])
-        all_gene_idxs.append(gene_idxs[i])
+            # Genes not contained in the annotation...
+            if gene.name not in genetable.gene_to_cds_begin or \
+                    gene.name not in genetable.gene_to_ts:
+                #logger.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
+                continue
 
-        chrm = gene.chr.strip()
-        sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
-        ref_mut_seq = collect_background_transcripts(gene=gene, ref_seq_file=arg.ref_path, chrm=chrm, mutation=sub_mutation)
+            idx = get_idx(countinfo, sample, gene_idxs[i])
+            all_gene_idxs.append(gene_idxs[i])
 
-        # Gene counts information
-        if countinfo:
-            gidx = countinfo.gene_idx_dict[gene.name]
-            count_segments = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
-            with h5py.File(countinfo.h5fname, 'r') as h5f:
-                seg_counts = h5f['segments'][count_segments, idx.sample]
+            chrm = gene.chr.strip()
+            sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
+            ref_mut_seq = collect_background_transcripts(gene=gene, ref_seq_file=arg.ref_path, chrm=chrm, mutation=sub_mutation)
 
-        get_and_write_background_peptide_and_kmer(peptide_dict = dict_pept_backgrd,
-                                                  kmer_dict = set_kmer_back,
-                                                  gene=gene,
-                                                  ref_mut_seq=ref_mut_seq,
-                                                   gene_table=genetable,
-                                                   countinfo=countinfo,
-                                                   seg_counts=seg_counts,
-                                                   Idx=idx,
-                                                   kmer=arg.kmer)
+            # Gene counts information
+            if countinfo:
+                gidx = countinfo.gene_idx_dict[gene.name]
+                count_segments = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
+                with h5py.File(countinfo.h5fname, 'r') as h5f:
+                    seg_counts = h5f['segments'][count_segments, idx.sample]
 
-        time_per_gene.append(timeit.default_timer() - start_time)
-        mem_per_gene.append(print_memory_diags(disable_print=True))
+            get_and_write_background_peptide_and_kmer(peptide_dict = dict_pept_backgrd,
+                                                      kmer_dict = set_kmer_back,
+                                                      gene=gene,
+                                                      ref_mut_seq=ref_mut_seq,
+                                                       gene_table=genetable,
+                                                       countinfo=countinfo,
+                                                       seg_counts=seg_counts,
+                                                       Idx=idx,
+                                                       kmer=arg.kmer)
 
-    save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression, outbase, verbose)
-    dict_pept_backgrd.clear()
-    for kmer_length in set_kmer_back:
-        save_backgrd_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
-    set_kmer_back.clear()
+            time_per_gene.append(timeit.default_timer() - start_time)
+            mem_per_gene.append(print_memory_diags(disable_print=True))
 
-    if gene_idxs:
-        logging.info("> {}: annotation graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
-                                                                                  all_gene_idxs[-1]  + 1,
-                                                                                  len(gene_id_list),
-                                                                                  np.max(time_per_gene),
-                                                                                  np.max(mem_per_gene)))
+        save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression, outbase, verbose)
+        dict_pept_backgrd.clear()
+        for kmer_length in set_kmer_back:
+            save_backgrd_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
+        set_kmer_back.clear()
+
+        if gene_idxs:
+            logging.info("> {}: annotation graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
+                                                                                      all_gene_idxs[-1]  + 1,
+                                                                                      len(gene_id_list),
+                                                                                      np.max(time_per_gene),
+                                                                                      np.max(mem_per_gene)))
+        exception_ = None
+    except Exception as e:
+        exception_ = ExceptionWrapper(e)
+
+    return exception_
+
 
 
 def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, compression, verbose):
-    global filepointer
-    dict_kmer_foregr = defaultdict(dict, {})
-    dict_pept_forgrd = {}
-    time_per_gene = []
-    mem_per_gene = []
-    all_gene_idxs = []
-    gene_expr = []
-    complexity_cap = 20000
+    try:
+        global filepointer
+        dict_kmer_foregr = defaultdict(dict, {})
+        dict_pept_forgrd = {}
+        time_per_gene = []
+        mem_per_gene = []
+        all_gene_idxs = []
+        gene_expr = []
+        complexity_cap = 20000
 
 
-    for i, gene in enumerate(genes):
-        ### measure time
-        start_time = timeit.default_timer()
+        for i, gene in enumerate(genes):
+            ### measure time
+            start_time = timeit.default_timer()
 
-        # Genes not contained in the annotation...
-        if gene.name not in genetable.gene_to_cds_begin or \
-           gene.name not in genetable.gene_to_ts:
-            logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
-            continue
+            # Genes not contained in the annotation...
+            if gene.name not in genetable.gene_to_cds_begin or \
+               gene.name not in genetable.gene_to_ts:
+                #logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
+                continue
 
-        # Genes with highly complex splicegraphs
-        if (len(gene.splicegraph.vertices[1]) > complexity_cap):
-            logging.warning('>Gene {} has a edge complexity > {}, not processed'.format(gene.name, complexity_cap))
-            continue
+            # Genes with highly complex splicegraphs
+            if (len(gene.splicegraph.vertices[1]) > complexity_cap):
+                logging.warning('>Gene {} has a edge complexity > {}, not processed'.format(gene.name, complexity_cap))
+                continue
 
-        idx = get_idx(countinfo, sample, gene_idxs[i])
+            idx = get_idx(countinfo, sample, gene_idxs[i])
 
-        # Gene counts information
-        if countinfo:
-            gidx = countinfo.gene_idx_dict[gene.name]
+            # Gene counts information
+            if countinfo:
+                gidx = countinfo.gene_idx_dict[gene.name]
 
-            with h5py.File(countinfo.h5fname, 'r') as h5f:
-                if countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_edgerange or \
-                        countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_segrange:
-                    edge_idxs = None
-                    edge_counts = None
+                with h5py.File(countinfo.h5fname, 'r') as h5f:
+                    if countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_edgerange or \
+                            countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_segrange:
+                        edge_idxs = None
+                        edge_counts = None
 
-                else:
-                    edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
-                    edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
-                    edge_counts = h5f['edges'][edge_gene_idxs, idx.sample]
-                seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
-                                          countinfo.gene_id_to_segrange[gidx][1])
-                seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
-
-
-        gene_expr.append((gene.name, get_total_gene_expr(gene, countinfo, idx, seg_counts)))
-
-        chrm = gene.chr.strip()
-        sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
-        junction_list = None
-        if not junction_dict is None and chrm in junction_dict:
-            junction_list = junction_dict[chrm]
-
-        vertex_pairs, \
-        ref_mut_seq, \
-        exon_som_dict = collect_vertex_pairs(gene=gene,
-                                             gene_info=genes_info[i],
-                                             ref_seq_file=arg.ref_path, #seq_dict[chrm],
-                                             chrm=chrm,
-                                             idx=idx,
-                                             mutation=sub_mutation,
-                                             all_read_frames=all_read_frames,
-                                             disable_concat=arg.disable_concat,
-                                             kmer=arg.kmer,
-                                             filter_redundant=arg.filter_redundant)
-
-        get_and_write_peptide_and_kmer(peptide_dict = dict_pept_forgrd,
-                                        kmer_dict = dict_kmer_foregr,
-                                        gene=gene,
-                                        all_vertex_pairs=vertex_pairs,
-                                        ref_mut_seq=ref_mut_seq,
-                                        idx=idx,
-                                        exon_som_dict=exon_som_dict,
-                                        countinfo=countinfo,
-                                        mutation=sub_mutation,
-                                        table=genetable,
-                                        size_factor=None,
-                                        junction_list=junction_list,
-                                        kmer=arg.kmer,
-                                        output_silence=arg.output_silence,
-                                        outbase=outbase,
-                                        edge_idxs=edge_idxs,
-                                        edge_counts=edge_counts,
-                                        seg_counts=seg_counts,
-                                        )
+                    else:
+                        edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
+                        edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
+                        edge_counts = h5f['edges'][edge_gene_idxs, idx.sample]
+                    seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
+                                              countinfo.gene_id_to_segrange[gidx][1])
+                    seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
 
 
-        time_per_gene.append(timeit.default_timer() - start_time)
-        mem_per_gene.append(print_memory_diags(disable_print=True))
-        all_gene_idxs.append(gene_idxs[i])
+            gene_expr.append((gene.name, get_total_gene_expr(gene, countinfo, idx, seg_counts)))
 
-    save_gene_expr_distr(gene_expr, filepointer, outbase, compression, verbose)
-    save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, verbose)
-    dict_pept_forgrd.clear()
-    for kmer_length in dict_kmer_foregr:
-        save_forgrd_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
-    dict_kmer_foregr.clear()
+            chrm = gene.chr.strip()
+            sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
+            junction_list = None
+            if not junction_dict is None and chrm in junction_dict:
+                junction_list = junction_dict[chrm]
 
-    if gene_idxs:
-        logging.info("> {}: sample graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
-                                                                                  all_gene_idxs[-1]  + 1,
-                                                                                  len(gene_id_list),
-                                                                                  np.max(time_per_gene),
-                                                                                  np.max(mem_per_gene)))
+            vertex_pairs, \
+            ref_mut_seq, \
+            exon_som_dict = collect_vertex_pairs(gene=gene,
+                                                 gene_info=genes_info[i],
+                                                 ref_seq_file=arg.ref_path, #seq_dict[chrm],
+                                                 chrm=chrm,
+                                                 idx=idx,
+                                                 mutation=sub_mutation,
+                                                 all_read_frames=all_read_frames,
+                                                 disable_concat=arg.disable_concat,
+                                                 kmer=arg.kmer,
+                                                 filter_redundant=arg.filter_redundant)
+
+            get_and_write_peptide_and_kmer(peptide_dict = dict_pept_forgrd,
+                                            kmer_dict = dict_kmer_foregr,
+                                            gene=gene,
+                                            all_vertex_pairs=vertex_pairs,
+                                            ref_mut_seq=ref_mut_seq,
+                                            idx=idx,
+                                            exon_som_dict=exon_som_dict,
+                                            countinfo=countinfo,
+                                            mutation=sub_mutation,
+                                            table=genetable,
+                                            size_factor=None,
+                                            junction_list=junction_list,
+                                            kmer=arg.kmer,
+                                            output_silence=arg.output_silence,
+                                            outbase=outbase,
+                                            edge_idxs=edge_idxs,
+                                            edge_counts=edge_counts,
+                                            seg_counts=seg_counts,
+                                            )
+
+
+            time_per_gene.append(timeit.default_timer() - start_time)
+            mem_per_gene.append(print_memory_diags(disable_print=True))
+            all_gene_idxs.append(gene_idxs[i])
+
+        save_gene_expr_distr(gene_expr, filepointer, outbase, compression, verbose)
+        save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, verbose)
+        dict_pept_forgrd.clear()
+        for kmer_length in dict_kmer_foregr:
+            save_forgrd_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
+        dict_kmer_foregr.clear()
+
+        if gene_idxs:
+            logging.info("> {}: sample graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
+                                                                                      all_gene_idxs[-1]  + 1,
+                                                                                      len(gene_id_list),
+                                                                                      np.max(time_per_gene),
+                                                                                      np.max(mem_per_gene)))
+        exception_ = None
+    except Exception as e:
+        exception_ = ExceptionWrapper(e)
+
+    return exception_
 
 
 
@@ -328,6 +343,7 @@ def mode_build(arg):
             pool_queue_size = 10
             batch_size = min(num, arg.batch_size)
             verbose_save = False
+            logging.info("Pool queue size is {}".format(pool_queue_size))
             # Build the background
             logging.info(">>>>>>>>> Start Background processing")
             pool_f = MaxQueuePool(pool_queue_size, processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
@@ -335,6 +351,7 @@ def mode_build(arg):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
                 pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
+
                 _ = pool_f.submit(process_gene_batch_background, (sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
             pool_f.terminate()
 

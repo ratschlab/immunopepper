@@ -44,7 +44,8 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True):
                '--germline', os.path.join(data_dir,'ImmunoPepper_usecase.vcf'),
                '--somatic', os.path.join(data_dir,'ImmunoPepper_usecase.maf'),
                 '--mutation-mode', mutation_mode,
-                '--kmer', '9']
+                '--kmer', '9',
+                '--batch-size', '1']
     if is_parallel:
         my_args_build.extend(['--parallel', '4'])
 

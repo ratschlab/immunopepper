@@ -1,7 +1,25 @@
 import multiprocessing as mp
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
+import sys
 import threading
+import tblib.pickling_support
+
+
+tblib.pickling_support.install()
+
+
+
+
+class ExceptionWrapper(object):
+
+    def __init__(self, ee):
+        self.ee = ee
+        __, __, self.tb = sys.exc_info()
+
+    def re_raise(self):
+        raise self.ee.with_traceback(self.tb)
+
 
 
 class MaxQueuePool:
@@ -12,16 +30,26 @@ class MaxQueuePool:
     """
     def __init__(self, max_queue_size, *args, **kwargs):
         self.pool = mp.Pool( *args, **kwargs)
-        self.workers = threading.Semaphore(max_queue_size)
+        self.workers = threading.BoundedSemaphore(max_queue_size)
+        self.lock = threading.Lock()
 
     def submit(self, function, my_args):
         """Submits a new task to the pool, blocks if Pool queue is full."""
+        print("Pre submission: current workers available {}".format(self.workers._value))
+        print("Pre submission: Lock state of current workers {}".format(self.lock.locked()))
         self.workers.acquire()
-        self.pool.apply_async(function, args=my_args, callback=self.task_done)
-
-    def task_done(self, _):
-        """Called once task is done, releases one queue slot."""
+        res = self.pool.apply_async(function, args=my_args) #, callback=self.task_done)
+        error_message = res.get()
+        if isinstance(error_message, ExceptionWrapper):
+            error_message.re_raise()
         self.workers.release()
+
+
+    # def task_done(self, error_message):
+    #     """Called once task is done, releases one queue slot."""
+    #     self.workers.release()
+    #     if isinstance(error_message, ExceptionWrapper):
+    #         error_message.re_raise()
 
     def terminate(self):
         self.pool.close()
