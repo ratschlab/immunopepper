@@ -115,7 +115,7 @@ def _agg_df(df, sample_set, agg_col):
             )
 
 def collapse_values(value):
-    return max(value.split('/'))
+    return np.nanmax(value.split('/'))
 
 
 
