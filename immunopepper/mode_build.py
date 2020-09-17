@@ -104,7 +104,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
             save_backgrd_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
         set_kmer_back.clear()
 
-        if gene_idxs:
+        if all_gene_idxs:
             logging.info("> {}: annotation graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
                                                                                       all_gene_idxs[-1]  + 1,
                                                                                       len(gene_id_list),
