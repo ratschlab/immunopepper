@@ -199,11 +199,10 @@ def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list):
 
         ### aggregate metadata of unique kmers
         if _namedtuple_kmer.kmer not in foregrd_dict:
-            dic_with_sets = dict(zip(ord_dict_metadata.keys(), [{i} for i in ord_dict_metadata.values()]))
-            foregrd_dict[_namedtuple_kmer.kmer] = dic_with_sets
+            foregrd_dict[_namedtuple_kmer.kmer] = [{i} for i in ord_dict_metadata.values()]
         else:
-            for field, value in ord_dict_metadata.items():
-                foregrd_dict[_namedtuple_kmer.kmer][field].add(value)
+            for id, value in enumerate(ord_dict_metadata.values()):
+                foregrd_dict[_namedtuple_kmer.kmer][id].add(value)
 
 
 
@@ -247,9 +246,8 @@ def add_dict_peptide(dict_peptides, _namedtuple_list ):
 
         ### aggregate metadata of unique peptides
         if _namedtuple_peptide.peptide not in dict_peptides:
-            dic_with_sets = dict(zip(ord_dict_metadata.keys(), [{i} for i in ord_dict_metadata.values()]))
-            dict_peptides[_namedtuple_peptide.peptide] = dic_with_sets
+            dict_peptides[_namedtuple_peptide.peptide] = [{i} for i in ord_dict_metadata.values()]
         else:
-            for field, value in ord_dict_metadata.items():
-                dict_peptides[_namedtuple_peptide.peptide][field].add(value)
+            for id, value in enumerate(ord_dict_metadata.values()):
+                dict_peptides[_namedtuple_peptide.peptide][id].add(value)
 

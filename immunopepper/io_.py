@@ -122,16 +122,17 @@ def save_forgrd_kmer_dict(dict_, filepointer, kmer_length, compression=None, out
         df = pd.DataFrame(dict_.values(), index=dict_.keys())
         df = df.applymap(_convert_list_to_str)
         df = df.rename_axis('kmer').reset_index()
-        df = df.loc[:, filepointer.junction_kmer_fp['columns']]
+        df.columns = filepointer.junction_kmer_fp['columns']
         save_pd_toparquet(path, df, compression, verbose)
 
 def save_backgrd_pep_dict(dict_, filepointer, compression = None, outbase=None, verbose=False):
     path = switch_tmp_path(filepointer.background_peptide_fp, outbase)
     if dict_:
         fasta = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
+        fasta.columns = ['index', 'output_id']
         fasta['output_id'] = fasta['output_id'].apply(lambda x: '>' + '/'.join(x))
         fasta = pd.concat([fasta['output_id'], fasta['index']]).sort_index(kind="mergesort").reset_index(drop = True)
-        fasta = pd.DataFrame(fasta, columns=['fasta'])
+        fasta = pd.DataFrame(fasta, columns=filepointer.background_peptide_fp['columns'])
         save_pd_toparquet(path, fasta, compression, verbose)
 
 def save_forgrd_pep_dict(dict_, filepointer, compression=None, outbase=None, verbose=False):
@@ -139,15 +140,15 @@ def save_forgrd_pep_dict(dict_, filepointer, compression=None, outbase=None, ver
     path_meta = switch_tmp_path(filepointer.junction_meta_fp, outbase)
     if dict_:
         df = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
-        df['output_id'] = df['output_id'].apply(lambda x: '>' + '/'.join(x))
-        fasta = pd.concat([df['output_id'], df['index']]).sort_index(kind="mergesort").reset_index(drop = True)
-        fasta = pd.DataFrame(fasta, columns=['fasta'])
+        df.columns = filepointer.junction_meta_fp['columns']
+        fasta = pd.concat([df['id'].apply(lambda x: '>' + '/'.join(x)), df['peptide']]).sort_index(kind="mergesort").reset_index(drop = True)
+        fasta = pd.DataFrame(fasta, columns=filepointer.junction_peptide_fp['columns'])
         save_pd_toparquet(path_fa, fasta, compression, verbose)
         del fasta
-        df = df.drop(['output_id', 'index'], axis=1)
-        df = df.loc[:, filepointer.junction_meta_fp['columns']]
+        df = df.set_index('peptide')
         df = df.applymap(_convert_list_to_str)
-        save_pd_toparquet(path_meta, df, compression, verbose)
+        df = df.reset_index(drop = False)
+        save_pd_toparquet(path_meta, df, compression, verbose)  # Test keep peptide name in the metadata file
 
 def save_gene_expr_distr(gene_expr_distr_list, filepointer, outbase, compression, verbose):
     if gene_expr_distr_list:
@@ -161,10 +162,10 @@ def initialize_fp(junction_peptide_file_path, junction_meta_file_path, backgroun
                     junction_kmer_file_path, background_kmer_file_path, gene_expr_file_path, kmer_list):
 
     fields_forgrd_pep_dict = ['fasta']
-    fields_meta_peptide_dict = ['id','read_frame','gene_name','gene_chr','gene_strand','mutation_mode',
+    fields_meta_peptide_dict = ['peptide','id','read_frame','gene_name','gene_chr','gene_strand','mutation_mode',
                                 'junction_annotated','has_stop_codon','is_in_junction_list',
                                 'is_isolated','variant_comb','variant_seg_expr','modified_exons_coord',
-                                'original_exons_coord','vertex_idx','junction_expr','segment_expr', 'kmer_type']
+                                'original_exons_coord','vertex_idx','junction_expr','segment_expr', 'kmer_type'] #Try add the peptide, easier for downprocessing
     fields_backgrd_pep_dict = ['fasta']
     fields_forgrd_kmer_dict = ['kmer', 'id', 'segment_expr', 'is_cross_junction', 'junction_expr']
     fields_backgrd_kmer_dict = ['kmer']

@@ -49,7 +49,7 @@ Output_metadata namedtuple.
     expression with the length-weighted-sum expression.
 - kmer_type. str indicates whether the peptide is generated from vertice_pair, or 'vertice_triplet_xmer' ie. a triplet was necessary to generate the desired kmer length 
 """
-OutputMetadata = namedtuple('OutputMetadata', ['peptide', 'id', 'output_id', 'read_frame', 'gene_name', 'gene_chr',
+OutputMetadata = namedtuple('OutputMetadata', ['peptide', 'output_id', 'read_frame', 'gene_name', 'gene_chr',
                                                  'gene_strand',	'mutation_mode',
                                                  'junction_annotated',	'has_stop_codon',
                                                  'is_in_junction_list',	'is_isolated',

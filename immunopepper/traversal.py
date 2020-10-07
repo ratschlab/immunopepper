@@ -287,7 +287,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                 else:
                     edge_expr = np.nan
 
-                add_dict_peptide(peptide_dict, [OutputMetadata(peptide=peptide.mut, id=new_output_id,
+                add_dict_peptide(peptide_dict, [OutputMetadata(peptide=peptide.mut,
                                                             output_id= new_output_id,
                                                            read_frame=vertex_pair.read_frame.read_phase,
                                                            gene_name=gene.name,
