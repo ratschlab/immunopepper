@@ -15,7 +15,7 @@ import timeit
 
 # immuno module
 from .config import ExceptionWrapper
-from .config import MaxQueuePool
+from .config import MyPool
 from .io_ import collect_results
 from .io_ import initialize_fp
 from .io_ import remove_folder_list
@@ -340,13 +340,11 @@ def mode_build(arg):
         if arg.parallel > 1:
 
             logging.info('Parallel: {} Threads'.format(arg.parallel))
-            pool_queue_size = 10
             batch_size = min(num, arg.batch_size)
             verbose_save = False
-            logging.info("Pool queue size is {}".format(pool_queue_size))
             # Build the background
             logging.info(">>>>>>>>> Start Background processing")
-            pool_f = MaxQueuePool(pool_queue_size, processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
+            pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
@@ -357,7 +355,7 @@ def mode_build(arg):
 
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
-            pool_f = MaxQueuePool(pool_queue_size, processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
+            pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
 
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]

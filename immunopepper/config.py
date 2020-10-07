@@ -22,7 +22,7 @@ class ExceptionWrapper(object):
 
 
 
-class MaxQueuePool:
+class MyPool:
     def __init__(self, *args, **kwargs):
         self.pool = mp.Pool( *args, **kwargs)
 
