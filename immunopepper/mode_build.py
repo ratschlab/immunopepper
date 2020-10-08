@@ -219,13 +219,14 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
             save_forgrd_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
         dict_kmer_foregr.clear()
 
-        if gene_idxs:
+        if all_gene_idxs:
             logging.info("> {}: sample graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
-                                                                                      all_gene_idxs[-1]  + 1,
-                                                                                      len(gene_id_list),
-                                                                                      np.max(time_per_gene),
-                                                                                      np.max(mem_per_gene)))
+                                                                                          all_gene_idxs[-1]  + 1,
+                                                                                          len(gene_id_list),
+                                                                                          np.max(time_per_gene),
+                                                                                          np.max(mem_per_gene)))
         exception_ = None
+    
     except Exception as e:
         exception_ = ExceptionWrapper(e)
 
@@ -343,15 +344,15 @@ def mode_build(arg):
             batch_size = min(num, arg.batch_size)
             verbose_save = False
             # Build the background
-            logging.info(">>>>>>>>> Start Background processing")
-            pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
-            for i in range(0, len(gene_id_list), batch_size):
-                gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
-                outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
-                pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
-
-                _ = pool_f.submit(process_gene_batch_background, (sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
-            pool_f.terminate()
+#            logging.info(">>>>>>>>> Start Background processing")
+#            pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
+#            for i in range(0, len(gene_id_list), batch_size):
+#                gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
+#                outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
+#                pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
+#
+#                _ = pool_f.submit(process_gene_batch_background, (sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
+#            pool_f.terminate()
 
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
@@ -360,6 +361,7 @@ def mode_build(arg):
             for i in range(0, len(gene_id_list), batch_size):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
+                pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
                 _ = pool_f.submit(process_gene_batch_foreground, (sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
             pool_f.terminate()
 
