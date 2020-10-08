@@ -198,11 +198,21 @@ def add_dict_kmer_forgrd(foregrd_dict, _namedtuple_list):
         del ord_dict_metadata['kmer']
 
         ### aggregate metadata of unique kmers
+        add_novel_kmer = []
         if _namedtuple_kmer.kmer not in foregrd_dict:
-            foregrd_dict[_namedtuple_kmer.kmer] = [{i} for i in ord_dict_metadata.values()]
+            for i,j in enumerate(ord_dict_metadata.values()):
+                if i == 0 :
+                    add_novel_kmer.append({j.split(':')[0]})
+                else:
+                    add_novel_kmer.append({j})
+            foregrd_dict[_namedtuple_kmer.kmer] = add_novel_kmer
         else:
             for id, value in enumerate(ord_dict_metadata.values()):
-                foregrd_dict[_namedtuple_kmer.kmer][id].add(value)
+                if id == 0 :
+                    foregrd_dict[_namedtuple_kmer.kmer][id].add(value.split(':')[0])
+                else:
+                    foregrd_dict[_namedtuple_kmer.kmer][id].add(value)
+
 
 
 
