@@ -226,7 +226,7 @@ def collect_results(filepointer_item, outbase, compression, mutation_mode,  kmer
 
     for file_path in file_to_collect:
         file_name = os.path.basename(file_path)
-        tmp_file_list = glob.glob(os.path.join(outbase, 'tmp_out_{}*'.format(mutation_mode), file_name))
+        tmp_file_list = glob.glob(os.path.join(outbase, 'tmp_out_{}_[0-9]*'.format(mutation_mode), file_name))
         tot_shape = 0
         for tmp_file in tmp_file_list:
             table = pq.read_table(tmp_file)

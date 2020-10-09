@@ -344,15 +344,15 @@ def mode_build(arg):
             batch_size = min(num, arg.batch_size)
             verbose_save = False
             # Build the background
-#            logging.info(">>>>>>>>> Start Background processing")
-#            pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
-#            for i in range(0, len(gene_id_list), batch_size):
-#                gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
-#                outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
-#                pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
-#
-#                _ = pool_f.submit(process_gene_batch_background, (sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
-#            pool_f.terminate()
+            logging.info(">>>>>>>>> Start Background processing")
+            pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
+            for i in range(0, len(gene_id_list), batch_size):
+                gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
+                outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
+                pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
+
+                _ = pool_f.submit(process_gene_batch_background, (sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
+            pool_f.terminate()
 
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
