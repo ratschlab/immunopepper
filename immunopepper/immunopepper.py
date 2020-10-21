@@ -13,7 +13,7 @@ from .mode_diff import mode_diff
 from .mode_filter import mode_filter
 from .mode_makebg import mode_makebg
 from .mode_crosscohort import mode_crosscohort
-
+from .mode_cancerspecif import mode_cancerspecif
 
 def _add_general_args(parser):
     general = parser.add_argument_group('GENERAL')
@@ -132,6 +132,31 @@ def parse_arguments(argv):
 
     _add_general_args(parser_crosscohort)
 
+
+    parser_cancerspecif = subparsers.add_parser('cancerspecif',
+                                               help='Performs differential filtering against a panel of normal samples')
+
+    required = parser_cancerspecif.add_argument_group('MANDATORY')
+    required.add_argument("--cores",type=int, help="number of cores for statistical filtering", required=True, default='')
+
+    required.add_argument("--mem-per-core",type=int, help="memory for statistical filtering", required=True)
+
+    required.add_argument("--kmer", help='kmer', required=True)
+    #required.add_argument("--output-file-path", help="directory to save filtered kmer file", required=True)
+    required.add_argument("--statistical", help="choose between statistical filtering or hard filtering. Default hard",
+                          action="store_true", required=False, default=False)
+    required.add_argument("--cancer_samples", nargs='+', help="list of all cancer samples", required=True, default='')
+    required.add_argument("--cancer-matrix", help="integrated matrix of cancer samples generated with crosscohort mode",required=False, default='')
+    required.add_argument("--normal-matrix", help="ntegrated matrix of normal samples generated with crosscohort mode", required=False, default='')
+    required.add_argument("--output-dir", help="output directory for the filtered matrix" , required=True, default='')
+
+    optional = parser_cancerspecif.add_argument_group('OPTIONAL')
+    optional.add_argument("--output-suffix", help="suffix for the integrated matrix. e.g cancer or normals" , required=False, default='')
+
+    _add_general_args(parser_cancerspecif)
+
+
+
     if len(argv) < 1:
         parser.print_help()
         sys.exit(1)
@@ -145,6 +170,10 @@ def parse_arguments(argv):
             parser_diff.print_help()
         elif argv[0] == 'filter':
             parser_filter.print_help()
+        elif argv[0] == "crosscohort":
+            parser_crosscohort.print_help()
+        elif argv[0] == "parser_cancerspecif":
+            parser_cancerspecif.print_help()
         else:
             parser.print_help()
 
@@ -191,6 +220,8 @@ def split_mode(options):
         mode_filter(arg)
     if mode == "crosscohort":
         mode_crosscohort(arg)
+    if mode == "cancerspecif":
+        mode_cancerspecif(arg)
 
 
 def cmd_entry():

@@ -113,7 +113,8 @@ def test_end_to_end_crosscohort(tmpdir):
               "--output-dir", tmpdir,
               "--output-suffix", "test",
               "--compressed_inputs",
-              "--segment-count"]
+              "--skip-filegrouping"]
+              #"--segment-count"]
     immunopepper.split_mode(my_args)
 
 def mini_crosscohort():
@@ -133,20 +134,35 @@ def mini_crosscohort():
               "--skip-filegrouping"]
     immunopepper.split_mode(my_args)
 
+def test_end_to_end_cancerspecif():
+
+    cancer_dir = "/Users/laurieprelot/Documents/Projects/tmp_kmer/dev_samples/cancer"
+    my_args =["cancerspecif",
+              "--cores", "4",
+              "--mem-per-core", "5000",
+              "--kmer", "9",
+              "--cancer_samples", "TCGA-AO-A12D-01A-11", "TCGA-AR-A0TT-01A-31",
+              "--cancer-matrix", None,
+              "--output-dir", None,
+              "--normal-matrix", os.path.join(cancer_dir, '9mers_crosssamples_expr__test_.pq'),
+              "--output-dir",cancer_dir,
+              "--statistical"]
+    immunopepper.split_mode(my_args)
+
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
 mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
-#test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
-#test_end_to_end_makebg('ERR2130621', tmpdir, "9")
-#test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
-#test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
+#for mutation_mode in ['ref', 'germline', 'somatic', 'somatic_and_germline']:
+#    test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
+#     test_end_to_end_makebg('ERR2130621', tmpdir, "9")
+#     test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
+#    test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
 #test_end_to_end_crosscohort(tmpdir) #TODO add back
-mini_crosscohort()
+#mini_crosscohort()
+test_end_to_end_cancerspecif()
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
-
-
 
 

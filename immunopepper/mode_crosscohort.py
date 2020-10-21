@@ -2,6 +2,7 @@ from collections import defaultdict
 import glob
 import logging
 import os
+import numpy as np
 import pathlib
 from pyspark.sql import functions as sf
 from pyspark.sql import types as st
@@ -65,10 +66,10 @@ def run_combine(inf: Iterable[str],
         df_g.write.mode('overwrite').parquet(outf)
 
 
-def run_pivot(input_, output_dir, output_suffix, sample_list, aggregation_col, partitions, cores, memory_per_core):
+def run_pivot(input_, output_dir, output_suffix, sample_list, aggregation_col, kmer, partitions, cores, memory_per_core):
     sample_set = set(sample_list)
     for expression_col in aggregation_col:
-        output_path = os.path.join(output_dir, "crosssamples_" + expression_col + output_suffix + '.pq')
+        output_path = os.path.join(output_dir, "{}mers_crosssamples_{}_{}_.pq".format(kmer, expression_col, output_suffix))
         file_info = defaultdict(list, {})
         for pq_folder in input_:
             for partition in glob.glob(pq_folder + '/*'):
@@ -115,7 +116,8 @@ def _agg_df(df, sample_set, agg_col):
             )
 
 def collapse_values(value):
-    return np.nanmax(value.split('/'))
+    #return np.nanmax(value.split('/'))
+    return max(value.split('/'))
 
 
 
@@ -155,6 +157,7 @@ def mode_crosscohort(arg): #TODO one spark session or NOT?
               output_suffix=arg.output_suffix, # os.path.join(arg.output_dir, "crosssamples_" + agg_fields_pivot + arg.output_suffix + '.pq'),
               sample_list=arg.samples,
               aggregation_col=expression_fields,
+              kmer = arg.kmer,
               partitions=1, #arg.cores * 10,
               cores=arg.cores,
               memory_per_core=arg.mem_per_core)
