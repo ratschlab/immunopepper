@@ -21,7 +21,7 @@ def DESeq2(count_matrix, design_matrix, normalize, cores=1):
     count_matrix = pandas2ri.py2rpy(count_matrix)
     design_matrix = pandas2ri.py2rpy(design_matrix)
 
-    count_matrix.rownames = count_matrix.get_attrib('kmer')
+    #count_matrix.rownames = count_matrix.get_attrib('kmer')
     design_formula = Formula(' ~ 1')
 
 
@@ -29,7 +29,9 @@ def DESeq2(count_matrix, design_matrix, normalize, cores=1):
                                             colData=design_matrix,
                                             design=design_formula)
     dds0 = BiocGenerics.estimateSizeFactors(dds0, type="poscounts")
-    dds0.do_slot('colData').do_slot('listData')[1] = ro.vectors.FloatVector(list(normalize['libsize_75percent'])) # Enforce size factors
+    order_size_factor = list(dds0.do_slot('colData').do_slot('rownames'))
+    dds0.do_slot('colData').do_slot('listData')[1] = ro.vectors.FloatVector(list(normalize.loc[order_size_factor, 'libsize_75percent'])) # Enforce size factors
+
 
 
     dds = deseq.DESeq(dds0, parallel=True, BPPARAM=BiocParallel.MulticoreParam(cores),
@@ -39,11 +41,13 @@ def DESeq2(count_matrix, design_matrix, normalize, cores=1):
 
     #normalized_count_matrix = deseq.counts(self, normalized=Tru os.path.join(cancer_dir, 'expression_counts.libsize.tsv'),e)
     deseq_result = deseq.results(dds)
-    deseq_result = to_dataframe(deseq_result) #already pandas dataframe
-    #deseq_result = pandas2ri.rpy2py(deseq_result)  ## back to pandas dataframe
+    fit_res = to_dataframe(deseq_result)
+    disp = to_dataframe(deseq.dispersions(dds)).rename({'x': 'dispersion'}, axis = 1)
+    disp.index = fit_res.index
+    fit_res = pd.concat([fit_res['baseMean'], disp], axis=1)
 
 
-    return deseq_result
+    return fit_res
 
 def mode_cancerspecif(arg):
     normal_matrix = pd.read_parquet(arg.normal_matrix, engine = 'pyarrow')
@@ -54,6 +58,7 @@ def mode_cancerspecif(arg):
     design_matrix = design_matrix.set_index('sample')
     libsize = pd.read_csv(arg.normal_libsize, sep = '\t')
     libsize['libsize_75percent'] = libsize['libsize_75percent'] / np.median(libsize['libsize_75percent'])
+    libsize = libsize.set_index('sample')
     DESeq2(normal_matrix, design_matrix, normalize=libsize, cores=1)
 
 
