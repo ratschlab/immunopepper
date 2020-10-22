@@ -1,14 +1,16 @@
-
+import numpy as np
 import rpy2.robjects as ro
 import pandas as pd
-from rpy2.robjects import pandas2ri, Formula
+from rpy2.robjects import pandas2ri, Formula, r
 from rpy2.robjects.packages import importr
 from rpy2.robjects.conversion import localconverter
 pandas2ri.activate()
 deseq = importr('DESeq2')
 BiocParallel = importr('BiocParallel')
+BiocGenerics = importr("BiocGenerics")
 
-def DESeq2(count_matrix, design_matrix, id_column='kmer', cores=1):
+
+def DESeq2(count_matrix, design_matrix, normalize, cores=1):
     # gene_column = ''
     to_dataframe = ro.r('function(x) data.frame(x)')
 
@@ -18,32 +20,41 @@ def DESeq2(count_matrix, design_matrix, id_column='kmer', cores=1):
 
     count_matrix = pandas2ri.py2rpy(count_matrix)
     design_matrix = pandas2ri.py2rpy(design_matrix)
+
+    count_matrix.rownames = count_matrix.get_attrib('kmer')
     design_formula = Formula(' ~ 1')
 
-    dds = deseq.DESeqDataSetFromMatrix(countData=count_matrix,
+
+    dds0 = deseq.DESeqDataSetFromMatrix(countData=count_matrix,
                                             colData=design_matrix,
                                             design=design_formula)
+    dds0 = BiocGenerics.estimateSizeFactors(dds0, type="poscounts")
+    dds0.do_slot('colData').do_slot('listData')[1] = ro.vectors.FloatVector(list(normalize['libsize_75percent'])) # Enforce size factors
 
-    dds = deseq.DESeq(dds, parallel=True, BPPARAM=BiocParallel.MulticoreParam(cores),
+
+    dds = deseq.DESeq(dds0, parallel=True, BPPARAM=BiocParallel.MulticoreParam(cores),
                       sfType="poscounts", # Will run 1. estimation of size factors: estimateSizeFactors # parameter "poscounts"
                       fitType="parametric" # 2. estimation of dispersion: estimateDispersions # parameter "parametric"
                       )
 
-    #normalized_count_matrix = deseq.counts(self, normalized=True)
+    #normalized_count_matrix = deseq.counts(self, normalized=Tru os.path.join(cancer_dir, 'expression_counts.libsize.tsv'),e)
     deseq_result = deseq.results(dds)
     deseq_result = to_dataframe(deseq_result) #already pandas dataframe
     #deseq_result = pandas2ri.rpy2py(deseq_result)  ## back to pandas dataframe
+
 
     return deseq_result
 
 def mode_cancerspecif(arg):
     normal_matrix = pd.read_parquet(arg.normal_matrix, engine = 'pyarrow')
     normal_matrix  = normal_matrix.drop(['is_cross_junction'], axis=1)
-    normal_matrix = normal_matrix.set_index(['kmer'])
-    design_matrix = pd.DataFrame(['normal']* normal_matrix.shape[1], columns = ["design"])
-    design_matrix.index  = normal_matrix.columns
-
-    DESeq2(normal_matrix, design_matrix, id_column='kmer', cores=1)
+    normal_matrix = normal_matrix.set_index('kmer')
+    design_matrix = pd.DataFrame([1]* normal_matrix.shape[1], columns = ["design"])
+    design_matrix['sample'] = normal_matrix.columns
+    design_matrix = design_matrix.set_index('sample')
+    libsize = pd.read_csv(arg.normal_libsize, sep = '\t')
+    libsize['libsize_75percent'] = libsize['libsize_75percent'] / np.median(libsize['libsize_75percent'])
+    DESeq2(normal_matrix, design_matrix, normalize=libsize, cores=1)
 
 
 

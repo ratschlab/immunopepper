@@ -145,7 +145,9 @@ def parse_arguments(argv):
     #required.add_argument("--output-file-path", help="directory to save filtered kmer file", required=True)
     required.add_argument("--statistical", help="choose between statistical filtering or hard filtering. Default hard",
                           action="store_true", required=False, default=False)
-    required.add_argument("--cancer_samples", nargs='+', help="list of all cancer samples", required=True, default='')
+    required.add_argument("--cancer-libsize", help="libsize file path for cancer samples", required=True, default='')
+    required.add_argument("--normal-libsize", help="libsize file path for normal samples", required=True, default='')
+    required.add_argument("--cancer-samples", nargs='+', help="list of all cancer samples", required=True, default='')
     required.add_argument("--cancer-matrix", help="integrated matrix of cancer samples generated with crosscohort mode",required=False, default='')
     required.add_argument("--normal-matrix", help="ntegrated matrix of normal samples generated with crosscohort mode", required=False, default='')
     required.add_argument("--output-dir", help="output directory for the filtered matrix" , required=True, default='')
