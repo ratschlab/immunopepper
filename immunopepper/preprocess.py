@@ -257,6 +257,8 @@ def search_edge_metadata_segmentgraph(gene, coord, countinfo, Idx, edge_idxs=Non
     def get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts=None):
         a = np.searchsorted(segmentgraph.segments[1, :], sorted_pos[1])
         b = np.searchsorted(segmentgraph.segments[0, :], sorted_pos[2])
+        print(a, b)
+        print(segmentgraph.seg_edges.shape)
         if a < b:
             idx = np.ravel_multi_index([a, b], segmentgraph.seg_edges.shape)
         else:

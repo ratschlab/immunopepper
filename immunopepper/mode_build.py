@@ -34,6 +34,8 @@ from .traversal import collect_background_transcripts
 from .traversal import collect_vertex_pairs
 from .traversal import get_and_write_background_peptide_and_kmer
 from .traversal import get_and_write_peptide_and_kmer
+from .traversal import get_and_write_peptide_and_kmer_multi_samples
+from .traversal import get_sample_counts
 from .utils import check_chr_consistence
 from .utils import create_libsize
 from .utils import get_idx
@@ -145,72 +147,72 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                 logging.warning('>Gene {} has a edge complexity > {}, not processed'.format(gene.name, complexity_cap))
                 continue
 
-            idx = get_idx(countinfo, sample, gene_idxs[i])
-
-            # Gene counts information
-            if countinfo:
-                gidx = countinfo.gene_idx_dict[gene.name]
-
-                with h5py.File(countinfo.h5fname, 'r') as h5f:
-                    if countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_edgerange or \
-                            countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_segrange:
-                        edge_idxs = None
-                        edge_counts = None
-
-                    else:
-                        edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
-                        edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
-                        edge_counts = h5f['edges'][edge_gene_idxs, idx.sample]
-                    seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
-                                              countinfo.gene_id_to_segrange[gidx][1])
-                    seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
-
-
-            gene_expr.append((gene.name, get_total_gene_expr(gene, countinfo, idx, seg_counts)))
 
             chrm = gene.chr.strip()
-            sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
             junction_list = None
             if not junction_dict is None and chrm in junction_dict:
                 junction_list = junction_dict[chrm]
 
-            vertex_pairs, \
-            ref_mut_seq, \
-            exon_som_dict = collect_vertex_pairs(gene=gene,
-                                                 gene_info=genes_info[i],
-                                                 ref_seq_file=arg.ref_path, #seq_dict[chrm],
-                                                 chrm=chrm,
-                                                 idx=idx,
-                                                 mutation=sub_mutation,
-                                                 all_read_frames=all_read_frames,
-                                                 disable_concat=arg.disable_concat,
-                                                 kmer=arg.kmer,
-                                                 filter_redundant=arg.filter_redundant)
+            if len(arg.samples) == 1:
+                idx = get_idx(countinfo, sample, gene_idxs[i])
+                # Gene counts information
+                if countinfo:
+                    seg_counts, edge_counts, edge_idxs = get_sample_counts(gene, countinfo, idx)
+                #TODO replace gene expression for large matrix
+                gene_expr.append((gene.name, get_total_gene_expr(gene, countinfo, idx, seg_counts)))
 
-            get_and_write_peptide_and_kmer(peptide_dict = dict_pept_forgrd,
-                                            kmer_dict = dict_kmer_foregr,
-                                            gene=gene,
-                                            all_vertex_pairs=vertex_pairs,
-                                            ref_mut_seq=ref_mut_seq,
-                                            idx=idx,
-                                            exon_som_dict=exon_som_dict,
-                                            countinfo=countinfo,
-                                            mutation=sub_mutation,
-                                            table=genetable,
-                                            size_factor=None,
-                                            junction_list=junction_list,
-                                            kmer=arg.kmer,
-                                            output_silence=arg.output_silence,
-                                            outbase=outbase,
-                                            edge_idxs=edge_idxs,
-                                            edge_counts=edge_counts,
-                                            seg_counts=seg_counts,
-                                            )
+                #TODO move this part of the loop to get_and_write_petide_and_kmer
+                sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
 
+                vertex_pairs, \
+                ref_mut_seq, \
+                exon_som_dict = collect_vertex_pairs(gene=gene,
+                                                     gene_info=genes_info[i],
+                                                     ref_seq_file=arg.ref_path,  # seq_dict[chrm],
+                                                     chrm=chrm,
+                                                     idx_gene=gene_idxs[i],
+                                                     mutation=sub_mutation,
+                                                     all_read_frames=all_read_frames,
+                                                     disable_concat=arg.disable_concat,
+                                                     kmer=arg.kmer,
+                                                     filter_redundant=arg.filter_redundant)
+
+
+                get_and_write_peptide_and_kmer(peptide_dict = dict_pept_forgrd,
+                                                kmer_dict = dict_kmer_foregr,
+                                                gene=gene,
+                                                all_vertex_pairs=vertex_pairs,
+                                                ref_mut_seq=ref_mut_seq,
+                                                idx=idx,
+                                                exon_som_dict=exon_som_dict,
+                                                countinfo=countinfo,
+                                                mutation=sub_mutation,
+                                                table=genetable,
+                                                size_factor=None,
+                                                junction_list=junction_list,
+                                                kmer=arg.kmer,
+                                                output_silence=arg.output_silence,
+                                                outbase=outbase,
+                                                edge_idxs=edge_idxs,
+                                                edge_counts=edge_counts,
+                                                seg_counts=seg_counts,
+                                                )
+            else:
+                get_and_write_peptide_and_kmer_multi_samples(peptide_dict=dict_pept_forgrd,
+                                                             gene=gene, ref_path=arg.ref_path, idx=None,
+                                                             gene_idxs=gene_idxs, countinfo=countinfo, genes_info=genes_info,
+                                                             graph_idx=i,
+                                                             all_read_frames=all_read_frames, disable_concat=arg.disable_concat,
+                                                             mutation=mutation, table=genetable,
+                                                             filter_redundant=arg.filter_redundant,
+                                                             size_factor=None, samples=arg.samples, chrm=chrm, junction_list=junction_list,
+                                                             output_silence=False, kmer=arg.kmer, outbase=outbase)
 
             time_per_gene.append(timeit.default_timer() - start_time)
             mem_per_gene.append(print_memory_diags(disable_print=True))
             all_gene_idxs.append(gene_idxs[i])
+
+        # TODO update the dictionnary saving part
 
         save_gene_expr_distr(gene_expr, filepointer, outbase, compression, verbose)
         save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, verbose)
