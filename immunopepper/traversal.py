@@ -280,7 +280,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
 
                 # collect expression data
                 if  countinfo:
-                    segment_expr, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts, cross_graph_expr)
+                    segment_expr, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts)
                 else:
                     segment_expr, expr_list = np.nan, None
                 if countinfo and not flag.is_isolated and edge_counts is not None: ## Will flag is isolated overlap with edge_counts is None?
@@ -306,7 +306,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                                                                    original_exons_coord=vertex_pair.original_exons_coord,
                                                                    vertex_idx=vertex_list,
                                                                    kmer_type=kmer_type
-                                                                   )])
+                                                                   )]) #TODO update saving functions 
                 else:
                     add_dict_peptide(peptide_dict, [OutputMetadata(peptide=peptide.mut,
                                                                 output_id= new_output_id,

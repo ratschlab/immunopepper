@@ -200,7 +200,7 @@ def is_isolated_cds(gene, gene_info, idx):
     return np.sum(gene.splicegraph.edges[:, idx]) == 0
 
 
-def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts, cross_graph_expr=False):
+def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
     """ Split the exon into segments and get the corresponding counts.
 
     Parameters
@@ -218,24 +218,24 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts, cross_graph_e
         and the expression count of that segment.
 
     """
-
+    out_shape = 3 if len(seg_counts.shape) > 1 else 2
     # Todo: deal with absense of count file
     if vstart is np.nan or vstop is np.nan:  # isolated exon case
-        return np.zeros((0, 2), dtype='float')
+        return np.zeros((0, out_shape), dtype='float')
     if countinfo is None or Idx.sample is None:
-        return np.zeros((0, 2), dtype='float') #[np.nan]
+        return np.zeros((0, out_shape), dtype='float') #[np.nan]
 
     segments = gene.segmentgraph.segments
 
     sv1_id = bisect.bisect(segments[0], vstart) - 1
     sv2_id = bisect.bisect(segments[0], vstop) - 1
     if sv1_id == sv2_id:
-        if cross_graph_expr:
+        if len(seg_counts.shape) > 1:
             expr_list = np.c_[np.array([vstop - vstart]), [seg_counts[sv1_id, :]]]
         else:
             expr_list = np.array([(vstop - vstart, seg_counts[sv1_id])])
     else:
-        if cross_graph_expr:
+        if len(seg_counts.shape) > 1:
             expr_list = np.c_[segments[1, sv1_id:sv2_id + 1] - segments[0, sv1_id:sv2_id + 1], seg_counts[sv1_id:sv2_id + 1, :]]
         else:
             expr_list = np.c_[segments[1, sv1_id:sv2_id + 1] - segments[0, sv1_id:sv2_id + 1], seg_counts[sv1_id:sv2_id + 1, np.newaxis]]
@@ -245,7 +245,7 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts, cross_graph_e
             expr_list = expr_list[::-1]
     return expr_list
 
-def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr=False):
+def get_segment_expr(gene, coord, countinfo, Idx, seg_counts):
     """ Get the segment expression for one exon-pair.
     Apply 'get_exon_expr' for each exon and concatenate them.
 
@@ -269,17 +269,18 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr=F
 
     """
     if coord.start_v3 is None:
-        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts, cross_graph_expr),
-                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts, cross_graph_expr)])
+        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts ),
+                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts )])
     else:
-        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts, cross_graph_expr),
-                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts, cross_graph_expr),
-                               get_exon_expr(gene, coord.start_v3, coord.stop_v3, countinfo, Idx, seg_counts, cross_graph_expr)])
+        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts ),
+                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts ),
+                               get_exon_expr(gene, coord.start_v3, coord.stop_v3, countinfo, Idx, seg_counts )])
     #expr_list = get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx)
     #expr_list = np.append(expr_list, get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx), axis=0)
     #if coord.start_v3 is not None:
     #    expr_list = np.append(expr_list, get_exon_expr(gene, coord.start_v3, coord.stop_v3, countinfo, Idx), axis=0)
     seg_len = np.sum(expr_list[:, 0])
+
     n_samples = expr_list[:, 1:].shape[1]
     len_factor = np.tile(expr_list[:, 0], n_samples).reshape(n_samples, expr_list.shape[0]).transpose()
     mean_expr = (np.sum(expr_list[:, 1:]*len_factor, 0) / seg_len).astype(int) if seg_len > 0 else np.zeros(n_samples).astype(int)

@@ -62,8 +62,8 @@ OutputMetadata_strict = namedtuple('OutputMetadata', ['peptide', 'output_id', 'r
                                                  'junction_annotated',	'has_stop_codon',
                                                  'is_in_junction_list',	'is_isolated',
                                                  'variant_comb',	'variant_seg_expr',
-                                                 'modified_exons_coord','original_exons_coord',
-                                                 'segment_expr', 'kmer_type'])
+                                                 'modified_exons_coord','original_exons_coord','vertex_idx',
+                                                  'kmer_type'])
 
 VertexPair = namedtuple('VertexPair', ['output_id', 'read_frame','has_stop_codon','modified_exons_coord','original_exons_coord','vertex_idxs','peptide_weight'])
 

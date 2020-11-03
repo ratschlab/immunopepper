@@ -262,7 +262,11 @@ def search_edge_metadata_segmentgraph(gene, coord, countinfo, Idx, edge_idxs=Non
         else:
             idx = np.ravel_multi_index([b, a], segmentgraph.seg_edges.shape)
         cidx = np.searchsorted(edge_idxs, idx)
-        return edge_counts[cidx]
+        if len(edge_counts.shape) > 1:
+            counts = edge_counts[cidx,:]
+        else:
+            counts = np.array([edge_counts[cidx]])
+        return counts
 
     segmentgraph = gene.segmentgraph
     sorted_pos = np.sort(np.array([coord.start_v1, coord.stop_v1, coord.start_v2, coord.stop_v2]))
@@ -270,11 +274,11 @@ def search_edge_metadata_segmentgraph(gene, coord, countinfo, Idx, edge_idxs=Non
     count = get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts)
 
     if coord.start_v3 is None:
-        return (count,)
+        return [(c_,) for c_ in count] #(count,)
     else:
         sorted_pos = np.sort(np.array([coord.start_v2, coord.stop_v2, coord.start_v3, coord.stop_v3]))
         count2 = get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts)
-        return (count, count2)
+        return [(count(i),count2[i]) for i in np.arange(count)] #(count, count2) #TODO check
 
 
 def parse_gene_metadata_info(h5fname, sample_list):
