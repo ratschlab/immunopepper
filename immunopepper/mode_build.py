@@ -151,22 +151,29 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
             if countinfo:
                 gidx = countinfo.gene_idx_dict[gene.name]
 
+                cross_graph_expr = True #TODO make parameter immunopepper
                 with h5py.File(countinfo.h5fname, 'r') as h5f:
-                    if countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_edgerange or \
-                            countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_segrange:
-                        edge_idxs = None
-                        edge_counts = None
+                        if countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_edgerange or \
+                                countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_segrange:
+                            edge_idxs = None
+                            edge_counts = None
 
-                    else:
-                        edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
-                        edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
-                        edge_counts = h5f['edges'][edge_gene_idxs, idx.sample]
-                    seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
-                                              countinfo.gene_id_to_segrange[gidx][1])
-                    seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
+                        else:
+                            edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
+                            edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
+                            if cross_graph_expr:
+                                edge_counts = h5f['edges'][edge_gene_idxs,:] # will compute expression on whole graph
+                            else:
+                                edge_counts = h5f['edges'][edge_gene_idxs,idx.sample]
+                        seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
+                                                  countinfo.gene_id_to_segrange[gidx][1])
+                        if cross_graph_expr:
+                            seg_counts = h5f['segments'][seg_gene_idxs, :]
+                        else:
+                            seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
 
-
-            gene_expr.append((gene.name, get_total_gene_expr(gene, countinfo, idx, seg_counts)))
+            if not cross_graph_expr: #TODO deal with gene_expression in sample in this case
+                gene_expr.append((gene.name, get_total_gene_expr(gene, countinfo, idx, seg_counts)))
 
             chrm = gene.chr.strip()
             sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
@@ -205,7 +212,7 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                                             edge_idxs=edge_idxs,
                                             edge_counts=edge_counts,
                                             seg_counts=seg_counts,
-                                            )
+                                            cross_graph_expr=cross_graph_expr)
 
 
             time_per_gene.append(timeit.default_timer() - start_time)

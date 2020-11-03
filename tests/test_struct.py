@@ -107,7 +107,7 @@ def test_end_to_end_filter(tmpdir, sample, kmer_length, mutation_mode):
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
-mutation_mode ='somatic_and_germline'
+mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
 test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back

@@ -20,6 +20,7 @@ from .namedtuples import OutputBackground
 from .namedtuples import OutputJuncPeptide
 from .namedtuples import OutputKmer
 from .namedtuples import OutputMetadata
+from .namedtuples import OutputMetadata_strict
 from .namedtuples import VertexPair
 from .preprocess import search_edge_metadata_segmentgraph
 from .translate import get_exhaustive_reading_frames
@@ -220,7 +221,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                          exon_som_dict=None, countinfo=None,
                          edge_idxs=None, edge_counts=None, seg_counts=None,
                          mutation=None,table=None,
-                         size_factor=None, junction_list=None, output_silence=False, kmer=None, outbase=None):
+                         size_factor=None, junction_list=None, output_silence=False, kmer=None, cross_graph_expr=None, outbase=None):
     """
 
     Parameters
@@ -279,7 +280,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
 
                 # collect expression data
                 if  countinfo:
-                    segment_expr, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts)
+                    segment_expr, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts, cross_graph_expr)
                 else:
                     segment_expr, expr_list = np.nan, None
                 if countinfo and not flag.is_isolated and edge_counts is not None: ## Will flag is isolated overlap with edge_counts is None?
@@ -287,26 +288,46 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                 else:
                     edge_expr = np.nan
 
-                add_dict_peptide(peptide_dict, [OutputMetadata(peptide=peptide.mut,
-                                                            output_id= new_output_id,
-                                                           read_frame=vertex_pair.read_frame.read_phase,
-                                                           gene_name=gene.name,
-                                                           gene_chr=gene.chr,
-                                                           gene_strand=gene.strand,
-                                                           mutation_mode=mutation.mode,
-                                                           junction_annotated=vertex_tuple_anno_flag,
-                                                           has_stop_codon=int(flag.has_stop),
-                                                           is_in_junction_list=junction_is_in_given_list_flag,
-                                                           is_isolated=int(flag.is_isolated),
-                                                           variant_comb=variant_comb,
-                                                           variant_seg_expr=seg_exp_variant_comb,
-                                                           modified_exons_coord=modi_coord,
-                                                           original_exons_coord=vertex_pair.original_exons_coord,
-                                                           vertex_idx=vertex_list,
-                                                           junction_expr=edge_expr,
-                                                           segment_expr=segment_expr,
-                                                           kmer_type=kmer_type
-                )]) #TODO adapt function when background updated
+                if cross_graph_expr:
+                    add_dict_peptide(peptide_dict, [OutputMetadata_strict(peptide=peptide.mut,
+                                                                   output_id=new_output_id,
+                                                                   read_frame=vertex_pair.read_frame.read_phase,
+                                                                   gene_name=gene.name,
+                                                                   gene_chr=gene.chr,
+                                                                   gene_strand=gene.strand,
+                                                                   mutation_mode=mutation.mode,
+                                                                   junction_annotated=vertex_tuple_anno_flag,
+                                                                   has_stop_codon=int(flag.has_stop),
+                                                                   is_in_junction_list=junction_is_in_given_list_flag,
+                                                                   is_isolated=int(flag.is_isolated),
+                                                                   variant_comb=variant_comb,
+                                                                   variant_seg_expr=seg_exp_variant_comb,
+                                                                   modified_exons_coord=modi_coord,
+                                                                   original_exons_coord=vertex_pair.original_exons_coord,
+                                                                   vertex_idx=vertex_list,
+                                                                   kmer_type=kmer_type
+                                                                   )])
+                else:
+                    add_dict_peptide(peptide_dict, [OutputMetadata(peptide=peptide.mut,
+                                                                output_id= new_output_id,
+                                                               read_frame=vertex_pair.read_frame.read_phase,
+                                                               gene_name=gene.name,
+                                                               gene_chr=gene.chr,
+                                                               gene_strand=gene.strand,
+                                                               mutation_mode=mutation.mode,
+                                                               junction_annotated=vertex_tuple_anno_flag,
+                                                               has_stop_codon=int(flag.has_stop),
+                                                               is_in_junction_list=junction_is_in_given_list_flag,
+                                                               is_isolated=int(flag.is_isolated),
+                                                               variant_comb=variant_comb,
+                                                               variant_seg_expr=seg_exp_variant_comb,
+                                                               modified_exons_coord=modi_coord,
+                                                               original_exons_coord=vertex_pair.original_exons_coord,
+                                                               vertex_idx=vertex_list,
+                                                               junction_expr=edge_expr,
+                                                               segment_expr=segment_expr,
+                                                               kmer_type=kmer_type
+                    )]) #TODO adapt function when background updated
 
 
                 variant_id += 1
