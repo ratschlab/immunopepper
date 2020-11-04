@@ -30,7 +30,7 @@ def test_end_to_end_build(test_id, case, mutation_mode, tmpdir):
     immunopepper.split_mode(my_args)
 
 
-def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True):
+def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_cross_sample=False):
     data_dir = os.path.join(os.path.dirname(__file__), 'mouse_usecase')
     out_dir = str(tmpdir)
     #sample_dir_build = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'diff','{}'.format(case),'test{}{}'.format(test_id,case))
@@ -48,7 +48,8 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True):
                 '--batch-size', '1']
     if is_parallel:
         my_args_build.extend(['--parallel', '4'])
-
+    if graph_cross_sample:
+        my_args_build.extend(['--cross-graph-exp'])
     my_args = my_args_build
     immunopepper.split_mode(my_args)
 
@@ -110,7 +111,7 @@ tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
 mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
+test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_cross_sample=True) #TODO add back
 #test_end_to_end_makebg('ERR2130621', tmpdir, "9")
 #test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)

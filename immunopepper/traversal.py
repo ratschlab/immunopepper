@@ -3,6 +3,7 @@
 from collections import defaultdict
 import logging
 import numpy as np
+import pandas as pd
 
 from .filter import add_dict_kmer_forgrd
 from .filter import add_dict_peptide
@@ -11,6 +12,7 @@ from .filter import get_filtered_metadata_list
 from .filter import junction_is_annotated
 from .filter import junction_is_in_given_list
 from .filter import junction_tuple_is_annotated
+from .io_ import save_pd_toparquet
 from .mutations import apply_germline_mutation
 from .mutations import get_exon_som_dict
 from .mutations import get_mut_comb
@@ -20,7 +22,6 @@ from .namedtuples import OutputBackground
 from .namedtuples import OutputJuncPeptide
 from .namedtuples import OutputKmer
 from .namedtuples import OutputMetadata
-from .namedtuples import OutputMetadata_strict
 from .namedtuples import VertexPair
 from .preprocess import search_edge_metadata_segmentgraph
 from .translate import get_exhaustive_reading_frames
@@ -221,7 +222,10 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                          exon_som_dict=None, countinfo=None,
                          edge_idxs=None, edge_counts=None, seg_counts=None,
                          mutation=None,table=None,
-                         size_factor=None, junction_list=None, output_silence=False, kmer=None, cross_graph_expr=None, outbase=None):
+                         size_factor=None, junction_list=None,
+                         filepointer=None,
+                         output_silence=False, kmer=None,
+                         cross_graph_expr=None, graph_samples=None,outbase=None):
     """
 
     Parameters
@@ -288,54 +292,40 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                 else:
                     edge_expr = np.nan
 
-                if cross_graph_expr:
-                    add_dict_peptide(peptide_dict, [OutputMetadata_strict(peptide=peptide.mut,
-                                                                   output_id=new_output_id,
-                                                                   read_frame=vertex_pair.read_frame.read_phase,
-                                                                   gene_name=gene.name,
-                                                                   gene_chr=gene.chr,
-                                                                   gene_strand=gene.strand,
-                                                                   mutation_mode=mutation.mode,
-                                                                   junction_annotated=vertex_tuple_anno_flag,
-                                                                   has_stop_codon=int(flag.has_stop),
-                                                                   is_in_junction_list=junction_is_in_given_list_flag,
-                                                                   is_isolated=int(flag.is_isolated),
-                                                                   variant_comb=variant_comb,
-                                                                   variant_seg_expr=seg_exp_variant_comb,
-                                                                   modified_exons_coord=modi_coord,
-                                                                   original_exons_coord=vertex_pair.original_exons_coord,
-                                                                   vertex_idx=vertex_list,
-                                                                   kmer_type=kmer_type
-                                                                   )]) #TODO update saving functions
-                else:
-                    add_dict_peptide(peptide_dict, [OutputMetadata(peptide=peptide.mut,
-                                                                output_id= new_output_id,
-                                                               read_frame=vertex_pair.read_frame.read_phase,
-                                                               gene_name=gene.name,
-                                                               gene_chr=gene.chr,
-                                                               gene_strand=gene.strand,
-                                                               mutation_mode=mutation.mode,
-                                                               junction_annotated=vertex_tuple_anno_flag,
-                                                               has_stop_codon=int(flag.has_stop),
-                                                               is_in_junction_list=junction_is_in_given_list_flag,
-                                                               is_isolated=int(flag.is_isolated),
-                                                               variant_comb=variant_comb,
-                                                               variant_seg_expr=seg_exp_variant_comb,
-                                                               modified_exons_coord=modi_coord,
-                                                               original_exons_coord=vertex_pair.original_exons_coord,
-                                                               vertex_idx=vertex_list,
-                                                               junction_expr=edge_expr,
-                                                               segment_expr=segment_expr,
-                                                               kmer_type=kmer_type
-                    )]) #TODO adapt function when background updated
+                ### Peptides
+                metadata = OutputMetadata(peptide=peptide.mut,
+                                   output_id=new_output_id,
+                                   read_frame=vertex_pair.read_frame.read_phase,
+                                   gene_name=gene.name,
+                                   gene_chr=gene.chr,
+                                   gene_strand=gene.strand,
+                                   mutation_mode=mutation.mode,
+                                   junction_annotated=vertex_tuple_anno_flag,
+                                   has_stop_codon=int(flag.has_stop),
+                                   is_in_junction_list=junction_is_in_given_list_flag,
+                                   is_isolated=int(flag.is_isolated),
+                                   variant_comb=variant_comb,
+                                   variant_seg_expr=seg_exp_variant_comb,
+                                   modified_exons_coord=modi_coord,
+                                   original_exons_coord=vertex_pair.original_exons_coord,
+                                   vertex_idx=vertex_list,
+                                   junction_expr=edge_expr,
+                                   segment_expr=segment_expr,
+                                   kmer_type=kmer_type
+                                   )
 
-
+                add_dict_peptide(peptide_dict, [metadata], skip_expr=cross_graph_expr) #TODO update saving functions
                 variant_id += 1
                 output_peptide = OutputJuncPeptide(output_id= new_output_id,
                                                 peptide=peptide.mut,
                                                 exons_coor=modi_coord,
                                                 junction_expr=edge_expr)
 
+            ### kmers
+            if cross_graph_expr:
+                create_save_output_kmer_cross_samples(output_peptide, kmer[0], expr_list, filepointer, graph_samples) # Only one kmer lengthsupported for this mode
+
+            else:
                 if kmer: # TODO change the functions and save
                     if '2-exons' in kmer_type: #generate kmers for each vertex pair and each kmer_length
                         for kmer_length in kmer:
@@ -439,7 +429,7 @@ def create_output_kmer(output_peptide, k, expr_list):
     return output_kmer_list
 
 
-def create_output_kmer_cross_samples(output_peptide, k, expr_list):
+def create_save_output_kmer_cross_samples(output_peptide, k, expr_list, filepointer, graph_samples):
     """Calculate the output kmer and the corresponding expression based on output peptide
 
     Parameters
@@ -450,11 +440,9 @@ def create_output_kmer_cross_samples(output_peptide, k, expr_list):
 
     Returns
     -------
-    output_kmer_list: List(str). Each line is the output peptide and corresponding expression level.
-
+    save the segment, res. edge expression matrix with rows: kmers, columns:samples from input graph
+    saving is performed kmer per kmer with parquet
     """
-    output_kmer_list = []
-
     peptide = output_peptide.peptide
     peptide_head = output_peptide.output_id
 
@@ -503,8 +491,23 @@ def create_output_kmer_cross_samples(output_peptide, k, expr_list):
 
             kmer_seg_samples.append(is_in_junction)
             kmer_jun_samples.append(is_in_junction)
-            output_kmer_list.append(kmer_seg_samples)
-           # TODO SAVE
+
+            if 'fp' not in filepointer.kmer_segm_expr_fp: # TODO Try understand if the filepointer will be copied in the children without new filed
+                filepointer.kmer_segm_expr_fp['fp'] = None
+                filepointer.kmer_edge_expr_fp['fp'] = None
+            filepointer.kmer_segm_expr_fp['fp'] = save_pd_toparquet(filepointer.kmer_segm_expr_fp['path'], #
+                                                    pd.DataFrame([kmer_seg_samples],
+                                                    columns = [filepointer.kmer_segm_expr_fp[ 'columns'][0]] +graph_samples+
+                                                              [filepointer.kmer_segm_expr_fp[ 'columns'][1]]), # did not save full column in filepointer to save memory
+                                                    pqwriter=filepointer.kmer_segm_expr_fp['fp'],
+                                                    writer_close=False)
+            filepointer.kmer_edge_expr_fp['fp'] = save_pd_toparquet(filepointer.kmer_edge_expr_fp['path'],
+                                                    pd.DataFrame([kmer_seg_samples],
+                                                    columns = [filepointer.kmer_segm_expr_fp['columns'][0]] + graph_samples +
+                                                              [filepointer.kmer_segm_expr_fp['columns'][1]]),
+                                                    pqwriter=filepointer.kmer_edge_expr_fp['fp'],
+                                                    writer_close=False)
+            print('kmer written') #TODO solve the saving issue + peptide dictionnary
 
 
 def get_spanning_index(coord, k):

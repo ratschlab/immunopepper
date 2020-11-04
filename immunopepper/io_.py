@@ -159,7 +159,7 @@ def save_gene_expr_distr(gene_expr_distr_list, filepointer, outbase, compression
 
 
 def initialize_fp(output_path, mutation_mode, gzip_tag,
-                  kmer_list, graph_samples, output_fasta, cross_graph_expr):
+                  kmer_list, output_fasta, cross_graph_expr):
 
     ### Paths
     background_peptide_file_path = os.path.join(output_path, mutation_mode+ '_annot_peptides.fa.pq' + gzip_tag)
@@ -185,8 +185,8 @@ def initialize_fp(output_path, mutation_mode, gzip_tag,
                                 'kmer_type']
     fields_forgrd_pep_dict = ['fasta']
     fields_forgrd_kmer_dict = ['kmer', 'id', 'segment_expr', 'is_cross_junction', 'junction_expr']
-    fields_kmer_expr = ['kmer'] + graph_samples + ['is_cross_junction']
-    fields_pept_expr = ['peptide'] + graph_samples + ['is_cross_junction']
+    fields_kmer_expr = ['kmer', 'is_cross_junction']
+    fields_pept_expr = ['peptide', 'is_cross_junction']
 
     ### Grouping dict
     if output_fasta:    # Foreground peptide fasta - optional
@@ -228,17 +228,22 @@ def output_info(path, file_columns, kmer_list=None):
     return file_info
 
 
-def save_pd_toparquet(path, pd_df, compression = None, verbose = False):
+def save_pd_toparquet(path, pd_df, compression = None, verbose = False, pqwriter=None, writer_close=True):
     s1 = timeit.default_timer()
     table = pa.Table.from_pandas(pd_df, preserve_index=False)
-    pqwriter = pq.ParquetWriter(path, table.schema, compression=compression)
+
+    if pqwriter is None:
+        pqwriter = pq.ParquetWriter(path, table.schema, compression=compression)
     pqwriter.write_table(table)
-    pqwriter.close()
+    if writer_close:
+        pqwriter.close()
+
     if verbose:
         file_name = os.path.basename(path)
         tot_shape = pd_df.shape[0]
         logging.info('Saving parquet {} with {} lines. Took {} seconds'.format(file_name, tot_shape,
                                                                       round(timeit.default_timer() - s1, 4)))
+    return pqwriter
 
 # def save_dict_toparquet(path, my_dict, columns, compression = None, verbose = False):
 #     s1 = timeit.default_timer()

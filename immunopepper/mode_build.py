@@ -118,7 +118,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
 
 
 
-def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, compression, verbose):
+def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, compression, verbose):
     try:
         global filepointer
         dict_kmer_foregr = defaultdict(dict, {})
@@ -211,7 +211,10 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                                             edge_idxs=edge_idxs,
                                             edge_counts=edge_counts,
                                             seg_counts=seg_counts,
-                                            cross_graph_expr=arg.cross_graph_expr)
+                                            cross_graph_expr=arg.cross_graph_expr,
+                                            filepointer=filepointer,
+                                            graph_samples=graph_samples#TODO check updated filepointer
+            )
 
 
             time_per_gene.append(timeit.default_timer() - start_time)
@@ -221,9 +224,13 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
         save_gene_expr_distr(gene_expr, filepointer, outbase, compression, verbose)
         save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, verbose)
         dict_pept_forgrd.clear()
-        for kmer_length in dict_kmer_foregr:
-            save_forgrd_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
-        dict_kmer_foregr.clear()
+        if not arg.cross_graph_expr:
+            for kmer_length in dict_kmer_foregr:
+                save_forgrd_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
+            dict_kmer_foregr.clear()
+        else:
+            filepointer.kmer_segm_expr_fp['fp'].close()
+            filepointer.kmer_edge_expr_fp['fp'].close()
 
         if all_gene_idxs:
             logging.info("> {}: sample graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
@@ -329,7 +336,7 @@ def mode_build(arg):
             gzip_tag = ''
 
         filepointer = initialize_fp(output_path, mutation.mode, gzip_tag,
-                  arg.kmer, graph_samples, arg.output_fasta, arg.cross_graph_expr)
+                  arg.kmer, arg.output_fasta, arg.cross_graph_expr)
 
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
@@ -358,7 +365,7 @@ def mode_build(arg):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
                 pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
-                _ = pool_f.submit(process_gene_batch_foreground, (sample, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
+                _ = pool_f.submit(process_gene_batch_foreground, (sample, graph_samples, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
             pool_f.terminate()
 
             # Collects and pools the files of each batch

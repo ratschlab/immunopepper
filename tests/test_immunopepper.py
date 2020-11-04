@@ -6,7 +6,6 @@ import pytest
 import pysam
 import numpy as np
 
-from immunopepper.constant import NOT_EXIST
 from immunopepper.filter import junction_tuple_is_annotated
 from immunopepper.io_ import convert_namedtuple_to_str
 from immunopepper.io_ import gz_and_normal_open

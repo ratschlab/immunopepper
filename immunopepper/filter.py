@@ -234,7 +234,7 @@ def add_set_kmer_back(backgrd_dict, _namedtuple_list):
 
 
 
-def add_dict_peptide(dict_peptides, _namedtuple_list ):
+def add_dict_peptide(dict_peptides, _namedtuple_list, skip_expr=False):
     """...
         From a namedtuple
         Updates the following dictionnary:
@@ -253,6 +253,9 @@ def add_dict_peptide(dict_peptides, _namedtuple_list ):
         ord_dict_metadata = {k: list_to_tuple(v) for k, v in ord_dict_metadata.items()}
         ord_dict_metadata = {k: (convert_to_str_Coord_namedtuple(v,';')) for k, v in ord_dict_metadata.items()}
         del ord_dict_metadata['peptide']
+        if skip_expr:
+            del ord_dict_metadata['junction_expr']
+            del ord_dict_metadata['segment_expr']
 
         ### aggregate metadata of unique peptides
         if _namedtuple_peptide.peptide not in dict_peptides:
