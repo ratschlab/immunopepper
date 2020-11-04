@@ -31,7 +31,7 @@ def parse_arguments(argv):
     required.add_argument("--splice-path", help="absolute path of splicegraph file", required=True)
     required.add_argument("--ref-path", help="absolute path of reference genome file", required=True)
     required.add_argument("--mutation-mode", help="mutation mode (options: ref, somatic, germline, somatic_germline) [ref]", required=True, default='ref')
-
+    required.add_argument("--output-fasta", help="if True outputs both the sample peptide metadata and the fasta", action="store_true", required=False, default=False)
     outputs = parser_build.add_argument_group('OUTPUT OPTIONS')
     outputs.add_argument("--kmer", nargs='+', type=int, help="list which specifys the different k for kmer output", required=False, default=[])
     outputs.add_argument("--disable-concat",help="switch off concatenation of short exons to increase speed",action="store_true",default=False)
@@ -46,8 +46,11 @@ def parse_arguments(argv):
                                                              "format in the future", required=False, default=None)
     additional_file.add_argument("--sample-name-map", help="provide an naming equivalence between the count/graphs files, the germline and the somatic mutation file Format:[ no header, 2 or 3 columns]. If 2 columns [ name in count/graphs files \t name in mutations files ] If 3 columns [name in count/graphs files \t name in germline file \t name in somatic file]", required=False, default=None) 
     _add_general_args(parser_build)
-
     experimental = parser_build.add_argument_group('EXPERIMENTAL')
+    experimental.add_argument("--cross-graph-expr",
+                          help="returns edge/segment expression matrices [kmer/peptides x samples] ",
+                          action="store_true", required=False, default=False)
+
     experimental.add_argument("--process-num", metavar='N', type=int, help="Only process the first N genes in the splicegraph, default: process all", required=False, default=0)
     experimental.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
     #specify the absolute path to expression library sizes

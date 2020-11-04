@@ -306,7 +306,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                                                                    original_exons_coord=vertex_pair.original_exons_coord,
                                                                    vertex_idx=vertex_list,
                                                                    kmer_type=kmer_type
-                                                                   )]) #TODO update saving functions 
+                                                                   )]) #TODO update saving functions
                 else:
                     add_dict_peptide(peptide_dict, [OutputMetadata(peptide=peptide.mut,
                                                                 output_id= new_output_id,
@@ -336,11 +336,11 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                                                 exons_coor=modi_coord,
                                                 junction_expr=edge_expr)
 
-                if kmer:
+                if kmer: # TODO change the functions and save
                     if '2-exons' in kmer_type: #generate kmers for each vertex pair and each kmer_length
                         for kmer_length in kmer:
                             add_dict_kmer_forgrd(kmer_dict[kmer_length],
-                                                 create_output_kmer(output_peptide, kmer_length, expr_list))
+                                                 create_output_kmer(output_peptide, kmer_length, expr_list)) #TODO create other type of kmer dictionnary, + other saving function for batch // OR SAVE STRAIGHT away # adapt kmer to list of expressins -- keep cros junction info
 
                     else: #generate kmers for each vertex triplets, only for the kmer_lengths that require it
                         kmer_length = int(kmer_type.split('_')[-1].split('-')[0])
@@ -401,32 +401,6 @@ def create_output_kmer(output_peptide, k, expr_list):
     output_kmer_list: List(str). Each line is the output peptide and corresponding expression level.
 
     """
-    def get_spanning_index(coord, k):
-        L1 = coord.stop_v1-coord.start_v1
-        if coord.start_v2 is np.nan:
-            return [np.nan],[np.nan]
-        else:
-            L2 = coord.stop_v2 - coord.start_v2
-
-        # consider the first junction
-        m1 = int(L1 / 3)
-        if L1 % 3 == 0:
-            spanning_id_range1 = range(max(m1 - k + 1, 0), m1)
-        else:
-            spanning_id_range1 = range(max(m1 - k + 1, 0), m1 + 1)
-
-        # consider the second junction
-        if coord.start_v3 is None:
-            spanning_id_range2 = [np.nan]
-        else:
-            m2 = int((L1 + L2) / 3)
-            if (L1 + L2) % 3 == 0:
-                spanning_id_range2 = range(max(m2 - k + 1, 0), m2)
-            else:
-                spanning_id_range2 = range(max(m2 - k + 1, 0), m2 + 1)
-
-        return spanning_id_range1, spanning_id_range2
-
     output_kmer_list = []
     peptide = output_peptide.peptide
     peptide_head = output_peptide.output_id
@@ -464,3 +438,97 @@ def create_output_kmer(output_peptide, k, expr_list):
             output_kmer_list.append(kmer)
     return output_kmer_list
 
+
+def create_output_kmer_cross_samples(output_peptide, k, expr_list):
+    """Calculate the output kmer and the corresponding expression based on output peptide
+
+    Parameters
+    ----------
+    output_peptide: OutputJuncPeptide. Filtered output_peptide_list.
+    k: int. Specify k-mer length
+    expr_lists: List(Tuple). Filtered expr_list.
+
+    Returns
+    -------
+    output_kmer_list: List(str). Each line is the output peptide and corresponding expression level.
+
+    """
+    output_kmer_list = []
+
+    peptide = output_peptide.peptide
+    peptide_head = output_peptide.output_id
+
+    if hasattr(output_peptide,'exons_coor'):
+        coord = output_peptide.exons_coor
+        spanning_index1, spanning_index2 = get_spanning_index(coord, k)
+    else:
+        spanning_index1, spanning_index2 = [np.nan], [np.nan]
+    if hasattr(output_peptide, 'junction_expr'):
+        junction_count = output_peptide.junction_expr
+    else:
+        junction_count = np.nan
+    # decide the kmer that spans over the cross junction
+
+    if len(peptide) >= k:
+        for j in range(len(peptide) - k + 1):
+            kmer_seg_samples = []
+            kmer_jun_samples = []
+
+            kmer_peptide = peptide[j:j+k]
+            kmer_seg_samples.append(kmer_peptide)
+            kmer_jun_samples.append(kmer_peptide)
+
+
+            for sample in np.arange(expr_list.shape[1]- 1):
+                # segment expression
+                if expr_list is None:
+                    expr_array = None
+                else:
+                    expr_array = np.array([x[1] for x in expr_list[:, [0, sample + 1]] for _ in range(int(x[0]))])
+                if expr_array is None:
+                    kmer_seg_samples.append(np.nan)
+                else:
+                    kmer_seg_samples.append(np.round(np.mean(expr_array[j*3:(j+k)*3]), 2))
+
+                # junction expression
+                if j in spanning_index1:
+                    is_in_junction = True
+                    kmer_jun_samples.append(junction_count[sample][0] if junction_count is not np.nan else np.nan)
+                elif j in spanning_index2 :
+                    is_in_junction = True
+                    kmer_jun_samples.append(junction_count[sample][1] if junction_count is not np.nan else np.nan)
+                else:
+                    is_in_junction = False
+                    kmer_jun_samples.append(np.nan)
+
+            kmer_seg_samples.append(is_in_junction)
+            kmer_jun_samples.append(is_in_junction)
+            output_kmer_list.append(kmer_seg_samples)
+           # TODO SAVE
+
+
+def get_spanning_index(coord, k):
+    L1 = coord.stop_v1-coord.start_v1
+    if coord.start_v2 is np.nan:
+        return [np.nan],[np.nan]
+    else:
+        L2 = coord.stop_v2 - coord.start_v2
+
+    # consider the first junction
+    m1 = int(L1 / 3)
+    if L1 % 3 == 0:
+        spanning_id_range1 = range(max(m1 - k + 1, 0), m1)
+    else:
+        spanning_id_range1 = range(max(m1 - k + 1, 0), m1 + 1)
+
+    # consider the second junction
+    if coord.start_v3 is None:
+        spanning_id_range2 = [np.nan]
+    else:
+        m2 = int((L1 + L2) / 3)
+        if (L1 + L2) % 3 == 0:
+            spanning_id_range2 = range(max(m2 - k + 1, 0), m2)
+        else:
+            spanning_id_range2 = range(max(m2 - k + 1, 0), m2 + 1)
+
+    return spanning_id_range1, spanning_id_range2

@@ -281,7 +281,7 @@ def search_edge_metadata_segmentgraph(gene, coord, countinfo, Idx, edge_idxs=Non
         return [(count(i),count2[i]) for i in np.arange(count)] #(count, count2) #TODO check
 
 
-def parse_gene_metadata_info(h5fname, sample_list):
+def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
     """ Parse the count file
 
     Parameters
@@ -339,7 +339,11 @@ def parse_gene_metadata_info(h5fname, sample_list):
                           gene_id_to_edgerange,
                           h5fname)
     h5f.close()
-    return countinfo
+    if cross_graph_expr:
+        graph_samples = [i.decode() for i in sample_names]
+    else:
+        graph_samples = None
+    return countinfo, graph_samples
 
 
 def parse_mutation_from_vcf(mutation_tag, vcf_path, output_dir='', heter_code=0, mut_pickle=False, target_sample_list=None, sample_eq_dict={}):

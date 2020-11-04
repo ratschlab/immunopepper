@@ -158,27 +158,63 @@ def save_gene_expr_distr(gene_expr_distr_list, filepointer, outbase, compression
         save_pd_toparquet(path, df, compression, verbose)
 
 
-def initialize_fp(junction_peptide_file_path, junction_meta_file_path, background_peptide_file_path,
-                    junction_kmer_file_path, background_kmer_file_path, gene_expr_file_path, kmer_list):
+def initialize_fp(output_path, mutation_mode, gzip_tag,
+                  kmer_list, graph_samples, output_fasta, cross_graph_expr):
 
-    fields_forgrd_pep_dict = ['fasta']
-    fields_meta_peptide_dict = ['peptide','id','read_frame','gene_name','gene_chr','gene_strand','mutation_mode',
-                                'junction_annotated','has_stop_codon','is_in_junction_list',
-                                'is_isolated','variant_comb','variant_seg_expr','modified_exons_coord',
-                                'original_exons_coord','vertex_idx','junction_expr','segment_expr', 'kmer_type'] #Try add the peptide, easier for downprocessing
+    ### Paths
+    background_peptide_file_path = os.path.join(output_path, mutation_mode+ '_annot_peptides.fa.pq' + gzip_tag)
+    background_kmer_file_path = os.path.join(output_path, mutation_mode + '_annot_kmer.pq' + gzip_tag)
+    gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.pq' + gzip_tag)
+    junction_meta_file_path = os.path.join(output_path, mutation_mode + '_metadata.tsv.gz.pq')
+    junction_peptide_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides.fa.pq' + gzip_tag)
+    junction_kmer_file_path = os.path.join(output_path, mutation_mode + '_sample_kmer.pq' + gzip_tag)
+    graph_kmer_segment_expr_path = os.path.join(output_path, mutation_mode + '_graph_kmer_SegmExpr.pq' + gzip_tag)
+    graph_kmer_junction_expr_path = os.path.join(output_path, mutation_mode + '_graph_kmer_JuncExpr.pq' + gzip_tag)
+    graph_peptide_segment_expr_path = os.path.join(output_path, mutation_mode + '_graph_peptides_SegmExpr.pq' + gzip_tag)
+    graph_peptide_edge_expr_path = os.path.join(output_path, mutation_mode + '_graph_peptides_EdgeExpr.pq' + gzip_tag)
+
+    ### Fields
     fields_backgrd_pep_dict = ['fasta']
-    fields_forgrd_kmer_dict = ['kmer', 'id', 'segment_expr', 'is_cross_junction', 'junction_expr']
     fields_backgrd_kmer_dict = ['kmer']
     fields_gene_expr_file = ['gene', 'total_expr']
+    fields_meta_peptide_dict = ['peptide', 'id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand',
+                                'mutation_mode',
+                                'junction_annotated', 'has_stop_codon', 'is_in_junction_list',
+                                'is_isolated', 'variant_comb', 'variant_seg_expr', 'modified_exons_coord',
+                                'original_exons_coord', 'vertex_idx',
+                                'kmer_type']
+    fields_forgrd_pep_dict = ['fasta']
+    fields_forgrd_kmer_dict = ['kmer', 'id', 'segment_expr', 'is_cross_junction', 'junction_expr']
+    fields_kmer_expr = ['kmer'] + graph_samples + ['is_cross_junction']
+    fields_pept_expr = ['peptide'] + graph_samples + ['is_cross_junction']
 
-
-    peptide_fp = output_info(junction_peptide_file_path, fields_forgrd_pep_dict)
-    meta_peptide_fp = output_info(junction_meta_file_path, fields_meta_peptide_dict )
+    ### Grouping dict
+    if output_fasta:    # Foreground peptide fasta - optional
+        peptide_fp = output_info(junction_peptide_file_path, fields_forgrd_pep_dict)
+    else:
+        peptide_fp = None
+    if cross_graph_expr:# Expression matrices with counts from full graph - optional
+        junction_kmer_fp = None
+        kmer_segm_expr_fp = output_info(graph_kmer_segment_expr_path, fields_kmer_expr)
+        kmer_edge_expr_fp = output_info(graph_kmer_junction_expr_path, fields_kmer_expr)
+        pept_segm_expr_fp = output_info(graph_peptide_segment_expr_path, fields_pept_expr)
+        pept_edge_expr_fp = output_info(graph_peptide_edge_expr_path, fields_pept_expr)
+    else: # Expression kmer information from single sample
+        fields_meta_peptide_dict.insert(-1, 'junction_expr')
+        fields_meta_peptide_dict.insert(-1, 'segment_expr')
+        junction_kmer_fp = output_info(junction_kmer_file_path, fields_forgrd_kmer_dict )
+        kmer_segm_expr_fp = None
+        kmer_edge_expr_fp = None
+        pept_segm_expr_fp = None
+        pept_edge_expr_fp = None
+    meta_peptide_fp = output_info(junction_meta_file_path, fields_meta_peptide_dict)
     background_fp = output_info(background_peptide_file_path, fields_backgrd_pep_dict )
-    junction_kmer_fp = output_info(junction_kmer_file_path,fields_forgrd_kmer_dict , kmer_list )
     background_kmer_fp = output_info(background_kmer_file_path, fields_backgrd_kmer_dict ,kmer_list )
     gene_expr_fp = output_info(gene_expr_file_path, fields_gene_expr_file)
-    filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp, junction_kmer_fp, background_kmer_fp, gene_expr_fp )
+
+    ### Filepointer object
+    filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp, junction_kmer_fp, background_kmer_fp,
+                              gene_expr_fp, kmer_segm_expr_fp, kmer_edge_expr_fp, pept_segm_expr_fp, pept_edge_expr_fp )
     return filepointer
 
 

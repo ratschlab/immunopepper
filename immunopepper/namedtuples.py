@@ -148,8 +148,13 @@ namedtuple that contain all the file paths objects
 - background_kmer_fp:
 - junction_kmer_fp:
 - gene_expr_file_fp:
+- kmer_segm_expr_fp:
+- kmer_edge_expr_fp:
+- pept_segm_expr_fp:
+- pept_edge_expr_fp:
 """
-Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp','background_peptide_fp','junction_kmer_fp','background_kmer_fp', 'gene_expr_fp'])
+Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp','background_peptide_fp','junction_kmer_fp','background_kmer_fp', 'gene_expr_fp',
+                                        'kmer_segm_expr_fp', 'kmer_edge_expr_fp', 'pept_segm_expr_fp', 'pept_edge_expr_fp'])
 
 
 

@@ -151,7 +151,6 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
             if countinfo:
                 gidx = countinfo.gene_idx_dict[gene.name]
 
-                cross_graph_expr = True #TODO make parameter immunopepper
                 with h5py.File(countinfo.h5fname, 'r') as h5f:
                         if countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_edgerange or \
                                 countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_segrange:
@@ -161,18 +160,18 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                         else:
                             edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
                             edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
-                            if cross_graph_expr:
+                            if arg.cross_graph_expr:
                                 edge_counts = h5f['edges'][edge_gene_idxs,:] # will compute expression on whole graph
                             else:
                                 edge_counts = h5f['edges'][edge_gene_idxs,idx.sample]
                         seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
                                                   countinfo.gene_id_to_segrange[gidx][1])
-                        if cross_graph_expr:
+                        if arg.cross_graph_expr:
                             seg_counts = h5f['segments'][seg_gene_idxs, :]
                         else:
                             seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
 
-            if not cross_graph_expr: #TODO deal with gene_expression in sample in this case
+            if not arg.cross_graph_expr: #TODO deal with gene_expression in sample in this case
                 gene_expr.append((gene.name, get_total_gene_expr(gene, countinfo, idx, seg_counts)))
 
             chrm = gene.chr.strip()
@@ -212,7 +211,7 @@ def process_gene_batch_foreground(sample, genes, genes_info, gene_idxs, total_ge
                                             edge_idxs=edge_idxs,
                                             edge_counts=edge_counts,
                                             seg_counts=seg_counts,
-                                            cross_graph_expr=cross_graph_expr)
+                                            cross_graph_expr=arg.cross_graph_expr)
 
 
             time_per_gene.append(timeit.default_timer() - start_time)
@@ -279,7 +278,7 @@ def mode_build(arg):
     start_time = timeit.default_timer()
     if arg.count_path is not None:
         logging.info('Loading count data ...')
-        countinfo = parse_gene_metadata_info(arg.count_path, arg.samples)
+        countinfo, graph_samples = parse_gene_metadata_info(arg.count_path, arg.samples, arg.cross_graph_expr)
         end_time = timeit.default_timer()
         logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
         print_memory_diags()
@@ -321,7 +320,6 @@ def mode_build(arg):
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
 
-        junction_meta_file_path = os.path.join(output_path, mutation.mode + '_metadata.tsv.gz.pq')
 
         if arg.compressed:
             gzip_tag = '.gz'
@@ -329,18 +327,9 @@ def mode_build(arg):
         else:
             pq_compression = None
             gzip_tag = ''
-        junction_peptide_file_path = os.path.join(output_path, mutation.mode + '_peptides.fa.pq'+gzip_tag)
-        background_peptide_file_path = os.path.join(output_path, mutation.mode + '_back_peptides.fa.pq'+gzip_tag)
-        junction_kmer_file_path = os.path.join(output_path, mutation.mode + '_junction_kmer.pq'+gzip_tag)
-        background_kmer_file_path = os.path.join(output_path, mutation.mode + '_back_kmer.pq'+gzip_tag)
-        gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.pq'+gzip_tag)
-        filepointer = initialize_fp(junction_peptide_file_path,
-                                    junction_meta_file_path,
-                                    background_peptide_file_path,
-                                    junction_kmer_file_path,
-                                    background_kmer_file_path,
-                                    gene_expr_file_path,
-                                    arg.kmer)
+
+        filepointer = initialize_fp(output_path, mutation.mode, gzip_tag,
+                  arg.kmer, graph_samples, arg.output_fasta, arg.cross_graph_expr)
 
         # go over each gene in splicegraph
         gene_id_list = list(range(0,num))
@@ -373,7 +362,7 @@ def mode_build(arg):
             pool_f.terminate()
 
             # Collects and pools the files of each batch
-            logging.debug('start collecting results')
+            logging.debug('start collecting results') #TODO update the collect function
             collect_results(filepointer.background_peptide_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.junction_meta_fp, output_path, pq_compression, arg.mutation_mode)
