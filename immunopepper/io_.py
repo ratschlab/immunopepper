@@ -135,16 +135,17 @@ def save_backgrd_pep_dict(dict_, filepointer, compression = None, outbase=None, 
         fasta = pd.DataFrame(fasta, columns=filepointer.background_peptide_fp['columns'])
         save_pd_toparquet(path, fasta, compression, verbose)
 
-def save_forgrd_pep_dict(dict_, filepointer, compression=None, outbase=None, verbose=False):
-    path_fa = switch_tmp_path(filepointer.junction_peptide_fp, outbase)
+def save_forgrd_pep_dict(dict_, filepointer, compression=None, outbase=None, save_fasta=False, verbose=False):
     path_meta = switch_tmp_path(filepointer.junction_meta_fp, outbase)
     if dict_:
         df = pd.DataFrame(dict_.values(), index = dict_.keys()).reset_index()
         df.columns = filepointer.junction_meta_fp['columns']
-        fasta = pd.concat([df['id'].apply(lambda x: '>' + '/'.join(x)), df['peptide']]).sort_index(kind="mergesort").reset_index(drop = True)
-        fasta = pd.DataFrame(fasta, columns=filepointer.junction_peptide_fp['columns'])
-        save_pd_toparquet(path_fa, fasta, compression, verbose)
-        del fasta
+        if save_fasta:
+            path_fa = switch_tmp_path(filepointer.junction_peptide_fp, outbase)
+            fasta = pd.concat([df['id'].apply(lambda x: '>' + '/'.join(x)), df['peptide']]).sort_index(kind="mergesort").reset_index(drop = True)
+            fasta = pd.DataFrame(fasta, columns=filepointer.junction_peptide_fp['columns'])
+            save_pd_toparquet(path_fa, fasta, compression, verbose)
+            del fasta
         df = df.set_index('peptide')
         df = df.applymap(_convert_list_to_str)
         df = df.reset_index(drop = False)
@@ -165,7 +166,7 @@ def initialize_fp(output_path, mutation_mode, gzip_tag,
     background_peptide_file_path = os.path.join(output_path, mutation_mode+ '_annot_peptides.fa.pq' + gzip_tag)
     background_kmer_file_path = os.path.join(output_path, mutation_mode + '_annot_kmer.pq' + gzip_tag)
     gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.pq' + gzip_tag)
-    junction_meta_file_path = os.path.join(output_path, mutation_mode + '_metadata.tsv.gz.pq')
+    junction_meta_file_path = os.path.join(output_path, mutation_mode + '_graph_peptides_meta.tsv.gz.pq')
     junction_peptide_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides.fa.pq' + gzip_tag)
     junction_kmer_file_path = os.path.join(output_path, mutation_mode + '_sample_kmer.pq' + gzip_tag)
     graph_kmer_segment_expr_path = os.path.join(output_path, mutation_mode + '_graph_kmer_SegmExpr.pq' + gzip_tag)
@@ -202,14 +203,14 @@ def initialize_fp(output_path, mutation_mode, gzip_tag,
     else: # Expression kmer information from single sample
         fields_meta_peptide_dict.insert(-1, 'junction_expr')
         fields_meta_peptide_dict.insert(-1, 'segment_expr')
-        junction_kmer_fp = output_info(junction_kmer_file_path, fields_forgrd_kmer_dict )
+        junction_kmer_fp = output_info(junction_kmer_file_path, fields_forgrd_kmer_dict, kmer_list )
         kmer_segm_expr_fp = None
         kmer_edge_expr_fp = None
         pept_segm_expr_fp = None
         pept_edge_expr_fp = None
     meta_peptide_fp = output_info(junction_meta_file_path, fields_meta_peptide_dict)
     background_fp = output_info(background_peptide_file_path, fields_backgrd_pep_dict )
-    background_kmer_fp = output_info(background_kmer_file_path, fields_backgrd_kmer_dict ,kmer_list )
+    background_kmer_fp = output_info(background_kmer_file_path, fields_backgrd_kmer_dict, kmer_list )
     gene_expr_fp = output_info(gene_expr_file_path, fields_gene_expr_file)
 
     ### Filepointer object
@@ -257,27 +258,26 @@ def save_pd_toparquet(path, pd_df, compression = None, verbose = False, pqwriter
 
 
 def collect_results(filepointer_item, outbase, compression, mutation_mode,  kmer_list = None):
-    s1 = timeit.default_timer()
+    if filepointer_item is not None:
+        s1 = timeit.default_timer()
 
-    if kmer_list:
-       file_to_collect = filepointer_item['path'].values()
-    else:
-        file_to_collect = [filepointer_item['path']]
-
-
-    for file_path in file_to_collect:
-        file_name = os.path.basename(file_path)
-        tmp_file_list = glob.glob(os.path.join(outbase, 'tmp_out_{}_[0-9]*'.format(mutation_mode), file_name))
-        tot_shape = 0
-        for tmp_file in tmp_file_list:
-            table = pq.read_table(tmp_file)
-            if tot_shape == 0:
-                pqwriter = pq.ParquetWriter(file_path, table.schema, compression=compression)
-            pqwriter.write_table(table)
-            tot_shape += table.shape[0]
-        if tmp_file_list:
-            pqwriter.close()
-            logging.info('Collecting {} with {} lines. Took {} seconds'.format(file_name, tot_shape, timeit.default_timer()-s1))
+        if kmer_list:
+           file_to_collect = filepointer_item['path'].values()
+        else:
+            file_to_collect = [filepointer_item['path']]
+        for file_path in file_to_collect:
+            file_name = os.path.basename(file_path)
+            tmp_file_list = glob.glob(os.path.join(outbase, 'tmp_out_{}_[0-9]*'.format(mutation_mode), file_name))
+            tot_shape = 0
+            for tmp_file in tmp_file_list:
+                table = pq.read_table(tmp_file)
+                if tot_shape == 0:
+                    pqwriter = pq.ParquetWriter(file_path, table.schema, compression=compression)
+                pqwriter.write_table(table)
+                tot_shape += table.shape[0]
+            if tmp_file_list:
+                pqwriter.close()
+                logging.info('Collecting {} with {} lines. Took {} seconds'.format(file_name, tot_shape, timeit.default_timer()-s1))
 
 
 def remove_folder_list(commun_base):

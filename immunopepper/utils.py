@@ -245,7 +245,7 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
             expr_list = expr_list[::-1]
     return expr_list
 
-def get_segment_expr(gene, coord, countinfo, Idx, seg_counts):
+def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr):
     """ Get the segment expression for one exon-pair.
     Apply 'get_exon_expr' for each exon and concatenate them.
 
@@ -284,6 +284,8 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts):
     n_samples = expr_list[:, 1:].shape[1]
     len_factor = np.tile(expr_list[:, 0], n_samples).reshape(n_samples, expr_list.shape[0]).transpose()
     mean_expr = (np.sum(expr_list[:, 1:]*len_factor, 0) / seg_len).astype(int) if seg_len > 0 else np.zeros(n_samples).astype(int)
+    if not cross_graph_expr:
+        mean_expr = mean_expr[0]
     return mean_expr,expr_list
 
 

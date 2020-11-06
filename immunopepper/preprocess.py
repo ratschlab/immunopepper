@@ -238,7 +238,7 @@ def attribute_item_to_dict(a_item, file_type, feature_type):
     return gtf_dict
 
 
-def search_edge_metadata_segmentgraph(gene, coord, countinfo, Idx, edge_idxs=None, edge_counts=None):
+def search_edge_metadata_segmentgraph(gene, coord, countinfo, Idx, edge_idxs=None, edge_counts=None, cross_graph_expr=None):
     """Given the ordered edge coordinates of the edge, return expression information of the edge
 
     Parameters
@@ -274,12 +274,16 @@ def search_edge_metadata_segmentgraph(gene, coord, countinfo, Idx, edge_idxs=Non
     count = get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts)
 
     if coord.start_v3 is None:
-        return [(c_,) for c_ in count] #(count,)
+        edges_res = [(c_,) for c_ in count] #(count,)
     else:
         sorted_pos = np.sort(np.array([coord.start_v2, coord.stop_v2, coord.start_v3, coord.stop_v3]))
         count2 = get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts)
-        return [(count(i),count2[i]) for i in np.arange(count)] #(count, count2) #TODO check
+        edges_res = [(count(i),count2[i]) for i in np.arange(count)] #(count, count2) #TODO check
 
+    if not cross_graph_expr:
+        edges_res = edges_res[0]
+
+    return edges_res
 
 def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
     """ Parse the count file
