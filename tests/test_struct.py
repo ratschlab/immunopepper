@@ -35,7 +35,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
     out_dir = str(tmpdir)
     #sample_dir_build = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'diff','{}'.format(case),'test{}{}'.format(test_id,case))
     my_args_build = ['build',
-               '--samples', 'ERR2130621','ENCSR000BZG',
+               '--samples', 'ERR2130621',#'ENCSR000BZG',
                '--output-dir', out_dir,
                '--splice-path',os.path.join(data_dir,'ImmunoPepper_usecase.pickle'),
                '--count-path', os.path.join(data_dir,'ImmunoPepper_usecase.count.hdf5'),
@@ -45,7 +45,8 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
                '--somatic', os.path.join(data_dir,'ImmunoPepper_usecase.maf'),
                 '--mutation-mode', mutation_mode,
                 '--kmer', '9',
-                '--batch-size', '1']
+                '--batch-size', '1',
+                '--output-fasta']
     if is_parallel:
         my_args_build.extend(['--parallel', '4'])
     if graph_cross_sample:
@@ -108,7 +109,7 @@ def test_end_to_end_filter(tmpdir, sample, kmer_length, mutation_mode):
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
-mutation_mode ='ref'
+mutation_mode ='germline'
 #pr = cProfile.Profile()
 #pr.enable()
 test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_cross_sample=True) #TODO add back

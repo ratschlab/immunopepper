@@ -213,7 +213,8 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                                             seg_counts=seg_counts,
                                             cross_graph_expr=arg.cross_graph_expr,
                                             filepointer=filepointer,
-                                            graph_samples=graph_samples#TODO check updated filepointer
+                                            graph_samples=graph_samples,
+                                            verbose_save=verbose
             )
 
 
@@ -228,7 +229,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
             for kmer_length in dict_kmer_foregr:
                 save_forgrd_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
             dict_kmer_foregr.clear()
-        else:
+        if arg.cross_graph_expr and filepointer.kmer_segm_expr_fp['pqwriter'] is not None:
             filepointer.kmer_segm_expr_fp['pqwriter'].close()
             filepointer.kmer_edge_expr_fp['pqwriter'].close()
 
@@ -354,7 +355,7 @@ def mode_build(arg):
                 outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
                 pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
 
-                _ = pool_f.submit(process_gene_batch_background, (sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
+                _ = pool_f.submit(process_gene_batch_background, (sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, None, verbose_save))
             pool_f.terminate()
 
             # Build the foreground and remove the background if needed
@@ -365,11 +366,11 @@ def mode_build(arg):
                 gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
                 outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
                 pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
-                _ = pool_f.submit(process_gene_batch_foreground, (sample, graph_samples, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, pq_compression, verbose_save))
+                _ = pool_f.submit(process_gene_batch_foreground, (sample, graph_samples, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, None, verbose_save))
             pool_f.terminate()
 
             # Collects and pools the files of each batch
-            logging.debug('start collecting results') #TODO update the collect function
+            logging.debug('start collecting results')
             collect_results(filepointer.background_peptide_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.junction_meta_fp, output_path, pq_compression, arg.mutation_mode)
@@ -378,7 +379,7 @@ def mode_build(arg):
             collect_results(filepointer.gene_expr_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, arg.mutation_mode)
-            #remove_folder_list(os.path.join(output_path, 'tmp_out_{}'.format(arg.mutation_mode)))
+            remove_folder_list(os.path.join(output_path, 'tmp_out_{}'.format(arg.mutation_mode)))
 
         else:
             logging.info('Not Parallel')
@@ -387,11 +388,12 @@ def mode_build(arg):
             process_gene_batch_background(sample, graph_data, gene_id_list, mutation, countinfo, genetable, arg, output_path, pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
-            process_gene_batch_foreground( sample, graph_data, graph_info, gene_id_list, len(gene_id_list), all_read_frames, mutation, junction_dict,
+            process_gene_batch_foreground( sample, graph_samples, graph_data, graph_info, gene_id_list, len(gene_id_list), all_read_frames, mutation, junction_dict,
                              countinfo, genetable, arg, output_path, pq_compression, verbose=True)
 
 
         create_libsize(filepointer.gene_expr_fp,output_libszie_fp, sample)
+
 
 
 
