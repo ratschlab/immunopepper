@@ -13,6 +13,7 @@ from .filter import junction_is_annotated
 from .filter import junction_is_in_given_list
 from .filter import junction_tuple_is_annotated
 from .io_ import gz_and_normal_open
+from .io_ import save_kmer_matrix
 from .io_ import save_pd_toparquet
 from .io_ import switch_tmp_path
 from .io_ import write_list
@@ -255,7 +256,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
     # as a  junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
     som_exp_dict = get_som_expr_dict(gene, list(mutation.somatic_mutation_dict.keys()), countinfo, idx)
-
+    kmer_matrix = [[], [], [], []] # in cross sample mode, will contain unique kmers per gene (1), is_junction (2), segments expr per sample (3), junction expr per sample (4)
     ### collect the relevant count infor for the current gene
 
 
@@ -327,7 +328,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
             if cross_graph_expr:
                 save_output_peptide_cross_samples(output_peptide, segment_expr, vertex_tuple_anno_flag,  filepointer, outbase, graph_samples)  # Only one kmer lengthsupported for this mode
 
-                create_save_output_kmer_cross_samples(output_peptide, kmer[0], expr_list, filepointer, outbase, graph_samples) # Only one kmer lengthsupported for this mode
+                kmer_matrix = create_output_kmer_cross_samples(output_peptide, kmer[0], expr_list, graph_samples, kmer_matrix) # Only one kmer lengthsupported for this mode
 
             else:
                 if kmer: # TODO change the functions and save
@@ -343,6 +344,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
 
         if not gene.splicegraph.edges is None:
             gene.to_sparse()
+    save_kmer_matrix(kmer_matrix, graph_samples, filepointer, compression=None, outbase=outbase, verbose=False)
 
 
 def get_spanning_index(coord, k):
@@ -458,7 +460,7 @@ def create_output_kmer(output_peptide, k, expr_list):
     return output_kmer_list
 
 
-def create_save_output_kmer_cross_samples(output_peptide, k, segm_expr_list, filepointer, outbase, graph_samples):
+def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_samples, kmer_matrix):
     """Calculate the output kmer and the corresponding expression based on output peptide
 
     Parameters
@@ -473,13 +475,8 @@ def create_save_output_kmer_cross_samples(output_peptide, k, segm_expr_list, fil
 
     Returns
     -------
-    save the kmer segment, res. edge expression matrix with rows: kmers, columns:samples from input graph
+    computes the kmer segment, res. edge expression matrix with rows: kmers, columns:samples from input graph
     """
-    segm_path = switch_tmp_path(filepointer.kmer_segm_expr_fp, outbase)
-    edge_path = switch_tmp_path(filepointer.kmer_edge_expr_fp, outbase)
-    f_seg = gz_and_normal_open(segm_path, mode='a')
-    f_jun = gz_and_normal_open(edge_path, mode='a')
-
     peptide = output_peptide.peptide
     peptide_head = output_peptide.output_id
 
@@ -496,14 +493,14 @@ def create_save_output_kmer_cross_samples(output_peptide, k, segm_expr_list, fil
 
     if len(peptide) >= k:
         for j in range(len(peptide) - k + 1):
-            kmer_seg_samples = []
-            kmer_jun_samples = []
 
             kmer_peptide = peptide[j:j+k]
-            kmer_seg_samples.append(kmer_peptide)
-            kmer_jun_samples.append(kmer_peptide)
 
+            # Find kmer index in storage matrix
+            kmer_idx = [idx for idx, kmer in enumerate(kmer_matrix[0]) if kmer == kmer_peptide]
 
+            sublist_seg = []
+            sublist_jun = []
             for sample in np.arange(len(graph_samples)):
                 # segment expression
                 if segm_expr_list is None:
@@ -511,58 +508,34 @@ def create_save_output_kmer_cross_samples(output_peptide, k, segm_expr_list, fil
                 else:
                     expr_array = np.array([x[1] for x in segm_expr_list[:, [0, sample + 1]] for _ in range(int(x[0]))])
                 if expr_array is None:
-                    kmer_seg_samples.append(np.nan)
+                    sublist_seg.append(np.nan)
                 else:
-                    kmer_seg_samples.append(np.round(np.mean(expr_array[j*3:(j+k)*3]), 2))
+                    sublist_seg.append(np.round(np.mean(expr_array[j*3:(j+k)*3]), 2))
 
                 # junction expression
                 if j in spanning_index1:
                     is_in_junction = True
-                    kmer_jun_samples.append(junction_count[sample][0] if junction_count is not np.nan else np.nan)
+                    sublist_jun.append(junction_count[sample][0] if junction_count is not np.nan else np.nan)
                 elif j in spanning_index2 :
                     is_in_junction = True
-                    kmer_jun_samples.append(junction_count[sample][1] if junction_count is not np.nan else np.nan)
+                    sublist_jun.append(junction_count[sample][1] if junction_count is not np.nan else np.nan)
                 else:
                     is_in_junction = False
-                    kmer_jun_samples.append(np.nan)
+                    sublist_jun.append(np.nan)
 
-            kmer_seg_samples.append(is_in_junction)
-            kmer_jun_samples.append(is_in_junction) #TODO replace outbase in filepointer path
+            if not kmer_idx:
+                kmer_matrix[0].append(kmer_peptide)
+                kmer_matrix[1].append(is_in_junction)
+                kmer_matrix[2].append(sublist_seg)
+                kmer_matrix[3].append(sublist_jun)
 
-                                                    #TODO generate the edges
-            if 'fp' not in filepointer.kmer_segm_expr_fp:
-                filepointer.kmer_edge_expr_fp['fp'] = None
-                filepointer.kmer_segm_expr_fp['fp'] = None
+            else:
+                idx = kmer_idx[0]
+                kmer_matrix[1][idx] = max(kmer_matrix[1][idx],is_in_junction )
+                kmer_matrix[2][idx] = [ max(i, j) for i, j in zip(kmer_matrix[2][idx], sublist_seg)] # make unique per gene with maximum
+                kmer_matrix[3][idx] = [max(i, j) for i, j in zip(kmer_matrix[3][idx], sublist_jun)]
 
-
-
-            f_seg.write('\t'.join([str(i) for i in kmer_seg_samples]) + '\n')
-            f_jun.write('\t'.join([str(i) for i in kmer_jun_samples]) + '\n')
-    f_seg.close()
-    f_jun.close()
-
-
-
-            # with open(, 'a') as f:
-            #     f.write('\t'.join(str(i) for i in kmer_seg_samples))
-            # with open(filepointer.kmer_edge_expr_fp['path'], 'a') as f:
-            #     f.write('\t'.join(str(i) for i in kmer_seg_samples))
-
-            ### 5 x slower than classical write DECIDE strategy
-            # filepointer.kmer_segm_expr_fp['fp'] = save_pd_toparquet(filepointer.kmer_segm_expr_fp['path'], #
-            #                                         pd.DataFrame([kmer_seg_samples],
-            #                                         columns = [filepointer.kmer_segm_expr_fp[ 'columns'][0]] +graph_samples+
-            #                                                   [filepointer.kmer_segm_expr_fp[ 'columns'][1]]), # did not save full column in filepointer to save memory
-            #                                         pqwriter=filepointer.kmer_segm_expr_fp['fp'],
-            #                                         writer_close=False)
-            # filepointer.kmer_edge_expr_fp['fp'] = save_pd_toparquet(filepointer.kmer_edge_expr_fp['path'],
-            #                                         pd.DataFrame([kmer_seg_samples],
-            #                                         columns = [filepointer.kmer_segm_expr_fp['columns'][0]] + graph_samples +
-            #                                                   [filepointer.kmer_segm_expr_fp['columns'][1]]),
-            #                                         pqwriter=filepointer.kmer_edge_expr_fp['fp'],
-            #                                         writer_close=False)
-
-
+    return kmer_matrix
 
 
 

@@ -228,9 +228,9 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
             for kmer_length in dict_kmer_foregr:
                 save_forgrd_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
             dict_kmer_foregr.clear()
-        # else:
-        #     filepointer.kmer_segm_expr_fp['fp'].close()
-        #     filepointer.kmer_edge_expr_fp['fp'].close()
+        else:
+            filepointer.kmer_segm_expr_fp['pqwriter'].close()
+            filepointer.kmer_edge_expr_fp['pqwriter'].close()
 
         if all_gene_idxs:
             logging.info("> {}: sample graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
@@ -376,6 +376,8 @@ def mode_build(arg):
             collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
             collect_results(filepointer.background_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
             collect_results(filepointer.gene_expr_fp, output_path, pq_compression, arg.mutation_mode)
+            collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, arg.mutation_mode)
+            collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, arg.mutation_mode)
             #remove_folder_list(os.path.join(output_path, 'tmp_out_{}'.format(arg.mutation_mode)))
 
         else:
