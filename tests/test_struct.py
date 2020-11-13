@@ -138,7 +138,7 @@ def test_end_to_end_cancerspecif():
 
     cancer_dir = "/Users/laurieprelot/Documents/Projects/tmp_kmer/dev_samples/cancer"
     my_args =["cancerspecif",
-              "--cores", "4",
+              "--cores", "2",
               "--mem-per-core", "5000",
               "--kmer", "9",
               "--cancer-libsize",None,
@@ -148,6 +148,7 @@ def test_end_to_end_cancerspecif():
               "--output-dir", None,
               "--normal-matrix", os.path.join(cancer_dir, '9mers_crosssamples_expr__test_.pq'),
               "--output-dir",cancer_dir,
+              '--high-limit-normal', "2.0",
               "--statistical"]
     immunopepper.split_mode(my_args)
 

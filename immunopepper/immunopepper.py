@@ -154,6 +154,9 @@ def parse_arguments(argv):
 
     optional = parser_cancerspecif.add_argument_group('OPTIONAL')
     optional.add_argument("--output-suffix", help="suffix for the integrated matrix. e.g cancer or normals" , required=False, default='')
+    optional.add_argument("--high-limit-normal", type=float, help="Normal kmers with expression >= value in >= 1 sample are truly expressed. Will not be included in statistical modelling and will be substracted from cancer set", required=False, default=None)
+    _add_general_args(parser_cancerspecif)
+    optional.add_argument("--threshold-noise", type=float, help="Threshold for the probability of noisy kmers in background. High thresholds lead to leaner cancer kmer filtering", required=False, default=None)
 
     _add_general_args(parser_cancerspecif)
 
@@ -224,6 +227,7 @@ def split_mode(options):
         mode_crosscohort(arg)
     if mode == "cancerspecif":
         mode_cancerspecif(arg)
+
 
 
 def cmd_entry():
