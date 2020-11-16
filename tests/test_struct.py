@@ -109,10 +109,10 @@ def test_end_to_end_filter(tmpdir, sample, kmer_length, mutation_mode):
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
-mutation_mode ='germline'
+mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_cross_sample=True) #TODO add back
+test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=True) #TODO add back
 #test_end_to_end_makebg('ERR2130621', tmpdir, "9")
 #test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)

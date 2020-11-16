@@ -218,7 +218,7 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
         and the expression count of that segment.
 
     """
-    out_shape = 3 if len(seg_counts.shape) > 1 else 2
+    out_shape = (seg_counts.shape[1] + 1) if len(seg_counts.shape) > 1 else 2
     # Todo: deal with absense of count file
     if vstart is np.nan or vstop is np.nan:  # isolated exon case
         return np.zeros((0, out_shape), dtype='float')
@@ -275,10 +275,7 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr):
         expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts ),
                                get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts ),
                                get_exon_expr(gene, coord.start_v3, coord.stop_v3, countinfo, Idx, seg_counts )])
-    #expr_list = get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx)
-    #expr_list = np.append(expr_list, get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx), axis=0)
-    #if coord.start_v3 is not None:
-    #    expr_list = np.append(expr_list, get_exon_expr(gene, coord.start_v3, coord.stop_v3, countinfo, Idx), axis=0)
+
     seg_len = np.sum(expr_list[:, 0])
 
     n_samples = expr_list[:, 1:].shape[1]
