@@ -141,15 +141,17 @@ def test_end_to_end_cancerspecif():
               "--cores", "2",
               "--mem-per-core", "5000",
               "--kmer", "9",
-              "--cancer-libsize",None,
-              "--normal-libsize",  os.path.join(cancer_dir, 'expression_counts.libsize.tsv'),
-              "--cancer-samples", "TCGA-AO-A12D-01A-11", "TCGA-AR-A0TT-01A-31",
-              "--cancer-matrix", None,
+              "--path-cancer-libsize",None,
+              "--path-normal-libsize",  os.path.join(cancer_dir, 'expression_counts.libsize.tsv'),
+              "--paths-cancer-samples", [os.path.join('/Users/laurieprelot/Documents/Projects/tmp_kmer/{}/germline_junction_9mer_with_bg.pq.gz') for sample in [ "TCGA-AO-A12D-01A-11", "TCGA-AR-A0TT-01A-31"]],
               "--output-dir", None,
-              "--normal-matrix", os.path.join(cancer_dir, '9mers_crosssamples_expr__test_.pq'),
+              "--path-normal-matrix-segm", os.path.join(cancer_dir, '9mers_crosssamples_expr__test_.pq'),
+              "--path-normal-matrix-edge", os.path.join(cancer_dir, '9mers_crosssamples_expr__test_.pq'),
               "--output-dir",cancer_dir,
-              '--high-limit-normal', "2.0",
-              "--statistical"]
+              '--expr-high-limit-normal', "2.0",
+              '--expr-limit-normal', "2.0",
+              "--expr-n-limit", "1"]
+             # "--statistical"]
     immunopepper.split_mode(my_args)
 
 ### Mouse Test

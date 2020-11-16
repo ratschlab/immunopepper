@@ -145,19 +145,19 @@ def parse_arguments(argv):
     #required.add_argument("--output-file-path", help="directory to save filtered kmer file", required=True)
     required.add_argument("--statistical", help="choose between statistical filtering or hard filtering. Default hard",
                           action="store_true", required=False, default=False)
-    required.add_argument("--cancer-libsize", help="libsize file path for cancer samples", required=True, default='')
-    required.add_argument("--normal-libsize", help="libsize file path for normal samples", required=True, default='')
-    required.add_argument("--cancer-samples", nargs='+', help="list of all cancer samples", required=True, default='')
-    required.add_argument("--cancer-matrix", help="integrated matrix of cancer samples generated with crosscohort mode",required=False, default='')
-    required.add_argument("--normal-matrix", help="ntegrated matrix of normal samples generated with crosscohort mode", required=False, default='')
+    required.add_argument("--path-cancer-libsize", help="libsize file path for cancer samples", required=True, default='')
+    required.add_argument("--path-normal-libsize", help="libsize file path for normal samples", required=True, default='')
+    required.add_argument("--paths-cancer-samples", nargs='+', help="list of all cancer samples", required=True, default='')
+    required.add_argument("--path-normal-matrix-segm", help="segment expression integrated matrix of kmers * samples", required=False, default='')
+    required.add_argument("--path-normal-matrix-edge", help="edge expression integrated matrix of kmers * samples", required=False, default='')
     required.add_argument("--output-dir", help="output directory for the filtered matrix" , required=True, default='')
 
     optional = parser_cancerspecif.add_argument_group('OPTIONAL')
     optional.add_argument("--output-suffix", help="suffix for the integrated matrix. e.g cancer or normals" , required=False, default='')
-    optional.add_argument("--high-limit-normal", type=float, help="Normal kmers with expression >= value in >= 1 sample are truly expressed. Will not be included in statistical modelling and will be substracted from cancer set", required=False, default=None)
-    _add_general_args(parser_cancerspecif)
-    optional.add_argument("--threshold-noise", type=float, help="Threshold for the probability of noisy kmers in background. High thresholds lead to leaner cancer kmer filtering", required=False, default=None)
-
+    optional.add_argument("--expr-high-limit-normal", type=float, help="STATISTICAL: Normal kmers with expression >= value in >= 1 sample are truly expressed. Will not be included in statistical modelling and will be substracted from cancer set", required=False, default=None)
+    optional.add_argument("--threshold-noise", type=float, help="STATISTICAL: Probability threshold on accepted noise in normals (High thresholds lead to leaner cancer kmer filtering)", required=False, default=None)
+    optional.add_argument("--expr-limit-normal", type=float, help="HARD FILTERING: Expression threshold in the normal samples (see --expr-n-limit )", required=False, default=None)
+    optional.add_argument("--expr-n-limit", type=int, help="HARD FILTERING: Number of normal samples in which the expression threshold should be met", required=False, default=None)
     _add_general_args(parser_cancerspecif)
 
 
