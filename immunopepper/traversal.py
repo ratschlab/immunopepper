@@ -519,17 +519,18 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_sa
                     is_in_junction = False
                     sublist_jun.append(np.nan)
             # update the cross samples matrix
-            if not kmer_idx:
-                kmer_matrix[0].append(kmer_peptide)
-                kmer_matrix[1].append(is_in_junction)
-                kmer_matrix[2].append(sublist_seg)
-                kmer_matrix[3].append(sublist_jun)
+            if sum(np.isnan(sublist_seg)) != len(sublist_seg) and sum(np.isnan(sublist_jun)) != len(sublist_jun):
+                if not kmer_idx:
+                    kmer_matrix[0].append(kmer_peptide)
+                    kmer_matrix[1].append(is_in_junction)
+                    kmer_matrix[2].append(sublist_seg)
+                    kmer_matrix[3].append(sublist_jun)
 
-            else:
-                idx = kmer_idx[0]
-                kmer_matrix[1][idx] = max(kmer_matrix[1][idx],is_in_junction )
-                kmer_matrix[2][idx] = [ max(i, j) for i, j in zip(kmer_matrix[2][idx], sublist_seg)] # make unique per gene with maximum
-                kmer_matrix[3][idx] = [max(i, j) for i, j in zip(kmer_matrix[3][idx], sublist_jun)]
+                else:
+                    idx = kmer_idx[0]
+                    kmer_matrix[1][idx] = max(kmer_matrix[1][idx],is_in_junction )
+                    kmer_matrix[2][idx] = [ max(i, j) for i, j in zip(kmer_matrix[2][idx], sublist_seg)] # make unique per gene with maximum
+                    kmer_matrix[3][idx] = [max(i, j) for i, j in zip(kmer_matrix[3][idx], sublist_jun)]
 
     return kmer_matrix
 
