@@ -136,18 +136,17 @@ def mini_crosscohort():
 
 def test_end_to_end_cancerspecif():
 
-    cancer_dir = "/Users/laurieprelot/Documents/Projects/tmp_kmer/dev_samples/cancer"
+    basedir = "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test"
     my_args =["cancerspecif",
               "--cores", "2",
               "--mem-per-core", "5000",
               "--kmer", "9",
-              "--path-cancer-libsize",None,
-              "--path-normal-libsize",  os.path.join(cancer_dir, 'expression_counts.libsize.tsv'),
-              "--paths-cancer-samples", [os.path.join('/Users/laurieprelot/Documents/Projects/tmp_kmer/{}/germline_junction_9mer_with_bg.pq.gz') for sample in [ "TCGA-AO-A12D-01A-11", "TCGA-AR-A0TT-01A-31"]],
-              "--output-dir", None,
-              "--path-normal-matrix-segm", os.path.join(cancer_dir, '9mers_crosssamples_expr__test_.pq'),
-              "--path-normal-matrix-edge", os.path.join(cancer_dir, '9mers_crosssamples_expr__test_.pq'),
-              "--output-dir",cancer_dir,
+              "--path-cancer-libsize",os.path.join(basedir,'cancer', 'expression_counts.libsize.tsv'),
+              "--path-normal-libsize",  None,
+              "--paths-cancer-samples", [os.path.join(basedir, 'cancer', sample, 'ref_junction_9mer.pq.gz') for sample in [ "TCGA-AO-A12D-01A-11", "TCGA-AR-A0TT-01A-31"]],
+              "--path-normal-matrix-segm", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20.pq.gz'),
+              "--path-normal-matrix-edge", os.path.join(basedir, 'normal' 'ref_graph_kmer_JuncExpr.pq.gz'),
+              "--output-dir", os.path.join(basedir, 'filter_out'),
               '--expr-high-limit-normal', "2.0",
               '--expr-limit-normal', "2.0",
               "--expr-n-limit", "1"]
