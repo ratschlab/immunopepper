@@ -73,7 +73,8 @@ def mode_cancerspecif(arg):
             return float(scipy.stats.nbinom.cdf(0, n=N, p=probA))
 
         def collapse_values(value):
-            return np.nanmax(value.split('/'))
+            return  max([np.float(i) if np.float(i) is not np.nan else 0.0 for i in value.split('/') ]) #np.nanmax not supported
+
 
         #spark.sparkContext.addFile('/Users/laurieprelot/software/anaconda/lib/python3.6/sitesddpackages/scipy.zip') # TODO do we need it ? packages in config
 
@@ -90,12 +91,12 @@ def mode_cancerspecif(arg):
             if name_ != index_name:
                 normal_matrix = normal_matrix.withColumn(name_, sf.col(name_).cast(st.DoubleType()))
                 normal_matrix = normal_matrix.na.fill(0)
-        #TODO Remove the lines OF NAs
+        # Remove lines of Nans (Only present in junction file)
         normal_matrix = normal_matrix.withColumn('all_null', sum(normal_matrix[name_] for name_ in normal_matrix.schema.names if name_ != index_name))
         normal_matrix = normal_matrix.filter(sf.col("all_null") > 0.0 )
         normal_matrix = normal_matrix.drop("all_null")
         # Make unique
-        normal_matrix.groupBy(index_name).max().show()
+        normal_matrix = normal_matrix.groupBy(index_name).max()
 
         ### Preprocessing Libsize
         libsize = pd.read_csv(arg.path_normal_libsize, sep = '\t')
@@ -152,16 +153,18 @@ def mode_cancerspecif(arg):
             normal_matrix = normal_matrix.filter(sf.col("passing_expr_criteria") >= arg.expr_n_limit)
 
             ## Apply filtering to foreground
-            expression_fields = ['segment_expr', 'junction_expr']
-            for cancer_sample in arg.path_cancer_samples:
+            expression_fields =  ['segment_expr', 'junction_expr']
+            drop_cols = ['id']
+            for cancer_sample in arg.paths_cancer_samples:
                 cancer_kmers = spark.read.parquet(cancer_sample)
-                # Remove the '/' in the data and Remove Nas
-                local_max = sf.udf(collapse_values, st.StringType())
+                for drop_col in drop_cols:
+                    cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
+                # Remove the '/' in the data
+                local_max = sf.udf(collapse_values, st.FloatType())
                 for name_ in expression_fields:
-                    cancer_kmers = cancer_kmers.withColumn(name_, local_max(name_))
-                    cancer_kmers = cancer_kmers.withColumn(name_, sf.na.fill(0))
+                    cancer_kmers = cancer_kmers.withColumn(name_, local_max(name_)) # TODO collapse value apply 
                 # Make Unique
-                normal_matrix.groupBy(index_name).max(sf.col(expression_fields[0], sf.col(expression_fields[1]))).show()
+                cancer_kmers = cancer_kmers.groupBy(index_name).max(sf.col(expression_fields[0]), sf.col(expression_fields[1]))
                 #TODO Remove double zeros filelds
                 cancer_sample.join(normal_matrix.select('kmer'), how='inner', on=['kmer'])  # Remark left_anti could be useful
 
