@@ -504,6 +504,27 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_sa
                     expr_array = None
                 else:
                     expr_array = np.array([x[1] for x in segm_expr_list[:, [0, sample + 1]] for _ in range(int(x[0]))])
+
+                    positions = np.cumsum(segm_expr_list[:, 0])
+                    left = min(np.where(positions >= (j * 3))[0])
+                    right = min(np.where(positions >= (j + k) * 3)[0])
+
+                    if left != right:
+                        w = [positions[left] - j*3] # mass on left
+                        for i in np.arange(left+1, right, 1):
+                            w.append(segm_expr_list[i, 0])
+                        w.append((j + k) * 3 - positions[right -1]) # mass on right
+                    else:
+                        w = [(j+k)*3 -  j*3]
+
+                    alt_sblist_seg = np.round(np.atleast_2d(w).dot(segm_expr_list[left:right +1, 1:]) / sum(w), 2)
+                    print("final w")
+                    print(w)
+                    print(np.unique(expr_array[j * 3:(j + k) * 3], return_counts=True))
+                    print("alt_expression")
+                    print(alt_sblist_seg)
+
+
                 if expr_array is None:
                     sublist_seg.append(np.nan)
                 else:
@@ -519,6 +540,11 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_sa
                 else:
                     is_in_junction = False
                     sublist_jun.append(np.nan)
+
+            print(sublist_seg)
+            assert alt_sblist_seg[0, 0] == sublist_seg[0]
+            assert alt_sblist_seg[0, 1]  == sublist_seg[1]
+            print('\n')
             # update the cross samples matrix
             if sum(np.isnan(sublist_seg)) != len(sublist_seg) and sum(np.isnan(sublist_jun)) != len(sublist_jun):
                 if not kmer_idx:
@@ -534,6 +560,8 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_sa
                     kmer_matrix[3][idx] = [max(i, j) for i, j in zip(kmer_matrix[3][idx], sublist_jun)]
 
     return kmer_matrix
+
+
 
 
 
