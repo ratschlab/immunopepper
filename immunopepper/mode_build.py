@@ -144,7 +144,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                 continue
 
             idx = get_idx(countinfo, sample, gene_idxs[i])
-
+            logging.info("gene processed {}".format(i))
             # Gene counts information
             if countinfo:
                 gidx = countinfo.gene_idx_dict[gene.name]
@@ -219,7 +219,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
             time_per_gene.append(timeit.default_timer() - start_time)
             mem_per_gene.append(print_memory_diags(disable_print=True))
             all_gene_idxs.append(gene_idxs[i])
-
+        
         save_gene_expr_distr(gene_expr, filepointer, outbase, compression, verbose)
         save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, arg.output_fasta, verbose)
         dict_pept_forgrd.clear()
@@ -227,9 +227,9 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
             for kmer_length in dict_kmer_foregr:
                 save_forgrd_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
             dict_kmer_foregr.clear()
-        if arg.cross_graph_expr and filepointer.kmer_segm_expr_fp['pqwriter'] is not None:
-            filepointer.kmer_segm_expr_fp['pqwriter'].close()
-            filepointer.kmer_edge_expr_fp['pqwriter'].close()
+ #       if arg.cross_graph_expr and filepointer.kmer_segm_expr_fp['pqwriter'] is not None:
+ #           filepointer.kmer_segm_expr_fp['pqwriter'].close()
+ #           filepointer.kmer_edge_expr_fp['pqwriter'].close()
 
         if all_gene_idxs:
             logging.info("> {}: sample graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
@@ -271,6 +271,7 @@ def mode_build(arg):
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
     #graph_data = graph_data[400:5400]
+    #graph_data = graph_data[0:20]
     all_read_frames = arg.all_read_frames
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
@@ -345,17 +346,17 @@ def mode_build(arg):
             logging.info('Parallel: {} Threads'.format(arg.parallel))
             batch_size = min(num, arg.batch_size)
             verbose_save = False
-            # Build the background
-            logging.info(">>>>>>>>> Start Background processing")
-            pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
-            for i in range(0, len(gene_id_list), batch_size):
-                gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
-                outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
-                pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
-
-                _ = pool_f.submit(process_gene_batch_background, (sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, filepointer, None, verbose_save))
-            pool_f.terminate()
-
+#            # Build the background
+#            logging.info(">>>>>>>>> Start Background processing")
+#            pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
+#            for i in range(0, len(gene_id_list), batch_size):
+#                gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
+#                outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
+#                pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
+#
+#                _ = pool_f.submit(process_gene_batch_background, (sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg, outbase, filepointer, None, verbose_save))
+#            pool_f.terminate()
+#
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
             pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
@@ -377,7 +378,7 @@ def mode_build(arg):
             collect_results(filepointer.gene_expr_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, arg.mutation_mode)
-            remove_folder_list(os.path.join(output_path, 'tmp_out_{}'.format(arg.mutation_mode)))
+#            remove_folder_list(os.path.join(output_path, 'tmp_out_{}'.format(arg.mutation_mode)))
 
         else:
             logging.info('Not Parallel')
@@ -389,8 +390,8 @@ def mode_build(arg):
             process_gene_batch_foreground( sample, graph_samples, graph_data, graph_info, gene_id_list, len(gene_id_list), all_read_frames, mutation, junction_dict,
                              countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
 
-
-        create_libsize(filepointer.gene_expr_fp,output_libszie_fp, sample)
+        if not arg.cross_graph_expr:
+            create_libsize(filepointer.gene_expr_fp,output_libszie_fp, sample)
 
 
 

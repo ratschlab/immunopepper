@@ -196,8 +196,13 @@ def split_mode(options):
 
 
 def cmd_entry():
+    #pr = cProfile.Profile()
+    #pr.enable()
     options = sys.argv[1:]
     split_mode(options)
+    #pr.disable()
+    #pr.print_stats()
+    #pr.dump_stats('/cluster/work/grlab/projects/tmp_laurie/test_memory_time_mx/cProfile.stats')
 
 if __name__ == "__main__":
     cmd_entry()
