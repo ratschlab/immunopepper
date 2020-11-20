@@ -478,6 +478,7 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_sa
     updates the kmer_matrix
     """
     peptide = output_peptide.peptide
+    positions = np.cumsum(segm_expr_list[:, 0])
 
     if hasattr(output_peptide,'exons_coor'):
         coord = output_peptide.exons_coor
@@ -496,55 +497,36 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_sa
             # Find kmer index in storage matrix
             kmer_idx = [idx for idx, kmer in enumerate(kmer_matrix[0]) if kmer == kmer_peptide]
 
-            sublist_seg = []
-            sublist_jun = []
-            for sample in np.arange(len(graph_samples)):
-                # segment expression
-                if segm_expr_list is None:
-                    expr_array = None
+            # junction expression
+            if j in spanning_index1:
+                is_in_junction = True
+                sublist_jun = [junction_count[sample][0] if junction_count is not np.nan else np.nan for sample in np.arange(len(graph_samples))]
+            elif j in spanning_index2:
+                is_in_junction = True
+                sublist_jun = [junction_count[sample][1] if junction_count is not np.nan else np.nan for sample in np.arange(len(graph_samples))]
+            else:
+                is_in_junction = False
+                sublist_jun = [np.nan] * len(graph_samples)
+
+
+            # segment expression
+            if segm_expr_list is None:
+                sublist_seg = [np.nan] * len(graph_samples)
+            else:
+
+                left = min(np.where(positions >= (j * 3))[0])
+                right = min(np.where(positions >= (j + k) * 3)[0])
+
+                if left != right:
+                    w = [positions[left] - j * 3]  # mass on left
+                    for i in np.arange(left + 1, right, 1):
+                        w.append(segm_expr_list[i, 0])
+                    w.append((j + k) * 3 - positions[right - 1])  # mass on right
                 else:
-                    expr_array = np.array([x[1] for x in segm_expr_list[:, [0, sample + 1]] for _ in range(int(x[0]))])
+                    w = [(j + k) * 3 - j * 3]
 
-                    positions = np.cumsum(segm_expr_list[:, 0])
-                    left = min(np.where(positions >= (j * 3))[0])
-                    right = min(np.where(positions >= (j + k) * 3)[0])
+                sublist_seg = np.round(np.atleast_2d(w).dot(segm_expr_list[left:right + 1, 1:]) / sum(w), 2).flatten().tolist()
 
-                    if left != right:
-                        w = [positions[left] - j*3] # mass on left
-                        for i in np.arange(left+1, right, 1):
-                            w.append(segm_expr_list[i, 0])
-                        w.append((j + k) * 3 - positions[right -1]) # mass on right
-                    else:
-                        w = [(j+k)*3 -  j*3]
-
-                    alt_sblist_seg = np.round(np.atleast_2d(w).dot(segm_expr_list[left:right +1, 1:]) / sum(w), 2)
-                    print("final w")
-                    print(w)
-                    print(np.unique(expr_array[j * 3:(j + k) * 3], return_counts=True))
-                    print("alt_expression")
-                    print(alt_sblist_seg)
-
-
-                if expr_array is None:
-                    sublist_seg.append(np.nan)
-                else:
-                    sublist_seg.append(np.round(np.mean(expr_array[j*3:(j+k)*3]), 2))
-
-                # junction expression
-                if j in spanning_index1:
-                    is_in_junction = True
-                    sublist_jun.append(junction_count[sample][0] if junction_count is not np.nan else np.nan)
-                elif j in spanning_index2 :
-                    is_in_junction = True
-                    sublist_jun.append(junction_count[sample][1] if junction_count is not np.nan else np.nan)
-                else:
-                    is_in_junction = False
-                    sublist_jun.append(np.nan)
-
-            print(sublist_seg)
-            assert alt_sblist_seg[0, 0] == sublist_seg[0]
-            assert alt_sblist_seg[0, 1]  == sublist_seg[1]
-            print('\n')
             # update the cross samples matrix
             if sum(np.isnan(sublist_seg)) != len(sublist_seg) and sum(np.isnan(sublist_jun)) != len(sublist_jun):
                 if not kmer_idx:
