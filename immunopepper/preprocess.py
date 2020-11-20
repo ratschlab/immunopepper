@@ -278,7 +278,7 @@ def search_edge_metadata_segmentgraph(gene, coord, countinfo, Idx, edge_idxs=Non
     else:
         sorted_pos = np.sort(np.array([coord.start_v2, coord.stop_v2, coord.start_v3, coord.stop_v3]))
         count2 = get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts)
-        edges_res = [(count(i),count2[i]) for i in np.arange(count)] #(count, count2) #TODO check
+        edges_res = [(c_, v_) for c_, v_ in zip(count, count2)]
 
     if not cross_graph_expr:
         edges_res = edges_res[0]
