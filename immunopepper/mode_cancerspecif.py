@@ -73,7 +73,7 @@ def mode_cancerspecif(arg):
             return float(scipy.stats.nbinom.cdf(0, n=N, p=probA))
 
         def collapse_values(value):
-            return  max([np.float(i) if np.float(i) is not np.nan else 0.0 for i in value.split('/') ]) #np.nanmax not supported
+            return  max([np.float(i) if i!='nan' else 0.0 for i in value.split('/') ]) #np.nanmax not supported
 
 
         #spark.sparkContext.addFile('/Users/laurieprelot/software/anaconda/lib/python3.6/sitesddpackages/scipy.zip') # TODO do we need it ? packages in config
@@ -161,8 +161,10 @@ def mode_cancerspecif(arg):
                     cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
                 # Remove the '/' in the data
                 local_max = sf.udf(collapse_values, st.FloatType())
+                cancer_kmers.show()
                 for name_ in expression_fields:
-                    cancer_kmers = cancer_kmers.withColumn(name_, local_max(name_)) # TODO collapse value apply 
+                    cancer_kmers = cancer_kmers.withColumn(name_, local_max(name_)) # TODO collapse value apply
+                cancer_kmers.show()
                 # Make Unique
                 cancer_kmers = cancer_kmers.groupBy(index_name).max(sf.col(expression_fields[0]), sf.col(expression_fields[1]))
                 #TODO Remove double zeros filelds
