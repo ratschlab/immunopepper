@@ -490,6 +490,7 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_sa
     else:
         junction_count = np.nan
 
+
     if len(peptide) >= k:
         for j in range(len(peptide) - k + 1):
             kmer_peptide = peptide[j:j+k]
@@ -513,32 +514,39 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_sa
             if segm_expr_list is None:
                 sublist_seg = [np.nan] * len(graph_samples)
             else:
-
+                W = np.zeros(segm_expr_list.shape[0])
                 left = min(np.where(positions >= (j * 3))[0])
                 right = min(np.where(positions >= (j + k) * 3)[0])
-
                 if left != right:
-                    w = [positions[left] - j * 3]  # mass on left
+                    W[left] = positions[left] - j * 3
                     for i in np.arange(left + 1, right, 1):
-                        w.append(segm_expr_list[i, 0])
-                    w.append((j + k) * 3 - positions[right - 1])  # mass on right
+                        W[i] = segm_expr_list[i, 0]
+                    W[right] = (j + k) * 3 - positions[right - 1]
                 else:
-                    w = [(j + k) * 3 - j * 3]
-
-                sublist_seg = np.round(np.atleast_2d(w).dot(segm_expr_list[left:right + 1, 1:]) / sum(w), 2).flatten().tolist()
+                    W[left] = (j + k) * 3 - j * 3
+                if j == 0:
+                    sublist_seg =  np.atleast_2d(W[left:right+1]).dot(segm_expr_list[left:right + 1, 1:]) / (k*3)
+                else:
+                    delta = W - W_past
+                    sublist_seg = sublist_seg
+                    for pos_ in np.arange(left_past, right + 1, 1) :
+                        sublist_seg += (delta[pos_] * segm_expr_list[pos_, 1:]) / (k*3)
+                sublist_seg = sublist_seg.flatten().tolist()
+                left_past = left
+                W_past = W
 
             # update the cross samples matrix
             if sum(np.isnan(sublist_seg)) != len(sublist_seg) and sum(np.isnan(sublist_jun)) != len(sublist_jun):
                 if not kmer_idx:
                     kmer_matrix[0].append(kmer_peptide)
                     kmer_matrix[1].append(is_in_junction)
-                    kmer_matrix[2].append(sublist_seg)
+                    kmer_matrix[2].append(np.round(sublist_seg, 2))
                     kmer_matrix[3].append(sublist_jun)
 
                 else:
                     idx = kmer_idx[0]
                     kmer_matrix[1][idx] = max(kmer_matrix[1][idx],is_in_junction )
-                    kmer_matrix[2][idx] = [ max(i, j) for i, j in zip(kmer_matrix[2][idx], sublist_seg)] # make unique per gene with maximum
+                    kmer_matrix[2][idx] = [ max(i, j) for i, j in zip(kmer_matrix[2][idx], np.round(sublist_seg, 2))] # make unique per gene with maximum
                     kmer_matrix[3][idx] = [max(i, j) for i, j in zip(kmer_matrix[3][idx], sublist_jun)]
 
     return kmer_matrix
