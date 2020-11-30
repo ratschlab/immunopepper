@@ -2,12 +2,12 @@ import logging
 import numpy as np
 import os
 import pandas as pd
+import pathlib
 from pyspark.sql import functions as sf
 from pyspark.sql import types as st
 import rpy2
 import rpy2.robjects as ro
 from rpy2.robjects import pandas2ri, Formula, r
-from rpy2.robjects.conversion import localconverter
 from rpy2.robjects.packages import importr
 import scipy
 from scipy import stats
@@ -21,6 +21,8 @@ pandas2ri.activate()
 deseq = importr('DESeq2')
 BiocParallel = importr('BiocParallel')
 BiocGenerics = importr("BiocGenerics")
+
+
 
 
 def DESeq2(count_matrix, design_matrix, normalize, cores=1):
@@ -53,20 +55,12 @@ def DESeq2(count_matrix, design_matrix, normalize, cores=1):
 
 
 
-# def filter_cancer_samples(cancer_sample_paths, normal_kmers_expressed, spark_session):
-#     for cancer_sample in cancer_sample_paths:
-#         normal_kmers = spark_session.read.parquet(cancer_sample)
-#         custom_max = sf.udf(collapse_values, st.StringType())
-#         for e_col in expression_fields:
-#             df = df.withColumn(e_col, custom_max(e_col))
-#         cancer_sample.join(normal_kmers_expressed.select('kmer'), how='inner', on=['kmer'])  # Remark left_anti could be useful
-
-
 
 def mode_cancerspecif(arg):
     spark_cfg = default_spark_config(arg.cores, arg.mem_per_core)
 
     with create_spark_session_from_config(spark_cfg) as spark:
+
         def nb_cdf(mean_, disp):
             probA = disp / (disp + mean_)
             N = (probA * mean_) / (1 - probA)
@@ -75,9 +69,7 @@ def mode_cancerspecif(arg):
         def collapse_values(value):
             return  max([np.float(i) if i!='nan' else 0.0 for i in value.split('/') ]) #np.nanmax not supported
 
-
         #spark.sparkContext.addFile('/Users/laurieprelot/software/anaconda/lib/python3.6/sitesddpackages/scipy.zip') # TODO do we need it ? packages in config
-
 
         ### Preprocessing Normals
         index_name = 'kmer'
@@ -85,7 +77,7 @@ def mode_cancerspecif(arg):
         normal_matrix = normal_matrix.drop('is_cross_junction')
         # Rename
         for name_ in normal_matrix.schema.names:
-            normal_matrix = normal_matrix.withColumnRenamed(name_, name_.replace('-','_').replace('.', '_')) # '-' and '.' causing issue in filter function
+            normal_matrix = normal_matrix.withColumnRenamed(name_, name_.replace('-','').replace('.', '')) # '-' and '.' causing issue in filter function
         # Cast type and fill nans
         for name_ in normal_matrix.schema.names:
             if name_ != index_name:
@@ -101,14 +93,13 @@ def mode_cancerspecif(arg):
         ### Preprocessing Libsize
         libsize = pd.read_csv(arg.path_normal_libsize, sep = '\t')
         libsize['libsize_75percent'] = libsize['libsize_75percent'] / np.median(libsize['libsize_75percent'])
-        libsize['sample'] = [sample.replace('-', '_').replace('.', '_') for sample in libsize['sample']]
+        libsize['sample'] = [sample.replace('-', '').replace('.', '') for sample in libsize['sample']]
         libsize = libsize.set_index('sample')
 
-
-
-        if arg.statistical: ### Statistical Filtering
-
-            ## Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
+        ### NORMALS: Statistical Filtering
+        if arg.statistical:
+            logging.info(">>>>>>>> STATISTICAL FILTERING")
+            # Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
             if arg.expr_high_limit_normal is not None:
                 logging.info( ">>>>>>>> Normal kmers with expression >= {} in >= 1 sample are truly expressed. Will be substracted from cancer set".format(arg.expr_high_limit_normal))
                 # normal_matrix = spark.createDataFrame(normal_matrix)
@@ -121,55 +112,64 @@ def mode_cancerspecif(arg):
                 high_expr_normals = normal_matrix.filter(highly_expressed_normals).select(sf.col(index_name))
                 normal_matrix = normal_matrix.filter(ambigous_expression_normals)  # TODO add condition empty matrix
 
-            ## Perform hypothesis testing
+            # Perform hypothesis testing
             logging.info(">>>>>>>> Fit Negative Binomial distribution on normal kmers ")
             design_matrix = pd.DataFrame([1] * (len(normal_matrix.columns) - 1), columns=["design"])
             design_matrix['sample'] = [col_name for col_name in normal_matrix.schema.names if col_name != index_name]
 
             # Run DESEq2
             design_matrix = design_matrix.set_index('sample')
-            res = DESeq2(normal_matrix.toPandas().set_index(index_name), design_matrix, normalize=libsize, cores=1)
-            save_pd_toparquet(os.path.join(arg.output_dir, os.path.basename(arg.path_normal_matrix_segm).split('.')[0] + 'deseq_fit' + '.pq.gz'), res, compression = 'gzip', verbose = False)
-            # res = pd.read_parquet(os.path.join(arg.output_dir, os.path.basename(arg.path_path_normal_matrix_segm).split('.')[0] + 'deseq_fit' + '.pq.gz'))
+            normal_matrix = DESeq2(normal_matrix.toPandas().set_index(index_name), design_matrix, normalize=libsize, cores=1)
+            save_pd_toparquet(os.path.join(arg.output_dir, os.path.basename(arg.path_normal_matrix_segm).split('.')[0] + 'deseq_fit' + '.pq.gz'), normal_matrix, compression = 'gzip', verbose = False)
             # Test on probability of noise
-            res_2 = spark.createDataFrame(res.reset_index())
+            normal_matrix = spark.createDataFrame(normal_matrix.reset_index())
             stat_udf = sf.udf(nb_cdf, st.FloatType())
-            res_2 = res_2.withColumn("proba_zero", stat_udf(sf.col('baseMean'), sf.col('dispersion')))
-            expressed_normals_dsq = res_2.filter(sf.col("proba_zero") < arg.threshold_noise) # Expressed kmers
+            normal_matrix = normal_matrix.withColumn("proba_zero", stat_udf(sf.col('baseMean'), sf.col('dispersion')))
+            normal_matrix = normal_matrix.filter(sf.col("proba_zero") < arg.threshold_noise) # Expressed kmers
             #TODO transfer to junction xpression
 
-            # Apply filtering to foreground
-            #TODO Update
-            #filter_cancer_samples(arg.paths_cancer_samples , expressed_normals_dsq, spark)
 
-
-        else: ### Hard Filtering
-            ## TODO Implement truely hard filtering
-            ## Filter based on expression level in at least n samples
+        ### NORMALS: Hard Filtering
+        else:
+            logging.info(">>>>>>>> HARD FILTERING")
+        # Filter based on expression level in at least n samples
             for name_ in normal_matrix.schema.names:
                 if name_ != index_name:
                     normal_matrix = normal_matrix.withColumn(name_, sf.when(sf.col(name_) > arg.expr_limit_normal, 1).otherwise(0))
             normal_matrix  = normal_matrix.withColumn('passing_expr_criteria', sum(normal_matrix[name_] for name_ in normal_matrix.schema.names if  name_ != index_name))
             normal_matrix = normal_matrix.filter(sf.col("passing_expr_criteria") >= arg.expr_n_limit)
 
-            ## Apply filtering to foreground
-            expression_fields =  ['segment_expr', 'junction_expr']
-            drop_cols = ['id']
-            for cancer_sample in arg.paths_cancer_samples:
-                cancer_kmers = spark.read.parquet(cancer_sample)
-                for drop_col in drop_cols:
-                    cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
-                # Remove the '/' in the data
-                local_max = sf.udf(collapse_values, st.FloatType())
-                cancer_kmers.show()
-                for name_ in expression_fields:
-                    cancer_kmers = cancer_kmers.withColumn(name_, local_max(name_)) # TODO collapse value apply
-                cancer_kmers.show()
-                # Make Unique
-                cancer_kmers = cancer_kmers.groupBy(index_name).max(sf.col(expression_fields[0]), sf.col(expression_fields[1]))
-                #TODO Remove double zeros filelds
-                cancer_sample.join(normal_matrix.select('kmer'), how='inner', on=['kmer'])  # Remark left_anti could be useful
+        # sort normal
+        normal_matrix = normal_matrix.sort(sf.col(index_name))
+        ### Apply filtering to foreground
+        expression_fields =  ['segment_expr', 'junction_expr']
+        drop_cols = ['id']
+        for cancer_sample in arg.paths_cancer_samples:
+            cancer_kmers = spark.read.parquet(cancer_sample)
+            for drop_col in drop_cols:
+                cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
+            # Remove the '/' in the data
+            local_max = sf.udf(collapse_values, st.FloatType())
+            for name_ in expression_fields:
+                cancer_kmers = cancer_kmers.withColumn(name_, local_max(name_))
+
+            # Make unique, max, sort
+            cancer_kmers = cancer_kmers.withColumn("is_cross_junction", sf.col("is_cross_junction").cast("boolean").cast("int"))
+            cancer_kmers = cancer_kmers.groupBy(index_name).max().sort(sf.col(index_name))
+            #TODO Remove double zeros filelds
+
+            cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
+
+            if len(cancer_kmers.head(1)) > 0:
+                pathlib.Path(arg.output_dir).mkdir(exist_ok= True, parents= True)
+                extension = '.pq'
+                path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[0] + '_no_normals' + extension)
+                cancer_kmers.repartition(1).write.mode('overwrite').parquet(path_final_fil)
+            else:
+                logging.info("WARNING: filtering removed all Foreground")
 
 
-
+            #TODO Implement the intersection of the modelling tissues
+            #TODO DIVIDE BY LIBRARY SIZE!!!!!!!!
+            #TODO Implement intermediary saving
 
