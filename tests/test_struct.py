@@ -150,8 +150,8 @@ def test_end_to_end_cancerspecif():
               "--output-dir", os.path.join(basedir, 'filter_out'),
               '--expr-high-limit-normal', "2.0",
               '--expr-limit-normal', "2.0",
-              "--expr-n-limit", "1"]
-             # "--statistical"]
+              "--expr-n-limit", "1",
+              "--statistical"]
     immunopepper.split_mode(my_args)
 
 ### Mouse Test
