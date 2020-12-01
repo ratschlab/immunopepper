@@ -177,7 +177,7 @@ def parse_arguments(argv):
             parser_filter.print_help()
         elif argv[0] == "crosscohort":
             parser_crosscohort.print_help()
-        elif argv[0] == "parser_cancerspecif":
+        elif argv[0] == "cancerspecif":
             parser_cancerspecif.print_help()
         else:
             parser.print_help()
