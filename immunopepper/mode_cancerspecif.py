@@ -57,7 +57,7 @@ def DESeq2(count_matrix, design_matrix, normalize, cores=1):
 def preprocess_libsize(path_lib):
     lib = pd.read_csv(path_lib, sep='\t')
     lib['libsize_75percent'] = lib['libsize_75percent'] / np.median(lib['libsize_75percent'])
-    lib['sample'] = [sample.replace('-', '').replace('.', '') for sample in lib['sample']]
+    lib['sample'] = [sample.replace('-', '').replace('.', '').replace('_','') for sample in lib['sample']]
     lib = lib.set_index('sample')
     return lib
 
@@ -84,7 +84,7 @@ def mode_cancerspecif(arg):
         normal_matrix = normal_matrix.drop('is_cross_junction')
         # Rename
         for name_ in normal_matrix.schema.names:
-            normal_matrix = normal_matrix.withColumnRenamed(name_, name_.replace('-','').replace('.', '')) # '-' and '.' causing issue in filter function
+            normal_matrix = normal_matrix.withColumnRenamed(name_, name_.replace('-','').replace('.', '').replace('_','')) # '-' and '.' causing issue in filter function
         # Cast type and fill nans
         for name_ in normal_matrix.schema.names:
             if name_ != index_name:
@@ -123,7 +123,7 @@ def mode_cancerspecif(arg):
                 modelling_grps = []
                 for tissue_grp in arg.tissue_grp_files:
                     grp = pd.read_csv(tissue_grp, header = None)[0].to_list()
-                    grp = [name_.replace('-','').replace('.','') for name_ in grp]
+                    grp = [name_.replace('-','').replace('.','').replace('_','') for name_ in grp]
                     grp.append(index_name)
                     modelling_grps.append(grp)
 
@@ -132,22 +132,22 @@ def mode_cancerspecif(arg):
 
             for grp in modelling_grps:
             # Perform hypothesis testing
-            logging.info(">>>... Fit Negative Binomial distribution on normal kmers ")
-            design_matrix = pd.DataFrame([1] * (len(normal_matrix.columns) - 1), columns=["design"])
-            design_matrix['sample'] = [col_name for col_name in normal_matrix.schema.names if col_name != index_name]
+                logging.info(">>>... Fit Negative Binomial distribution on normal kmers ")
+                design_matrix = pd.DataFrame([1] * (len(normal_matrix.columns) - 1), columns=["design"])
+                design_matrix['sample'] = [col_name for col_name in normal_matrix.schema.names if col_name != index_name]
 
-            # Run DESEq2
-            design_matrix = design_matrix.set_index('sample')
-            logging.info("Run DESeq2")
-            normal_matrix = DESeq2(normal_matrix.toPandas().set_index(index_name), design_matrix, normalize=libsize_n, cores=1)
-            save_pd_toparquet(os.path.join(arg.output_dir, os.path.basename(arg.path_normal_matrix_segm).split('.')[0] + 'deseq_fit' + '.pq.gz'), normal_matrix, compression = 'gzip', verbose = False)
-            # Test on probability of noise
-            logging.info("Test if noise")
-            normal_matrix = spark.createDataFrame(normal_matrix.reset_index())
-            stat_udf = sf.udf(nb_cdf, st.FloatType())
-            logging.info("Filter out noise from normals")
-            normal_matrix = normal_matrix.withColumn("proba_zero", stat_udf(sf.col('baseMean'), sf.col('dispersion')))
-            normal_matrix = normal_matrix.filter(sf.col("proba_zero") < arg.threshold_noise) # Expressed kmers
+                # Run DESEq2
+                design_matrix = design_matrix.set_index('sample')
+                logging.info("Run DESeq2")
+                normal_matrix = DESeq2(normal_matrix.toPandas().set_index(index_name), design_matrix, normalize=libsize_n, cores=1)
+                save_pd_toparquet(os.path.join(arg.output_dir, os.path.basename(arg.path_normal_matrix_segm).split('.')[0] + 'deseq_fit' + '.pq.gz'), normal_matrix, compression = 'gzip', verbose = False)
+                # Test on probability of noise
+                logging.info("Test if noise")
+                normal_matrix = spark.createDataFrame(normal_matrix.reset_index())
+                stat_udf = sf.udf(nb_cdf, st.FloatType())
+                logging.info("Filter out noise from normals")
+                normal_matrix = normal_matrix.withColumn("proba_zero", stat_udf(sf.col('baseMean'), sf.col('dispersion')))
+                normal_matrix = normal_matrix.filter(sf.col("proba_zero") < arg.threshold_noise) # Expressed kmers
 
             # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
 
@@ -170,6 +170,11 @@ def mode_cancerspecif(arg):
         for cancer_path, cancer_sample in zip(arg.paths_cancer_samples, arg.ids_cancer_samples):
             logging.info("... Process cancer sample {}".format(cancer_sample))
             cancer_kmers = spark.read.parquet(cancer_path)
+            for idx, name_ in enumerate(expression_fields):
+                cancer_kmers = cancer_kmers.withColumnRenamed(name_, name_.replace('-','').replace('.', '').replace('_',''))  # '-' and '.' causing issue in filter function
+                expression_fields[idx] = name_.replace('-', '').replace('.', '').replace('_', '')
+            cancer_sample = cancer_sample.replace('-', '').replace('.', '').replace('_', '')
+            print("done")
             for drop_col in drop_cols:
                 cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
             logging.info("Collapse kmer horizontal")
@@ -191,7 +196,7 @@ def mode_cancerspecif(arg):
             cancer_kmers = cancer_kmers.drop("all_null")
 
             #Normalize by library size
-            cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_] /libsize_c[cancer_sample, "libsize_75percent"], 2))
+            cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_] /libsize_c.loc[cancer_sample, "libsize_75percent"], 2))
 
             #Perform Background removal
             logging.info("Perform join")

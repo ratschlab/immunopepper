@@ -152,8 +152,9 @@ def test_end_to_end_cancerspecif():
               '--expr-high-limit-normal', "2.0",
               '--expr-limit-normal', "2.0",
               "--expr-n-limit", "1",
-              "--tissue-grp-files", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt", '/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_OV.txt',
-              "--statistical"]
+              "--tissue-grp-files", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt",
+              '/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_OV.txt']#,
+              #"--statistical"]
     immunopepper.split_mode(my_args)
 
 ### Mouse Test
