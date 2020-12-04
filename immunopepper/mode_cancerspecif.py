@@ -54,6 +54,12 @@ def DESeq2(count_matrix, design_matrix, normalize, cores=1):
     return fit_res
 
 
+def preprocess_libsize(path_lib):
+    lib = pd.read_csv(path_lib, sep='\t')
+    lib['libsize_75percent'] = lib['libsize_75percent'] / np.median(lib['libsize_75percent'])
+    lib['sample'] = [sample.replace('-', '').replace('.', '') for sample in lib['sample']]
+    lib = lib.set_index('sample')
+    return lib
 
 
 def mode_cancerspecif(arg):
@@ -89,31 +95,42 @@ def mode_cancerspecif(arg):
         normal_matrix = normal_matrix.filter(sf.col("all_null") > 0.0 )
         normal_matrix = normal_matrix.drop("all_null")
         # Make unique
-        normal_matrix = normal_matrix.groupBy(index_name).max()
+        exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in  normal_matrix.schema.names if name_ != index_name]
+        normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
 
         ### Preprocessing Libsize
-        logging.info(">>>>>>>> Preprocessing libsize")
-        libsize = pd.read_csv(arg.path_normal_libsize, sep = '\t')
-        libsize['libsize_75percent'] = libsize['libsize_75percent'] / np.median(libsize['libsize_75percent'])
-        libsize['sample'] = [sample.replace('-', '').replace('.', '') for sample in libsize['sample']]
-        libsize = libsize.set_index('sample')
+        logging.info(">>>>>>>> Preprocessing libsizes")
+        libsize_n = preprocess_libsize(arg.path_normal_libsize)
+        libsize_c = preprocess_libsize(arg.path_cancer_libsize)
+
 
         ### NORMALS: Statistical Filtering
         if arg.statistical:
             logging.info(">>>>>>>>  Perform statistical filtering")
             # Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
             if arg.expr_high_limit_normal is not None:
-                logging.info( "... Normal kmers with expression >= {} in >= 1 sample are truly expressed. Will be substracted from cancer set".format(arg.expr_high_limit_normal))
+                logging.info( "... Normal kmers with expression >= {} in >= 1 sample are truly expressed. \n Will be substracted from cancer set".format(arg.expr_high_limit_normal))
                 # normal_matrix = spark.createDataFrame(normal_matrix)
-                highly_expressed_normals = ' AND '.join(
-                    ['({} > {})'.format(col_name, arg.expr_high_limit_normal) for col_name in
-                     normal_matrix.schema.names if col_name != index_name])  # SQL style  # Expressed kmers
-                ambigous_expression_normals = ' OR '.join(
-                    ['({} <= {})'.format(col_name, arg.expr_high_limit_normal) for col_name in
-                     normal_matrix.schema.names if col_name != index_name])  # SQL style
+                highly_expressed_normals = ' AND '.join( ['({} > {})'.format(col_name, arg.expr_high_limit_normal * libsize_n.loc[col_name, "libsize_75percent"])
+                     for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # Expressed kmers
+
+                ambigous_expression_normals = ' OR '.join(['({} <= {})'.format(col_name, arg.expr_high_limit_normal  * libsize_n.loc[col_name, "libsize_75percent"])
+                     for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style
                 high_expr_normals = normal_matrix.filter(highly_expressed_normals).select(sf.col(index_name))
                 normal_matrix = normal_matrix.filter(ambigous_expression_normals)  # TODO add condition empty matrix
 
+            if arg.tissue_grp_files is not None:
+                modelling_grps = []
+                for tissue_grp in arg.tissue_grp_files:
+                    grp = pd.read_csv(tissue_grp, header = None)[0].to_list()
+                    grp = [name_.replace('-','').replace('.','') for name_ in grp]
+                    grp.append(index_name)
+                    modelling_grps.append(grp)
+
+            else:
+                modelling_grps = [[name_ for name_ in normal_matrix.schema.names if name_ != index_name]]
+
+            for grp in modelling_grps:
             # Perform hypothesis testing
             logging.info(">>>... Fit Negative Binomial distribution on normal kmers ")
             design_matrix = pd.DataFrame([1] * (len(normal_matrix.columns) - 1), columns=["design"])
@@ -122,7 +139,7 @@ def mode_cancerspecif(arg):
             # Run DESEq2
             design_matrix = design_matrix.set_index('sample')
             logging.info("Run DESeq2")
-            normal_matrix = DESeq2(normal_matrix.toPandas().set_index(index_name), design_matrix, normalize=libsize, cores=1)
+            normal_matrix = DESeq2(normal_matrix.toPandas().set_index(index_name), design_matrix, normalize=libsize_n, cores=1)
             save_pd_toparquet(os.path.join(arg.output_dir, os.path.basename(arg.path_normal_matrix_segm).split('.')[0] + 'deseq_fit' + '.pq.gz'), normal_matrix, compression = 'gzip', verbose = False)
             # Test on probability of noise
             logging.info("Test if noise")
@@ -131,8 +148,8 @@ def mode_cancerspecif(arg):
             logging.info("Filter out noise from normals")
             normal_matrix = normal_matrix.withColumn("proba_zero", stat_udf(sf.col('baseMean'), sf.col('dispersion')))
             normal_matrix = normal_matrix.filter(sf.col("proba_zero") < arg.threshold_noise) # Expressed kmers
-            #TODO transfer to junction xpression
 
+            # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
 
         ### NORMALS: Hard Filtering
         else:
@@ -140,18 +157,19 @@ def mode_cancerspecif(arg):
         # Filter based on expression level in at least n samples
             for name_ in normal_matrix.schema.names:
                 if name_ != index_name:
-                    normal_matrix = normal_matrix.withColumn(name_, sf.when(sf.col(name_) > arg.expr_limit_normal, 1).otherwise(0))
+                    normal_matrix = normal_matrix.withColumn(name_, sf.when(sf.col(name_)/libsize_n.loc[name_, "libsize_75percent"] > arg.expr_limit_normal, 1).otherwise(0)) # Normalize on the fly
             normal_matrix  = normal_matrix.withColumn('passing_expr_criteria', sum(normal_matrix[name_] for name_ in normal_matrix.schema.names if  name_ != index_name))
             normal_matrix = normal_matrix.filter(sf.col("passing_expr_criteria") >= arg.expr_n_limit)
 
-        # sort normal
-        #normal_matrix = normal_matrix.sort(sf.col(index_name))
+
+
+
         ### Apply filtering to foreground
         expression_fields =  ['segment_expr', 'junction_expr']
         drop_cols = ['id']
-        for cancer_sample in arg.paths_cancer_samples:
+        for cancer_path, cancer_sample in zip(arg.paths_cancer_samples, arg.ids_cancer_samples):
             logging.info("... Process cancer sample {}".format(cancer_sample))
-            cancer_kmers = spark.read.parquet(cancer_sample)
+            cancer_kmers = spark.read.parquet(cancer_path)
             for drop_col in drop_cols:
                 cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
             logging.info("Collapse kmer horizontal")
@@ -161,11 +179,21 @@ def mode_cancerspecif(arg):
                 cancer_kmers = cancer_kmers.withColumn(name_, local_max(name_))
 
             logging.info("Collapse kmer vertical")
-            # Make unique, max, sort
+            # Make unique, max
             cancer_kmers = cancer_kmers.withColumn("is_cross_junction", sf.col("is_cross_junction").cast("boolean").cast("int"))
-            cancer_kmers = cancer_kmers.groupBy(index_name).max().sort(sf.col(index_name))
-            #TODO Remove double zeros filelds
+            exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in cancer_kmers.schema.names if name_ != index_name]
+            cancer_kmers = cancer_kmers.groupBy(index_name).agg(*exprs)
+            #cancer_kmers = cancer_kmers.sort(sf.col(index_name))
 
+            #Remove double zeros filelds
+            cancer_kmers = cancer_kmers.withColumn('all_null', sum(cancer_kmers[name_] for name_ in expression_fields))
+            cancer_kmers = cancer_kmers.filter(sf.col("all_null") > 0.0)
+            cancer_kmers = cancer_kmers.drop("all_null")
+
+            #Normalize by library size
+            cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_] /libsize_c[cancer_sample, "libsize_75percent"], 2))
+
+            #Perform Background removal
             logging.info("Perform join")
             normal_matrix = sf.broadcast(normal_matrix)
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
@@ -181,6 +209,7 @@ def mode_cancerspecif(arg):
 
 
             #TODO Implement the intersection of the modelling tissues
-            #TODO DIVIDE BY LIBRARY SIZE!!!!!!!!
-            #TODO Implement intermediary saving
+            #TODO Implement intermediary saving # no collect slow
+            #TODO transfer to junction xpression
+            #TODO Uniprot filtering
 

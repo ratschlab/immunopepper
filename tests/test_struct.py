@@ -141,16 +141,18 @@ def test_end_to_end_cancerspecif():
               "--cores", "2",
               "--mem-per-core", "6000",
               "--kmer", "9",
-              "--path-cancer-libsize",os.path.join(basedir,'cancer', 'expression_counts.libsize.tsv'),
+              "--path-cancer-libsize",os.path.join(basedir,'cancer', 'libsize_cancer.tsv'),
               "--path-normal-libsize", os.path.join(basedir, 'normal', 'libsize_normals_top20'),
               "--paths-cancer-samples",
               "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/cancer_no_ct_var/TCGA-13-1497-01A-01/tmp_out_somatic_10000/somatic_junction_9mer_n20.pq.gz", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/cancer_no_ct_var/TCGA-24-1103-01A-01/tmp_out_somatic_1000/somatic_junction_9mer_n20.pq.gz",
               "--path-normal-matrix-segm", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
               "--path-normal-matrix-edge", os.path.join(basedir, 'normal' 'ref_graph_kmer_JuncExpr.pq.gz'),
+              '--ids-cancer-samples', "TCGA-13-1497-01A-01", "TCGA-24-1103-01A-01",
               "--output-dir", os.path.join(basedir, 'filter_out'),
               '--expr-high-limit-normal', "2.0",
               '--expr-limit-normal', "2.0",
               "--expr-n-limit", "1",
+              "--tissue-grp-files", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt", '/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_OV.txt',
               "--statistical"]
     immunopepper.split_mode(my_args)
 
