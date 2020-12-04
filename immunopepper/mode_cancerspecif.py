@@ -203,7 +203,7 @@ def mode_cancerspecif(arg):
             normal_matrix = sf.broadcast(normal_matrix)
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
 
-            if len(cancer_kmers.head(1)) > 0:
+            if len(cancer_kmers.head(0)) > 0:
                 logging.info("save filtered output")
                 pathlib.Path(arg.output_dir).mkdir(exist_ok= True, parents= True)
                 extension = '.pq'
