@@ -165,14 +165,14 @@ def mode_cancerspecif(arg):
 
 
         ### Apply filtering to foreground
-        expression_fields =  ['segment_expr', 'junction_expr']
+        expression_fields_orig =  ['segment_expr', 'junction_expr']
+        expression_fields = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in expression_fields_orig]
         drop_cols = ['id']
         for cancer_path, cancer_sample in zip(arg.paths_cancer_samples, arg.ids_cancer_samples):
             logging.info("... Process cancer sample {}".format(cancer_sample))
             cancer_kmers = spark.read.parquet(cancer_path)
-            for idx, name_ in enumerate(expression_fields):
+            for idx, name_ in enumerate(expression_fields_orig):
                 cancer_kmers = cancer_kmers.withColumnRenamed(name_, name_.replace('-','').replace('.', '').replace('_',''))  # '-' and '.' causing issue in filter function
-                expression_fields[idx] = name_.replace('-', '').replace('.', '').replace('_', '')
             cancer_sample = cancer_sample.replace('-', '').replace('.', '').replace('_', '')
             print("done")
             for drop_col in drop_cols:
