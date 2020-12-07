@@ -65,9 +65,10 @@ def preprocess_libsize(path_lib):
 def pq_WithRenamedCols(path):
     df = pq.read_table(path)
     df = df.rename_columns(name_.replace('-', '').replace('.', '').replace('_', '') for name_ in df.schema.names) # characters causing issue in spark
-    path_tmp = path.split('.')[0] + '_tmp.' + '.'.join(path.split('.')[1:])
+    path_tmp = path + 'tmp'
     if os.path.exists(path_tmp):
         os.remove(path_tmp)
+    logging.info("resaving to {}".format(path_tmp))
     pqwriter = pq.ParquetWriter(path_tmp, df.schema, compression=None)
     pqwriter.write_table(df)
     pqwriter.close()
@@ -100,11 +101,12 @@ def mode_cancerspecif(arg):
         normal_matrix = normal_matrix.drop(jct_col)
         # Cast type and fill nans
         logging.info("Cast types")
-        for name_ in normal_matrix.schema.names:
-            if name_ != index_name:
-                normal_matrix = normal_matrix.withColumn(name_, sf.col(name_).cast(st.DoubleType()))
-                normal_matrix = normal_matrix.na.fill(0)
+        normal_matrix = normal_matrix.select( [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in normal_matrix.schema.names] )
+
         logging.info("Remove Nans")
+        normal_matrix = normal_matrix.na.fill(0)
+
+        logging.info("Remove non expressed kmers")
         # Remove lines of Nans (Only present in junction file)
         normal_matrix = normal_matrix.withColumn('allnull', sum(normal_matrix[name_] for name_ in normal_matrix.schema.names if name_ != index_name))
         normal_matrix = normal_matrix.filter(sf.col("allnull") > 0.0 )
