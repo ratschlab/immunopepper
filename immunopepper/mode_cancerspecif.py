@@ -66,7 +66,11 @@ def pq_WithRenamedCols(path):
     df = pq.read_table(path)
     df = df.rename_columns(name_.replace('-', '').replace('.', '').replace('_', '') for name_ in df.schema.names) # characters causing issue in spark
     path_tmp = path.split('.')[0] + '_tmp.' + '.'.join(path.split('.')[1:])
-    pq.write_table(df, path_tmp)
+    if os.path.exists(path_tmp):
+        os.remove(path_tmp)
+    pqwriter = pq.ParquetWriter(path_tmp, df.schema, compression=None)
+    pqwriter.write_table(df)
+    pqwriter.close()
     return path_tmp
 
 def mode_cancerspecif(arg):
@@ -214,7 +218,7 @@ def mode_cancerspecif(arg):
             normal_matrix = sf.broadcast(normal_matrix)
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
 
-            if len(cancer_kmers.head(1)) > 0:
+            if len(cancer_kmers.head(0)) > 0:
                 logging.info("save filtered output")
                 pathlib.Path(arg.output_dir).mkdir(exist_ok= True, parents= True)
                 extension = '.pq'
