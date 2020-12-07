@@ -111,14 +111,22 @@ def mode_cancerspecif(arg):
         logging.info("Remove Nans")
         normal_matrix = normal_matrix.na.fill(0)
 
-        logging.info("Remove non expressed kmers")
+        logging.info("Remove non expressed kmers SQL")
         normal_matrix.checkpoint()
         # Remove lines of Nans (Only present in junction file)
-        normal_matrix = normal_matrix.withColumn('allnull', sum(normal_matrix[name_] for name_ in normal_matrix.schema.names if name_ != index_name))
-        normal_matrix = normal_matrix.filter(sf.col("allnull") > 0.0 )
-        normal_matrix = normal_matrix.drop("allnull")
+        # normal_matrix = normal_matrix.withColumn('allnull', sum(normal_matrix[name_] for name_ in normal_matrix.schema.names if name_ != index_name))
+        # normal_matrix = normal_matrix.filter(sf.col("allnull") > 0.0 )
+        # normal_matrix = normal_matrix.drop("allnull")
+
+        all_zeros = ' OR '.join(
+            ['({} != 0.0)'.format(col_name)
+        for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # All zeros
+        normal_matrix = normal_matrix.filter(all_zeros)
+
+
         logging.info("Make unique")
         # Make unique
+        normal_matrix.cache()
         normal_matrix.checkpoint()
         exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in  normal_matrix.schema.names if name_ != index_name]
         normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
@@ -144,6 +152,8 @@ def mode_cancerspecif(arg):
                 high_expr_normals = normal_matrix.filter(highly_expressed_normals).select(sf.col(index_name))
                 normal_matrix = normal_matrix.filter(ambigous_expression_normals)  # TODO add condition empty matrix
 
+                normal_matrix.cache()
+                normal_matrix.checkpoint()
             if arg.tissue_grp_files is not None:
                 modelling_grps = []
                 for tissue_grp in arg.tissue_grp_files:
