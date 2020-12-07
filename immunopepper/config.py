@@ -69,8 +69,8 @@ def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: 
             set("spark.driver.extraJavaOptions", java_options).
             set("spark.master", "local[{}]".format(cores)).
             #set("spark.jars", jar_paths).
-            set("spark.sql.execution.arrow.pyspark.enabled", str(enable_arrow))#.
-            #set("spark.driver.bindAddress", "192.168.0.14") #TODO remove the personal IP address
+            set("spark.sql.execution.arrow.pyspark.enabled", str(enable_arrow)).
+            set("spark.driver.bindAddress", "192.168.0.14") #TODO remove the personal IP address
             )
 
 

@@ -12,6 +12,7 @@ from rpy2.robjects import pandas2ri, Formula, r
 from rpy2.robjects.packages import importr
 import scipy
 from scipy import stats
+import shutil
 
 
 from .config import create_spark_session_from_config
@@ -78,7 +79,11 @@ def mode_cancerspecif(arg):
     spark_cfg = default_spark_config(arg.cores, arg.mem_per_core)
 
     with create_spark_session_from_config(spark_cfg) as spark:
+        if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
+            shutil.rmtree(os.path.join(arg.output_dir, "checkpoint"))
+        pathlib.Path(os.path.join(arg.output_dir, "checkpoint")).mkdir(exist_ok=True, parents=True)
 
+        spark.sparkContext.setCheckpointDir(os.path.join(arg.output_dir, "checkpoint"))
         def nb_cdf(mean_, disp):
             probA = disp / (disp + mean_)
             N = (probA * mean_) / (1 - probA)
@@ -107,12 +112,14 @@ def mode_cancerspecif(arg):
         normal_matrix = normal_matrix.na.fill(0)
 
         logging.info("Remove non expressed kmers")
+        normal_matrix.checkpoint()
         # Remove lines of Nans (Only present in junction file)
         normal_matrix = normal_matrix.withColumn('allnull', sum(normal_matrix[name_] for name_ in normal_matrix.schema.names if name_ != index_name))
         normal_matrix = normal_matrix.filter(sf.col("allnull") > 0.0 )
         normal_matrix = normal_matrix.drop("allnull")
         logging.info("Make unique")
         # Make unique
+        normal_matrix.checkpoint()
         exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in  normal_matrix.schema.names if name_ != index_name]
         normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
 
@@ -178,7 +185,7 @@ def mode_cancerspecif(arg):
                     normal_matrix = normal_matrix.withColumn(name_, sf.when(sf.col(name_)/libsize_n.loc[name_, "libsize_75percent"] > arg.expr_limit_normal, 1).otherwise(0)) # Normalize on the fly
             normal_matrix  = normal_matrix.withColumn('passing_expr_criteria', sum(normal_matrix[name_] for name_ in normal_matrix.schema.names if  name_ != index_name))
             normal_matrix = normal_matrix.filter(sf.col("passing_expr_criteria") >= arg.expr_n_limit)
-
+        normal_matrix.checkpoint()
 
 
 
