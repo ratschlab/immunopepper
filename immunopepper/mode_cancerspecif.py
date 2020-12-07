@@ -1,6 +1,8 @@
+from functools import reduce
 import logging
 import numpy as np
 import os
+from operator import add
 import pandas as pd
 import pathlib
 import pyarrow.parquet as pq
@@ -82,8 +84,8 @@ def mode_cancerspecif(arg):
         if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
             shutil.rmtree(os.path.join(arg.output_dir, "checkpoint"))
         pathlib.Path(os.path.join(arg.output_dir, "checkpoint")).mkdir(exist_ok=True, parents=True)
-
         spark.sparkContext.setCheckpointDir(os.path.join(arg.output_dir, "checkpoint"))
+
         def nb_cdf(mean_, disp):
             probA = disp / (disp + mean_)
             N = (probA * mean_) / (1 - probA)
@@ -104,6 +106,11 @@ def mode_cancerspecif(arg):
         logging.info("Load")
         normal_matrix = spark.read.parquet(path_normal_matrix_segm_tmp)
         normal_matrix = normal_matrix.drop(jct_col)
+
+
+        normal_matrix.cache()
+        normal_matrix.checkpoint()
+
         # Cast type and fill nans
         logging.info("Cast types")
         normal_matrix = normal_matrix.select( [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in normal_matrix.schema.names] )
@@ -111,25 +118,32 @@ def mode_cancerspecif(arg):
         logging.info("Remove Nans")
         normal_matrix = normal_matrix.na.fill(0)
 
-        logging.info("Remove non expressed kmers SQL")
+        logging.info("Remove non expressed kmers SQL-")
+
+        normal_matrix.cache()
         normal_matrix.checkpoint()
+
         # Remove lines of Nans (Only present in junction file)
         # normal_matrix = normal_matrix.withColumn('allnull', sum(normal_matrix[name_] for name_ in normal_matrix.schema.names if name_ != index_name))
         # normal_matrix = normal_matrix.filter(sf.col("allnull") > 0.0 )
         # normal_matrix = normal_matrix.drop("allnull")
 
-        all_zeros = ' OR '.join(
+        not_null = ' OR '.join(
             ['({} != 0.0)'.format(col_name)
         for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # All zeros
-        normal_matrix = normal_matrix.filter(all_zeros)
+        normal_matrix = normal_matrix.filter(not_null)
 
+        normal_matrix.cache()
+        normal_matrix.checkpoint()
 
         logging.info("Make unique")
         # Make unique
-        normal_matrix.cache()
-        normal_matrix.checkpoint()
+
         exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in  normal_matrix.schema.names if name_ != index_name]
         normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
+
+        normal_matrix.cache()
+        normal_matrix.checkpoint()
 
         ### Preprocessing Libsize
         logging.info(">>>>>>>> Preprocessing libsizes")
@@ -154,6 +168,7 @@ def mode_cancerspecif(arg):
 
                 normal_matrix.cache()
                 normal_matrix.checkpoint()
+
             if arg.tissue_grp_files is not None:
                 modelling_grps = []
                 for tissue_grp in arg.tissue_grp_files:
@@ -190,11 +205,29 @@ def mode_cancerspecif(arg):
         else:
             logging.info(">>>>>>>> Hard Filtering")
         # Filter based on expression level in at least n samples
-            for name_ in normal_matrix.schema.names:
-                if name_ != index_name:
-                    normal_matrix = normal_matrix.withColumn(name_, sf.when(sf.col(name_)/libsize_n.loc[name_, "libsize_75percent"] > arg.expr_limit_normal, 1).otherwise(0)) # Normalize on the fly
-            normal_matrix  = normal_matrix.withColumn('passing_expr_criteria', sum(normal_matrix[name_] for name_ in normal_matrix.schema.names if  name_ != index_name))
-            normal_matrix = normal_matrix.filter(sf.col("passing_expr_criteria") >= arg.expr_n_limit)
+
+
+
+            normal_matrix= normal_matrix.select(index_name, *[
+                sf.when((sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"]) > arg.expr_limit_normal, 1).otherwise(0).alias(name_)
+                for name_ in normal_matrix.schema.names if name_ != index_name])
+            rowsum = (reduce(add, (sf.col(x) for x in normal_matrix.columns[1:]))).alias("sum")
+
+            normal_matrix.cache()
+            normal_matrix.checkpoint()
+
+            normal_matrix = normal_matrix.filter(rowsum >= arg.expr_n_limit)
+
+            # for name_ in normal_matrix.schema.names:
+            #     if name_ != index_name:
+            #         normal_matrix = normal_matrix.withColumn(name_, sf.when(
+            #             sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"] > arg.expr_limit_normal, 1).otherwise(
+            #             0))  # Normalize on the fly
+            # normal_matrix = normal_matrix.withColumn('passing_expr_criteria', sum(
+            #     normal_matrix[name_] for name_ in normal_matrix.schema.names if name_ != index_name))
+            # normal_matrix = normal_matrix.filter(sf.col("passing_expr_criteria") >= arg.expr_n_limit)
+
+        normal_matrix.cache()
         normal_matrix.checkpoint()
 
 
