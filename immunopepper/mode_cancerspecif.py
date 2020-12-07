@@ -3,6 +3,7 @@ import numpy as np
 import os
 import pandas as pd
 import pathlib
+import pyarrow.parquet as pq
 from pyspark.sql import functions as sf
 from pyspark.sql import types as st
 import rpy2
@@ -61,6 +62,12 @@ def preprocess_libsize(path_lib):
     lib = lib.set_index('sample')
     return lib
 
+def pq_WithRenamedCols(path):
+    df = pq.read_table(path)
+    df = df.rename_columns(name_.replace('-', '').replace('.', '').replace('_', '') for name_ in df.schema.names) # characters causing issue in spark
+    path_tmp = path.split('.')[0] + '_tmp.' + '.'.join(path.split('.')[1:])
+    pq.write_table(df, path_tmp)
+    return path_tmp
 
 def mode_cancerspecif(arg):
     spark_cfg = default_spark_config(arg.cores, arg.mem_per_core)
@@ -80,20 +87,25 @@ def mode_cancerspecif(arg):
         ### Preprocessing Normals
         logging.info(">>>>>>>> Preprocessing Normal samples")
         index_name = 'kmer'
-        normal_matrix = spark.read.parquet(arg.path_normal_matrix_segm)
-        normal_matrix = normal_matrix.drop('is_cross_junction')
+        jct_col = "iscrossjunction"
         # Rename
-        for name_ in normal_matrix.schema.names:
-            normal_matrix = normal_matrix.withColumnRenamed(name_, name_.replace('-','').replace('.', '').replace('_','')) # '-' and '.' causing issue in filter function
+        logging.info("Rename")
+        path_normal_matrix_segm_tmp =  pq_WithRenamedCols(arg.path_normal_matrix_segm)
+        logging.info("Load")
+        normal_matrix = spark.read.parquet(path_normal_matrix_segm_tmp)
+        normal_matrix = normal_matrix.drop(jct_col)
         # Cast type and fill nans
+        logging.info("Cast types")
         for name_ in normal_matrix.schema.names:
             if name_ != index_name:
                 normal_matrix = normal_matrix.withColumn(name_, sf.col(name_).cast(st.DoubleType()))
                 normal_matrix = normal_matrix.na.fill(0)
+        logging.info("Remove Nans")
         # Remove lines of Nans (Only present in junction file)
-        normal_matrix = normal_matrix.withColumn('all_null', sum(normal_matrix[name_] for name_ in normal_matrix.schema.names if name_ != index_name))
-        normal_matrix = normal_matrix.filter(sf.col("all_null") > 0.0 )
-        normal_matrix = normal_matrix.drop("all_null")
+        normal_matrix = normal_matrix.withColumn('allnull', sum(normal_matrix[name_] for name_ in normal_matrix.schema.names if name_ != index_name))
+        normal_matrix = normal_matrix.filter(sf.col("allnull") > 0.0 )
+        normal_matrix = normal_matrix.drop("allnull")
+        logging.info("Make unique")
         # Make unique
         exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in  normal_matrix.schema.names if name_ != index_name]
         normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
@@ -169,12 +181,11 @@ def mode_cancerspecif(arg):
         expression_fields = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in expression_fields_orig]
         drop_cols = ['id']
         for cancer_path, cancer_sample in zip(arg.paths_cancer_samples, arg.ids_cancer_samples):
-            logging.info("... Process cancer sample {}".format(cancer_sample))
-            cancer_kmers = spark.read.parquet(cancer_path)
-            for idx, name_ in enumerate(expression_fields_orig):
-                cancer_kmers = cancer_kmers.withColumnRenamed(name_, name_.replace('-','').replace('.', '').replace('_',''))  # '-' and '.' causing issue in filter function
             cancer_sample = cancer_sample.replace('-', '').replace('.', '').replace('_', '')
-            print("done")
+            logging.info("... Process cancer sample {}".format(cancer_sample))
+            cancer_path_tmp = pq_WithRenamedCols(cancer_path)
+            cancer_kmers = spark.read.parquet(cancer_path_tmp)
+            logging.info("Renamed done")
             for drop_col in drop_cols:
                 cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
             logging.info("Collapse kmer horizontal")
@@ -185,15 +196,15 @@ def mode_cancerspecif(arg):
 
             logging.info("Collapse kmer vertical")
             # Make unique, max
-            cancer_kmers = cancer_kmers.withColumn("is_cross_junction", sf.col("is_cross_junction").cast("boolean").cast("int"))
+            cancer_kmers = cancer_kmers.withColumn(jct_col, sf.col(jct_col).cast("boolean").cast("int"))
             exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in cancer_kmers.schema.names if name_ != index_name]
             cancer_kmers = cancer_kmers.groupBy(index_name).agg(*exprs)
             #cancer_kmers = cancer_kmers.sort(sf.col(index_name))
 
             #Remove double zeros filelds
-            cancer_kmers = cancer_kmers.withColumn('all_null', sum(cancer_kmers[name_] for name_ in expression_fields))
-            cancer_kmers = cancer_kmers.filter(sf.col("all_null") > 0.0)
-            cancer_kmers = cancer_kmers.drop("all_null")
+            cancer_kmers = cancer_kmers.withColumn('allnull', sum(cancer_kmers[name_] for name_ in expression_fields))
+            cancer_kmers = cancer_kmers.filter(sf.col("allnull") > 0.0)
+            cancer_kmers = cancer_kmers.drop("allnull")
 
             #Normalize by library size
             cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_] /libsize_c.loc[cancer_sample, "libsize_75percent"], 2))
