@@ -101,12 +101,22 @@ def mode_cancerspecif(arg):
         index_name = 'kmer'
         jct_col = "iscrossjunction"
         # Rename
-        logging.info("Rename")
-        path_normal_matrix_segm_tmp =  pq_WithRenamedCols(arg.path_normal_matrix_segm)
-        logging.info("Load")
-        normal_matrix = spark.read.parquet(path_normal_matrix_segm_tmp)
-        normal_matrix = normal_matrix.drop(jct_col)
+        rename = False #For development 
+        if rename:
+            logging.info("Rename")
+            path_normal_matrix_segm_tmp =  pq_WithRenamedCols(arg.path_normal_matrix_segm)
+            logging.info("Load")
+            normal_matrix = spark.read.parquet(path_normal_matrix_segm_tmp)
+        else: 
+            normal_matrix = spark.read.parquet(arg.path_normal_matrix_segm)
 
+
+        logging.info("repartition")
+        normal_matrix =  normal_matrix.repartition(arg.cores * 10)
+        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+
+        normal_matrix = normal_matrix.drop(jct_col)
+        
 
         normal_matrix.cache()
         normal_matrix.checkpoint()
@@ -120,8 +130,12 @@ def mode_cancerspecif(arg):
 
         logging.info("Remove non expressed kmers SQL-")
 
-        normal_matrix.cache()
-        normal_matrix.checkpoint()
+        #logging.info("cache")
+        #normal_matrix.cache()
+        #logging.info("checkpoint")
+        #normal_matrix.checkpoint()
+        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+
 
         # Remove lines of Nans (Only present in junction file)
         # normal_matrix = normal_matrix.withColumn('allnull', sum(normal_matrix[name_] for name_ in normal_matrix.schema.names if name_ != index_name))
@@ -133,8 +147,11 @@ def mode_cancerspecif(arg):
         for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # All zeros
         normal_matrix = normal_matrix.filter(not_null)
 
-        normal_matrix.cache()
-        normal_matrix.checkpoint()
+        #logging.info("cache")
+        #normal_matrix.cache()
+        #logging.info("checkpoint")
+        #normal_matrix.checkpoint()
+        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
 
         logging.info("Make unique")
         # Make unique
@@ -142,8 +159,11 @@ def mode_cancerspecif(arg):
         exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in  normal_matrix.schema.names if name_ != index_name]
         normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
 
-        normal_matrix.cache()
-        normal_matrix.checkpoint()
+        #logging.info("cache")
+        #normal_matrix.cache()
+        #logging.info("checkpoint")
+        #normal_matrix.checkpoint()
+        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
 
         ### Preprocessing Libsize
         logging.info(">>>>>>>> Preprocessing libsizes")
@@ -189,7 +209,7 @@ def mode_cancerspecif(arg):
                 # Run DESEq2
                 design_matrix = design_matrix.set_index('sample')
                 logging.info("Run DESeq2")
-                normal_matrix = DESeq2(normal_matrix.toPandas().set_index(index_name), design_matrix, normalize=libsize_n, cores=1)
+                normal_matrix = DESeq2(normal_matrix.toPandas().set_index(index_name), design_matrix, normalize=libsize_n, cores=arg.cores)
                 save_pd_toparquet(os.path.join(arg.output_dir, os.path.basename(arg.path_normal_matrix_segm).split('.')[0] + 'deseq_fit' + '.pq.gz'), normal_matrix, compression = 'gzip', verbose = False)
                 # Test on probability of noise
                 logging.info("Test if noise")
@@ -206,16 +226,28 @@ def mode_cancerspecif(arg):
             logging.info(">>>>>>>> Hard Filtering")
         # Filter based on expression level in at least n samples
 
-
+            logging.info("expression filter")
 
             normal_matrix= normal_matrix.select(index_name, *[
                 sf.when((sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"]) > arg.expr_limit_normal, 1).otherwise(0).alias(name_)
                 for name_ in normal_matrix.schema.names if name_ != index_name])
+            
+            #logging.info("cache")
+            #normal_matrix.cache()
+            #logging.info("checkpoint")
+            #normal_matrix.checkpoint()
+            logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))    
+            
+            logging.info("reduce")
             rowsum = (reduce(add, (sf.col(x) for x in normal_matrix.columns[1:]))).alias("sum")
 
-            normal_matrix.cache()
-            normal_matrix.checkpoint()
-
+            #logging.info("cache")
+            #normal_matrix.cache()
+            #logging.info("checkpoint")
+            #normal_matrix.checkpoint()
+            logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+            
+            logging.info("filter")
             normal_matrix = normal_matrix.filter(rowsum >= arg.expr_n_limit)
 
             # for name_ in normal_matrix.schema.names:

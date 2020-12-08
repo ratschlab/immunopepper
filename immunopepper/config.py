@@ -57,9 +57,11 @@ def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: 
 
     if tmp_dir:
         cfg.set("spark.local.dir", tmp_dir)
-
+    
+    
+    #TODO set as parameter 
     java_options = str(extra_java_options)
-
+    java_options = "-XX:ThreadStackSize=81920" #~80 kB:
     if use_utc:
         # avoiding trouble with JDBC and timestamps
         java_options = "-Duser.timezone=UTC " + java_options
@@ -69,8 +71,10 @@ def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: 
             set("spark.driver.extraJavaOptions", java_options).
             set("spark.master", "local[{}]".format(cores)).
             #set("spark.jars", jar_paths).
-            set("spark.sql.execution.arrow.pyspark.enabled", str(enable_arrow)).
-            set("spark.driver.bindAddress", "192.168.0.14") #TODO remove the personal IP address
+            set("spark.sql.execution.arrow.pyspark.enabled", str(enable_arrow)). #TODO set as parameter 
+            set("spark.sql.debug.maxToStringFields", 11000)#.
+            #set("spark.default.parallelism", 4 * cores)
+            #set("spark.driver.bindAddress", "192.168.0.14") #TODO remove the personal IP address
             )
 
 
