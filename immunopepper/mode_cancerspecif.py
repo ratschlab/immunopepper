@@ -111,15 +111,16 @@ def mode_cancerspecif(arg):
             normal_matrix = spark.read.parquet(arg.path_normal_matrix_segm)
 
 
-        logging.info("repartition")
-        normal_matrix =  normal_matrix.repartition(arg.cores * 10)
-        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+        #logging.info("repartition")
+        #normal_matrix =  normal_matrix.repartition(arg.cores * 10)
+        #logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
 
         normal_matrix = normal_matrix.drop(jct_col)
         
-
-        normal_matrix.cache()
-        normal_matrix.checkpoint()
+        #logging.info("cache")
+        #normal_matrix.cache()
+        #logging.info("checkpoint")
+        #normal_matrix.checkpoint()
 
         # Cast type and fill nans
         logging.info("Cast types")
