@@ -187,8 +187,8 @@ def mode_cancerspecif(arg):
                 high_expr_normals = normal_matrix.filter(highly_expressed_normals).select(sf.col(index_name))
                 normal_matrix = normal_matrix.filter(ambigous_expression_normals)  # TODO add condition empty matrix
 
-                normal_matrix.cache()
-                normal_matrix.checkpoint()
+                #normal_matrix.cache()
+                #normal_matrix.checkpoint()
 
             if arg.tissue_grp_files is not None:
                 modelling_grps = []
@@ -260,11 +260,10 @@ def mode_cancerspecif(arg):
             #     normal_matrix[name_] for name_ in normal_matrix.schema.names if name_ != index_name))
             # normal_matrix = normal_matrix.filter(sf.col("passing_expr_criteria") >= arg.expr_n_limit)
 
-        normal_matrix.cache()
-        normal_matrix.checkpoint()
+        #normal_matrix.cache()
+        #normal_matrix.checkpoint()
 
-
-
+        logging.info("No caching")
         ### Apply filtering to foreground
         expression_fields_orig =  ['segment_expr', 'junction_expr']
         expression_fields = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in expression_fields_orig]
@@ -300,7 +299,9 @@ def mode_cancerspecif(arg):
 
             #Perform Background removal
             logging.info("Perform join")
-            normal_matrix = sf.broadcast(normal_matrix)
+            logging.info("NO BROADCAST")
+            #normal_matrix = sf.broadcast(normal_matrix)
+            #cancer_kmers = sf.broadcast(cancer_kmers)
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
 
             if len(cancer_kmers.head(0)) > 0:
