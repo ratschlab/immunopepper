@@ -110,6 +110,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
                                                                                       np.max(time_per_gene),
                                                                                       np.max(mem_per_gene)))
         exception_ = None
+
     except Exception as e:
         exception_ = ExceptionWrapper(e)
 
@@ -119,6 +120,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
 
 def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
     try:
+        pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
         dict_kmer_foregr = defaultdict(dict, {})
         dict_pept_forgrd = {}
         time_per_gene = []
@@ -127,7 +129,8 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
         gene_expr = []
         complexity_cap = 20000
 
-
+        test = ['sample', 'graph_samples','genes', 'genes_info', 'gene_idxs', 'total_genes', 'all_read_frames', 'mutation', 'junction_dict',
+         'countinfo', 'genetable', 'arg', 'outbase', 'filepointer', 'compression', 'verbose']
         for i, gene in enumerate(genes):
             ### measure time
             start_time = timeit.default_timer()
@@ -236,12 +239,13 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                                                                                           all_gene_idxs[-1]  + 1,
                                                                                           len(gene_id_list),
                                                                                           np.max(time_per_gene),
-                                                                                          np.max(mem_per_gene)))
+                                                                                        np.max(mem_per_gene)))
         exception_ = None
+
     
     except Exception as e:
-        exception_ = ExceptionWrapper(e)
 
+        exception_ = ExceptionWrapper(e)
     return exception_
 
 
@@ -361,12 +365,16 @@ def mode_build(arg):
             logging.info(">>>>>>>>> Start Foreground processing")
             pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
 
-            for i in range(0, len(gene_id_list), batch_size):
-                gene_idx = gene_id_list[i:min(i + batch_size, len(gene_id_list))]
-                outbase = os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i))
-                pathlib.Path(outbase).mkdir(exist_ok= True, parents= True)
-                _ = pool_f.submit(process_gene_batch_foreground, (sample, graph_samples, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, None, verbose_save))
+            gene_batches = [(i, gene_id_list[i:min(i + batch_size, len(gene_id_list))]) for i in range(0, len(gene_id_list), batch_size)]
+
+            args = [(sample, graph_samples, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(
+                gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg,
+                  os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+
+            result = pool_f.submit(process_gene_batch_foreground, args)
             pool_f.terminate()
+
+
 
             # Collects and pools the files of each batch
             logging.debug('start collecting results')

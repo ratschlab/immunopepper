@@ -327,7 +327,6 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
 
                 ### kmers
                 if cross_graph_expr: #generate kmer x sample expression matrix for all samples in graph
-                    logging.info("create kmer mx")
                     kmer_matrix = create_output_kmer_cross_samples(output_peptide, kmer[0], expr_list, graph_samples, kmer_matrix) # Only one kmer lengthsupported for this mode
                     
                 else:
