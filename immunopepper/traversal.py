@@ -344,8 +344,8 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
 
         if not gene.splicegraph.edges is None:
             gene.to_sparse()
-    #if cross_graph_expr:
-    #    save_kmer_matrix(kmer_matrix, graph_samples, filepointer, compression=None, outbase=outbase, verbose=verbose_save)
+    if cross_graph_expr:
+        save_kmer_matrix(kmer_matrix, graph_samples, filepointer, compression=None, outbase=outbase, verbose=verbose_save)
 
 
 def get_spanning_index(coord, k):

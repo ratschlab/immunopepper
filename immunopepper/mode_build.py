@@ -227,9 +227,9 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
             for kmer_length in dict_kmer_foregr:
                 save_forgrd_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
             dict_kmer_foregr.clear()
- #       if arg.cross_graph_expr and filepointer.kmer_segm_expr_fp['pqwriter'] is not None:
- #           filepointer.kmer_segm_expr_fp['pqwriter'].close()
- #           filepointer.kmer_edge_expr_fp['pqwriter'].close()
+        if arg.cross_graph_expr and filepointer.kmer_segm_expr_fp['pqwriter'] is not None:
+            filepointer.kmer_segm_expr_fp['pqwriter'].close()
+            filepointer.kmer_edge_expr_fp['pqwriter'].close()
 
         if all_gene_idxs:
             logging.info("> {}: sample graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
