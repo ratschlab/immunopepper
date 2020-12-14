@@ -50,6 +50,9 @@ sys.modules['modules.classes.splicegraph'] = csplicegraph
 sys.modules['modules.classes.segmentgraph'] = csegmentgraph
 ### end fix
 
+def mapper_funct(tuple_arg):
+    process_gene_batch_foreground(*tuple_arg)
+
 
 def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinfo, genetable, arg, outbase, filepointer, compression=None, verbose=False):
     try:
@@ -370,7 +373,7 @@ def mode_build(arg):
                 gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg,
                   os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
 
-            result = pool_f.submit(process_gene_batch_foreground, args)
+            result = pool_f.submit(mapper_funct, args)
             pool_f.terminate()
 
 
