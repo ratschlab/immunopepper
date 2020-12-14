@@ -131,9 +131,9 @@ def save_backgrd_pep_dict(data, filepointer, compression = None, outbase=None, v
     path = switch_tmp_path(filepointer.background_peptide_fp, outbase)
     if data:
         data = pd.DataFrame(data.values(), index = data.keys()).reset_index()
-        data.columns = ['index', 'output_id']
-        data['output_id'] = data['output_id'].apply(lambda x: '>' + '/'.join(x))
-        data = pd.concat([data['output_id'], data['index']]).sort_index(kind="mergesort").reset_index(drop = True)
+        data.columns = ['index', 'outputId']
+        data['outputId'] = data['outputId'].apply(lambda x: '>' + '/'.join(x))
+        data = pd.concat([data['outputId'], data['index']]).sort_index(kind="mergesort").reset_index(drop = True)
         data = pd.DataFrame(data, columns=filepointer.background_peptide_fp['columns'])
         save_pd_toparquet(path, data, compression, verbose)
 
@@ -170,9 +170,11 @@ def save_kmer_matrix(data, graph_samples, filepointer, compression=None, outbase
        edge_path = switch_tmp_path(filepointer.kmer_edge_expr_fp, outbase)
        data[2] = pd.DataFrame(data[2], columns = graph_samples )
        data[3] = pd.DataFrame(data[3], columns = graph_samples)
-       filepointer.kmer_segm_expr_fp['pqwriter'] = save_pd_toparquet(segm_path, pd.concat([pd.DataFrame({'kmer': data[0], 'is_cross_junction': data[1]}), data[2]], axis=1),
+       filepointer.kmer_segm_expr_fp['pqwriter'] = save_pd_toparquet(segm_path, pd.concat([pd.DataFrame({filepointer.kmer_segm_expr_fp['columns'][0]: data[0],
+                                                                                                         filepointer.kmer_segm_expr_fp['columns'][1]: data[1]}), data[2]], axis=1),
                          compression=compression, verbose=verbose, pqwriter=filepointer.kmer_segm_expr_fp['pqwriter'], writer_close=False)
-       filepointer.kmer_edge_expr_fp['pqwriter'] = save_pd_toparquet(edge_path, pd.concat([pd.DataFrame({'kmer': data[0], 'is_cross_junction': data[1]}), data[3]], axis=1),
+       filepointer.kmer_edge_expr_fp['pqwriter'] = save_pd_toparquet(edge_path, pd.concat([pd.DataFrame({filepointer.kmer_edge_expr_fp['columns'][0]: data[0],
+                                                                                                         filepointer.kmer_edge_expr_fp['columns'][1]: data[1]}), data[3]], axis=1),
                          compression=compression, verbose=verbose, pqwriter=filepointer.kmer_edge_expr_fp['pqwriter'], writer_close=False)
 
 
@@ -193,16 +195,16 @@ def initialize_fp(output_path, mutation_mode, gzip_tag,
     fields_backgrd_pep_dict = ['fasta']
     fields_backgrd_kmer_dict = ['kmer']
     fields_gene_expr_file = ['gene', 'total_expr']
-    fields_meta_peptide_dict = ['peptide', 'id', 'read_frame', 'gene_name', 'gene_chr', 'gene_strand',
-                                'mutation_mode',
-                                'junction_annotated', 'has_stop_codon', 'is_in_junction_list',
-                                'is_isolated', 'variant_comb', 'variant_seg_expr', 'modified_exons_coord',
-                                'original_exons_coord', 'vertex_idx',
-                                'kmer_type']
+    fields_meta_peptide_dict = ['peptide', 'id', 'readFrame', 'geneName', 'geneChr', 'geneStrand',
+                                'mutationMode',
+                                'junctionAnnotated', 'hasStopCodon', 'isInJunctionList',
+                                'isIsolated', 'variantComb', 'variantSegExpr', 'modifiedExonsCoord',
+                                'originalExonsCoord', 'vertexIdx',
+                                'kmerType']
     fields_forgrd_pep_dict = ['fasta']
-    fields_forgrd_kmer_dict = ['kmer', 'id', 'segment_expr', 'is_cross_junction', 'junction_expr']
-    fields_kmer_expr = ['kmer', 'is_cross_junction']
-    fields_pept_expr = ['peptide', 'is_cross_junction']
+    fields_forgrd_kmer_dict = ['kmer', 'id', 'segmentExpr', 'isCrossJunction', 'junctionExpr']
+    fields_kmer_expr = ['kmer', 'isCrossJunction']
+    fields_pept_expr = ['peptide', 'isCrossJunction']
 
     ### Grouping dict
     if output_fasta:    # Foreground peptide fasta - optional
@@ -214,8 +216,8 @@ def initialize_fp(output_path, mutation_mode, gzip_tag,
         kmer_segm_expr_fp = output_info(graph_kmer_segment_expr_path, fields_kmer_expr, pq_writer=True)
         kmer_edge_expr_fp = output_info(graph_kmer_junction_expr_path, fields_kmer_expr, pq_writer=True)
     else: # Expression kmer information from single sample
-        fields_meta_peptide_dict.insert(-1, 'junction_expr')
-        fields_meta_peptide_dict.insert(-1, 'segment_expr')
+        fields_meta_peptide_dict.insert(-1, 'junctionExpr')
+        fields_meta_peptide_dict.insert(-1, 'segmentExpr')
         junction_kmer_fp = output_info(junction_kmer_file_path, fields_forgrd_kmer_dict, kmer_list )
         kmer_segm_expr_fp = None
         kmer_edge_expr_fp = None

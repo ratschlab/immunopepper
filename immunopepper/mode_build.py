@@ -129,8 +129,6 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
         gene_expr = []
         complexity_cap = 20000
 
-        test = ['sample', 'graph_samples','genes', 'genes_info', 'gene_idxs', 'total_genes', 'all_read_frames', 'mutation', 'junction_dict',
-         'countinfo', 'genetable', 'arg', 'outbase', 'filepointer', 'compression', 'verbose']
         for i, gene in enumerate(genes):
             ### measure time
             start_time = timeit.default_timer()
@@ -290,6 +288,7 @@ def mode_build(arg):
     if arg.count_path is not None:
         logging.info('Loading count data ...')
         countinfo, graph_samples = parse_gene_metadata_info(arg.count_path, arg.samples, arg.cross_graph_expr)
+        graph_samples = [sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') for sample in graph_samples]
         end_time = timeit.default_timer()
         logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
         print_memory_diags()
