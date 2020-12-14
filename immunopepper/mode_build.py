@@ -116,7 +116,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
 
     except Exception as e:
         exception_ = ExceptionWrapper(e)
-
+        exception_.re_raise() # only printed in non parallel mode
     return exception_
 
 
@@ -173,8 +173,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                         else:
                             seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
 
-            if not arg.cross_graph_expr: #TODO deal with gene_expression in sample in this case
-                gene_expr.append((gene.name, get_total_gene_expr(gene, countinfo, idx, seg_counts)))
+            gene_expr.append([gene.name] + get_total_gene_expr(gene, countinfo, idx, seg_counts, arg.cross_graph_expr))
 
             chrm = gene.chr.strip()
             sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
@@ -224,7 +223,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
             mem_per_gene.append(print_memory_diags(disable_print=True))
             all_gene_idxs.append(gene_idxs[i])
         
-        save_gene_expr_distr(gene_expr, filepointer, outbase, compression, verbose)
+        save_gene_expr_distr(gene_expr, graph_samples, sample,  filepointer, outbase, compression, verbose)
         save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, arg.output_fasta, verbose)
         dict_pept_forgrd.clear()
         if not arg.cross_graph_expr:
@@ -247,6 +246,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
     except Exception as e:
 
         exception_ = ExceptionWrapper(e)
+        exception_.re_raise() # only printed in non parallel mode
     return exception_
 
 
@@ -291,7 +291,8 @@ def mode_build(arg):
     if arg.count_path is not None:
         logging.info('Loading count data ...')
         countinfo, graph_samples = parse_gene_metadata_info(arg.count_path, arg.samples, arg.cross_graph_expr)
-        graph_samples = [sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') for sample in graph_samples]
+        if graph_samples is not None:
+            graph_samples = [sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') for sample in graph_samples]
         end_time = timeit.default_timer()
         logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
         print_memory_diags()
@@ -388,7 +389,7 @@ def mode_build(arg):
             collect_results(filepointer.gene_expr_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, arg.mutation_mode)
-#            remove_folder_list(os.path.join(output_path, 'tmp_out_{}'.format(arg.mutation_mode)))
+            remove_folder_list(os.path.join(output_path, 'tmp_out_{}'.format(arg.mutation_mode)))
 
         else:
             logging.info('Not Parallel')
@@ -400,8 +401,8 @@ def mode_build(arg):
             process_gene_batch_foreground( sample, graph_samples, graph_data, graph_info, gene_id_list, len(gene_id_list), all_read_frames, mutation, junction_dict,
                              countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
 
-        if not arg.cross_graph_expr:
-            create_libsize(filepointer.gene_expr_fp,output_libszie_fp, sample)
+        #if not arg.cross_graph_expr:
+        create_libsize(filepointer.gene_expr_fp,output_libszie_fp, sample)
 
 
 

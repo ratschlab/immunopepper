@@ -155,11 +155,14 @@ def save_forgrd_pep_dict(data, filepointer, compression=None, outbase=None, save
         save_pd_toparquet(path_meta, data, compression, verbose)  # Test keep peptide name in the metadata file
 
 
-def save_gene_expr_distr(data, filepointer, outbase, compression, verbose):
+def save_gene_expr_distr(data,  graph_samples, sample, filepointer, outbase, compression, verbose):
     if data:
         data = pd.DataFrame(data)
         path = switch_tmp_path(filepointer.gene_expr_fp, outbase)
-        data.columns = filepointer.gene_expr_fp['columns']
+        if graph_samples is not None:
+            data.columns = filepointer.gene_expr_fp['columns'] + graph_samples
+        else:
+            data.columns = filepointer.gene_expr_fp['columns'] + [sample]
         save_pd_toparquet(path, data, compression, verbose)
 
 
@@ -194,7 +197,7 @@ def initialize_fp(output_path, mutation_mode, gzip_tag,
     ### Fields
     fields_backgrd_pep_dict = ['fasta']
     fields_backgrd_kmer_dict = ['kmer']
-    fields_gene_expr_file = ['gene', 'total_expr']
+    fields_gene_expr_file = ['gene']
     fields_meta_peptide_dict = ['peptide', 'id', 'readFrame', 'geneName', 'geneChr', 'geneStrand',
                                 'mutationMode',
                                 'junctionAnnotated', 'hasStopCodon', 'isInJunctionList',

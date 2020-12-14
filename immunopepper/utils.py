@@ -286,14 +286,24 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr):
     return mean_expr,expr_list
 
 
-def get_total_gene_expr(gene, countinfo, Idx, seg_expr):
+def get_total_gene_expr(gene, countinfo, Idx, seg_expr, cross_graph_expr):
     """ get total reads count for the given sample and the given gene
     actually total_expr = reads_length*total_reads_counts
     """
+    if len(seg_expr.shape) == 1:
+        n_samples = 1
+    else:
+        n_samples = seg_expr.shape[1]
+
     if countinfo is None or Idx.sample is None:
-        return np.nan
+        return [np.nan] * n_samples
     seg_len = gene.segmentgraph.segments[1] - gene.segmentgraph.segments[0]
-    total_expr = np.sum(seg_len*seg_expr)
+
+    if cross_graph_expr:
+        total_expr = np.sum(seg_len * seg_expr.T, axis=1)
+        total_expr = total_expr.tolist()
+    else:
+        total_expr = [np.sum(seg_len*seg_expr)]
     return total_expr
 
 
@@ -334,8 +344,10 @@ def create_libsize(expr_distr_fp, output_fp, sample, debug=False):
     """
     sample_expr_distr = pa.parquet.read_table(expr_distr_fp['path']).to_pandas()
 
-    libsize_count= pd.DataFrame([[sample, np.percentile(sample_expr_distr['total_expr'], 75), np.sum(sample_expr_distr['total_expr'])]],
-                    columns = ['sample', 'libsize_75percent', 'libsize_total_count'])
+    libsize_count= pd.DataFrame({'sample': sample_expr_distr.columns[1:],
+                                 'libsize_75percent': np.percentile(sample_expr_distr.iloc[:, 1:], 75, axis=0),
+                                  'libsize_total_count': np.sum(sample_expr_distr.iloc[:, 1:], axis=0)}, index = None)
+
     df_libsize = pd.DataFrame(libsize_count)
 
     if os.path.isfile(output_fp):
