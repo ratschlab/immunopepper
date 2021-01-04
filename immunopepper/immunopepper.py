@@ -148,15 +148,15 @@ def parse_arguments(argv):
     #required.add_argument("--output-file-path", help="directory to save filtered kmer file", required=True)
     required.add_argument("--statistical", help="choose between statistical filtering or hard filtering. Default hard",
                           action="store_true", required=False, default=False)
-    required.add_argument("--path-cancer-libsize", help="libsize file path for cancer samples", required=True, default='')
-    required.add_argument("--path-normal-libsize", help="libsize file path for normal samples", required=True, default='')
+
     required.add_argument("--paths-cancer-samples", nargs='+', help="file paths of all cancer samples", required=True, default='')
     required.add_argument("--ids-cancer-samples", nargs='+', help="list of all cancer samples (in same order as above)", required=True, default='')
     required.add_argument("--path-normal-matrix-segm", help="segment expression integrated matrix of kmers * samples", required=False, default='')
     required.add_argument("--path-normal-matrix-edge", help="edge expression integrated matrix of kmers * samples", required=False, default='')
     required.add_argument("--output-dir", help="output directory for the filtered matrix" , required=True, default='')
-
     optional = parser_cancerspecif.add_argument_group('OPTIONAL')
+    optional.add_argument("--path-cancer-libsize", help="libsize file path for cancer samples", required=False, default=None)
+    optional.add_argument("--path-normal-libsize", help="libsize file path for normal samples", required=False, default=None)
     optional.add_argument("--output-suffix", help="suffix for the integrated matrix. e.g cancer or normals" , required=False, default='')
     optional.add_argument("--tissue-grp-files", nargs='*', help="STATISTICAL: Allows the statistical modelling on normal samples to be performed on different tissue groups. Specify n paths of files, each containing the list of samples in the group. No header", required=False, default=None)
     optional.add_argument("--expr-high-limit-normal", type=float, help="STATISTICAL: Normal kmers with expression >= value in >= 1 sample are truly expressed. Will not be included in statistical modelling and will be substracted from cancer set", required=False, default=None)

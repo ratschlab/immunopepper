@@ -43,7 +43,11 @@ def DESeq2(count_matrix, design_matrix, normalize, cores=1):
                                             design=design_formula)
     dds0 = BiocGenerics.estimateSizeFactors(dds0, type="poscounts")
     order_size_factor = list(dds0.do_slot('colData').do_slot('rownames'))
-    dds0.do_slot('colData').do_slot('listData')[1] = ro.vectors.FloatVector(list(normalize.loc[order_size_factor, 'libsize_75percent'])) # Enforce size factors
+    if normalize is not None:
+        logging.info("Enforcing custom normalisation in DESeq2")
+        dds0.do_slot('colData').do_slot('listData')[1] = ro.vectors.FloatVector(list(normalize.loc[order_size_factor, 'libsize_75percent'])) # Enforce size factors
+    else:
+        logging.info("WARNING: default size factor of DESeq2 are used")
     dds = deseq.DESeq(dds0, parallel=True, BPPARAM=BiocParallel.MulticoreParam(cores),
                       sfType="poscounts", # Will run 1. estimation of size factors: estimateSizeFactors # parameter "poscounts"
                       fitType="parametric" # 2. estimation of dispersion: estimateDispersions # parameter "parametric"
@@ -168,8 +172,12 @@ def mode_cancerspecif(arg):
 
         ### Preprocessing Libsize
         logging.info(">>>>>>>> Preprocessing libsizes")
-        libsize_n = preprocess_libsize(arg.path_normal_libsize)
-        libsize_c = preprocess_libsize(arg.path_cancer_libsize)
+        if arg.path_normal_libsize:
+            libsize_n = preprocess_libsize(arg.path_normal_libsize)
+        else:
+            libsize_n = None
+        if arg.path_cancer_libsize:
+            libsize_c = preprocess_libsize(arg.path_cancer_libsize)
 
 
         ### NORMALS: Statistical Filtering
@@ -179,11 +187,19 @@ def mode_cancerspecif(arg):
             if arg.expr_high_limit_normal is not None:
                 logging.info( "... Normal kmers with expression >= {} in >= 1 sample are truly expressed. \n Will be substracted from cancer set".format(arg.expr_high_limit_normal))
                 # normal_matrix = spark.createDataFrame(normal_matrix)
-                highly_expressed_normals = ' AND '.join( ['({} > {})'.format(col_name, arg.expr_high_limit_normal * libsize_n.loc[col_name, "libsize_75percent"])
-                     for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # Expressed kmers
+                if libsize_n is not None:
+                    highly_expressed_normals = ' AND '.join( ['({} > {})'.format(col_name, arg.expr_high_limit_normal * libsize_n.loc[col_name, "libsize_75percent"])
+                         for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # Expressed kmers
 
-                ambigous_expression_normals = ' OR '.join(['({} <= {})'.format(col_name, arg.expr_high_limit_normal  * libsize_n.loc[col_name, "libsize_75percent"])
-                     for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style
+                    ambigous_expression_normals = ' OR '.join(['({} <= {})'.format(col_name, arg.expr_high_limit_normal  * libsize_n.loc[col_name, "libsize_75percent"])
+                         for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style
+                else:
+                    highly_expressed_normals = ' AND '.join( ['({} > {})'.format(col_name, arg.expr_high_limit_normal )
+                         for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # Expressed kmers
+
+                    ambigous_expression_normals = ' OR '.join(['({} <= {})'.format(col_name, arg.expr_high_limit_normal )
+                         for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style
+
                 high_expr_normals = normal_matrix.filter(highly_expressed_normals).select(sf.col(index_name))
                 normal_matrix = normal_matrix.filter(ambigous_expression_normals)  # TODO add condition empty matrix
 
@@ -229,9 +245,14 @@ def mode_cancerspecif(arg):
 
             logging.info("expression filter")
 
-            normal_matrix= normal_matrix.select(index_name, *[
-                sf.when((sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"]) > arg.expr_limit_normal, 1).otherwise(0).alias(name_)
-                for name_ in normal_matrix.schema.names if name_ != index_name])
+            if libsize_n is not None:
+                normal_matrix= normal_matrix.select(index_name, *[
+                    sf.when((sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"]) > arg.expr_limit_normal, 1).otherwise(0).alias(name_)
+                    for name_ in normal_matrix.schema.names if name_ != index_name])
+            else:
+                normal_matrix= normal_matrix.select(index_name, *[
+                    sf.when(sf.col(name_)  > arg.expr_limit_normal, 1).otherwise(0).alias(name_)
+                    for name_ in normal_matrix.schema.names if name_ != index_name])
             
             #logging.info("cache")
             #normal_matrix.cache()
@@ -295,7 +316,10 @@ def mode_cancerspecif(arg):
             cancer_kmers = cancer_kmers.drop("allnull")
 
             #Normalize by library size
-            cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_] /libsize_c.loc[cancer_sample, "libsize_75percent"], 2))
+            if libsize_c is not None:
+                cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_] /libsize_c.loc[cancer_sample, "libsize_75percent"], 2))
+            else:
+                cancer_kmers = cancer_kmers.withColumn(name_, sf.round( cancer_kmers[name_] , 2))
 
             #Perform Background removal
             logging.info("Perform join")
