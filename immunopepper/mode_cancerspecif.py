@@ -286,7 +286,10 @@ def mode_cancerspecif(arg):
 
         logging.info("No caching")
         ### Apply filtering to foreground
-        expression_fields_orig =  ['segment_expr', 'junction_expr']
+        if arg.expression_fields_c is None:
+            expression_fields_orig =  ['segment_expr', 'junction_expr']
+        else:
+            expression_fields_orig = arg.expression_fields_c
         expression_fields = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in expression_fields_orig]
         drop_cols = ['id']
         for cancer_path, cancer_sample in zip(arg.paths_cancer_samples, arg.ids_cancer_samples):
