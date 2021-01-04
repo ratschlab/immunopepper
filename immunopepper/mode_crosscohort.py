@@ -2,8 +2,10 @@ from collections import defaultdict
 import glob
 import logging
 import os
+import numpy as np
 import pathlib
 from pyspark.sql import functions as sf
+from pyspark.sql import types as st
 import shutil
 import sys
 from typing import Iterable
@@ -12,30 +14,48 @@ from .config import create_spark_session
 from .config import create_spark_session_from_config
 from .config import default_spark_config
 
-
-def organize_inputs(input_dir, backgr_suffix, kmer, samples, mutation_modes, compres_suffix):
+def organize_inputs(input_dir, backgr_suffix, kmer, samples, mutation_modes, compres_suffix, skip_reorganize):
+    to_combine = []
+    combined_dir = "junction_kmers"
     for sample in samples:
-        basedir = os.path.join(input_dir, sample)
-        pathlib.Path(os.path.join(basedir, "junction_kmers")).mkdir(exist_ok= True, parents= True)
-        jct_inputs = ['{}_junction_{}mer_{}.pq{}'.format(mutation, kmer, backgr_suffix, compres_suffix)
+        sample_basedir = os.path.join(input_dir, sample)
+        pathlib.Path(os.path.join(sample_basedir, "junction_kmers")).mkdir(exist_ok= True, parents= True)
+        jct_inputs = ['{}_junction_{}mer{}.pq{}'.format(mutation, kmer, backgr_suffix, compres_suffix)
                       for mutation in mutation_modes]
-        for input_file in jct_inputs:
-            if not os.path.isfile(input_file):
-                logging.error("Error: input file {} does not exist".format(input_file))
-                sys.exit(1)
-            shutil.move(input_file, os.path.join(basedir, "junction_kmers"))
+        if not skip_reorganize:
+            for input_file in jct_inputs:
+                source = os.path.join(sample_basedir, input_file)
+                target = os.path.join(sample_basedir, combined_dir, input_file)
+                if (not os.path.isfile(source)) and os.path.isfile(target):
+                    logging.error("File {} seems to have been moved to {}, rerun with --skip-filegrouping".format(source, target))
+                    sys.exit(1)
+                elif os.path.isfile(source) and os.path.isfile(target):
+                    logging.warning("Overwriting {} with {} file".format(target, source))
+                    shutil.move(source, target)
+                elif (not os.path.isfile(source)) and (not os.path.isfile(target)):
+                    logging.error("Inputs {} not generated, run mode_build".format(source))
+                    sys.exit(1)
+                else:
+                    logging.info("Moving {} to {}".format(source, target))
+                    shutil.move(source, target)
+        to_combine.append((os.path.join(sample_basedir, combined_dir), os.path.join(sample_basedir, "combined_junction_kmers.pq")))
+    return to_combine
 
 
 def run_combine(inf: Iterable[str],
                 outf: str,
                 partition_field: str,
                 grp_fields: Iterable[str],
+                expression_fields: Iterable[str],
                 max_aggregation_fields: Iterable[str],
                 cores: int, memory_per_core:int, partitions: int):
     spark_cfg = default_spark_config(cores, memory_per_core)
 
     with create_spark_session_from_config(spark_cfg) as spark:
-        df = spark.read.parquet(*inf)
+        df = spark.read.parquet(inf + '/') #TODO check
+        custom_max = sf.udf(collapse_values, st.StringType())
+        for e_col in expression_fields:
+            df = df.withColumn(e_col, custom_max(e_col))
         agg_cols = [sf.max(c).alias('max_' + c) for c in max_aggregation_fields]
 
         df_g = (df.repartition(partitions, partition_field).
@@ -46,81 +66,106 @@ def run_combine(inf: Iterable[str],
         df_g.write.mode('overwrite').parquet(outf)
 
 
-def run_pivot(input_, output, sample_list, aggregation_col, partitions, cores, memory_per_core):
-    #     part_id = int(os.path.basename(output).split('-')[1])
-
-    #     print(input_)
-    #     paths = input_
-
-    #     print(f'checking {paths}')
-    #     sample_set = set(sample_list.split(','))
-
-    #     part_cnt = partitions
-    #     print(f'input partitions {part_cnt}')
+def run_pivot(input_, output_dir, output_suffix, sample_list, aggregation_col, kmer, partitions, cores, memory_per_core):
     sample_set = set(sample_list)
-    file_info = defaultdict(list, {})
-    for pq_folder in input_:
-        for partition in glob.glob(pq_folder + '/*'):
-            index_partition = '-'.join(partition.split('/')[-1].split('-')[0:2])
-            if index_partition != '_SUCCESS':
-                file_info[index_partition].append(partition)
-    print(file_info)
+    for expression_col in aggregation_col:
+        output_path = os.path.join(output_dir, "{}mers_crosssamples_{}_{}_.pq".format(kmer, expression_col, output_suffix))
+        file_info = defaultdict(list, {})
+        for pq_folder in input_:
+            for partition in glob.glob(pq_folder + '/*'):
+                index_partition = '-'.join(partition.split('/')[-1].split('-')[0:2])
+                if index_partition != '_SUCCESS':
+                    file_info[index_partition].append(partition)
+        print(file_info)
 
-    with create_spark_session(cores, memory_per_core) as spark:
-        for part_id in file_info:
-            print(f"working on part {part_id}")
-            part_files = file_info[part_id]
+        with create_spark_session(cores, memory_per_core) as spark:
+            for part_id in file_info:
+                print(f"working on part {part_id}")
+                part_files = file_info[part_id]
 
-            df = spark.read.parquet(*part_files)
-            print(df.show())
+                df = spark.read.parquet(*part_files)
+                print(df.show())
 
-            path_parts = sf.split(sf.input_file_name(), '/')
-            df = df.withColumn('sample', path_parts.getItem(
-                sf.size(path_parts) - 3))  # depends on the sample position in the path
-            print(df.show())
+                path_parts = sf.split(sf.input_file_name(), '/')
+                df = df.withColumn('sample', path_parts.getItem(
+                    sf.size(path_parts) - 3))  # depends on the sample position in the path
+                print(df.show())
 
-            df_junction = (df.groupBy('kmer').
-                           agg(sf.max('max_is_cross_junction').alias('is_cross_junction')).
-                           withColumnRenamed('kmer', 'kmer_junction')
-                           )
-            print(df_junction.show())
+                df_junction = (df.groupBy('kmer').
+                               agg(sf.max('max_is_cross_junction').alias('is_cross_junction')).
+                               withColumnRenamed('kmer', 'kmer_junction')
+                               )
+                print(df_junction.show())
 
-            print(aggregation_col)
-            df_pivoted = _agg_df(df, sample_set, aggregation_col)
-            print(df_pivoted.show())
+                print(expression_col)
+                df_pivoted = _agg_df(df, sample_set, expression_col)
+                print(df_pivoted.show())
 
-            (df_pivoted.join(df_junction, sf.col('kmer') == sf.col('kmer_junction'), 'left_outer').
-             drop('kmer_junction').
-             coalesce(partitions).
-             write.mode('overwrite').
-             parquet(os.path.join(output))
-             )
+                (df_pivoted.join(df_junction, sf.col('kmer') == sf.col('kmer_junction'), 'left_outer').
+                 drop('kmer_junction').
+                 coalesce(partitions).
+                 write.mode('overwrite').
+                 parquet(os.path.join(output_path))
+                 )
 
 
 def _agg_df(df, sample_set, agg_col):
-    return (df.groupby('kmer').
+    return (df.filter( f'max_{agg_col}' + '> 0' ).groupby('kmer').
             pivot('sample', values=list(sample_set)).
             agg(sf.max(f'max_{agg_col}').alias(f'max_{agg_col}'))
             )
 
-
-input_folder = ['/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/output/peptides_ccell_rerun_200707/15K_c5_allg_batch10_a18874e/TCGA-AR-A1AP-01A-11/test_pq/dummy']
-output_file = '/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/output/peptides_ccell_rerun_200707/15K_c5_allg_batch10_a18874e/TCGA-AR-A1AP-01A-11/test_pq/dummy/combined2_pq.gz'
-
-input_pairs = input_folder
-agg_fields = ['junction_expr', 'segment_expr', 'is_cross_junction']
-grp_cols = 'kmer'
-run_combine(input_pairs, output_file, grp_cols, grp_cols, agg_fields, 1, 5000, 3)
+def collapse_values(value):
+    #return np.nanmax(value.split('/'))
+    return max(value.split('/'))
 
 
-agg_fields = 'junction_expr' # Or segment expression
-#grp_cols = 'kmer'
-sample_list = ['dummy1', 'dummy2']
-partitions = 3
-cores = 1
-memory_per_core = 5000
-input_ = ['/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/output/peptides_ccell_rerun_200707/15K_c5_allg_batch10_a18874e/TCGA-AR-A1AP-01A-11/test_pq/dummy/combined_pq.gz', # fakesample
-          '/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/output/peptides_ccell_rerun_200707/15K_c5_allg_batch10_a18874e/TCGA-AR-A1AP-01A-11/test_pq/dummy2/combined_pq.gz']
 
-output = '/cluster/work/grlab/projects/TCGA/PanCanAtlas/tcga_immuno/output/peptides_ccell_rerun_200707/15K_c5_allg_batch10_a18874e/TCGA-AR-A1AP-01A-11/test_pq/pivot'
-run_pivot(input_, output, sample_list, agg_fields, partitions, cores, memory_per_core)
+def mode_crosscohort(arg): #TODO one spark session or NOT?
+    junction_field = 'junction_count'#'junction_expr'
+    segment_field = 'expr'#'segment_expr'
+    agg_fields_combine = [junction_field, segment_field, 'is_cross_junction']
+    expression_fields = [junction_field, segment_field]
+    grp_cols = 'kmer'
+    if arg.remove_bg:
+        backgr_suffix = "_no_back"
+    else:
+        backgr_suffix = ''
+    if arg.compressed_inputs:
+        compres_suffix = '.gz'
+
+    if not arg.skip_filegrouping:
+        logging.info(">>> Reorganize folder structure")
+    paths_to_combine = organize_inputs(arg.input_dir, backgr_suffix, arg.kmer, arg.samples, arg.mutation_modes, compres_suffix, arg.skip_filegrouping)
+    path_crosssamples = []
+    logging.info(">>> Combine mutation modes per sample")
+    for kmer_files, combined_path in paths_to_combine:
+        run_combine(inf=kmer_files,
+                    outf=combined_path,
+                    partition_field=grp_cols,
+                    grp_fields=grp_cols,
+                    expression_fields=expression_fields,
+                    max_aggregation_fields=agg_fields_combine,
+                    cores = arg.cores,
+                    memory_per_core=arg.mem_per_core,
+                    partitions=1) # arg.cores * 10)
+        path_crosssamples.append(combined_path)
+
+    logging.info(">>> Combine kmer count info in kmers x sample matrix")
+    run_pivot(input_=path_crosssamples,
+              output_dir=arg.output_dir,
+              output_suffix=arg.output_suffix, # os.path.join(arg.output_dir, "crosssamples_" + agg_fields_pivot + arg.output_suffix + '.pq'),
+              sample_list=arg.samples,
+              aggregation_col=expression_fields,
+              kmer = arg.kmer,
+              partitions=1, #arg.cores * 10,
+              cores=arg.cores,
+              memory_per_core=arg.mem_per_core)
+
+
+
+
+# All edge ans segment matrixes
+#filter zeros
+# add split '/'
+# rewrite test

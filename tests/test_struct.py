@@ -35,7 +35,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
     out_dir = str(tmpdir)
     #sample_dir_build = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'diff','{}'.format(case),'test{}{}'.format(test_id,case))
     my_args_build = ['build',
-               '--samples', 'ERR2130621',#'ENCSR000BZG',
+               '--samples', 'ENCSR000BZG', 'ERR2130621',#'ERR2130621','ENCSR000BZG'
                '--output-dir', out_dir,
                '--splice-path',os.path.join(data_dir,'ImmunoPepper_usecase.pickle'),
                '--count-path', os.path.join(data_dir,'ImmunoPepper_usecase.count.hdf5'),
@@ -104,8 +104,60 @@ def test_end_to_end_filter(tmpdir, sample, kmer_length, mutation_mode):
                '--is-isolated', '0']
     immunopepper.split_mode(my_args)
 
+def test_end_to_end_crosscohort(tmpdir):
+    my_args =["crosscohort",
+              "--cores", "4",
+              "--mem-per-core", "5000",
+              "--mutation-modes","ref",
+              "--kmer", "9",
+              "--samples", "ERR2130621", "ENCSR000BZG",
+              "--input-dir", tmpdir,
+              "--output-dir", tmpdir,
+              "--output-suffix", "test",
+              "--compressed_inputs",
+              "--skip-filegrouping"]
+              #"--segment-count"]
+    immunopepper.split_mode(my_args)
 
+def mini_crosscohort():
 
+    cancer_dir = "/Users/laurieprelot/Documents/Projects/tmp_kmer/dev_samples/cancer"
+    my_args =["crosscohort",
+              "--cores", "4",
+              "--mem-per-core", "5000",
+              "--mutation-modes","ref", "germline", "somatic", "somatic_and_germline",
+              "--kmer", "9",
+              "--samples", "TCGA-AO-A12D-01A-11", "TCGA-AR-A0TT-01A-31",
+              "--input-dir", cancer_dir,
+              "--output-dir", cancer_dir,
+              "--output-suffix", "_test",
+              "--compressed_inputs",
+              "--remove-bg",
+              "--skip-filegrouping"]
+    immunopepper.split_mode(my_args)
+
+def test_end_to_end_cancerspecif():
+
+    basedir = "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test"
+    my_args =["cancerspecif",
+              "--cores", "2",
+              "--mem-per-core", "6000",
+              "--kmer", "9",
+              "--path-cancer-libsize",os.path.join(basedir,'cancer_no_ct_var', 'libsize_cancer.tsv'),
+              "--path-normal-libsize", os.path.join(basedir, 'normal', 'libsize_normals_top20'),
+              "--paths-cancer-samples",
+              "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/cancer_no_ct_var/TCGA-13-1497-01A-01/tmp_out_somatic_10000/somatic_junction_9mer_n20.pq.gz", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/cancer_no_ct_var/TCGA-24-1103-01A-01/tmp_out_somatic_1000/somatic_junction_9mer_n20.pq.gz",
+              "--path-normal-matrix-segm", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
+              "--path-normal-matrix-edge", os.path.join(basedir, 'normal' 'ref_graph_kmer_JuncExpr.pq.gz'),
+              '--ids-cancer-samples', "TCGA-13-1497-01A-01", "TCGA-24-1103-01A-01",
+              "--output-dir", os.path.join(basedir, 'filter_out'),
+              '--expr-high-limit-normal', "2.0",
+              '--expr-limit-normal', "2.0",
+              "--expr-n-limit", "1",
+              "--tissue-grp-files", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt",
+              '/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_OV.txt']#,
+              #"--statistical"]
+    immunopepper.split_mode(my_args)
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
@@ -116,9 +168,15 @@ test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_cross
 #test_end_to_end_makebg('ERR2130621', tmpdir, "9")
 #test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
+#for mutation_mode in ['ref', 'germline', 'somatic', 'somatic_and_germline']:
+#    test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
+#     test_end_to_end_makebg('ERR2130621', tmpdir, "9")
+#     test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
+#    test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
+#test_end_to_end_crosscohort(tmpdir) #TODO add back
+#mini_crosscohort()
+test_end_to_end_cancerspecif()
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
-
-
 
 
