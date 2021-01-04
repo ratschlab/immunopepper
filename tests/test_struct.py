@@ -154,7 +154,7 @@ def test_end_to_end_cancerspecif():
               '--expr-high-limit-normal', "2.0",
               '--expr-limit-normal', "2.0",
               "--expr-n-limit", "1",
-              "--expression_fields_c", 'segment_expr', 'junction_expr',
+              "--expression-fields-c", 'segment_expr', 'junction_expr',
               "--tissue-grp-files", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt",
               '/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_OV.txt']#,
               #"--statistical"]
