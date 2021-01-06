@@ -9,9 +9,8 @@ import cProfile
 from datetime import datetime
 
 from .mode_build import mode_build
-from .mode_diff import mode_diff
+from .mode_samplespecif import mode_samplespecif
 from .mode_filter import mode_filter
-from .mode_makebg import mode_makebg
 from .mode_crosscohort import mode_crosscohort
 from .mode_cancerspecif import mode_cancerspecif
 
@@ -24,6 +23,8 @@ def _add_general_args(parser):
 def parse_arguments(argv):
     parser = argparse.ArgumentParser(prog='immunopepper')
     subparsers = parser.add_subparsers(help='Running modes', metavar='{build, make_bg, diff, filter}')
+
+    ### mode_build
     parser_build = subparsers.add_parser('build', help='generate kmers library from a splicegraph')
     required = parser_build.add_argument_group('MANDATORY')
     required.add_argument("--samples", nargs='+', help="list of sample names to consider", required=True, default='')
@@ -62,26 +63,20 @@ def parse_arguments(argv):
     experimental.add_argument("--heter-code", type=int, help=argparse.SUPPRESS, default=0)
     experimental.add_argument("--batch-size", type=int, help="batch size for parallel processing", default=1000)
     experimental.add_argument("--all-read-frames", action="store_true", required=False, default=False)
-        
-    parser_makebg = subparsers.add_parser('make_bg', help='integrate multiple kmer files and generate the single background kmer file')
-    required = parser_makebg.add_argument_group('MANDATORY')
+
+    ### mode_samplespecif
+    parser_samplespecif = subparsers.add_parser('samplespecif', help='Performs removal of the annotation to make the kmer list sample specific')
+    required = parser_samplespecif.add_argument_group('MANDATORY')
     required.add_argument("--kmer-files", nargs='+', help="list of kmer files output by build mode", required=True, default='')
     required.add_argument("--output-dir",help='directory to store the log file',required=True)
-    required.add_argument("--output-file-path", help="output file path", required=True, default='')
-
-    _add_general_args(parser_makebg)
-
-    parser_diff = subparsers.add_parser('diff', help='append a new column to the junction kmer txt result file indicating if the kmer is in groundtruth')
-    required = parser_diff.add_argument_group('MANDATORY')
     required.add_argument("--junction-kmer-file", help="absolute path to the foreground junction file", required=True, default='')
-    required.add_argument("--bg-file-path", help="absolute path to the background file", required=True, default='')
-    required.add_argument("--output-dir",help='directory to store the log file',required=True)
+    required.add_argument("--bg-file-path", help="absolute path to the intermediate pooled annotation file", required=True, default='')
     required.add_argument("--output-file-path", help="output file path", required=True, default='')
     required.add_argument("--remove-bg", help="choose to simply remove background rows or add a new flag column to indicate"
                                               " if the kmer exists in the background kmers", action="store_true", required=False, default=False)
+    _add_general_args(parser_samplespecif)
 
-    _add_general_args(parser_diff)
-
+    ### mode_filter
     parser_filter = subparsers.add_parser('filter', help='apply different filter rules')
     required = parser_filter.add_argument_group('MANDATORY')
     required.add_argument("--junction-kmer-tsv-path", help="the kmer tsv file", required=True, default='')
@@ -110,8 +105,9 @@ def parse_arguments(argv):
 
     _add_general_args(parser_filter)
 
+    ### mode_crosscohort
     parser_crosscohort = subparsers.add_parser('crosscohort',
-                                               help='integretes kmers across cancer or normal samples. The matrices can then be used for removal of normal samples')
+                                               help='WARNING mode deprecated: integretes kmers across cancer or normal samples. The matrices can then be used for removal of normal samples')
 
     required = parser_crosscohort.add_argument_group('MANDATORY')
     required.add_argument("--cores",type=int, help="number of cores for spark", required=True, default='')
@@ -135,7 +131,7 @@ def parse_arguments(argv):
 
     _add_general_args(parser_crosscohort)
 
-
+    ### mode_cancerspecif
     parser_cancerspecif = subparsers.add_parser('cancerspecif',
                                                help='Performs differential filtering against a panel of normal samples')
     required = parser_cancerspecif.add_argument_group('MANDATORY')
@@ -174,10 +170,8 @@ def parse_arguments(argv):
     if len(argv) < 2:
         if argv[0] == 'build':
             parser_build.print_help()
-        elif argv[0] == 'make_bg':
-            parser_makebg.print_help()
-        elif argv[0] == 'diff':
-            parser_diff.print_help()
+        elif argv[0] == 'samplespecif':
+            parser_samplespecif.print_help()
         elif argv[0] == 'filter':
             parser_filter.print_help()
         elif argv[0] == "crosscohort":
@@ -222,10 +216,8 @@ def split_mode(options):
     logging.info("Command line"+str(arg))
     if mode == 'build':
         mode_build(arg)
-    if mode == 'make_bg':
-        mode_makebg(arg)
-    if mode == 'diff':
-        mode_diff(arg)
+    if mode == 'samplespecif':
+        mode_samplespecif(arg)
     if mode == 'filter':
         mode_filter(arg)
     if mode == "crosscohort":
