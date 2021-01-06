@@ -98,6 +98,9 @@ def mode_cancerspecif(arg):
         def collapse_values(value):
             return  max([np.float(i) if i!='nan' else 0.0 for i in value.split('/') ]) #np.nanmax not supported
 
+        def cast_type_dbl(normal_matrix, name_list, index_name ):
+            return normal_matrix.select( [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in name_list] )
+
         #spark.sparkContext.addFile('/Users/laurieprelot/software/anaconda/lib/python3.6/sitesddpackages/scipy.zip') # TODO do we need it ? packages in config
 
         ### Preprocessing Normals
@@ -128,7 +131,15 @@ def mode_cancerspecif(arg):
 
         # Cast type and fill nans
         logging.info("Cast types")
-        normal_matrix = normal_matrix.select( [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in normal_matrix.schema.names] )
+
+        if arg.whitelist is not None:
+            whitelist = pd.read_csv(arg.whitelist, sep = '\t', header = None)[0].to_list()
+            whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
+            whitelist.append(index_name)
+            normal_matrix = cast_type_dbl(normal_matrix, whitelist, index_name)
+        else:
+            normal_matrix =  cast_type_dbl(normal_matrix, normal_matrix.schema.names, index_name)
+
 
         logging.info("Remove Nans")
         normal_matrix = normal_matrix.na.fill(0)

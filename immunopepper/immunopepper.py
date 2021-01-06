@@ -156,6 +156,7 @@ def parse_arguments(argv):
     optional.add_argument("--path-normal-libsize", help="libsize file path for normal samples", required=False, default=None)
     optional.add_argument("--expression-fields-c", nargs='+', help="name of segment and junction expression field in cancer file, default ['segment_expr', 'junction_expr']", required=False, default=None)
     optional.add_argument("--output-suffix", help="suffix for the integrated matrix. e.g cancer or normals" , required=False, default='')
+    optional.add_argument("--whitelist", help="file containg whitelist for normal samples", required=False, default=None)
     optional.add_argument("--tissue-grp-files", nargs='*', help="STATISTICAL: Allows the statistical modelling on normal samples to be performed on different tissue groups. Specify n paths of files, each containing the list of samples in the group. No header", required=False, default=None)
     optional.add_argument("--expr-high-limit-normal", type=float, help="STATISTICAL: Normal kmers with expression >= value in >= 1 sample are truly expressed. Will not be included in statistical modelling and will be substracted from cancer set", required=False, default=None)
     optional.add_argument("--threshold-noise", type=float, help="STATISTICAL: Probability threshold on accepted noise in normals (High thresholds lead to leaner cancer kmer filtering)", required=False, default=None)
