@@ -321,12 +321,14 @@ def mode_cancerspecif(arg):
             if arg.cross_junction == 1:
                 logging.info("Keep cross junction kmers")
                 cancer_kmers = cancer_kmers.filter("{} == True".format(jct_col))
+                jct_type = "only-jct"
             elif arg.cross_junction == 0:
                 logging.info("Keep non-cross junction kmers")
                 cancer_kmers = cancer_kmers.filter("{} == False".format(jct_col))
+                jct_type = "non-jct"
             else:
                 logging.info("Keep cross and non- junction kmers")
-
+                jct_type ="no-jct-filt"
             if len(cancer_kmers.head(1)) == 0:
                 logging.info("WARNING: Restriction on junction status removed all foreground... Exiting")
                 sys.exit(1)
@@ -361,7 +363,7 @@ def mode_cancerspecif(arg):
                 logging.info("Save filtered output")
                 pathlib.Path(arg.output_dir).mkdir(exist_ok= True, parents= True)
                 extension = '.pq'
-                path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[0] + '_no_normals' + extension)
+                path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[0] + '_no-normals_' + jct_type + extension)
                 cancer_kmers.repartition(1).write.mode('overwrite').parquet(path_final_fil)
             else:
                 logging.info("WARNING: filtering removed all Foreground")
