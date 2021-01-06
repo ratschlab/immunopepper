@@ -350,6 +350,7 @@ def mode_cancerspecif(arg):
                 cancer_kmers.repartition(1).write.mode('overwrite').parquet(path_final_fil)
             else:
                 logging.info("WARNING: filtering removed all Foreground")
+            os.remove(cancer_path_tmp)
 
 
             #TODO Implement the intersection of the modelling tissues
