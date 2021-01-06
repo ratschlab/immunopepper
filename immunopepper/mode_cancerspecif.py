@@ -15,6 +15,7 @@ from rpy2.robjects.packages import importr
 import scipy
 from scipy import stats
 import shutil
+import sys
 
 
 from .config import create_spark_session_from_config
@@ -316,6 +317,20 @@ def mode_cancerspecif(arg):
             local_max = sf.udf(collapse_values, st.FloatType())
             for name_ in expression_fields:
                 cancer_kmers = cancer_kmers.withColumn(name_, local_max(name_))
+
+            if arg.cross_junction == 1:
+                logging.info("Keep cross junction kmers")
+                cancer_kmers = cancer_kmers.filter("{} == True".format(jct_col))
+            elif arg.cross_junction == 0:
+                logging.info("Keep non-cross junction kmers")
+                cancer_kmers = cancer_kmers.filter("{} == False".format(jct_col))
+            else:
+                logging.info("Keep cross and non- junction kmers")
+
+            if len(cancer_kmers.head(1)) == 0:
+                logging.info("WARNING: Restriction on junction status removed all foreground... Exiting")
+                sys.exit(1)
+
 
             logging.info("Collapse kmer vertical")
             # Make unique, max
