@@ -127,6 +127,15 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
 
 def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
     try:
+        ### Temporary fix
+        complexity_cap = 4000
+        gene_issue = 0
+        for i, gene in enumerate(genes):
+            if (len(gene.splicegraph.vertices[1]) >= complexity_cap):
+                gene_issue += 1
+        if gene_issue:
+            shutil.rmtree(outbase, ignore_errors=True)
+
         if not os.path.exists(switch_tmp_path(filepointer.gene_expr_fp, outbase)):
 
             pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
@@ -136,17 +145,6 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
             mem_per_gene = []
             all_gene_idxs = []
             gene_expr = []
-            complexity_cap = 4000
-
-            ### Temporary fix
-            gene_issue = 0
-            for i, gene in enumerate(genes):
-                if (len(gene.splicegraph.vertices[1]) >= complexity_cap):
-                    gene_issue +=1
-            if gene_issue:
-                shutil.rmtree(outbase, ignore_errors=True)
-                pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
-
 
             for i, gene in enumerate(genes):
                 ### measure time
