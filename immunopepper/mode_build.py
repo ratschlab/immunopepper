@@ -2,6 +2,7 @@
 """"""
 # Core operation of ImmunoPepper. Traverse splicegraph and get kmer/peptide output
 from collections import defaultdict
+import glob
 import h5py
 import logging
 import numpy as np
@@ -12,7 +13,7 @@ import signal as sig
 import shutil
 import sys
 import timeit
-
+import pyarrow.parquet as pq
 
 # immuno module
 from .config import ExceptionWrapper
@@ -60,63 +61,67 @@ def mapper_funct_back(tuple_arg):
 
 def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinfo, genetable, arg, outbase, filepointer, compression=None, verbose=False):
     try:
-        pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
-        set_kmer_back =  defaultdict(set, {})
-        dict_pept_backgrd = {}
-        time_per_gene = []
-        mem_per_gene = []
-        all_gene_idxs = []
+        if not os.path.exists(pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS"))):
+            pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
+            set_kmer_back =  defaultdict(set, {})
+            dict_pept_backgrd = {}
+            time_per_gene = []
+            mem_per_gene = []
+            all_gene_idxs = []
 
-        for i, gene in enumerate(genes):
-            ### measure time
-            start_time = timeit.default_timer()
+            for i, gene in enumerate(genes):
+                ### measure time
+                start_time = timeit.default_timer()
 
-            # Genes not contained in the annotation...
-            if gene.name not in genetable.gene_to_cds_begin or \
-                    gene.name not in genetable.gene_to_ts:
-                #logger.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
-                continue
+                # Genes not contained in the annotation...
+                if gene.name not in genetable.gene_to_cds_begin or \
+                        gene.name not in genetable.gene_to_ts:
+                    #logger.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
+                    continue
 
-            idx = get_idx(countinfo, sample, gene_idxs[i])
-            all_gene_idxs.append(gene_idxs[i])
+                idx = get_idx(countinfo, sample, gene_idxs[i])
+                all_gene_idxs.append(gene_idxs[i])
 
-            chrm = gene.chr.strip()
-            sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
-            ref_mut_seq = collect_background_transcripts(gene=gene, ref_seq_file=arg.ref_path, chrm=chrm, mutation=sub_mutation)
+                chrm = gene.chr.strip()
+                sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
+                ref_mut_seq = collect_background_transcripts(gene=gene, ref_seq_file=arg.ref_path, chrm=chrm, mutation=sub_mutation)
 
-            # Gene counts information
-            if countinfo:
-                gidx = countinfo.gene_idx_dict[gene.name]
-                count_segments = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
-                with h5py.File(countinfo.h5fname, 'r') as h5f:
-                    seg_counts = h5f['segments'][count_segments, idx.sample]
+                # Gene counts information
+                if countinfo:
+                    gidx = countinfo.gene_idx_dict[gene.name]
+                    count_segments = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
+                    with h5py.File(countinfo.h5fname, 'r') as h5f:
+                        seg_counts = h5f['segments'][count_segments, idx.sample]
 
-            get_and_write_background_peptide_and_kmer(peptide_dict = dict_pept_backgrd,
-                                                      kmer_dict = set_kmer_back,
-                                                      gene=gene,
-                                                      ref_mut_seq=ref_mut_seq,
-                                                       gene_table=genetable,
-                                                       countinfo=countinfo,
-                                                       seg_counts=seg_counts,
-                                                       Idx=idx,
-                                                       kmer=arg.kmer)
+                get_and_write_background_peptide_and_kmer(peptide_dict = dict_pept_backgrd,
+                                                          kmer_dict = set_kmer_back,
+                                                          gene=gene,
+                                                          ref_mut_seq=ref_mut_seq,
+                                                           gene_table=genetable,
+                                                           countinfo=countinfo,
+                                                           seg_counts=seg_counts,
+                                                           Idx=idx,
+                                                           kmer=arg.kmer)
 
-            time_per_gene.append(timeit.default_timer() - start_time)
-            mem_per_gene.append(print_memory_diags(disable_print=True))
+                time_per_gene.append(timeit.default_timer() - start_time)
+                mem_per_gene.append(print_memory_diags(disable_print=True))
 
-        save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression, outbase, verbose)
-        dict_pept_backgrd.clear()
-        for kmer_length in set_kmer_back:
-            save_backgrd_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
-        set_kmer_back.clear()
+            save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression, outbase, verbose)
+            dict_pept_backgrd.clear()
+            for kmer_length in set_kmer_back:
+                save_backgrd_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
+            set_kmer_back.clear()
 
-        if all_gene_idxs:
-            logging.info("> {}: annotation graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
-                                                                                      all_gene_idxs[-1]  + 1,
-                                                                                      len(gene_id_list),
-                                                                                      np.max(time_per_gene),
-                                                                                      np.max(mem_per_gene)))
-        exception_ = None
+            if all_gene_idxs:
+                logging.info("> {}: annotation graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
+                                                                                          all_gene_idxs[-1]  + 1,
+                                                                                          len(gene_id_list),
+                                                                                          np.max(time_per_gene),
+                                                                                          np.max(mem_per_gene)))
+                pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
+            exception_ = None
+        else:
+            logging.info("> {} : Batch {} exists, skip processing ".format(sample, outbase.split('/')[-1].split('_')[-1]))
 
     except Exception as e:
         exception_ = ExceptionWrapper(e)
@@ -128,15 +133,26 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
 def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
     try:
         ### Temporary fix
-        complexity_cap = 4000
-        gene_issue = 0
-        for i, gene in enumerate(genes):
-            if (len(gene.splicegraph.vertices[1]) >= complexity_cap):
-                gene_issue += 1
-        if gene_issue:
-            shutil.rmtree(outbase, ignore_errors=True)
+        parquet_issue = 0
+        files_tmp_dir = glob.glob(outbase + '/*sample*')
+        for file in files_tmp_dir:
+            try:
+                file = pq.read_table(file)
+            except:
+                parquet_issue += 1
+        if (not parquet_issue) and len(files_tmp_dir):
+            pathlib.Path(os.path.join(outbase, "Sample_IS_SUCCESS")).touch()
 
-        if not os.path.exists(switch_tmp_path(filepointer.gene_expr_fp, outbase)):
+        complexity_cap =4000
+        ### Temporary fix
+        # gene_issue = 0
+        # for i, gene in enumerate(genes):
+        #     if (len(gene.splicegraph.vertices[1]) >= complexity_cap):
+        #         gene_issue += 1
+        # if gene_issue:
+        #     shutil.rmtree(outbase, ignore_errors=True)
+
+        if not os.path.exists(pathlib.Path(os.path.join(outbase, "Sample_IS_SUCCESS"))):
 
             pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
             dict_kmer_foregr = defaultdict(dict, {})
@@ -158,7 +174,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
 
                 # Genes with highly complex splicegraphs
                 if (len(gene.splicegraph.vertices[1]) > complexity_cap):
-                    logging.warning('>Gene {} has a edge complexity > {}, not processed'.format(gene.name, complexity_cap))
+                    logging.warning('> Gene {} : {} has a edge complexity > {}, not processed'.format(int(outbase.split("_")[-1]) + i,  gene.name, complexity_cap))
                     continue
 
                 idx = get_idx(countinfo, sample, gene_idxs[i])
@@ -254,6 +270,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                                                                                               len(gene_id_list),
                                                                                               np.max(time_per_gene),
                                                                                             np.max(mem_per_gene)))
+                pathlib.Path(os.path.join(outbase, "IS_SUCCESS")).touch()
             exception_ = None
 
         else:
