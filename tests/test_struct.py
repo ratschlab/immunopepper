@@ -155,7 +155,8 @@ def test_end_to_end_cancerspecif():
               "--tissue-grp-files", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt",
               '/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_OV.txt',
               "--whitelist", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt" ,
-              "--cross-junction", "0"]
+              "--cross-junction", "0",
+              "--uniprot", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/uniprot"]
               #"--statistical"]
     immunopepper.split_mode(my_args)
 

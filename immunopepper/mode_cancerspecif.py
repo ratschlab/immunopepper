@@ -102,12 +102,17 @@ def mode_cancerspecif(arg):
         def cast_type_dbl(normal_matrix, name_list, index_name ):
             return normal_matrix.select( [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in name_list] )
 
+        def I_L_replace(value):
+            return value.replace('I', 'L')
+
         #spark.sparkContext.addFile('/Users/laurieprelot/software/anaconda/lib/python3.6/sitesddpackages/scipy.zip') # TODO do we need it ? packages in config
 
         ### Preprocessing Normals
         logging.info(">>>>>>>> Preprocessing Normal samples")
         index_name = 'kmer'
         jct_col = "iscrossjunction"
+
+
         # Rename
         rename = False #For development 
         if rename:
@@ -359,6 +364,7 @@ def mode_cancerspecif(arg):
             #cancer_kmers = sf.broadcast(cancer_kmers)
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
 
+            # save
             if len(cancer_kmers.head(1)) > 0:
                 logging.info("Save filtered output")
                 pathlib.Path(arg.output_dir).mkdir(exist_ok= True, parents= True)
@@ -366,8 +372,28 @@ def mode_cancerspecif(arg):
                 path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[0] + '_no-normals_' + jct_type + extension)
                 cancer_kmers.repartition(1).write.mode('overwrite').parquet(path_final_fil)
             else:
-                logging.info("WARNING: filtering removed all Foreground")
+                logging.info("WARNING: normal filtering removed all Foreground")
             os.remove(cancer_path_tmp)
+
+            # Remove Uniprot
+            if arg.uniprot is not None:
+                uniprot = spark.read.tsv(arg.uniprot)
+                uniprot_header = index_name + "IL_eq"
+                #Make isoleucine and leucine equivalent
+                I_L_equ = sf.udf(I_L_replace, st.StringType())
+                uniprot = uniprot.withColumn(uniprot_header, I_L_equ(uniprot_header))
+                cancer_kmers = cancer_kmers.withColumn( uniprot_header, I_L_equ(index_name))
+                cancer_kmers = cancer_kmers.join(uniprot, cancer_kmers[uniprot_header] == uniprot[uniprot_header],
+                                                 how='left_anti')
+            # save
+            if len(cancer_kmers.head(1)) > 0:
+                logging.info("Save filtered output")
+                pathlib.Path(arg.output_dir).mkdir(exist_ok= True, parents= True)
+                extension = '.pq'
+                path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[0] + '_no-normals_' + jct_type + '_no-uniprot_' + extension)
+                cancer_kmers.repartition(1).write.mode('overwrite').parquet(path_final_fil)
+            else:
+                logging.info("WARNING: uniprot filtering removed all Foreground")
 
 
             #TODO Implement the intersection of the modelling tissues
