@@ -25,7 +25,7 @@ def mode_samplespecif(arg):
     else:
         compression = None
 
-    save_pd_toparquet(arg.bg_file_pathrg.output_file_path, pd.DataFrame(uniq_kmer_set, columns = ['kmer'],  dtype='str'),
+    save_pd_toparquet(arg.bg_file_path , pd.DataFrame(uniq_kmer_set, columns = ['kmer'],  dtype='str'),
                   compression=compression, verbose=True)
 
     logging.info("generated unique background kmer file in {}".format(arg.bg_file_path))

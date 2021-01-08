@@ -35,7 +35,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
     out_dir = str(tmpdir)
     #sample_dir_build = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'diff','{}'.format(case),'test{}{}'.format(test_id,case))
     my_args_build = ['build',
-               '--samples', 'ENCSR000BZG', 'ERR2130621',#'ERR2130621','ENCSR000BZG'
+               '--samples', 'ERR2130621',#'ERR2130621','ENCSR000BZG'
                '--output-dir', out_dir,
                '--splice-path',os.path.join(data_dir,'ImmunoPepper_usecase.pickle'),
                '--count-path', os.path.join(data_dir,'ImmunoPepper_usecase.count.hdf5'),
@@ -56,13 +56,13 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
 
 def test_end_to_end_samplespecif(sample, tmpdir, kmer, mutation_mode):
     out_dir = os.path.join(tmpdir, sample)
-    bg_kmer_file_path = os.path.join(tmpdir, sample, 'integrated_background_kmer.pq.gz')
-    junction_kmer_file_path = os.path.join(out_dir, sample,
-                                           '{}_junction_{}mer.pq.gz'.format(mutation_mode, kmer))
-    output_file_path = os.path.join(out_dir, sample,
-                                    '{}_junction_{}mer_with_bg.pq.gz'.format(mutation_mode, kmer))
+    bg_kmer_file_path = os.path.join(out_dir, 'integrated_background_kmer.pq.gz')
+    junction_kmer_file_path = os.path.join(out_dir,
+                                           '{}_sample_{}mer.pq.gz'.format(mutation_mode, kmer))
+    output_file_path = os.path.join(out_dir,
+                                    '{}_sample_{}mer_with_bg.pq.gz'.format(mutation_mode, kmer))
 
-    bg_file_list = [os.path.join(out_dir, '{}_back_{}mer.pq.gz'.format(mode, kmer)) for mode in
+    bg_file_list = [os.path.join(out_dir, '{}_annot_{}mer.pq.gz'.format(mode, kmer)) for mode in
                     ['ref', 'somatic', 'somatic_and_germline', 'germline']]
 
     my_args= ['samplespecif', '--kmer-files'] + bg_file_list +  [
@@ -165,7 +165,8 @@ tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
 mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_cross_sample=False) #TODO add back
+for mutation_mode in ['ref', 'somatic', 'germline', 'somatic_and_germline']:
+    test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_cross_sample=False) #TODO add back
 
 test_end_to_end_samplespecif('ERR2130621', tmpdir, "9", mutation_mode)
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
