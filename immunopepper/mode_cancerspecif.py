@@ -366,19 +366,20 @@ def mode_cancerspecif(arg):
 
             # save
             if len(cancer_kmers.head(1)) > 0:
-                logging.info("Save filtered output")
+                logging.info("Save after normal filtering ")
                 pathlib.Path(arg.output_dir).mkdir(exist_ok= True, parents= True)
                 extension = '.pq'
                 path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[0] + '_no-normals_' + jct_type + extension)
                 cancer_kmers.repartition(1).write.mode('overwrite').parquet(path_final_fil)
             else:
                 logging.info("WARNING: normal filtering removed all Foreground")
-            os.remove(cancer_path_tmp)
+
 
             # Remove Uniprot
             if arg.uniprot is not None:
-                uniprot = spark.read.tsv(arg.uniprot)
-                uniprot_header = index_name + "IL_eq"
+                uniprot = spark.read.csv(arg.uniprot, sep='\t', header=None)
+                uniprot_header = index_name + "_IL_eq"
+                uniprot = uniprot.withColumnRenamed("_c0", uniprot_header)
                 #Make isoleucine and leucine equivalent
                 I_L_equ = sf.udf(I_L_replace, st.StringType())
                 uniprot = uniprot.withColumn(uniprot_header, I_L_equ(uniprot_header))
@@ -387,7 +388,7 @@ def mode_cancerspecif(arg):
                                                  how='left_anti')
             # save
             if len(cancer_kmers.head(1)) > 0:
-                logging.info("Save filtered output")
+                logging.info("Save after uniprot filtering")
                 pathlib.Path(arg.output_dir).mkdir(exist_ok= True, parents= True)
                 extension = '.pq'
                 path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[0] + '_no-normals_' + jct_type + '_no-uniprot_' + extension)
@@ -395,9 +396,7 @@ def mode_cancerspecif(arg):
             else:
                 logging.info("WARNING: uniprot filtering removed all Foreground")
 
-
+            os.remove(cancer_path_tmp)
             #TODO Implement the intersection of the modelling tissues
-            #TODO Implement intermediary saving # no collect slow
             #TODO transfer to junction xpression
-            #TODO Uniprot filtering
 
