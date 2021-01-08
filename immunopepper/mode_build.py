@@ -373,16 +373,16 @@ def mode_build(arg):
             verbose_save = False
             gene_batches = [(i, gene_id_list[i:min(i + batch_size, len(gene_id_list))]) for i in
                             range(0, len(gene_id_list), batch_size)]
-            
-            # if not arg.cross_graph_expr:
-            #     # Build the background
-            #     logging.info(">>>>>>>>> Start Background processing")
-            #     pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
-            #     args = [(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg,
-            #           os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
-            #
-            #     result = pool_f.submit(mapper_funct_back, args)
-            #     pool_f.terminate()
+
+            if not arg.cross_graph_expr:
+                # Build the background
+                logging.info(">>>>>>>>> Start Background processing")
+                pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
+                args = [(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg,
+                      os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+
+                result = pool_f.submit(mapper_funct_back, args)
+                pool_f.terminate()
 
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
