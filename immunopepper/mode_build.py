@@ -270,7 +270,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                                                                                               len(gene_id_list),
                                                                                               np.max(time_per_gene),
                                                                                             np.max(mem_per_gene)))
-                pathlib.Path(os.path.join(outbase, "IS_SUCCESS")).touch()
+                pathlib.Path(os.path.join(outbase, "Sample_IS_SUCCESS")).touch()
             exception_ = None
 
         else:

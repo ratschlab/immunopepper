@@ -288,11 +288,15 @@ def collect_results(filepointer_item, outbase, compression, mutation_mode,  kmer
             tmp_file_list = glob.glob(os.path.join(outbase, 'tmp_out_{}_[0-9]*'.format(mutation_mode), file_name))
             tot_shape = 0
             for tmp_file in tmp_file_list:
-                table = pq.read_table(tmp_file)
-                if tot_shape == 0:
-                    pqwriter = pq.ParquetWriter(file_path, table.schema, compression=compression)
-                pqwriter.write_table(table)
-                tot_shape += table.shape[0]
+                try:
+                    table = pq.read_table(tmp_file)
+                    if tot_shape == 0:
+                        pqwriter = pq.ParquetWriter(file_path, table.schema, compression=compression)
+                    pqwriter.write_table(table)
+                    tot_shape += table.shape[0]
+                except:
+                    logging.info("ERROR: file {} could not be read".format(tmp_file))
+            sys.exit(1)
             if tmp_file_list:
                 pqwriter.close()
                 logging.info('Collecting {} with {} lines. Took {} seconds'.format(file_name, tot_shape, timeit.default_timer()-s1))
