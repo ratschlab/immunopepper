@@ -6,6 +6,8 @@ Remove annotatation kmers
 
 import pandas as pd
 import logging
+import os
+import sys
 
 from .io_ import read_pq_with_dict
 from .io_ import save_pd_toparquet
@@ -14,43 +16,55 @@ from .io_ import save_pd_toparquet
 
 def mode_samplespecif(arg):
     logging.info(">>>>>>>>> Remove annotation: Start")
-    uniq_kmer_set = set()
-    for kmer_file in arg.kmer_files:
-        logging.info("consider background file:{}".format(kmer_file))
-        f = read_pq_with_dict(kmer_file, ['kmer'])
-        uniq_kmer_set.update(f['kmer'])
-
     if arg.compressed:
         compression = 'gzip'
     else:
-        compression = None
-
-    save_pd_toparquet(arg.bg_file_path , pd.DataFrame(uniq_kmer_set, columns = ['kmer'],  dtype='str'),
+        compression = None 
+    bg = [os.path.exists(kmer_file) for kmer_file in arg.annot_kmer_files]
+    fg = [os.path.exists(junction_kmer_file) for junction_kmer_file in arg.junction_kmer_files]
+    if not sum(bg):
+        logging.error("None of the sample kmer files exists, consider changing --junction_kmer_files")
+        sys.exit(1)
+    if not sum(fg): 
+        logging.error("None of the annotation kmer files exists, consider changing --annot_kmer_file")
+        sys.exit(1)
+        
+    bg_kmer_set = set()
+    if not os.path.exists(arg.bg_file_path):
+        for kmer_file in arg.annot_kmer_files:
+            if os.path.exists(kmer_file):
+                logging.info("...consider annotation file:{}".format(kmer_file))
+                f = read_pq_with_dict(kmer_file, ['kmer'])
+                bg_kmer_set.update(f['kmer'])
+            else: 
+                logging.info("WARNING annotation file: {} does not exist".format(kmer_file))
+        save_pd_toparquet(arg.bg_file_path , pd.DataFrame(bg_kmer_set, columns = ['kmer'],  dtype='str'),
                   compression=compression, verbose=True)
-
-    logging.info("generated unique background kmer file in {}".format(arg.bg_file_path))
-
-    logging.info("consider foreground file file:{}".format(arg.junction_kmer_file))
-    kmer_df = read_pq_with_dict(arg.junction_kmer_file, ['kmer']).to_pandas()
-    bg_kmer_set = set(read_pq_with_dict(arg.bg_file_path, ['kmer'])['kmer'])
-
-    uniq_ref_kmer_set = set(kmer_df['kmer']).difference(bg_kmer_set)
-    bg_flag = kmer_df['kmer'].apply(lambda x: x in uniq_ref_kmer_set)
-    if  arg.remove_bg:
-        kmer_df = kmer_df[bg_flag]
+        logging.info("generated unique background kmer file in {} \n ".format(arg.bg_file_path))
     else:
-        kmer_df['is_neo_flag'] = bg_flag
+        bg_kmer_set = set(read_pq_with_dict(arg.bg_file_path, ['kmer'])['kmer'])
+        logging.info("reading  unique background kmer file in {} \n ".format(arg.bg_file_path)
+                )
+    for junction_kmer_file in arg.junction_kmer_files:
+        if os.path.exists(junction_kmer_file):
+            logging.info("...consider foreground file:{}".format(junction_kmer_file))
+            kmer_df = read_pq_with_dict(junction_kmer_file, ['kmer']).to_pandas()
 
-
-    if arg.compressed:
-        compression = 'gzip'
-    else:
-        compression = None
-
-    save_pd_toparquet(arg.output_file_path, kmer_df,
+            uniq_ref_kmer_set = set(kmer_df['kmer']).difference(bg_kmer_set)
+            bg_flag = kmer_df['kmer'].apply(lambda x: x in uniq_ref_kmer_set)
+            if  arg.remove_bg:
+                kmer_df = kmer_df[bg_flag]
+            else:
+                kmer_df['is_neo_flag'] = bg_flag
+            
+            output_file_path = junction_kmer_file.split('.')[0] + arg.output_suffix + '.' + compression + '.pq'
+            save_pd_toparquet( output_file_path, kmer_df,
                   compression=compression, verbose=True)
+            logging.info("output bg-removed kmer file : {} \n ".format(output_file_path))
+        else:
+            logging.info("WARNING foreground file: {} does not exist".format(junction_kmer_file))
+    
 
-    logging.info("output bg-removed kmer file : {}".format(arg.output_file_path))
     logging.info(">>>>>>>>> Remove annotation: Finish\n")
 
 

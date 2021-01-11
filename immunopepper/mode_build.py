@@ -134,14 +134,17 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
     try:
         ### Temporary fix
         parquet_issue = 0
-        files_tmp_dir = glob.glob(outbase + '/*sample*')
-        for file in files_tmp_dir:
+        files_tmp_dir = glob.glob(outbase + '/*sample*') + glob.glob(outbase + '/*graph*')
+        #import sys ; sys.stdin = open('/dev/tty'); import pdb ; pdb.set_trace()
+        for file_ in files_tmp_dir:
             try:
-                file = pq.read_table(file)
+                foo = pq.read_table(file_)
             except:
                 parquet_issue += 1
-        if (not parquet_issue) and len(files_tmp_dir):
+        if (not parquet_issue) and len(files_tmp_dir) > 0:
             pathlib.Path(os.path.join(outbase, "Sample_IS_SUCCESS")).touch()
+        else:
+            os.remove(os.path.join(outbase, "Sample_IS_SUCCESS"))
 
         complexity_cap =4000
         ### Temporary fix
@@ -152,7 +155,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
         # if gene_issue:
         #     shutil.rmtree(outbase, ignore_errors=True)
 
-        if not os.path.exists(pathlib.Path(os.path.join(outbase, "Sample_IS_SUCCESS"))):
+        if not os.path.exists(os.path.join(outbase, "Sample_IS_SUCCESS")):
 
             pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
             dict_kmer_foregr = defaultdict(dict, {})

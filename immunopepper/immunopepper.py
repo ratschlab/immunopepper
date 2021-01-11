@@ -67,11 +67,11 @@ def parse_arguments(argv):
     ### mode_samplespecif
     parser_samplespecif = subparsers.add_parser('samplespecif', help='Performs removal of the annotation to make the kmer list sample specific')
     required = parser_samplespecif.add_argument_group('MANDATORY')
-    required.add_argument("--kmer-files", nargs='+', help="list of kmer files output by build mode", required=True, default='')
+    required.add_argument("--annot-kmer-files", nargs='+',  help="list of absolute paths to the annotation kmer files", required=True, default='')
     required.add_argument("--output-dir",help='directory to store the log file',required=True)
-    required.add_argument("--junction-kmer-file", help="absolute path to the foreground junction file", required=True, default='')
+    required.add_argument("--junction-kmer-files", nargs='+',  help="absolute paths to the sample kmer files", required=True, default='')
     required.add_argument("--bg-file-path", help="absolute path to the intermediate pooled annotation file", required=True, default='')
-    required.add_argument("--output-file-path", help="output file path", required=True, default='')
+    required.add_argument("--output-suffix", help="suffix to be append to output file path", required=True, default='no-annot')
     required.add_argument("--remove-bg", help="choose to simply remove background rows or add a new flag column to indicate"
                                               " if the kmer exists in the background kmers", action="store_true", required=False, default=False)
     _add_general_args(parser_samplespecif)
