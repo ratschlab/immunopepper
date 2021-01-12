@@ -29,7 +29,6 @@ BiocGenerics = importr("BiocGenerics")
 
 
 
-
 def DESeq2(count_matrix, design_matrix, normalize, cores=1):
     # gene_column = ''
     to_dataframe = ro.r('function(x) data.frame(x)')
@@ -61,7 +60,47 @@ def DESeq2(count_matrix, design_matrix, normalize, cores=1):
     return fit_res
 
 
-def preprocess_libsize(path_lib):
+def fit_NB(spark, normal_matrix, index_name, output_dir, path_normal_matrix_segm, libsize_n, cores):
+    ''' Fits negative binomial on kmers expression with DESeq2
+    Parameters
+    ---------
+    spark: spark session
+    normal_matrix: normal matrix
+    index_name: kmer column name
+    output_dir: output directory
+    path_normal_matrix_segm: path to save matrix
+    libsize_n: libsize matrix
+    cores: number of cores to run DESeq2
+    Returns
+    --------
+    spark: spark session
+    normal_matrix: normal matrix
+    '''
+    def nb_cdf(mean_, disp):
+        probA = disp / (disp + mean_)
+        N = (probA * mean_) / (1 - probA)
+        return float(scipy.stats.nbinom.cdf(0, n=N, p=probA))
+
+    design_matrix = pd.DataFrame([1] * (len(normal_matrix.columns) - 1), columns=["design"])
+    design_matrix['sample'] = [col_name for col_name in normal_matrix.schema.names if col_name != index_name]
+
+    # Run DESEq2
+    design_matrix = design_matrix.set_index('sample')
+    logging.info("Run DESeq2")
+    normal_matrix = DESeq2(normal_matrix.toPandas().set_index(index_name), design_matrix, normalize=libsize_n, cores=cores)
+    save_pd_toparquet(os.path.join(output_dir, os.path.basename(path_normal_matrix_segm).split('.')[0] + 'deseq_fit' + '.pq.gz'),
+                      normal_matrix, compression = 'gzip', verbose = False)
+    # Test on probability of noise
+    logging.info("Test if noise")
+    normal_matrix = spark.createDataFrame(normal_matrix.reset_index())
+    stat_udf = sf.udf(nb_cdf, st.FloatType())
+    logging.info("Filter out noise from normals")
+    normal_matrix = normal_matrix.withColumn("proba_zero", stat_udf(sf.col('baseMean'), sf.col('dispersion')))
+
+    return spark , normal_matrix
+
+
+def process_libsize(path_lib):
     lib = pd.read_csv(path_lib, sep='\t')
     lib['libsize_75percent'] = lib['libsize_75percent'] / np.median(lib['libsize_75percent'])
     lib['sample'] = [sample.replace('-', '').replace('.', '').replace('_','') for sample in lib['sample']]
@@ -81,27 +120,22 @@ def pq_WithRenamedCols(path):
     return path_tmp
 
 
-
-
-
-
-
-def preprocess_normals(spark, index_name, jct_col, path_normal_matrix_segm, whitelist):
+def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, whitelist):
     ''' Preprocess normal samples
     - corrects names
     - corrects types
     - make unique
     Parameters:
     ----------
-        spark context
-        index column name
-        junction column name
-        path for normal matrix
-        whitelist for normal samples
+    spark: spark context
+    index_name: kmer column name
+    jct_col: junction column name
+    path_normal_matrix_segm: path for normal matrix
+    whitelist: whitelist for normal samples
     Returns :
     ----------
-    spark context
-    Preorocessed normal matrix
+    spark: spark session
+    normal_matrix: Preprocessed normal matrix
         '''
 
     def cast_type_dbl(normal_matrix, name_list, index_name):
@@ -153,17 +187,58 @@ def preprocess_normals(spark, index_name, jct_col, path_normal_matrix_segm, whit
     return spark, normal_matrix
 
 
+def outlier_filtering(spark, normal_matrix, index_name, libsize_n, expr_high_limit_normal):
+    ''' Remove very highly expressed kmers / expression outliers before fitting DESeq2. These kmers do not follow a NB,
+    besides no hypothesis testing is required to set their expression status to True
+    Parameters:
+    spark: spark context
+    normal_matrix: normal matrix
+    index_name: kmer column name
+    libsize_n: libsize matrix
+    expr_high_limit_normal: normalized count limit for highly expressed kmers
+
+    Returns :
+    ----------
+    spark: spark session
+    normal_matrix: Preprocessed normal matrix
+
+    '''
+
+    # With libsize
+    if libsize_n is not None:
+        highly_expressed_normals = ' AND '.join(
+            ['({} > {})'.format(col_name, expr_high_limit_normal * libsize_n.loc[col_name, "libsize_75percent"])
+             for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # Expressed kmers
+
+        ambigous_expression_normals = ' OR '.join(
+            ['({} <= {})'.format(col_name, expr_high_limit_normal * libsize_n.loc[col_name, "libsize_75percent"])
+             for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style
+    # Without libsize
+    else:
+        highly_expressed_normals = ' AND '.join(['({} > {})'.format(col_name, expr_high_limit_normal)
+                                                 for col_name in normal_matrix.schema.names if
+                                                 col_name != index_name])  # SQL style  # Expressed kmers
+
+        ambigous_expression_normals = ' OR '.join(['({} <= {})'.format(col_name, expr_high_limit_normal)
+                                                   for col_name in normal_matrix.schema.names if
+                                                   col_name != index_name])  # SQL style
+
+    high_expr_normals = normal_matrix.filter(highly_expressed_normals).select(sf.col(index_name))
+    normal_matrix = normal_matrix.filter(ambigous_expression_normals)  # TODO add condition empty matrix
+    return spark, high_expr_normals, normal_matrix
+
+
 def hard_filter_normals(spark, normal_matrix, index_name, libsize_n, expr_limit_normal, expr_n_limit ):
     ''' Filter normal samples based on j reads in at least n samples. The expressions are normalized for library size
 
     Parameters:
     ----------
-        spark context
-        normal matrix
-        index column name
-        libsize_n matrix
-        expr_limit_normal (j reads)
-        expr_n_limit (n samples)
+    spark session
+    normal matrix
+    index column name
+    libsize_n matrix
+    expr_limit_normal (j reads)
+    expr_n_limit (n samples)
     Returns :
     ----------
     spark context
@@ -189,7 +264,30 @@ def hard_filter_normals(spark, normal_matrix, index_name, libsize_n, expr_limit_
 
     return spark, normal_matrix
 
-def preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
+
+def process_cancers(spark, cancer_path, cancer_sample, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
+    ''' Preprocess cancer samples
+    - Make kmers unique
+    - Filter kmers on junction status
+    - Normalize
+    Parameters:
+    ----------
+    spark: spark session
+    cancer path: path to cancer file
+    cancer_sample: associated cacncer ID
+    drop_cols: colums to be dropped
+    expression_fields: list of segment and junction expression column names
+    jct_col: junction status column name
+    index_name: kmer column name
+    libsize_c: libsize matrix for cancer samples
+    cross_junction: Information to filter on juction status. None (both, no filtering), True (junction), False (non junction)
+    Returns
+    --------
+    spark: spark session
+    cancer_kmers: cancer kmers matrix,
+    cancer_path_tmp: path of renamed temporary file
+    jct_type: string indicating which junction filtering has been performed
+    '''
 
     def collapse_values(value):
         return max([np.float(i) if i != 'nan' else 0.0 for i in value.split('/')])  # np.nanmax not supported
@@ -198,7 +296,7 @@ def preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols, expression_
     cancer_kmers = spark.read.parquet(cancer_path_tmp)
     logging.info("Renamed done")
 
-    # Drop junction colum
+    # Drop junction column
     for drop_col in drop_cols:
         cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
     logging.info("Collapse kmer horizontal")
@@ -246,6 +344,7 @@ def preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols, expression_
 
     return spark, cancer_kmers, cancer_path_tmp, jct_type
 
+
 def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
     def I_L_replace(value):
         return value.replace('I', 'L')
@@ -261,6 +360,7 @@ def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
                                          how='left_anti')
     return  spark, cancer_kmers
 
+
 def save_spark(cancer_kmers, output_dir, path_final_fil, filtering_type_str):
     # save
     if len(cancer_kmers.head(1)) > 0:
@@ -272,15 +372,13 @@ def save_spark(cancer_kmers, output_dir, path_final_fil, filtering_type_str):
         logging.info("WARNING: {} filtering removed all Foreground".format(filtering_type_str))
 
 
+
+
+
+### Main
 def mode_cancerspecif(arg):
+
     spark_cfg = default_spark_config(arg.cores, arg.mem_per_core)
-
-    def nb_cdf(mean_, disp):
-        probA = disp / (disp + mean_)
-        N = (probA * mean_) / (1 - probA)
-        return float(scipy.stats.nbinom.cdf(0, n=N, p=probA))
-
-
     with create_spark_session_from_config(spark_cfg) as spark:
         if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
             shutil.rmtree(os.path.join(arg.output_dir, "checkpoint"))
@@ -291,16 +389,16 @@ def mode_cancerspecif(arg):
         logging.info(">>>>>>>> Preprocessing Normal samples")
         index_name = 'kmer'
         jct_col = "iscrossjunction"
-        spark, normal_matrix = preprocess_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist)
+        spark, normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist)
 
         ### Preprocessing Libsize
         logging.info(">>>>>>>> Preprocessing libsizes")
         if arg.path_normal_libsize:
-            libsize_n = preprocess_libsize(arg.path_normal_libsize)
+            libsize_n = process_libsize(arg.path_normal_libsize)
         else:
             libsize_n = None
         if arg.path_cancer_libsize:
-            libsize_c = preprocess_libsize(arg.path_cancer_libsize)
+            libsize_c = process_libsize(arg.path_cancer_libsize)
 
 
         ### NORMALS: Statistical Filtering
@@ -309,22 +407,7 @@ def mode_cancerspecif(arg):
             # Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
             if arg.expr_high_limit_normal is not None:
                 logging.info( "... Normal kmers with expression >= {} in >= 1 sample are truly expressed. \n Will be substracted from cancer set".format(arg.expr_high_limit_normal))
-                # normal_matrix = spark.createDataFrame(normal_matrix)
-                if libsize_n is not None:
-                    highly_expressed_normals = ' AND '.join( ['({} > {})'.format(col_name, arg.expr_high_limit_normal * libsize_n.loc[col_name, "libsize_75percent"])
-                         for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # Expressed kmers
-
-                    ambigous_expression_normals = ' OR '.join(['({} <= {})'.format(col_name, arg.expr_high_limit_normal  * libsize_n.loc[col_name, "libsize_75percent"])
-                         for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style
-                else:
-                    highly_expressed_normals = ' AND '.join( ['({} > {})'.format(col_name, arg.expr_high_limit_normal )
-                         for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # Expressed kmers
-
-                    ambigous_expression_normals = ' OR '.join(['({} <= {})'.format(col_name, arg.expr_high_limit_normal )
-                         for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style
-
-                high_expr_normals = normal_matrix.filter(highly_expressed_normals).select(sf.col(index_name))
-                normal_matrix = normal_matrix.filter(ambigous_expression_normals)  # TODO add condition empty matrix
+                spark, high_expr_normals, normal_matrix = outlier_filtering(spark, normal_matrix, index_name, libsize_n, arg.expr_high_limit_normal)
 
 
             if arg.tissue_grp_files is not None:
@@ -334,27 +417,13 @@ def mode_cancerspecif(arg):
                     grp = [name_.replace('-','').replace('.','').replace('_','') for name_ in grp]
                     grp.append(index_name)
                     modelling_grps.append(grp)
-
             else:
                 modelling_grps = [[name_ for name_ in normal_matrix.schema.names if name_ != index_name]]
 
+            logging.info(">>>... Fit Negative Binomial distribution on normal kmers ")
             for grp in modelling_grps:
-            # Perform hypothesis testing
-                logging.info(">>>... Fit Negative Binomial distribution on normal kmers ")
-                design_matrix = pd.DataFrame([1] * (len(normal_matrix.columns) - 1), columns=["design"])
-                design_matrix['sample'] = [col_name for col_name in normal_matrix.schema.names if col_name != index_name]
-
-                # Run DESEq2
-                design_matrix = design_matrix.set_index('sample')
-                logging.info("Run DESeq2")
-                normal_matrix = DESeq2(normal_matrix.toPandas().set_index(index_name), design_matrix, normalize=libsize_n, cores=arg.cores)
-                save_pd_toparquet(os.path.join(arg.output_dir, os.path.basename(arg.path_normal_matrix_segm).split('.')[0] + 'deseq_fit' + '.pq.gz'), normal_matrix, compression = 'gzip', verbose = False)
-                # Test on probability of noise
-                logging.info("Test if noise")
-                normal_matrix = spark.createDataFrame(normal_matrix.reset_index())
-                stat_udf = sf.udf(nb_cdf, st.FloatType())
-                logging.info("Filter out noise from normals")
-                normal_matrix = normal_matrix.withColumn("proba_zero", stat_udf(sf.col('baseMean'), sf.col('dispersion')))
+            # Fit NB and Perform hypothesis testing
+                spark, normal_matrix = fit_NB(spark, normal_matrix, index_name, arg.output_dir, arg.path_normal_matrix_segm, libsize_n, arg.cores)
                 normal_matrix = normal_matrix.filter(sf.col("proba_zero") < arg.threshold_noise) # Expressed kmers
 
             # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
@@ -380,18 +449,16 @@ def mode_cancerspecif(arg):
 
             # Preprocess cancer samples
             logging.info("... Process cancer sample {}".format(cancer_sample))
-            spark, cancer_kmers, cancer_path_tmp, jct_type = preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols,
+            spark, cancer_kmers, cancer_path_tmp, jct_type = process_cancers(spark, cancer_path, cancer_sample, drop_cols,
                                                                       expression_fields, jct_col, index_name,
                                                                         libsize_c, arg.cross_junction)
 
             ###Perform Background removal
             logging.info("Perform join")
             logging.info("NO BROADCAST")
-            #normal_matrix = sf.broadcast(normal_matrix)
-            #cancer_kmers = sf.broadcast(cancer_kmers)
+                #normal_matrix = sf.broadcast(normal_matrix)
+                #cancer_kmers = sf.broadcast(cancer_kmers)
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
-
-            # save
             extension = '.pq'
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0] + '_no-normals_' + jct_type + extension)
@@ -400,8 +467,6 @@ def mode_cancerspecif(arg):
 
             ### Remove Uniprot
             spark, cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
-
-            # save
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0] + '_no-normals_' + jct_type + '_no-uniprot_' + extension)
             save_spark(cancer_kmers, arg.output_dir, path_final_fil, 'uniprot')
