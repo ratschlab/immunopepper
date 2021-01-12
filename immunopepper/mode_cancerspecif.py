@@ -80,8 +80,138 @@ def pq_WithRenamedCols(path):
     pqwriter.close()
     return path_tmp
 
+
+
+
+def cast_type_dbl(normal_matrix, name_list, index_name):
+        return normal_matrix.select(
+            [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in
+             name_list])
+
+
+
+
+
+def preprocess_normals(spark, index_name, jct_col, path_normal_matrix_segm, whitelist):
+    ''' Preprocess normal samples
+    - corrects names
+    - corrects types
+    - make unique
+    Parameters:
+    ----------
+        spark context
+        index column name
+        junction column name
+        path for normal matrix
+        whitelist for normal samples
+    Returns :
+    ----------
+    spark context
+    Preorocessed normal matrix
+        '''
+
+    # Rename
+    rename = False  # For development
+    if rename:
+        logging.info("Rename")
+        path_normal_matrix_segm_tmp = pq_WithRenamedCols(path_normal_matrix_segm)
+        logging.info("Load")
+        normal_matrix = spark.read.parquet(path_normal_matrix_segm_tmp)
+    else:
+        normal_matrix = spark.read.parquet(path_normal_matrix_segm)
+
+    # Drop junction column
+    normal_matrix = normal_matrix.drop(jct_col)
+
+    # Cast type and fill nans + Reduce samples (columns) to whitelist
+    logging.info("Cast types")
+    if whitelist is not None:
+        whitelist = pd.read_csv(whitelist, sep='\t', header=None)[0].to_list()
+        whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
+        whitelist.append(index_name)
+        normal_matrix = cast_type_dbl(normal_matrix, whitelist, index_name)
+    else:
+        normal_matrix = cast_type_dbl(normal_matrix, normal_matrix.schema.names, index_name)
+
+    # Fill Nans
+    logging.info("Remove Nans")
+    normal_matrix = normal_matrix.na.fill(0)
+
+    # Remove kmers abscent from all samples
+    logging.info("Remove non expressed kmers SQL-")
+    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+    not_null = ' OR '.join(
+        ['({} != 0.0)'.format(col_name)
+         for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # All zeros
+    normal_matrix = normal_matrix.filter(not_null)
+
+    # Make unique
+    logging.info("Make unique")
+    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+    exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
+    normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
+    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+
+    return spark, normal_matrix
+
+
+def hard_filter_normals(spark, normal_matrix, index_name, libsize_n, expr_limit_normal, expr_n_limit ):
+    ''' Filter normal samples based on j reads in at least n samples. The expressions are normalized for library size
+
+    Parameters:
+    ----------
+        spark context
+        normal matrix
+        index column name
+        libsize_n matrix
+        expr_limit_normal (j reads)
+        expr_n_limit (n samples)
+    Returns :
+    ----------
+    spark context
+    Filtered normal matrix
+        '''
+
+    if libsize_n is not None:
+        normal_matrix = normal_matrix.select(index_name, *[
+            sf.when((sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"]) > expr_limit_normal, 1).otherwise(
+                0).alias(name_)
+            for name_ in normal_matrix.schema.names if name_ != index_name])
+    else:
+        normal_matrix = normal_matrix.select(index_name, *[
+            sf.when(sf.col(name_) > expr_limit_normal, 1).otherwise(0).alias(name_)
+            for name_ in normal_matrix.schema.names if name_ != index_name])
+
+    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+    logging.info("reduce")
+    rowsum = (reduce(add, (sf.col(x) for x in normal_matrix.columns[1:]))).alias("sum")
+    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+    logging.info("filter")
+    normal_matrix = normal_matrix.filter(rowsum >= expr_n_limit)
+
+    return spark, normal_matrix
+
+
+
+
 def mode_cancerspecif(arg):
     spark_cfg = default_spark_config(arg.cores, arg.mem_per_core)
+
+    def nb_cdf(mean_, disp):
+        probA = disp / (disp + mean_)
+        N = (probA * mean_) / (1 - probA)
+        return float(scipy.stats.nbinom.cdf(0, n=N, p=probA))
+
+    def collapse_values(value):
+        return max([np.float(i) if i != 'nan' else 0.0 for i in value.split('/')])  # np.nanmax not supported
+
+    def cast_type_dbl(normal_matrix, name_list, index_name): #Weird spark cannot have it outside..
+        return normal_matrix.select(
+            [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in
+             name_list])
+
+    def I_L_replace(value):
+        return value.replace('I', 'L')
 
     with create_spark_session_from_config(spark_cfg) as spark:
         if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
@@ -89,68 +219,11 @@ def mode_cancerspecif(arg):
         pathlib.Path(os.path.join(arg.output_dir, "checkpoint")).mkdir(exist_ok=True, parents=True)
         spark.sparkContext.setCheckpointDir(os.path.join(arg.output_dir, "checkpoint"))
 
-        def nb_cdf(mean_, disp):
-            probA = disp / (disp + mean_)
-            N = (probA * mean_) / (1 - probA)
-            return float(scipy.stats.nbinom.cdf(0, n=N, p=probA))
-
-        def collapse_values(value):
-            return  max([np.float(i) if i!='nan' else 0.0 for i in value.split('/') ]) #np.nanmax not supported
-
-        def cast_type_dbl(normal_matrix, name_list, index_name ):
-            return normal_matrix.select( [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in name_list] )
-
-        def I_L_replace(value):
-            return value.replace('I', 'L')
-
-
         ### Preprocessing Normals
         logging.info(">>>>>>>> Preprocessing Normal samples")
         index_name = 'kmer'
         jct_col = "iscrossjunction"
-
-        # Rename
-        rename = False #For development 
-        if rename:
-            logging.info("Rename")
-            path_normal_matrix_segm_tmp =  pq_WithRenamedCols(arg.path_normal_matrix_segm)
-            logging.info("Load")
-            normal_matrix = spark.read.parquet(path_normal_matrix_segm_tmp)
-        else: 
-            normal_matrix = spark.read.parquet(arg.path_normal_matrix_segm)
-
-        # Drop junction column
-        normal_matrix = normal_matrix.drop(jct_col)
-
-        # Cast type and fill nans + Reduce samples (columns) to whitelist
-        logging.info("Cast types")
-        if arg.whitelist is not None:
-            whitelist = pd.read_csv(arg.whitelist, sep = '\t', header = None)[0].to_list()
-            whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
-            whitelist.append(index_name)
-            normal_matrix = cast_type_dbl(normal_matrix, whitelist, index_name)
-        else:
-            normal_matrix =  cast_type_dbl(normal_matrix, normal_matrix.schema.names, index_name)
-
-        # Fill Nans
-        logging.info("Remove Nans")
-        normal_matrix = normal_matrix.na.fill(0)
-
-        # Remove kmers abscent from all samples
-        logging.info("Remove non expressed kmers SQL-")
-        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-        not_null = ' OR '.join(
-            ['({} != 0.0)'.format(col_name)
-        for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # All zeros
-        normal_matrix = normal_matrix.filter(not_null)
-
-        # Make unique
-        logging.info("Make unique")
-        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-        exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in  normal_matrix.schema.names if name_ != index_name]
-        normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
-        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-
+        spark, normal_matrix = preprocess_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist)
 
         ### Preprocessing Libsize
         logging.info(">>>>>>>> Preprocessing libsizes")
@@ -221,26 +294,8 @@ def mode_cancerspecif(arg):
         ### NORMALS: Hard Filtering
         else:
             logging.info(">>>>>>>> Hard Filtering")
-
-        ### Keep normal kmers with expression level in at least n samples
             logging.info("expression filter")
-
-            if libsize_n is not None:
-                normal_matrix= normal_matrix.select(index_name, *[
-                    sf.when((sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"]) > arg.expr_limit_normal, 1).otherwise(0).alias(name_)
-                    for name_ in normal_matrix.schema.names if name_ != index_name])
-            else:
-                normal_matrix= normal_matrix.select(index_name, *[
-                    sf.when(sf.col(name_)  > arg.expr_limit_normal, 1).otherwise(0).alias(name_)
-                    for name_ in normal_matrix.schema.names if name_ != index_name])
-            
-            logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-            logging.info("reduce")
-            rowsum = (reduce(add, (sf.col(x) for x in normal_matrix.columns[1:]))).alias("sum")
-            logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-            logging.info("filter")
-            normal_matrix = normal_matrix.filter(rowsum >= arg.expr_n_limit)
-        logging.info("No caching")
+            hard_filter_normals(spark, normal_matrix, index_name, libsize_n, arg.expr_limit_normal, arg.expr_n_limit)
 
 
         ### Apply filtering to foreground
