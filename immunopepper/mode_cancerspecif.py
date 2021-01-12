@@ -189,6 +189,63 @@ def hard_filter_normals(spark, normal_matrix, index_name, libsize_n, expr_limit_
 
     return spark, normal_matrix
 
+def preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
+
+    def collapse_values(value):
+        return max([np.float(i) if i != 'nan' else 0.0 for i in value.split('/')])  # np.nanmax not supported
+
+    cancer_path_tmp = pq_WithRenamedCols(cancer_path)
+    cancer_kmers = spark.read.parquet(cancer_path_tmp)
+    logging.info("Renamed done")
+
+    # Drop junction colum
+    for drop_col in drop_cols:
+        cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
+    logging.info("Collapse kmer horizontal")
+
+    # Remove the '/' in the expression data (kmers duplicate within a gene have 'expression1/expression2' format
+    local_max = sf.udf(collapse_values, st.FloatType())
+    for name_ in expression_fields:
+        cancer_kmers = cancer_kmers.withColumn(name_, local_max(name_))
+
+    # Filter on juction status
+    if cross_junction == 1:
+        logging.info("Keep cross junction kmers")
+        cancer_kmers = cancer_kmers.filter("{} == True".format(jct_col))
+        jct_type = "only-jct"
+    elif cross_junction == 0:
+        logging.info("Keep non-cross junction kmers")
+        cancer_kmers = cancer_kmers.filter("{} == False".format(jct_col))
+        jct_type = "non-jct"
+    else:
+        logging.info("Keep cross and non- junction kmers")
+        jct_type = "no-jct-filt"
+    if len(cancer_kmers.head(1)) == 0:
+        logging.info("WARNING: Restriction on junction status removed all foreground... Exiting")
+        sys.exit(1)
+
+    # Make kmers unique (Take max expression)
+    logging.info("Collapse kmer vertical")
+    cancer_kmers = cancer_kmers.withColumn(jct_col, sf.col(jct_col).cast("boolean").cast("int"))
+    exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in cancer_kmers.schema.names if name_ != index_name]
+    cancer_kmers = cancer_kmers.groupBy(index_name).agg(*exprs)
+
+    # Remove kmers unexpressed (both junction and segment expression null)
+    cancer_kmers = cancer_kmers.withColumn('allnull', sum(cancer_kmers[name_] for name_ in expression_fields))
+    cancer_kmers = cancer_kmers.filter(sf.col("allnull") > 0.0)
+    cancer_kmers = cancer_kmers.drop("allnull")
+
+    # Normalize by library size
+    if libsize_c is not None:
+        for name_ in expression_fields:
+            cancer_kmers = cancer_kmers.withColumn(name_, sf.round(
+                cancer_kmers[name_] / libsize_c.loc[cancer_sample, "libsize_75percent"], 2))
+    else:
+        for name_ in expression_fields:
+            cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_], 2))
+
+    return spark, cancer_kmers, cancer_path_tmp, jct_type
+
 def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
     def I_L_replace(value):
         return value.replace('I', 'L')
@@ -222,10 +279,6 @@ def mode_cancerspecif(arg):
         probA = disp / (disp + mean_)
         N = (probA * mean_) / (1 - probA)
         return float(scipy.stats.nbinom.cdf(0, n=N, p=probA))
-
-    def collapse_values(value):
-        return max([np.float(i) if i != 'nan' else 0.0 for i in value.split('/')])  # np.nanmax not supported
-
 
 
     with create_spark_session_from_config(spark_cfg) as spark:
@@ -314,7 +367,6 @@ def mode_cancerspecif(arg):
 
 
         ### Apply filtering to foreground
-
         if arg.expression_fields_c is None:
             expression_fields_orig =  ['segment_expr', 'junction_expr']
         else:
@@ -322,53 +374,15 @@ def mode_cancerspecif(arg):
 
         expression_fields = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in expression_fields_orig]
         drop_cols = ['id']
+
         for cancer_path, cancer_sample in zip(arg.paths_cancer_samples, arg.ids_cancer_samples):
             cancer_sample = cancer_sample.replace('-', '').replace('.', '').replace('_', '')
 
             # Preprocess cancer samples
             logging.info("... Process cancer sample {}".format(cancer_sample))
-            cancer_path_tmp = pq_WithRenamedCols(cancer_path)
-            cancer_kmers = spark.read.parquet(cancer_path_tmp)
-            logging.info("Renamed done")
-            # Drop junction colum
-            for drop_col in drop_cols:
-                cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
-            logging.info("Collapse kmer horizontal")
-            # Remove the '/' in the expression data (kmers duplicate within a gene have 'expression1/expression2' format
-            local_max = sf.udf(collapse_values, st.FloatType())
-            for name_ in expression_fields:
-                cancer_kmers = cancer_kmers.withColumn(name_, local_max(name_))
-            # Filter on juction status
-            if arg.cross_junction == 1:
-                logging.info("Keep cross junction kmers")
-                cancer_kmers = cancer_kmers.filter("{} == True".format(jct_col))
-                jct_type = "only-jct"
-            elif arg.cross_junction == 0:
-                logging.info("Keep non-cross junction kmers")
-                cancer_kmers = cancer_kmers.filter("{} == False".format(jct_col))
-                jct_type = "non-jct"
-            else:
-                logging.info("Keep cross and non- junction kmers")
-                jct_type ="no-jct-filt"
-            if len(cancer_kmers.head(1)) == 0:
-                logging.info("WARNING: Restriction on junction status removed all foreground... Exiting")
-                sys.exit(1)
-            # Make kmers unique (Take max expression)
-            logging.info("Collapse kmer vertical")
-            cancer_kmers = cancer_kmers.withColumn(jct_col, sf.col(jct_col).cast("boolean").cast("int"))
-            exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in cancer_kmers.schema.names if name_ != index_name]
-            cancer_kmers = cancer_kmers.groupBy(index_name).agg(*exprs)
-            # Remove kmers unexpressed (both junction and segment expression null)
-            cancer_kmers = cancer_kmers.withColumn('allnull', sum(cancer_kmers[name_] for name_ in expression_fields))
-            cancer_kmers = cancer_kmers.filter(sf.col("allnull") > 0.0)
-            cancer_kmers = cancer_kmers.drop("allnull")
-            #Normalize by library size
-            if libsize_c is not None:
-                for name in expression_fields:
-                    cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_] /libsize_c.loc[cancer_sample, "libsize_75percent"], 2) )
-            else:
-                for name in expression_fields:
-                    cancer_kmers = cancer_kmers.withColumn(name_, sf.round( cancer_kmers[name_] , 2))
+            spark, cancer_kmers, cancer_path_tmp, jct_type = preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols,
+                                                                      expression_fields, jct_col, index_name,
+                                                                        libsize_c, arg.cross_junction)
 
             ###Perform Background removal
             logging.info("Perform join")
@@ -382,7 +396,6 @@ def mode_cancerspecif(arg):
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0] + '_no-normals_' + jct_type + extension)
             save_spark(cancer_kmers, arg.output_dir, path_final_fil, 'normal')
-
 
 
             ### Remove Uniprot
