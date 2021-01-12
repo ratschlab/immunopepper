@@ -83,12 +83,6 @@ def pq_WithRenamedCols(path):
 
 
 
-def cast_type_dbl(normal_matrix, name_list, index_name):
-        return normal_matrix.select(
-            [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in
-             name_list])
-
-
 
 
 
@@ -110,6 +104,10 @@ def preprocess_normals(spark, index_name, jct_col, path_normal_matrix_segm, whit
     Preorocessed normal matrix
         '''
 
+    def cast_type_dbl(normal_matrix, name_list, index_name):
+        return normal_matrix.select(
+            [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in
+             name_list])
     # Rename
     rename = False  # For development
     if rename:
@@ -191,6 +189,20 @@ def hard_filter_normals(spark, normal_matrix, index_name, libsize_n, expr_limit_
 
     return spark, normal_matrix
 
+def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
+    def I_L_replace(value):
+        return value.replace('I', 'L')
+    if uniprot is not None:
+        uniprot = spark.read.csv(uniprot, sep='\t', header=None)
+        uniprot_header = index_name + "_IL_eq"
+        uniprot = uniprot.withColumnRenamed("_c0", uniprot_header)
+        # Make isoleucine and leucine equivalent
+        I_L_equ = sf.udf(I_L_replace, st.StringType())
+        uniprot = uniprot.withColumn(uniprot_header, I_L_equ(uniprot_header))
+        cancer_kmers = cancer_kmers.withColumn(uniprot_header, I_L_equ(index_name))
+        cancer_kmers = cancer_kmers.join(uniprot, cancer_kmers[uniprot_header] == uniprot[uniprot_header],
+                                         how='left_anti')
+    return  spark, cancer_kmers
 
 def save_spark(cancer_kmers, output_dir, path_final_fil, filtering_type_str):
     # save
@@ -214,13 +226,7 @@ def mode_cancerspecif(arg):
     def collapse_values(value):
         return max([np.float(i) if i != 'nan' else 0.0 for i in value.split('/')])  # np.nanmax not supported
 
-    def cast_type_dbl(normal_matrix, name_list, index_name): #Weird spark cannot have it outside..
-        return normal_matrix.select(
-            [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in
-             name_list])
 
-    def I_L_replace(value):
-        return value.replace('I', 'L')
 
     with create_spark_session_from_config(spark_cfg) as spark:
         if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
@@ -380,16 +386,8 @@ def mode_cancerspecif(arg):
 
 
             ### Remove Uniprot
-            if arg.uniprot is not None:
-                uniprot = spark.read.csv(arg.uniprot, sep='\t', header=None)
-                uniprot_header = index_name + "_IL_eq"
-                uniprot = uniprot.withColumnRenamed("_c0", uniprot_header)
-                #Make isoleucine and leucine equivalent
-                I_L_equ = sf.udf(I_L_replace, st.StringType())
-                uniprot = uniprot.withColumn(uniprot_header, I_L_equ(uniprot_header))
-                cancer_kmers = cancer_kmers.withColumn( uniprot_header, I_L_equ(index_name))
-                cancer_kmers = cancer_kmers.join(uniprot, cancer_kmers[uniprot_header] == uniprot[uniprot_header],
-                                                 how='left_anti')
+            spark, cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
+
             # save
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0] + '_no-normals_' + jct_type + '_no-uniprot_' + extension)
