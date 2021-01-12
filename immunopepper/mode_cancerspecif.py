@@ -358,9 +358,11 @@ def mode_cancerspecif(arg):
             cancer_kmers = cancer_kmers.drop("allnull")
             #Normalize by library size
             if libsize_c is not None:
-                cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_] /libsize_c.loc[cancer_sample, "libsize_75percent"], 2) )
+                for name in expression_fields:
+                    cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_] /libsize_c.loc[cancer_sample, "libsize_75percent"], 2) )
             else:
-                cancer_kmers = cancer_kmers.withColumn(name_, sf.round( cancer_kmers[name_] , 2))
+                for name in expression_fields:
+                    cancer_kmers = cancer_kmers.withColumn(name_, sf.round( cancer_kmers[name_] , 2))
 
             ###Perform Background removal
             logging.info("Perform join")
