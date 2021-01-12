@@ -192,6 +192,15 @@ def hard_filter_normals(spark, normal_matrix, index_name, libsize_n, expr_limit_
     return spark, normal_matrix
 
 
+def save_spark(cancer_kmers, output_dir, path_final_fil, filtering_type_str):
+    # save
+    if len(cancer_kmers.head(1)) > 0:
+        logging.info("Save after {} filtering ".format(filtering_type_str))
+        pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
+
+        cancer_kmers.repartition(1).write.mode('overwrite').parquet(path_final_fil)
+    else:
+        logging.info("WARNING: {} filtering removed all Foreground".format(filtering_type_str))
 
 
 def mode_cancerspecif(arg):
@@ -349,7 +358,7 @@ def mode_cancerspecif(arg):
             cancer_kmers = cancer_kmers.drop("allnull")
             #Normalize by library size
             if libsize_c is not None:
-                cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_] /libsize_c.loc[cancer_sample, "libsize_75percent"], 2))
+                cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_] /libsize_c.loc[cancer_sample, "libsize_75percent"], 2) )
             else:
                 cancer_kmers = cancer_kmers.withColumn(name_, sf.round( cancer_kmers[name_] , 2))
 
@@ -361,14 +370,11 @@ def mode_cancerspecif(arg):
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
 
             # save
-            if len(cancer_kmers.head(1)) > 0:
-                logging.info("Save after normal filtering ")
-                pathlib.Path(arg.output_dir).mkdir(exist_ok= True, parents= True)
-                extension = '.pq'
-                path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[0] + '_no-normals_' + jct_type + extension)
-                cancer_kmers.repartition(1).write.mode('overwrite').parquet(path_final_fil)
-            else:
-                logging.info("WARNING: normal filtering removed all Foreground")
+            extension = '.pq'
+            path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
+                0] + '_no-normals_' + jct_type + extension)
+            save_spark(cancer_kmers, arg.output_dir, path_final_fil, 'normal')
+
 
 
             ### Remove Uniprot
@@ -383,14 +389,10 @@ def mode_cancerspecif(arg):
                 cancer_kmers = cancer_kmers.join(uniprot, cancer_kmers[uniprot_header] == uniprot[uniprot_header],
                                                  how='left_anti')
             # save
-            if len(cancer_kmers.head(1)) > 0:
-                logging.info("Save after uniprot filtering")
-                pathlib.Path(arg.output_dir).mkdir(exist_ok= True, parents= True)
-                extension = '.pq'
-                path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[0] + '_no-normals_' + jct_type + '_no-uniprot_' + extension)
-                cancer_kmers.repartition(1).write.mode('overwrite').parquet(path_final_fil)
-            else:
-                logging.info("WARNING: uniprot filtering removed all Foreground")
+            path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
+                0] + '_no-normals_' + jct_type + '_no-uniprot_' + extension)
+            save_spark(cancer_kmers, arg.output_dir, path_final_fil, 'uniprot')
+
 
             os.remove(cancer_path_tmp)
 
