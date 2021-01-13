@@ -296,7 +296,7 @@ def collect_results(filepointer_item, outbase, compression, mutation_mode,  kmer
                     tot_shape += table.shape[0]
                 except:
                     logging.info("ERROR: file {} could not be read".format(tmp_file))
-            sys.exit(1)
+                    sys.exit(1)
             if tmp_file_list:
                 pqwriter.close()
                 logging.info('Collecting {} with {} lines. Took {} seconds'.format(file_name, tot_shape, timeit.default_timer()-s1))

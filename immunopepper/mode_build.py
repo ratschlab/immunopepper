@@ -61,6 +61,7 @@ def mapper_funct_back(tuple_arg):
 
 def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinfo, genetable, arg, outbase, filepointer, compression=None, verbose=False):
     try:
+        exception_ = None
         if not os.path.exists(pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS"))):
             pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
             set_kmer_back =  defaultdict(set, {})
@@ -119,7 +120,6 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
                                                                                           np.max(time_per_gene),
                                                                                           np.max(mem_per_gene)))
                 pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
-            exception_ = None
         else:
             logging.info("> {} : Batch {} exists, skip processing ".format(sample, outbase.split('/')[-1].split('_')[-1]))
 
@@ -132,6 +132,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
 
 def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
     try:
+        exception_ = None
         ### Temporary fix
         parquet_issue = 0
         files_tmp_dir = glob.glob(outbase + '/*sample*') + glob.glob(outbase + '/*graph*')
@@ -140,10 +141,11 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                 foo = pq.read_table(file_)
             except:
                 parquet_issue += 1
-        if (not parquet_issue) and len(files_tmp_dir) > 0:
+        if (not parquet_issue) and len(files_tmp_dir) > 0: #No issue
             pathlib.Path(os.path.join(outbase, "Sample_IS_SUCCESS")).touch()
-        else:
-            os.remove(os.path.join(outbase, "Sample_IS_SUCCESS"))
+        else: # Exist issue
+            if os.path.exists(os.path.join(outbase, "Sample_IS_SUCCESS")):
+                os.remove(os.path.join(outbase, "Sample_IS_SUCCESS"))
 
         complexity_cap =4000
         
@@ -274,7 +276,6 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                                                                                               np.max(time_per_gene),
                                                                                             np.max(mem_per_gene)))
                 pathlib.Path(os.path.join(outbase, "Sample_IS_SUCCESS")).touch()
-            exception_ = None
 
         else:
             logging.info("> {} : Batch {} exists, skip processing ".format(sample, outbase.split('/')[-1].split('_')[-1]))
