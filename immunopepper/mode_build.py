@@ -148,12 +148,12 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
         complexity_cap =4000
         
         ### Temporary fix
-        gene_issue = 0
-        for i, gene in enumerate(genes):
-            if (len(gene.splicegraph.vertices[1]) >= complexity_cap):
-                gene_issue += 1
-        if gene_issue:
-            shutil.rmtree(outbase, ignore_errors=True)
+#        gene_issue = 0
+#        for i, gene in enumerate(genes):
+#            if (len(gene.splicegraph.vertices[1]) >= complexity_cap):
+#                gene_issue += 1
+#        if gene_issue:
+#            shutil.rmtree(outbase, ignore_errors=True)
 
         if not os.path.exists(os.path.join(outbase, "Sample_IS_SUCCESS")):
 
@@ -416,8 +416,9 @@ def mode_build(arg):
 
             # Collects and pools the files of each batch
             logging.debug('start collecting results')
-            collect_results(filepointer.background_peptide_fp, output_path, pq_compression, arg.mutation_mode)
-            collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, arg.mutation_mode)
+            if arg.output_fasta:
+                collect_results(filepointer.background_peptide_fp, output_path, pq_compression, arg.mutation_mode)
+                collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.junction_meta_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
             collect_results(filepointer.background_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
