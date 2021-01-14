@@ -76,7 +76,7 @@ def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: 
             #set("spark.jars", jar_paths).
             set("spark.sql.execution.arrow.pyspark.enabled", str(enable_arrow)). #TODO set as parameter 
             set("spark.sql.debug.maxToStringFields", 11000)
-            #.set("spark.driver.bindAddress", "192.168.0.15")
+            .set("spark.driver.bindAddress", "192.168.0.15")
             #set("spark.default.parallelism", 4 * cores)
              #TODO remove the personal IP address
             )

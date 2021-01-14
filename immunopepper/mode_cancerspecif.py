@@ -113,7 +113,6 @@ def pq_WithRenamedCols(path):
     path_tmp = path + 'tmp'
     if os.path.exists(path_tmp):
         os.remove(path_tmp)
-    logging.info("resaving to {}".format(path_tmp))
     pqwriter = pq.ParquetWriter(path_tmp, df.schema, compression=None)
     pqwriter.write_table(df)
     pqwriter.close()
@@ -361,15 +360,15 @@ def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
     return  spark, cancer_kmers
 
 
-def save_spark(cancer_kmers, output_dir, path_final_fil, filtering_type_str):
+def save_spark(cancer_kmers, output_dir, path_final_fil):
     # save
     if len(cancer_kmers.head(1)) > 0:
-        logging.info("Save after {} filtering ".format(filtering_type_str))
+        logging.info("Save to {}".format(path_final_fil))
         pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
 
         cancer_kmers.repartition(1).write.mode('overwrite').parquet(path_final_fil)
     else:
-        logging.info("WARNING: {} filtering removed all Foreground".format(filtering_type_str))
+        logging.info("WARNING: no saving performed, {} would be empty".format(path_final_fil))
 
 
 
@@ -386,13 +385,13 @@ def mode_cancerspecif(arg):
         #spark.sparkContext.setCheckpointDir(os.path.join(arg.output_dir, "checkpoint"))
 
         ### Preprocessing Normals
-        logging.info(">>>>>>>> Preprocessing Normal samples")
+        logging.info("\n >>>>>>>> Preprocessing Normal samples")
         index_name = 'kmer'
         jct_col = "iscrossjunction"
         spark, normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist)
 
         ### Preprocessing Libsize
-        logging.info(">>>>>>>> Preprocessing libsizes")
+        logging.info("\n >>>>>>>> Preprocessing libsizes")
         if arg.path_normal_libsize:
             libsize_n = process_libsize(arg.path_normal_libsize)
         else:
@@ -403,12 +402,11 @@ def mode_cancerspecif(arg):
 
         ### NORMALS: Statistical Filtering
         if arg.statistical:
-            logging.info(">>>>>>>>  Perform statistical filtering")
+            logging.info("\n >>>>>>>> Normals: Perform statistical filtering")
             # Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
             if arg.expr_high_limit_normal is not None:
                 logging.info( "... Normal kmers with expression >= {} in >= 1 sample are truly expressed. \n Will be substracted from cancer set".format(arg.expr_high_limit_normal))
                 spark, high_expr_normals, normal_matrix = outlier_filtering(spark, normal_matrix, index_name, libsize_n, arg.expr_high_limit_normal)
-
 
             if arg.tissue_grp_files is not None:
                 modelling_grps = []
@@ -430,10 +428,18 @@ def mode_cancerspecif(arg):
 
         ### NORMALS: Hard Filtering
         else:
-            logging.info(">>>>>>>> Hard Filtering")
+            logging.info("\n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.expr_n_limit, arg.expr_limit_normal))
             logging.info("expression filter")
-            hard_filter_normals(spark, normal_matrix, index_name, libsize_n, arg.expr_limit_normal, arg.expr_n_limit)
+            spark, normal_matrix = hard_filter_normals(spark, normal_matrix, index_name, libsize_n, arg.expr_limit_normal, arg.expr_n_limit)
 
+            save_filtered_normals = True
+            if save_filtered_normals:
+                extension = '.pq'
+                path_tmp_n = os.path.join(arg.output_dir, os.path.basename(arg.path_normal_matrix_segm).split('.')[
+                    0] + '_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.expr_n_limit, arg.expr_limit_normal) + extension)
+                save_spark(normal_matrix, arg.output_dir, path_tmp_n)
+                logging.info(path_tmp_n)
+            normal_matrix = normal_matrix.select(sf.col(index_name))
 
         ### Apply filtering to foreground
         if arg.expression_fields_c is None:
@@ -448,28 +454,38 @@ def mode_cancerspecif(arg):
             cancer_sample = cancer_sample.replace('-', '').replace('.', '').replace('_', '')
 
             # Preprocess cancer samples
-            logging.info("... Process cancer sample {}".format(cancer_sample))
+            logging.info("\n >>>>>>>> Cancers: Perform differential filtering sample {}".format(cancer_sample))
             spark, cancer_kmers, cancer_path_tmp, jct_type = process_cancers(spark, cancer_path, cancer_sample, drop_cols,
                                                                       expression_fields, jct_col, index_name,
                                                                         libsize_c, arg.cross_junction)
 
             ###Perform Background removal
-            logging.info("Perform join")
-            logging.info("BROADCAST NORMALS")
-            normal_matrix = sf.broadcast(normal_matrix)
+            #logging.info("Perform join")
+            #logging.info("BROADCAST NORMALS")
+            #normal_matrix = sf.broadcast(normal_matrix)
             #cancer_kmers = sf.broadcast(cancer_kmers)
-            cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
+            #cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
+
             extension = '.pq'
+            path_tmp_c = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
+                0] + '_expressed_normalized_' + jct_type + extension)
+            save_spark(cancer_kmers, arg.output_dir, path_tmp_c)
+            logging.info(path_tmp_c)
+
+            logging.info("Filtering normal background")
+            cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
+
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
-                0] + '_no-normals_' + jct_type + extension)
-            save_spark(cancer_kmers, arg.output_dir, path_final_fil, 'normal')
+                0] + '_'+ jct_type + '_filter-for-normals'  + extension)
+            save_spark(cancer_kmers, arg.output_dir, path_final_fil)
 
 
             ### Remove Uniprot
+            logging.info("Filtering kmers in uniprot")
             spark, cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
-                0] + '_no-normals_' + jct_type + '_no-uniprot_' + extension)
-            save_spark(cancer_kmers, arg.output_dir, path_final_fil, 'uniprot')
+                0] + '_'+ jct_type + '_filter-for-normals-and-uniprot' + extension)
+            save_spark(cancer_kmers, arg.output_dir, path_final_fil)
 
 
             os.remove(cancer_path_tmp)
