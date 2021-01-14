@@ -114,8 +114,8 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
             set_kmer_back.clear()
 
             if all_gene_idxs:
-                logging.info("> {}: annotation graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
-                                                                                          all_gene_idxs[-1]  + 1,
+                logging.info("> {}: annotation graph from batch {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
+                                                                                          outbase.split('/')[-1].split('_')[-1] ,
                                                                                           len(gene_id_list),
                                                                                           np.max(time_per_gene),
                                                                                           np.max(mem_per_gene)))
@@ -135,12 +135,13 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
         exception_ = None
         ### Temporary fix
         parquet_issue = 0
-        files_tmp_dir = glob.glob(outbase + '/*sample*') + glob.glob(outbase + '/*graph*')
+        files_tmp_dir = glob.glob(outbase + '/*sample*') + glob.glob(outbase + '/*graph*') + glob.glob(outbase + '/*expression*')
         for file_ in files_tmp_dir:
             try:
                 foo = pq.read_table(file_)
             except:
                 parquet_issue += 1
+                logging.info("cannot read {}".format(file_))
         if (not parquet_issue) and len(files_tmp_dir) > 0: #No issue
             pathlib.Path(os.path.join(outbase, "Sample_IS_SUCCESS")).touch()
         else: # Exist issue
@@ -270,8 +271,8 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                 filepointer.kmer_edge_expr_fp['pqwriter'].close()
 
             if all_gene_idxs:
-                logging.info("> {}: sample graph {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
-                                                                                              all_gene_idxs[-1]  + 1,
+                logging.info("> {}: sample graph from batch {}/{} processed, max time cost: {}, memory cost:{} GB for gene batch".format(sample,
+                                                                                              outbase.split('/')[-1].split('_')[-1] ,
                                                                                               len(gene_id_list),
                                                                                               np.max(time_per_gene),
                                                                                             np.max(mem_per_gene)))

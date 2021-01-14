@@ -380,10 +380,10 @@ def mode_cancerspecif(arg):
 
     spark_cfg = default_spark_config(arg.cores, arg.mem_per_core)
     with create_spark_session_from_config(spark_cfg) as spark:
-        if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
-            shutil.rmtree(os.path.join(arg.output_dir, "checkpoint"))
-        pathlib.Path(os.path.join(arg.output_dir, "checkpoint")).mkdir(exist_ok=True, parents=True)
-        spark.sparkContext.setCheckpointDir(os.path.join(arg.output_dir, "checkpoint"))
+        #if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
+        #    shutil.rmtree(os.path.join(arg.output_dir, "checkpoint"))
+        #pathlib.Path(os.path.join(arg.output_dir, "checkpoint")).mkdir(exist_ok=True, parents=True)
+        #spark.sparkContext.setCheckpointDir(os.path.join(arg.output_dir, "checkpoint"))
 
         ### Preprocessing Normals
         logging.info(">>>>>>>> Preprocessing Normal samples")
@@ -455,9 +455,9 @@ def mode_cancerspecif(arg):
 
             ###Perform Background removal
             logging.info("Perform join")
-            logging.info("NO BROADCAST")
-                #normal_matrix = sf.broadcast(normal_matrix)
-                #cancer_kmers = sf.broadcast(cancer_kmers)
+            logging.info("BROADCAST NORMALS")
+            normal_matrix = sf.broadcast(normal_matrix)
+            #cancer_kmers = sf.broadcast(cancer_kmers)
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
             extension = '.pq'
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
