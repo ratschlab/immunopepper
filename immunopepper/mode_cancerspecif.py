@@ -119,7 +119,7 @@ def pq_WithRenamedCols(path):
     return path_tmp
 
 
-def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, whitelist):
+def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, whitelist, cross_junction):
     ''' Preprocess normal samples
     - corrects names
     - corrects types
@@ -151,7 +151,11 @@ def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, whiteli
     else:
         normal_matrix = spark.read.parquet(path_normal_matrix_segm)
 
-    # Drop junction column
+    # Keep relevant junction status and drop junction column
+    if cross_junction:
+        normal_matrix = normal_matrix.filter("{} == True".format(jct_col))
+    else:
+        normal_matrix = normal_matrix.filter("{} == False".format(jct_col))
     normal_matrix = normal_matrix.drop(jct_col)
 
     # Cast type and fill nans + Reduce samples (columns) to whitelist
@@ -388,7 +392,9 @@ def mode_cancerspecif(arg):
         logging.info("\n >>>>>>>> Preprocessing Normal samples")
         index_name = 'kmer'
         jct_col = "iscrossjunction"
-        spark, normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist)
+        spark, normal_matrix_segm = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist, cross_junction = 0)
+        spark, normal_matrix_edge = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.whitelist, cross_junction = 1)
+        normal_matrix = normal_matrix_segm.union(normal_matrix_edge)
 
         ### Preprocessing Libsize
         logging.info("\n >>>>>>>> Preprocessing libsizes")
