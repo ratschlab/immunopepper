@@ -395,6 +395,10 @@ def mode_cancerspecif(arg):
         spark, normal_matrix_segm = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist, cross_junction = 0)
         spark, normal_matrix_edge = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.whitelist, cross_junction = 1)
         normal_matrix = normal_matrix_segm.union(normal_matrix_edge)
+        exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
+        # Take max expression between edge or segment expression
+        normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
+        logging.info(''.format(normal_matrix.count()))
 
         ### Preprocessing Libsize
         logging.info("\n >>>>>>>> Preprocessing libsizes")

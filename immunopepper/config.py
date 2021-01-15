@@ -54,7 +54,9 @@ def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: 
     :param enable_arrow: see https://spark.apache.org/docs/2.3.0/sql-programming-guide.html#pyspark-usage-guide-for-pandas-with-apache-arrow , requires pyarrow to be installed
     :return: SparkConf instance
     '''
-    driver_mem = cores * memory_per_executor + driver_overhead
+    #driver_mem = cores * memory_per_executor + driver_overhead
+    driver_mem = driver_overhead
+    excec_mem =  memory_per_executor - ( driver_mem/ cores)
 
     cfg = SparkConf()
 
@@ -70,13 +72,13 @@ def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: 
         java_options = "-Duser.timezone=UTC " + java_options
 
     return (cfg.set("spark.driver.memory", "{}m".format(driver_mem)).
-            set("spark.executor.memory", "{}m".format(memory_per_executor)).
+            set("spark.executor.memory", "{}m".format(excec_mem)).
             set("spark.driver.extraJavaOptions", java_options).
             set("spark.master", "local[{}]".format(cores)).
             #set("spark.jars", jar_paths).
             set("spark.sql.execution.arrow.pyspark.enabled", str(enable_arrow)). #TODO set as parameter 
             set("spark.sql.debug.maxToStringFields", 11000)
-            .set("spark.driver.bindAddress", "192.168.0.15")
+            #.set("spark.driver.bindAddress", "192.168.0.15")
             #set("spark.default.parallelism", 4 * cores)
              #TODO remove the personal IP address
             )
