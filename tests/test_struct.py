@@ -23,7 +23,8 @@ def test_end_to_end_build(test_id, case, mutation_mode, tmpdir):
                '--somatic', '{}/test{}{}.maf'.format(data_dir, test_id, case),
                 '--gtex-junction-path', '{}/{}graph/spladder/genes_graph_conf3.test1{}.junction.hdf5'.format(data_dir, case, case),
                 '--mutation-mode', mutation_mode,
-                '--kmer', '4']
+                '--kmer', '4',
+                '--all-read-frames']
 
     my_args = my_args_build
     sample_dir = sample_dir_build
@@ -166,7 +167,7 @@ mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
 #for mutation_mode in ['ref', 'somatic', 'germline', 'somatic_and_germline']:
-#     test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=False) #TODO add back
+test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_cross_sample=False) #TODO add back
 
 # test_end_to_end_samplespecif('ERR2130621', tmpdir, "9", mutation_mode) # TEST DEPRECATED
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
@@ -177,7 +178,7 @@ mutation_mode ='ref'
 #    test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
 #test_end_to_end_crosscohort(tmpdir) #TODO add back
 #mini_crosscohort()
-test_end_to_end_cancerspecif()
+#test_end_to_end_cancerspecif()
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 

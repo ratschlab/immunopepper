@@ -62,7 +62,7 @@ def mapper_funct_back(tuple_arg):
 def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinfo, genetable, arg, outbase, filepointer, compression=None, verbose=False):
     try:
         exception_ = None
-        if not os.path.exists(pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS"))):
+        if not os.path.exists(os.path.join(outbase, "Annot_IS_SUCCESS")):
             pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
             set_kmer_back =  defaultdict(set, {})
             dict_pept_backgrd = {}
