@@ -159,9 +159,10 @@ def parse_arguments(argv):
     optional.add_argument("--cross-junction", help="Filtering on junction status, None: no filtering, 1 keep junctions, 0 keep non junctions", type = int, required=False, default=None)
     optional.add_argument("--tissue-grp-files", nargs='*', help="STATISTICAL: Allows the statistical modelling on normal samples to be performed on different tissue groups. Specify n paths of files, each containing the list of samples in the group. No header", required=False, default=None)
     optional.add_argument("--expr-high-limit-normal", type=float, help="STATISTICAL: Normal kmers with expression >= value in >= 1 sample are truly expressed. Will not be included in statistical modelling and will be substracted from cancer set", required=False, default=None)
-    optional.add_argument("--threshold-noise", type=float, help="STATISTICAL: Probability threshold on accepted noise in normals (High thresholds lead to leaner cancer kmer filtering)", required=False, default=None)
-    optional.add_argument("--expr-limit-normal", type=float, help="HARD FILTERING: Expression threshold in the normal samples (see --expr-n-limit )", required=False, default=None)
-    optional.add_argument("--expr-n-limit", type=int, help="HARD FILTERING: Number of normal samples in which the expression threshold should be met", required=False, default=None)
+    optional.add_argument("--threshold-noise-normal", type=float, help="STATISTICAL: Probability threshold on accepted noise in normals (High thresholds lead to leaner cancer kmer filtering)", required=False, default=None)
+    optional.add_argument("--expr-limit-normal", type=float, help="HARD FILTERING: Expression threshold in the normal samples (see --expr-n-limit ) applied on normalized counts", required=False, default=None)
+    optional.add_argument("--n-samples-lim-normal", type=int, help="HARD FILTERING: Number of normal samples in which the expression threshold should be met", required=False, default=None)
+    optional.add_argument("--expr-limit-cancer", type=float, help="Expression threshold for the cancer samples applied on normalized counts", required=False, default=None)
     _add_general_args(parser_cancerspecif)
 
 

@@ -268,7 +268,24 @@ def hard_filter_normals(spark, normal_matrix, index_name, libsize_n, expr_limit_
     return spark, normal_matrix
 
 
-def process_cancers(spark, cancer_path, cancer_sample, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
+
+    # Filter on juction status
+    if cross_junction == 1:
+        logging.info("Keep cross junction kmers")
+        cancer_kmers = cancer_kmers.filter("{} == True".format(jct_col))
+        jct_type = "only-jct"
+    elif cross_junction == 0:
+        logging.info("Keep non-cross junction kmers")
+        cancer_kmers = cancer_kmers.filter("{} == False".format(jct_col))
+        jct_type = "non-jct"
+    else:
+        logging.info("Keep cross and non- junction kmers")
+        jct_type = "no-jct-filt"
+    if len(cancer_kmers.head(1)) == 0:
+        logging.info("WARNING: Restriction on junction status removed all foreground... Exiting")
+        sys.exit(1)
+
+def preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
     ''' Preprocess cancer samples
     - Make kmers unique
     - Filter kmers on junction status
@@ -299,6 +316,12 @@ def process_cancers(spark, cancer_path, cancer_sample, drop_cols, expression_fie
     cancer_kmers = spark.read.parquet(cancer_path_tmp)
     logging.info("Renamed done")
 
+    # Filter on juction status
+    if cross_junction == 1:
+        cancer_kmers = cancer_kmers.filter("{} == True".format(jct_col))
+    elif cross_junction == 0:
+        cancer_kmers = cancer_kmers.filter("{} == False".format(jct_col))
+
     # Drop junction column
     for drop_col in drop_cols:
         cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
@@ -308,22 +331,6 @@ def process_cancers(spark, cancer_path, cancer_sample, drop_cols, expression_fie
     local_max = sf.udf(collapse_values, st.FloatType())
     for name_ in expression_fields:
         cancer_kmers = cancer_kmers.withColumn(name_, local_max(name_))
-
-    # Filter on juction status
-    if cross_junction == 1:
-        logging.info("Keep cross junction kmers")
-        cancer_kmers = cancer_kmers.filter("{} == True".format(jct_col))
-        jct_type = "only-jct"
-    elif cross_junction == 0:
-        logging.info("Keep non-cross junction kmers")
-        cancer_kmers = cancer_kmers.filter("{} == False".format(jct_col))
-        jct_type = "non-jct"
-    else:
-        logging.info("Keep cross and non- junction kmers")
-        jct_type = "no-jct-filt"
-    if len(cancer_kmers.head(1)) == 0:
-        logging.info("WARNING: Restriction on junction status removed all foreground... Exiting")
-        sys.exit(1)
 
     # Make kmers unique (Take max expression)
     logging.info("Collapse kmer vertical")
@@ -345,8 +352,20 @@ def process_cancers(spark, cancer_path, cancer_sample, drop_cols, expression_fie
         for name_ in expression_fields:
             cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_], 2))
 
-    return spark, cancer_kmers, cancer_path_tmp, jct_type
+    return spark, cancer_kmers, cancer_path_tmp
 
+
+def filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields_orig, threshold_cancer):
+    cancer_kmers_edge = cancer_kmers_edge.filter(sf.col(expression_fields_orig[
+                                                            1]) >= threshold_cancer)  # if  max( edge expression 1 and 2) >=threshold: keep Expressed kmers
+    cancer_kmers_segm = cancer_kmers_segm.filter(sf.col(expression_fields_orig[0]) >= threshold_cancer)
+    cancer_kmers_segm = cancer_kmers_segm.join(cancer_kmers_edge,
+                                               cancer_kmers_segm[index_name] == cancer_kmers_edge[index_name],
+                                               how='left_anti')   # if  max( edge expression 1 and 2)<threshold and  max( segment expression 1 and 2)>= threshold: keep
+
+    cancer_kmers = cancer_kmers_edge.union(cancer_kmers_segm)
+
+    return spark, cancer_kmers
 
 def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
     def I_L_replace(value):
@@ -395,8 +414,11 @@ def mode_cancerspecif(arg):
         spark, normal_matrix_segm = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist, cross_junction = 0)
         spark, normal_matrix_edge = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.whitelist, cross_junction = 1)
         normal_matrix = normal_matrix_segm.union(normal_matrix_edge)
-        exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
+        del normal_matrix_segm
+        del normal_matrix_edge
+
         # Take max expression between edge or segment expression
+        exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
         normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
         logging.info(''.format(normal_matrix.count()))
 
@@ -438,22 +460,22 @@ def mode_cancerspecif(arg):
 
         ### NORMALS: Hard Filtering
         else:
-            logging.info("\n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.expr_n_limit, arg.expr_limit_normal))
+            logging.info("\n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.expr_limit_normal))
             logging.info("expression filter")
-            spark, normal_matrix = hard_filter_normals(spark, normal_matrix, index_name, libsize_n, arg.expr_limit_normal, arg.expr_n_limit)
+            spark, normal_matrix = hard_filter_normals(spark, normal_matrix, index_name, libsize_n, arg.expr_limit_normal, arg.n_samples_lim_normal)
 
             save_filtered_normals = True
             if save_filtered_normals:
                 extension = '.pq'
                 path_tmp_n = os.path.join(arg.output_dir, os.path.basename(arg.path_normal_matrix_segm).split('.')[
-                    0] + '_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.expr_n_limit, arg.expr_limit_normal) + extension)
+                    0] + '_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + extension)
                 save_spark(normal_matrix, arg.output_dir, path_tmp_n)
                 logging.info(path_tmp_n)
             normal_matrix = normal_matrix.select(sf.col(index_name))
 
         ### Apply filtering to foreground
         if arg.expression_fields_c is None:
-            expression_fields_orig =  ['segment_expr', 'junction_expr']
+            expression_fields_orig =  ['segment_expr', 'junction_expr'] # segment 1 , junction 2
         else:
             expression_fields_orig = arg.expression_fields_c
 
@@ -465,9 +487,15 @@ def mode_cancerspecif(arg):
 
             # Preprocess cancer samples
             logging.info("\n >>>>>>>> Cancers: Perform differential filtering sample {}".format(cancer_sample))
-            spark, cancer_kmers, cancer_path_tmp, jct_type = process_cancers(spark, cancer_path, cancer_sample, drop_cols,
+            spark, cancer_kmers_edge, cancer_path_tmp_edge  = preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols,
                                                                       expression_fields, jct_col, index_name,
-                                                                        libsize_c, arg.cross_junction)
+                                                                        libsize_c, 1)
+
+            spark, cancer_kmers_segm, cancer_path_tmp_segm  = preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols,
+                                                                      expression_fields, jct_col, index_name,
+                                                                        libsize_c, 0)
+
+            spark, cancer_kmers = filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields_orig, arg.expr_limit_cancer)
 
             ###Perform Background removal
             #logging.info("Perform join")
