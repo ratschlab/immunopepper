@@ -491,11 +491,12 @@ def mode_cancerspecif(arg):
                                                                       expression_fields, jct_col, index_name,
                                                                         libsize_c, 1)
 
+
             spark, cancer_kmers_segm, cancer_path_tmp_segm  = preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols,
                                                                       expression_fields, jct_col, index_name,
                                                                         libsize_c, 0)
 
-            spark, cancer_kmers = filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields_orig, arg.expr_limit_cancer)
+            spark, cancer_kmers = filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields, arg.expr_limit_cancer)
 
             ###Perform Background removal
             #logging.info("Perform join")
@@ -504,9 +505,11 @@ def mode_cancerspecif(arg):
             #cancer_kmers = sf.broadcast(cancer_kmers)
             #cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
 
+
+            #TODO Keep junction type reduction in foreground or not? "--cross-junction"
             extension = '.pq'
             path_tmp_c = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
-                0] + '_expressed_normalized_' + jct_type + extension)
+                0] + '_expressed_normalized_'  + extension)
             save_spark(cancer_kmers, arg.output_dir, path_tmp_c)
             logging.info(path_tmp_c)
 
@@ -514,7 +517,7 @@ def mode_cancerspecif(arg):
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
 
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
-                0] + '_'+ jct_type + '_filter-for-normals'  + extension)
+                0] + '_filter-for-normals'  + extension)
             save_spark(cancer_kmers, arg.output_dir, path_final_fil)
 
 
@@ -522,11 +525,12 @@ def mode_cancerspecif(arg):
             logging.info("Filtering kmers in uniprot")
             spark, cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
-                0] + '_'+ jct_type + '_filter-for-normals-and-uniprot' + extension)
+                0]  + '_filter-for-normals-and-uniprot' + extension)
             save_spark(cancer_kmers, arg.output_dir, path_final_fil)
 
 
-            os.remove(cancer_path_tmp)
+            os.remove(cancer_path_tmp_edge)
+            os.remove(cancer_path_tmp_segm)
 
 
 
