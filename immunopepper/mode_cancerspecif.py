@@ -389,10 +389,11 @@ def save_spark(cancer_kmers, output_dir, path_final_fil):
     logging.info("Save to {}".format(path_final_fil))
     pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
     
-    repart = "default"
+    #repart = "default"
+    repart = 1
     logging.info("repartition is {}".format(repart))
-    #cancer_kmers.repartition(repart).write.mode('overwrite').parquet(path_final_fil)
-    cancer_kmers.write.mode('overwrite').parquet(path_final_fil + 'default')
+    cancer_kmers.repartition(repart).write.mode('overwrite').parquet(path_final_fil)
+    #cancer_kmers.write.mode('overwrite').parquet(path_final_fil + 'default')
     #else:
     #    logging.info("WARNING: no saving performed, {} would be empty".format(path_final_fil))
 

@@ -55,10 +55,10 @@ def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: 
     :param enable_arrow: see https://spark.apache.org/docs/2.3.0/sql-programming-guide.html#pyspark-usage-guide-for-pandas-with-apache-arrow , requires pyarrow to be installed
     :return: SparkConf instance
     '''
-    driver_mem = 0.75 * cores * memory_per_executor #+ driver_overhead
+    driver_mem = int(0.75 * cores * memory_per_executor) #+ driver_overhead
     memory_per_executor = 5000
     #parallelism_='default'
-    parallelism_ = 100
+    parallelism_ = 3000
     #core_per_exec = 1
     print("driver_mem", driver_mem)
     print("memory_per_executor", memory_per_executor)
@@ -87,7 +87,7 @@ def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: 
             set("spark.sql.execution.arrow.pyspark.enabled", str(enable_arrow)). #TODO set as parameter 
             set("spark.sql.debug.maxToStringFields", 11000)
            #.set("spark.driver.bindAddress", "192.168.0.15")
-            .set("spark.default.parallelism", parallelism_ * cores)
+            .set("spark.default.parallelism", parallelism_ )
              #TODO remove the personal IP address
             )
 
