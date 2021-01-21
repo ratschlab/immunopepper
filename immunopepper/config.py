@@ -1,5 +1,6 @@
 import logging
 import multiprocessing as mp
+import numpy as np 
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
 import sys
@@ -54,8 +55,14 @@ def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: 
     :param enable_arrow: see https://spark.apache.org/docs/2.3.0/sql-programming-guide.html#pyspark-usage-guide-for-pandas-with-apache-arrow , requires pyarrow to be installed
     :return: SparkConf instance
     '''
-    driver_mem = cores * memory_per_executor + driver_overhead
-
+    driver_mem = 0.75 * cores * memory_per_executor #+ driver_overhead
+    memory_per_executor = 5000
+    #parallelism_='default'
+    parallelism_ = 100
+    #core_per_exec = 1
+    print("driver_mem", driver_mem)
+    print("memory_per_executor", memory_per_executor)
+    print("parallelism_", parallelism_)
 
     cfg = SparkConf()
 
@@ -69,16 +76,18 @@ def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: 
     if use_utc:
         # avoiding trouble with JDBC and timestamps
         java_options = "-Duser.timezone=UTC " + java_options
-
+    
+    
     return (cfg.set("spark.driver.memory", "{}m".format(driver_mem)).
             set("spark.executor.memory", "{}m".format(memory_per_executor)).
             set("spark.driver.extraJavaOptions", java_options).
             set("spark.master", "local[{}]".format(cores)).
+            #set("spark.executor.cores", int(np.floor(cores / core_per_exec))).
             #set("spark.jars", jar_paths).
             set("spark.sql.execution.arrow.pyspark.enabled", str(enable_arrow)). #TODO set as parameter 
             set("spark.sql.debug.maxToStringFields", 11000)
-            .set("spark.driver.bindAddress", "192.168.0.15")
-            #set("spark.default.parallelism", 4 * cores)
+           #.set("spark.driver.bindAddress", "192.168.0.15")
+            .set("spark.default.parallelism", parallelism_ * cores)
              #TODO remove the personal IP address
             )
 

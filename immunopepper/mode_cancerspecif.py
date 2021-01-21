@@ -97,7 +97,7 @@ def fit_NB(spark, normal_matrix, index_name, output_dir, path_normal_matrix_segm
     logging.info("Filter out noise from normals")
     normal_matrix = normal_matrix.withColumn("proba_zero", stat_udf(sf.col('baseMean'), sf.col('dispersion')))
 
-    return spark , normal_matrix
+    return spark, normal_matrix
 
 
 def process_libsize(path_lib):
@@ -187,7 +187,7 @@ def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, whiteli
     normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
     logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
 
-    return spark, normal_matrix
+    return normal_matrix
 
 
 def outlier_filtering(spark, normal_matrix, index_name, libsize_n, expr_high_limit_normal):
@@ -385,13 +385,16 @@ def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
 
 def save_spark(cancer_kmers, output_dir, path_final_fil):
     # save
-    if len(cancer_kmers.head(1)) > 0:
-        logging.info("Save to {}".format(path_final_fil))
-        pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
-
-        cancer_kmers.repartition(1).write.mode('overwrite').parquet(path_final_fil)
-    else:
-        logging.info("WARNING: no saving performed, {} would be empty".format(path_final_fil))
+    #if len(cancer_kmers.head(1)) > 0:
+    logging.info("Save to {}".format(path_final_fil))
+    pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
+    
+    repart = "default"
+    logging.info("repartition is {}".format(repart))
+    #cancer_kmers.repartition(repart).write.mode('overwrite').parquet(path_final_fil)
+    cancer_kmers.write.mode('overwrite').parquet(path_final_fil + 'default')
+    #else:
+    #    logging.info("WARNING: no saving performed, {} would be empty".format(path_final_fil))
 
 
 
@@ -411,11 +414,8 @@ def mode_cancerspecif(arg):
         logging.info("\n >>>>>>>> Preprocessing Normal samples")
         index_name = 'kmer'
         jct_col = "iscrossjunction"
-        spark, normal_matrix_segm = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist, cross_junction = 0)
-        spark, normal_matrix_edge = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.whitelist, cross_junction = 1)
-        normal_matrix = normal_matrix_segm.union(normal_matrix_edge)
-        del normal_matrix_segm
-        del normal_matrix_edge
+        
+        normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.whitelist, cross_junction = 1))
 
         # Take max expression between edge or segment expression
         exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
