@@ -135,8 +135,9 @@ def parse_arguments(argv):
     parser_cancerspecif = subparsers.add_parser('cancerspecif',
                                                help='Performs differential filtering against a panel of normal samples')
     required = parser_cancerspecif.add_argument_group('MANDATORY')
-    required.add_argument("--cores",type=int, help="number of cores for statistical filtering", required=True, default='')
-    required.add_argument("--mem-per-core",type=int, help="memory for statistical filtering", required=True)
+    required.add_argument("--cores",type=int, help="number of cores", required=True, default='')
+    required.add_argument("--mem-per-core",type=int, help="memory per core", required=True)
+    required.add_argument("--parallelism", type=int, help="parallelism parameter for spark JVM", required=True, default='3')
     required.add_argument("--kmer", help='kmer', required=True)
     #required.add_argument("--output-file-path", help="directory to save filtered kmer file", required=True)
     required.add_argument("--statistical", help="choose between statistical filtering or hard filtering. Default hard",

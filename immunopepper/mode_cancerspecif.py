@@ -385,17 +385,12 @@ def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
 
 def save_spark(cancer_kmers, output_dir, path_final_fil):
     # save
-    #if len(cancer_kmers.head(1)) > 0:
     logging.info("Save to {}".format(path_final_fil))
     pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
-    
-    #repart = "default"
-    repart = 1
-    logging.info("repartition is {}".format(repart))
-    cancer_kmers.repartition(repart).write.mode('overwrite').parquet(path_final_fil)
+    repartitions_ = 1
+    logging.info("repartition is {}".format(repartitions_))
+    cancer_kmers.repartition(repartitions_).write.mode('overwrite').parquet(path_final_fil)
     #cancer_kmers.write.mode('overwrite').parquet(path_final_fil + 'default')
-    #else:
-    #    logging.info("WARNING: no saving performed, {} would be empty".format(path_final_fil))
 
 
 
@@ -404,7 +399,7 @@ def save_spark(cancer_kmers, output_dir, path_final_fil):
 ### Main
 def mode_cancerspecif(arg):
 
-    spark_cfg = default_spark_config(arg.cores, arg.mem_per_core)
+    spark_cfg = default_spark_config(arg.cores, arg.mem_per_core, arg.parallelism)
     with create_spark_session_from_config(spark_cfg) as spark:
         #if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
         #    shutil.rmtree(os.path.join(arg.output_dir, "checkpoint"))
@@ -415,13 +410,20 @@ def mode_cancerspecif(arg):
         logging.info("\n >>>>>>>> Preprocessing Normal samples")
         index_name = 'kmer'
         jct_col = "iscrossjunction"
+        save_intermed = True
         
         normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.whitelist, cross_junction = 1))
+        if save_intermed:
+            path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge.pq')
+            save_spark(normal_matrix, arg.output_dir, path_)
 
         # Take max expression between edge or segment expression
         exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
         normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
-        logging.info(''.format(normal_matrix.count()))
+        if save_intermed:
+            path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge_max_uniq.pq')
+            save_spark(normal_matrix, arg.output_dir, path_)
+
 
         ### Preprocessing Libsize
         logging.info("\n >>>>>>>> Preprocessing libsizes")
@@ -465,13 +467,11 @@ def mode_cancerspecif(arg):
             logging.info("expression filter")
             spark, normal_matrix = hard_filter_normals(spark, normal_matrix, index_name, libsize_n, arg.expr_limit_normal, arg.n_samples_lim_normal)
 
-            save_filtered_normals = True
-            if save_filtered_normals:
-                extension = '.pq'
-                path_tmp_n = os.path.join(arg.output_dir, os.path.basename(arg.path_normal_matrix_segm).split('.')[
-                    0] + '_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + extension)
-                save_spark(normal_matrix, arg.output_dir, path_tmp_n)
-                logging.info(path_tmp_n)
+            if save_intermed:
+                path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + '.pq')
+                save_spark(normal_matrix, arg.output_dir, path_)
+
+
             normal_matrix = normal_matrix.select(sf.col(index_name))
 
         ### Apply filtering to foreground
@@ -512,7 +512,6 @@ def mode_cancerspecif(arg):
             path_tmp_c = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0] + '_expressed_normalized_'  + extension)
             save_spark(cancer_kmers, arg.output_dir, path_tmp_c)
-            logging.info(path_tmp_c)
 
             logging.info("Filtering normal background")
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
@@ -529,9 +528,10 @@ def mode_cancerspecif(arg):
                 0]  + '_filter-for-normals-and-uniprot' + extension)
             save_spark(cancer_kmers, arg.output_dir, path_final_fil)
 
-
-            os.remove(cancer_path_tmp_edge)
-            os.remove(cancer_path_tmp_segm)
+            if os.path.exists(cancer_path_tmp_edge):
+                os.remove(cancer_path_tmp_edge)
+            if os.path.exists(cancer_path_tmp_segm):
+                os.remove(cancer_path_tmp_segm)
 
 
 

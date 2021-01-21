@@ -158,7 +158,8 @@ def test_end_to_end_cancerspecif():
               "--whitelist", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt" ,
               "--cross-junction", "0",
               "--uniprot", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/uniprot" ,
-              "--expr-limit-cancer", "1"]
+              "--expr-limit-cancer", "1",
+              "--parallelism", "3"]
               #"--statistical"]
     immunopepper.split_mode(my_args)
 

@@ -42,7 +42,7 @@ class MyPool:
         self.pool.join()
 
 
-def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: int = 2000,
+def default_spark_config(cores: int, memory_per_executor: int, parallelism: int, driver_overhead: int = 2000,
                          tmp_dir: str = '', extra_java_options: str = '', enable_arrow: bool = True, use_utc: bool= False) -> SparkConf:
     '''
     See also https://spark.apache.org/docs/latest/configuration.html for more information
@@ -56,13 +56,10 @@ def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: 
     :return: SparkConf instance
     '''
     driver_mem = int(0.75 * cores * memory_per_executor) #+ driver_overhead
-    memory_per_executor = 5000
-    #parallelism_='default'
-    parallelism_ = 3000
-    #core_per_exec = 1
+    memory_per_executor = int(memory_per_executor / 2)
     print("driver_mem", driver_mem)
     print("memory_per_executor", memory_per_executor)
-    print("parallelism_", parallelism_)
+    print("parallelism_", parallelism)
 
     cfg = SparkConf()
 
@@ -87,7 +84,7 @@ def default_spark_config(cores: int, memory_per_executor: int, driver_overhead: 
             set("spark.sql.execution.arrow.pyspark.enabled", str(enable_arrow)). #TODO set as parameter 
             set("spark.sql.debug.maxToStringFields", 11000)
            #.set("spark.driver.bindAddress", "192.168.0.15")
-            .set("spark.default.parallelism", parallelism_ )
+            .set("spark.default.parallelism", parallelism)
              #TODO remove the personal IP address
             )
 
