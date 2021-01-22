@@ -119,7 +119,7 @@ def pq_WithRenamedCols(path):
     return path_tmp
 
 
-def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, whitelist, cross_junction):
+def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, whitelist, parallelism, cross_junction):
     ''' Preprocess normal samples
     - corrects names
     - corrects types
@@ -186,7 +186,8 @@ def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, whiteli
     exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
     normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
     logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-
+    normal_matrix = normal_matrix.repartition(parallelism)
+    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
     return normal_matrix
 
 
@@ -387,10 +388,11 @@ def save_spark(cancer_kmers, output_dir, path_final_fil):
     # save
     logging.info("Save to {}".format(path_final_fil))
     pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
-    repartitions_ = 1
+    #repartitions_ = 1
+    repartitions_ = "default"
     logging.info("repartition is {}".format(repartitions_))
-    cancer_kmers.repartition(repartitions_).write.mode('overwrite').parquet(path_final_fil)
-    #cancer_kmers.write.mode('overwrite').parquet(path_final_fil + 'default')
+    #cancer_kmers.repartition(repartitions_).write.mode('overwrite').parquet(path_final_fil)
+    cancer_kmers.write.mode('overwrite').parquet(path_final_fil + 'default')
 
 
 
@@ -412,7 +414,7 @@ def mode_cancerspecif(arg):
         jct_col = "iscrossjunction"
         save_intermed = True
         
-        normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.whitelist, cross_junction = 1))
+        normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.whitelist, arg.parallelism, cross_junction = 1))
         if save_intermed:
             path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge.pq')
             save_spark(normal_matrix, arg.output_dir, path_)
