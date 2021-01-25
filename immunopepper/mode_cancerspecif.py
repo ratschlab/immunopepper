@@ -392,7 +392,7 @@ def save_spark(cancer_kmers, output_dir, path_final_fil):
     repartitions_ = "default"
     logging.info("repartition is {}".format(repartitions_))
     #cancer_kmers.repartition(repartitions_).write.mode('overwrite').parquet(path_final_fil)
-    cancer_kmers.write.mode('overwrite').parquet(path_final_fil + 'default')
+    cancer_kmers.write.mode('overwrite').options(header="true",sep="\t").parquet(path_final_fil)
 
 
 
@@ -412,8 +412,8 @@ def mode_cancerspecif(arg):
         logging.info("\n >>>>>>>> Preprocessing Normal samples")
         index_name = 'kmer'
         jct_col = "iscrossjunction"
-        save_intermed = True
-        
+        save_intermed = False
+         
         normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.whitelist, arg.parallelism, cross_junction = 1))
         if save_intermed:
             path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge.pq')
