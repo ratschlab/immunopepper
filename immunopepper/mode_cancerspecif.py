@@ -403,7 +403,7 @@ def save_spark(cancer_kmers, output_dir, path_final_fil):
     repartitions_ = "default"
     logging.info("repartition is {}".format(repartitions_))
     #cancer_kmers.repartition(repartitions_).write.mode('overwrite').parquet(path_final_fil)
-    cancer_kmers.write.mode('overwrite').options(header="true",sep="\t").parquet(path_final_fil)
+    cancer_kmers.write.mode('overwrite').options(header="true",sep="\t").parquet(path_final_fil) # end name with pq
 
 
 
@@ -424,7 +424,7 @@ def mode_cancerspecif(arg):
         index_name = 'kmer'
         jct_col = "iscrossjunction"
         save_intermed = False
-        save_kmersnormal = True
+        save_kmersnormal = False
 
         normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.whitelist, arg.parallelism, cross_junction = 1))
         if save_intermed:
@@ -515,7 +515,7 @@ def mode_cancerspecif(arg):
                                                                       expression_fields, jct_col, index_name,
                                                                         libsize_c, 0)
 
-            spark, cancer_kmers = filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields, arg.expr_limit_cancer, parallelism)
+            spark, cancer_kmers = filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields, arg.expr_limit_cancer, arg.parallelism)
 
             ###Perform Background removal
             #logging.info("Perform join")
