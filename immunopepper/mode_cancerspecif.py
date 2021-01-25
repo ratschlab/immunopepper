@@ -107,10 +107,10 @@ def process_libsize(path_lib):
     lib = lib.set_index('sample')
     return lib
 
-def pq_WithRenamedCols(path):
+def pq_WithRenamedCols(path, outdir):
     df = pq.read_table(path)
     df = df.rename_columns(name_.replace('-', '').replace('.', '').replace('_', '') for name_ in df.schema.names) # characters causing issue in spark
-    path_tmp = path + 'tmp'
+    path_tmp = os.path.join(outdir, os.path.basename(path).split('.')[0] + '_tmp' + '.pq')
     if os.path.exists(path_tmp):
         os.remove(path_tmp)
     pqwriter = pq.ParquetWriter(path_tmp, df.schema, compression=None)
@@ -119,7 +119,7 @@ def pq_WithRenamedCols(path):
     return path_tmp
 
 
-def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, whitelist, parallelism, cross_junction):
+def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, outdir, whitelist, parallelism, cross_junction):
     ''' Preprocess normal samples
     - corrects names
     - corrects types
@@ -145,7 +145,7 @@ def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, whiteli
     rename = False  # For development
     if rename:
         logging.info("Rename")
-        path_normal_matrix_segm_tmp = pq_WithRenamedCols(path_normal_matrix_segm)
+        path_normal_matrix_segm_tmp = pq_WithRenamedCols(path_normal_matrix_segm, outdir)
         logging.info("Load")
         normal_matrix = spark.read.parquet(path_normal_matrix_segm_tmp)
     else:
@@ -286,7 +286,7 @@ def hard_filter_normals(spark, normal_matrix, index_name, libsize_n, expr_limit_
         logging.info("WARNING: Restriction on junction status removed all foreground... Exiting")
         sys.exit(1)
 
-def preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
+def preprocess_cancers(spark, cancer_path, cancer_sample, outdir, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
     ''' Preprocess cancer samples
     - Make kmers unique
     - Filter kmers on junction status
@@ -313,7 +313,7 @@ def preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols, expression_
     def collapse_values(value):
         return max([np.float(i) if i != 'nan' else 0.0 for i in value.split('/')])  # np.nanmax not supported
 
-    cancer_path_tmp = pq_WithRenamedCols(cancer_path)
+    cancer_path_tmp = pq_WithRenamedCols(cancer_path, outdir)
     cancer_kmers = spark.read.parquet(cancer_path_tmp)
     logging.info("Renamed done")
 
@@ -426,7 +426,7 @@ def mode_cancerspecif(arg):
         save_intermed = False
         save_kmersnormal = False
 
-        normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.whitelist, arg.parallelism, cross_junction = 1))
+        normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 1))
         if save_intermed:
             path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge.pq')
             save_spark(normal_matrix, arg.output_dir, path_)
@@ -506,12 +506,12 @@ def mode_cancerspecif(arg):
 
             # Preprocess cancer samples
             logging.info("\n >>>>>>>> Cancers: Perform differential filtering sample {}".format(cancer_sample))
-            spark, cancer_kmers_edge, cancer_path_tmp_edge  = preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols,
+            spark, cancer_kmers_edge, cancer_path_tmp_edge  = preprocess_cancers(spark, cancer_path, cancer_sample, arg.output_dir, drop_cols,
                                                                       expression_fields, jct_col, index_name,
                                                                         libsize_c, 1)
 
 
-            spark, cancer_kmers_segm, cancer_path_tmp_segm  = preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols,
+            spark, cancer_kmers_segm, cancer_path_tmp_segm  = preprocess_cancers(spark, cancer_path, cancer_sample, arg.output_dir, drop_cols,
                                                                       expression_fields, jct_col, index_name,
                                                                         libsize_c, 0)
 
