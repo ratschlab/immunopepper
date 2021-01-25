@@ -356,7 +356,15 @@ def preprocess_cancers(spark, cancer_path, cancer_sample, drop_cols, expression_
     return spark, cancer_kmers, cancer_path_tmp
 
 
-def filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields_orig, threshold_cancer):
+def filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields_orig, threshold_cancer, parallelism):
+    logging.info("partitions edges: {}".format(cancer_kmers_edge.rdd.getNumPartitions()))
+    cancer_kmers_edge = cancer_kmers_edge.repartition(parallelism)
+    logging.info("partitions edges : {}".format(cancer_kmers_edge.rdd.getNumPartitions()))
+
+    logging.info("partitions segments: {}".format(cancer_kmers_segm.rdd.getNumPartitions()))
+    cancer_kmers_segm = cancer_kmers_segm.repartition(parallelism)
+    logging.info("partitions: {}".format(cancer_kmers_segm.rdd.getNumPartitions()))
+
     cancer_kmers_edge = cancer_kmers_edge.filter(sf.col(expression_fields_orig[
                                                             1]) >= threshold_cancer)  # if  max( edge expression 1 and 2) >=threshold: keep Expressed kmers
     cancer_kmers_segm = cancer_kmers_segm.filter(sf.col(expression_fields_orig[0]) >= threshold_cancer)
@@ -366,6 +374,9 @@ def filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expre
 
     cancer_kmers = cancer_kmers_edge.union(cancer_kmers_segm)
 
+    logging.info("partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
+    cancer_kmers = cancer_kmers.repartition(parallelism)
+    logging.info("partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
     return spark, cancer_kmers
 
 def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
@@ -504,7 +515,7 @@ def mode_cancerspecif(arg):
                                                                       expression_fields, jct_col, index_name,
                                                                         libsize_c, 0)
 
-            spark, cancer_kmers = filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields, arg.expr_limit_cancer)
+            spark, cancer_kmers = filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields, arg.expr_limit_cancer, parallelism)
 
             ###Perform Background removal
             #logging.info("Perform join")
