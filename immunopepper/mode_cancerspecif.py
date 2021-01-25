@@ -413,7 +413,8 @@ def mode_cancerspecif(arg):
         index_name = 'kmer'
         jct_col = "iscrossjunction"
         save_intermed = False
-         
+        save_kmersnormal = True
+
         normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.whitelist, arg.parallelism, cross_junction = 1))
         if save_intermed:
             path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge.pq')
@@ -475,6 +476,10 @@ def mode_cancerspecif(arg):
 
 
             normal_matrix = normal_matrix.select(sf.col(index_name))
+            if save_kmersnormal:
+                path_ = os.path.join(arg.output_dir, 'index_normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + '.pq')
+                save_spark(normal_matrix, arg.output_dir, path_)
+
 
         ### Apply filtering to foreground
         if arg.expression_fields_c is None:
