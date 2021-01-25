@@ -191,7 +191,7 @@ def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, outdir,
     return normal_matrix
 
 
-def outlier_filtering(spark, normal_matrix, index_name, libsize_n, expr_high_limit_normal):
+def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_normal):
     ''' Remove very highly expressed kmers / expression outliers before fitting DESeq2. These kmers do not follow a NB,
     besides no hypothesis testing is required to set their expression status to True
     Parameters:
@@ -232,7 +232,7 @@ def outlier_filtering(spark, normal_matrix, index_name, libsize_n, expr_high_lim
     return high_expr_normals, normal_matrix
 
 
-def hard_filter_normals(spark, normal_matrix, index_name, libsize_n, expr_limit_normal, expr_n_limit ):
+def hard_filter_normals(normal_matrix, index_name, libsize_n, expr_limit_normal, expr_n_limit ):
     ''' Filter normal samples based on j reads in at least n samples. The expressions are normalized for library size
 
     Parameters:
@@ -356,7 +356,7 @@ def preprocess_cancers(spark, cancer_path, cancer_sample, outdir, drop_cols, exp
     return cancer_kmers, cancer_path_tmp
 
 
-def filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields_orig, threshold_cancer, parallelism):
+def filter_cancer(cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields_orig, threshold_cancer, parallelism):
     logging.info("partitions edges: {}".format(cancer_kmers_edge.rdd.getNumPartitions()))
     cancer_kmers_edge = cancer_kmers_edge.repartition(parallelism)
     logging.info("partitions edges : {}".format(cancer_kmers_edge.rdd.getNumPartitions()))
@@ -479,7 +479,7 @@ def mode_cancerspecif(arg):
         else:
             logging.info("\n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.expr_limit_normal))
             logging.info("expression filter")
-            normal_matrix = hard_filter_normals(spark, normal_matrix, index_name, libsize_n, arg.expr_limit_normal, arg.n_samples_lim_normal)
+            normal_matrix = hard_filter_normals(normal_matrix, index_name, libsize_n, arg.expr_limit_normal, arg.n_samples_lim_normal)
 
             if save_intermed:
                 path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + '.pq')
@@ -515,7 +515,7 @@ def mode_cancerspecif(arg):
                                                                       expression_fields, jct_col, index_name,
                                                                         libsize_c, 0)
 
-            cancer_kmers = filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields, arg.expr_limit_cancer, arg.parallelism)
+            cancer_kmers = filter_cancer(cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields, arg.expr_limit_cancer, arg.parallelism)
 
             ###Perform Background removal
             #logging.info("Perform join")
