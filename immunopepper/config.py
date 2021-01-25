@@ -84,9 +84,10 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
             set("spark.sql.execution.arrow.pyspark.enabled", str(enable_arrow)). #TODO set as parameter 
             set("spark.sql.debug.maxToStringFields", 11000).
             set("spark.executor.heartbeatInterval", 10000).
-            set("spark.network.timeout", 1000000)
+            set("spark.network.timeout", 1000000).
+            set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").
            #.set("spark.driver.bindAddress", "192.168.0.15")
-            .set("spark.default.parallelism", parallelism)
+            set("spark.default.parallelism", parallelism)
              #TODO remove the personal IP address
             )
 
