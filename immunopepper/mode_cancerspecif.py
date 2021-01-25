@@ -286,15 +286,14 @@ def hard_filter_normals(normal_matrix, index_name, libsize_n, expr_limit_normal,
         logging.info("WARNING: Restriction on junction status removed all foreground... Exiting")
         sys.exit(1)
 
-def preprocess_cancers(spark, cancer_path, cancer_sample, outdir, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
+def preprocess_cancers(cancer_kmers, cancer_sample, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
     ''' Preprocess cancer samples
     - Make kmers unique
     - Filter kmers on junction status
     - Normalize
     Parameters:
     ----------
-    spark: spark session
-    cancer path: path to cancer file
+    cancer_kmers: cancer kmer matrix
     cancer_sample: associated cacncer ID
     drop_cols: colums to be dropped
     expression_fields: list of segment and junction expression column names
@@ -304,7 +303,6 @@ def preprocess_cancers(spark, cancer_path, cancer_sample, outdir, drop_cols, exp
     cross_junction: Information to filter on juction status. None (both, no filtering), True (junction), False (non junction)
     Returns
     --------
-    spark: spark session
     cancer_kmers: cancer kmers matrix,
     cancer_path_tmp: path of renamed temporary file
     jct_type: string indicating which junction filtering has been performed
@@ -313,9 +311,7 @@ def preprocess_cancers(spark, cancer_path, cancer_sample, outdir, drop_cols, exp
     def collapse_values(value):
         return max([np.float(i) if i != 'nan' else 0.0 for i in value.split('/')])  # np.nanmax not supported
 
-    cancer_path_tmp = pq_WithRenamedCols(cancer_path, outdir)
-    cancer_kmers = spark.read.parquet(cancer_path_tmp)
-    logging.info("Renamed done")
+
 
     # Filter on juction status
     if cross_junction == 1:
@@ -353,7 +349,7 @@ def preprocess_cancers(spark, cancer_path, cancer_sample, outdir, drop_cols, exp
         for name_ in expression_fields:
             cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_], 2))
 
-    return cancer_kmers, cancer_path_tmp
+    return cancer_kmers
 
 
 def filter_cancer(cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields_orig, threshold_cancer, parallelism):
@@ -378,6 +374,7 @@ def filter_cancer(cancer_kmers_edge, cancer_kmers_segm, index_name, expression_f
     cancer_kmers = cancer_kmers.repartition(parallelism)
     logging.info("partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
     return cancer_kmers
+
 
 def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
     def I_L_replace(value):
@@ -503,19 +500,21 @@ def mode_cancerspecif(arg):
 
         for cancer_path, cancer_sample in zip(arg.paths_cancer_samples, arg.ids_cancer_samples):
             cancer_sample = cancer_sample.replace('-', '').replace('.', '').replace('_', '')
+            cancer_path_tmp = pq_WithRenamedCols(cancer_path, arg.output_dir)
+            cancer_kmers = spark.read.parquet(cancer_path_tmp)
+
+            logging.info("Renamed done")
 
             # Preprocess cancer samples
             logging.info("\n >>>>>>>> Cancers: Perform differential filtering sample {}".format(cancer_sample))
-            cancer_kmers_edge, cancer_path_tmp_edge  = preprocess_cancers(spark, cancer_path, cancer_sample, arg.output_dir, drop_cols,
+
+            cancer_kmers = filter_cancer(preprocess_cancers(cancer_kmers, cancer_sample, drop_cols,
                                                                       expression_fields, jct_col, index_name,
-                                                                        libsize_c, 1)
-
-
-            cancer_kmers_segm, cancer_path_tmp_segm  = preprocess_cancers(spark, cancer_path, cancer_sample, arg.output_dir, drop_cols,
-                                                                      expression_fields, jct_col, index_name,
-                                                                        libsize_c, 0)
-
-            cancer_kmers = filter_cancer(cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields, arg.expr_limit_cancer, arg.parallelism)
+                                                                        libsize_c, 1),
+                                         preprocess_cancers(cancer_kmers, cancer_sample, drop_cols,
+                                                            expression_fields, jct_col, index_name,
+                                                            libsize_c, 0),
+                                         index_name, expression_fields, arg.expr_limit_cancer, arg.parallelism)
 
             ###Perform Background removal
             #logging.info("Perform join")
@@ -546,10 +545,8 @@ def mode_cancerspecif(arg):
                 0]  + 'ctlim{}_filt-normals-ctlim{}-{}sample_filt-uniprot'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
             save_spark(cancer_kmers, arg.output_dir, path_final_fil)
 
-            if os.path.exists(cancer_path_tmp_edge):
-                os.remove(cancer_path_tmp_edge)
-            if os.path.exists(cancer_path_tmp_segm):
-                os.remove(cancer_path_tmp_segm)
+            if os.path.exists(cancer_path_tmp):
+                os.remove(cancer_path_tmp)
 
 
 
