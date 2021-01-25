@@ -191,7 +191,7 @@ def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, outdir,
     return normal_matrix
 
 
-def outlier_filtering(spark, normal_matrix, index_name, libsize_n, expr_high_limit_normal):
+def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_normal):
     ''' Remove very highly expressed kmers / expression outliers before fitting DESeq2. These kmers do not follow a NB,
     besides no hypothesis testing is required to set their expression status to True
     Parameters:
@@ -229,10 +229,10 @@ def outlier_filtering(spark, normal_matrix, index_name, libsize_n, expr_high_lim
 
     high_expr_normals = normal_matrix.filter(highly_expressed_normals).select(sf.col(index_name))
     normal_matrix = normal_matrix.filter(ambigous_expression_normals)  # TODO add condition empty matrix
-    return spark, high_expr_normals, normal_matrix
+    return high_expr_normals, normal_matrix
 
 
-def hard_filter_normals(spark, normal_matrix, index_name, libsize_n, expr_limit_normal, expr_n_limit ):
+def hard_filter_normals(normal_matrix, index_name, libsize_n, expr_limit_normal, expr_n_limit ):
     ''' Filter normal samples based on j reads in at least n samples. The expressions are normalized for library size
 
     Parameters:
@@ -266,7 +266,7 @@ def hard_filter_normals(spark, normal_matrix, index_name, libsize_n, expr_limit_
     logging.info("filter")
     normal_matrix = normal_matrix.filter(rowsum >= expr_n_limit)
 
-    return spark, normal_matrix
+    return normal_matrix
 
 
 
@@ -353,10 +353,10 @@ def preprocess_cancers(spark, cancer_path, cancer_sample, outdir, drop_cols, exp
         for name_ in expression_fields:
             cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_], 2))
 
-    return spark, cancer_kmers, cancer_path_tmp
+    return cancer_kmers, cancer_path_tmp
 
 
-def filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields_orig, threshold_cancer, parallelism):
+def filter_cancer(cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields_orig, threshold_cancer, parallelism):
     logging.info("partitions edges: {}".format(cancer_kmers_edge.rdd.getNumPartitions()))
     cancer_kmers_edge = cancer_kmers_edge.repartition(parallelism)
     logging.info("partitions edges : {}".format(cancer_kmers_edge.rdd.getNumPartitions()))
@@ -377,7 +377,7 @@ def filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expre
     logging.info("partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
     cancer_kmers = cancer_kmers.repartition(parallelism)
     logging.info("partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
-    return spark, cancer_kmers
+    return cancer_kmers
 
 def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
     def I_L_replace(value):
@@ -392,7 +392,7 @@ def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
         cancer_kmers = cancer_kmers.withColumn(uniprot_header, I_L_equ(index_name))
         cancer_kmers = cancer_kmers.join(uniprot, cancer_kmers[uniprot_header] == uniprot[uniprot_header],
                                          how='left_anti')
-    return  spark, cancer_kmers
+    return cancer_kmers
 
 
 def save_spark(cancer_kmers, output_dir, path_final_fil):
@@ -455,7 +455,7 @@ def mode_cancerspecif(arg):
             # Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
             if arg.expr_high_limit_normal is not None:
                 logging.info( "... Normal kmers with expression >= {} in >= 1 sample are truly expressed. \n Will be substracted from cancer set".format(arg.expr_high_limit_normal))
-                spark, high_expr_normals, normal_matrix = outlier_filtering(spark, normal_matrix, index_name, libsize_n, arg.expr_high_limit_normal)
+                high_expr_normals, normal_matrix = outlier_filtering(spark, normal_matrix, index_name, libsize_n, arg.expr_high_limit_normal)
 
             if arg.tissue_grp_files is not None:
                 modelling_grps = []
@@ -470,7 +470,7 @@ def mode_cancerspecif(arg):
             logging.info(">>>... Fit Negative Binomial distribution on normal kmers ")
             for grp in modelling_grps:
             # Fit NB and Perform hypothesis testing
-                spark, normal_matrix = fit_NB(spark, normal_matrix, index_name, arg.output_dir, arg.path_normal_matrix_segm, libsize_n, arg.cores)
+                normal_matrix = fit_NB(spark, normal_matrix, index_name, arg.output_dir, arg.path_normal_matrix_segm, libsize_n, arg.cores)
                 normal_matrix = normal_matrix.filter(sf.col("proba_zero") < arg.threshold_noise) # Expressed kmers
 
             # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
@@ -479,7 +479,7 @@ def mode_cancerspecif(arg):
         else:
             logging.info("\n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.expr_limit_normal))
             logging.info("expression filter")
-            spark, normal_matrix = hard_filter_normals(spark, normal_matrix, index_name, libsize_n, arg.expr_limit_normal, arg.n_samples_lim_normal)
+            normal_matrix = hard_filter_normals(normal_matrix, index_name, libsize_n, arg.expr_limit_normal, arg.n_samples_lim_normal)
 
             if save_intermed:
                 path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + '.pq')
@@ -506,16 +506,16 @@ def mode_cancerspecif(arg):
 
             # Preprocess cancer samples
             logging.info("\n >>>>>>>> Cancers: Perform differential filtering sample {}".format(cancer_sample))
-            spark, cancer_kmers_edge, cancer_path_tmp_edge  = preprocess_cancers(spark, cancer_path, cancer_sample, arg.output_dir, drop_cols,
+            cancer_kmers_edge, cancer_path_tmp_edge  = preprocess_cancers(spark, cancer_path, cancer_sample, arg.output_dir, drop_cols,
                                                                       expression_fields, jct_col, index_name,
                                                                         libsize_c, 1)
 
 
-            spark, cancer_kmers_segm, cancer_path_tmp_segm  = preprocess_cancers(spark, cancer_path, cancer_sample, arg.output_dir, drop_cols,
+            cancer_kmers_segm, cancer_path_tmp_segm  = preprocess_cancers(spark, cancer_path, cancer_sample, arg.output_dir, drop_cols,
                                                                       expression_fields, jct_col, index_name,
                                                                         libsize_c, 0)
 
-            spark, cancer_kmers = filter_cancer(spark, cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields, arg.expr_limit_cancer, arg.parallelism)
+            cancer_kmers = filter_cancer(cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields, arg.expr_limit_cancer, arg.parallelism)
 
             ###Perform Background removal
             #logging.info("Perform join")
@@ -541,7 +541,7 @@ def mode_cancerspecif(arg):
 
             ### Remove Uniprot
             logging.info("Filtering kmers in uniprot")
-            spark, cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
+            cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0]  + 'ctlim{}_filt-normals-ctlim{}-{}sample_filt-uniprot'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
             save_spark(cancer_kmers, arg.output_dir, path_final_fil)
