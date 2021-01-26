@@ -186,8 +186,6 @@ def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, outdir,
     exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
     normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
     logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-    normal_matrix = normal_matrix.repartition(parallelism)
-    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
     return normal_matrix
 
 
@@ -354,12 +352,8 @@ def preprocess_cancers(cancer_kmers, cancer_sample, drop_cols, expression_fields
 
 def filter_cancer(cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields_orig, threshold_cancer, parallelism):
     logging.info("partitions edges: {}".format(cancer_kmers_edge.rdd.getNumPartitions()))
-    cancer_kmers_edge = cancer_kmers_edge.repartition(parallelism)
-    logging.info("partitions edges : {}".format(cancer_kmers_edge.rdd.getNumPartitions()))
 
     logging.info("partitions segments: {}".format(cancer_kmers_segm.rdd.getNumPartitions()))
-    cancer_kmers_segm = cancer_kmers_segm.repartition(parallelism)
-    logging.info("partitions: {}".format(cancer_kmers_segm.rdd.getNumPartitions()))
 
     cancer_kmers_edge = cancer_kmers_edge.filter(sf.col(expression_fields_orig[
                                                             1]) >= threshold_cancer)  # if  max( edge expression 1 and 2) >=threshold: keep Expressed kmers
@@ -370,8 +364,6 @@ def filter_cancer(cancer_kmers_edge, cancer_kmers_segm, index_name, expression_f
 
     cancer_kmers = cancer_kmers_edge.union(cancer_kmers_segm)
 
-    logging.info("partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
-    cancer_kmers = cancer_kmers.repartition(parallelism)
     logging.info("partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
     return cancer_kmers
 
@@ -422,7 +414,7 @@ def mode_cancerspecif(arg):
         jct_col = "iscrossjunction"
         save_intermed = False
         save_kmersnormal = False
-        save_canc_int = True
+        save_canc_int = False
 
         normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 1))
         if save_intermed:
@@ -533,14 +525,10 @@ def mode_cancerspecif(arg):
                 save_spark(cancer_kmers, arg.output_dir, path_tmp_c)
             
             logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
-            cancer_kmers = cancer_kmers.repartition(parallelism)
-            logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
 
             logging.info("Filtering normal background")
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
     
-            logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
-            cancer_kmers = cancer_kmers.repartition(parallelism)
             logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
 
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
