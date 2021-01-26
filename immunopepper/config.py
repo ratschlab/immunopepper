@@ -61,7 +61,7 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
     print("memory_per_executor 80%", memory_per_executor)
     print("parallelism_", parallelism)
     print("permsize", "1024M")
-    print("newsize (young)", "100g")
+    print("newsize (young)", "100g") #keep??
     
     cfg = SparkConf()
 
@@ -75,7 +75,7 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
     #java_options = java_options + " -XX:+HeapDumpOnOutOfMemoryError"
     java_options = java_options + " -XX:ThreadStackSize=81920"
     java_options = java_options + " -XX:MaxPermSize=1024M" #~80 kB:
-    java_options = java_options + " -XX:NewSize=100g"
+    java_options = java_options + " -XX:NewSize=100g" #keep??
     if use_utc:
         # avoiding trouble with JDBC and timestamps
         java_options = "-Duser.timezone=UTC " + java_options
@@ -94,7 +94,7 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
             set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").
            #.set("spark.driver.bindAddress", "192.168.0.15")
             set("spark.default.parallelism", parallelism).
-            set("spark.sql.parquet.mergeSchema", "false")
+            set("spark.sql.shuffle.partitions", parallelism)
              #TODO remove the personal IP address
             )
 
