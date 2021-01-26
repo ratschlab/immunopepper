@@ -422,7 +422,7 @@ def mode_cancerspecif(arg):
         jct_col = "iscrossjunction"
         save_intermed = False
         save_kmersnormal = False
-        save_canc_int = False
+        save_canc_int = True
 
         normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 1))
         if save_intermed:
@@ -531,9 +531,17 @@ def mode_cancerspecif(arg):
                 path_tmp_c = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0] + '_expressed_normalized_'  + extension)
                 save_spark(cancer_kmers, arg.output_dir, path_tmp_c)
+            
+            logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
+            cancer_kmers = cancer_kmers.repartition(parallelism)
+            logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
 
             logging.info("Filtering normal background")
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
+    
+            logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
+            cancer_kmers = cancer_kmers.repartition(parallelism)
+            logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
 
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0] + 'ctlim{}_filt-normals-ctlim{}-{}sample'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
