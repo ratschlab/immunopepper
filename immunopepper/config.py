@@ -61,6 +61,7 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
     print("memory_per_executor 80%", memory_per_executor)
     print("parallelism_", parallelism)
     print("permsize", "1024M")
+    print("newsize (young)", "2g")
     
     cfg = SparkConf()
 
@@ -69,10 +70,12 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
     
     #TODO set as parameter 
     java_options = str(extra_java_options)
-    java_options = "-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintFlagsFinal -XX:+PrintReferenceGC -XX:+PrintAdaptiveSizePolicy -XX:+UnlockDiagnosticVMOptions -XX:+G1SummarizeConcMark"
-    java_options = java_options + " -XX:+HeapDumpOnOutOfMemoryError"
+    java_options = "-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintFlagsFinal" 
+    #java_options = java_options + " -XX:+PrintReferenceGC -XX:+PrintAdaptiveSizePolicy -XX:+UnlockDiagnosticVMOptions -XX:+G1SummarizeConcMark"
+    #java_options = java_options + " -XX:+HeapDumpOnOutOfMemoryError"
     java_options = java_options + " -XX:ThreadStackSize=81920"
     java_options = java_options + " -XX:MaxPermSize=1024M" #~80 kB:
+    java_options = java_options + " -XX:NewSize=2g"
     if use_utc:
         # avoiding trouble with JDBC and timestamps
         java_options = "-Duser.timezone=UTC " + java_options
@@ -90,7 +93,8 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
             set("spark.network.timeout", 1000000).
             set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").
            #.set("spark.driver.bindAddress", "192.168.0.15")
-            set("spark.default.parallelism", parallelism)
+            set("spark.default.parallelism", parallelism).
+            set("spark.sql.parquet.mergeSchema", "false")
              #TODO remove the personal IP address
             )
 
