@@ -422,6 +422,7 @@ def mode_cancerspecif(arg):
         jct_col = "iscrossjunction"
         save_intermed = False
         save_kmersnormal = False
+        save_canc_int = False
 
         normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 1))
         if save_intermed:
@@ -525,10 +526,11 @@ def mode_cancerspecif(arg):
 
 
             #TODO Keep junction type reduction in foreground or not? "--cross-junction"
-            extension = '.pq'
-            path_tmp_c = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
+            if save_canc_int:
+                extension = '.pq'
+                path_tmp_c = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0] + '_expressed_normalized_'  + extension)
-            save_spark(cancer_kmers, arg.output_dir, path_tmp_c)
+                save_spark(cancer_kmers, arg.output_dir, path_tmp_c)
 
             logging.info("Filtering normal background")
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
