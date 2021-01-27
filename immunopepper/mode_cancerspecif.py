@@ -530,7 +530,8 @@ def mode_cancerspecif(arg):
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
     
             logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
-
+            
+            extension = '.pq'
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0] + 'ctlim{}_filt-normals-ctlim{}-{}sample'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
             save_spark(cancer_kmers, arg.output_dir, path_final_fil)
