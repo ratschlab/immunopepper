@@ -60,8 +60,8 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
     print("driver_mem", driver_mem)
     print("memory_per_executor 80%", memory_per_executor)
     print("parallelism_", parallelism)
+    print("shuffle_partitions", parallelism)
     print("permsize", "1024M")
-    print("newsize (young)", "100g") #keep??
     
     cfg = SparkConf()
 
@@ -75,7 +75,7 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
     #java_options = java_options + " -XX:+HeapDumpOnOutOfMemoryError"
     java_options = java_options + " -XX:ThreadStackSize=81920"
     java_options = java_options + " -XX:MaxPermSize=1024M" #~80 kB:
-    java_options = java_options + " -XX:NewSize=100g" #keep??
+    
     if use_utc:
         # avoiding trouble with JDBC and timestamps
         java_options = "-Duser.timezone=UTC " + java_options
