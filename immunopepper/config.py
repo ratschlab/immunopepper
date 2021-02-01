@@ -74,7 +74,7 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
     #java_options = java_options + " -XX:+PrintReferenceGC -XX:+PrintAdaptiveSizePolicy -XX:+UnlockDiagnosticVMOptions -XX:+G1SummarizeConcMark"
     #java_options = java_options + " -XX:+HeapDumpOnOutOfMemoryError"
     java_options = java_options + " -XX:ThreadStackSize=81920"
-    java_options = java_options + " -XX:MaxPermSize=1024M" #~80 kB:
+    #java_options = java_options + " -XX:MaxPermSize=1024M" #~80 kB:
     
     if use_utc:
         # avoiding trouble with JDBC and timestamps

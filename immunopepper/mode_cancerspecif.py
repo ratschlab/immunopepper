@@ -249,12 +249,11 @@ def hard_filter_normals(normal_matrix, index_name, libsize_n, expr_limit_normal,
 
     if libsize_n is not None:
         normal_matrix = normal_matrix.select(index_name, *[
-            sf.when((sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"]) > expr_limit_normal, 1).otherwise(
-                0).alias(name_)
-            for name_ in normal_matrix.schema.names if name_ != index_name])
-    else:
-        normal_matrix = normal_matrix.select(index_name, *[
-            sf.when(sf.col(name_) > expr_limit_normal, 1).otherwise(0).alias(name_)
+        sf.round(sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"], 2).alias(name_)
+        for name_ in normal_matrix.schema.names if name_ != index_name])
+
+    normal_matrix = normal_matrix.select(index_name, *[
+        sf.when(sf.col(name_) > expr_limit_normal, 1).otherwise(0).alias(name_)
             for name_ in normal_matrix.schema.names if name_ != index_name])
 
     logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
@@ -263,6 +262,23 @@ def hard_filter_normals(normal_matrix, index_name, libsize_n, expr_limit_normal,
     logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
     logging.info("filter")
     normal_matrix = normal_matrix.filter(rowsum >= expr_n_limit)
+    
+#    if libsize_n is not None:
+#        normal_matrix = normal_matrix.select(index_name, *[
+#            sf.when((sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"]) > expr_limit_normal, 1).otherwise(
+#                0).alias(name_)
+#            for name_ in normal_matrix.schema.names if name_ != index_name])
+#    else:
+#        normal_matrix = normal_matrix.select(index_name, *[
+#            sf.when(sf.col(name_) > expr_limit_normal, 1).otherwise(0).alias(name_)
+#            for name_ in normal_matrix.schema.names if name_ != index_name])
+#
+#    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+#    logging.info("reduce")
+#    rowsum = (reduce(add, (sf.col(x) for x in normal_matrix.columns[1:]))).alias("sum")
+#    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+#    logging.info("filter")
+#    normal_matrix = normal_matrix.filter(rowsum >= expr_n_limit)
 
     return normal_matrix
 
