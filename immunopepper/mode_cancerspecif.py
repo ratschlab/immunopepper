@@ -251,20 +251,29 @@ def hard_filter_normals(normal_matrix, index_name, libsize_n, expr_limit_normal,
 
     if libsize_n is not None:
         normal_matrix = normal_matrix.select(index_name, *[
-            sf.when((sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"]) > expr_limit_normal, 1).otherwise(
-                0).alias(name_)
-            for name_ in normal_matrix.schema.names if name_ != index_name])
-    else:
-        normal_matrix = normal_matrix.select(index_name, *[
-            sf.when(sf.col(name_) > expr_limit_normal, 1).otherwise(0).alias(name_)
+        sf.round(sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"], 2).alias(name_)
+        for name_ in normal_matrix.schema.names if name_ != index_name])
+
+    normal_matrix = normal_matrix.select(index_name, *[sf.when(sf.col(name_) > expr_limit_normal, 1).otherwise(0).alias(name_)
             for name_ in normal_matrix.schema.names if name_ != index_name])
 
-    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-    logging.info("reduce")
-    rowsum = (reduce(add, (sf.col(x) for x in normal_matrix.columns[1:]))).alias("sum")
-    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-    logging.info("filter")
-    normal_matrix = normal_matrix.filter(rowsum >= expr_n_limit)
+    normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= expr_n_limit)  #.map(lambda x: x[0])
+    # def superSum(*cols):
+    #     return reduce(lambda a, b: a + b, cols)
+
+    # i_add = sf.udf(superSum)
+    # logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+    # logging.info("reduce")
+    # normal_matrix = normal_matrix.withColumn('rowsum', i_add(*[normal_matrix[name_] for name_ in normal_matrix.schema.names if name_ != index_name]))
+    # normal_matrix = normal_matrix.filter(sf.col("rowsum") >= expr_n_limit)
+    # normal_matrix.checkpoint()
+    #
+    # logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+    # logging.info("reduce")
+    # rowsum = (reduce(add, (sf.col(name_) for name_ in normal_matrix.schema.names if name_ != index_name )).alias("sum")
+    # logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+    # logging.info("filter")
+    # normal_matrix = normal_matrix.filter(rowsum >= expr_n_limit)
 
     return normal_matrix
 
@@ -411,10 +420,10 @@ def mode_cancerspecif(arg):
 
     spark_cfg = default_spark_config(arg.cores, arg.mem_per_core, arg.parallelism)
     with create_spark_session_from_config(spark_cfg) as spark:
-        #if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
-        #    shutil.rmtree(os.path.join(arg.output_dir, "checkpoint"))
-        #pathlib.Path(os.path.join(arg.output_dir, "checkpoint")).mkdir(exist_ok=True, parents=True)
-        #spark.sparkContext.setCheckpointDir(os.path.join(arg.output_dir, "checkpoint"))
+        if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
+            shutil.rmtree(os.path.join(arg.output_dir, "checkpoint"))
+        pathlib.Path(os.path.join(arg.output_dir, "checkpoint")).mkdir(exist_ok=True, parents=True)
+        spark.sparkContext.setCheckpointDir(os.path.join(arg.output_dir, "checkpoint"))
 
         ### Preprocessing Normals
         logging.info("\n >>>>>>>> Preprocessing Normal samples")
@@ -477,13 +486,14 @@ def mode_cancerspecif(arg):
             logging.info("\n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.expr_limit_normal))
             logging.info("expression filter")
             normal_matrix = hard_filter_normals(normal_matrix, index_name, libsize_n, arg.expr_limit_normal, arg.n_samples_lim_normal)
+            normal_matrix = spark.createDataFrame(normal_matrix).withColumnRenamed('_1', index_name)
 
             if save_intermed:
                 path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + '.pq')
                 save_spark(normal_matrix, arg.output_dir, path_)
 
 
-            normal_matrix = normal_matrix.select(sf.col(index_name))
+            #normal_matrix = normal_matrix.select(sf.col(index_name))
             if save_kmersnormal:
                 path_ = os.path.join(arg.output_dir, 'index_normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + '.pq')
                 save_spark(normal_matrix, arg.output_dir, path_)
