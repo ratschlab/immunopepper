@@ -186,8 +186,6 @@ def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, outdir,
     exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
     normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
     logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-    normal_matrix = normal_matrix.repartition(parallelism)
-    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
     return normal_matrix
 
 
@@ -251,29 +249,15 @@ def hard_filter_normals(normal_matrix, index_name, libsize_n, expr_limit_normal,
 
     if libsize_n is not None:
         normal_matrix = normal_matrix.select(index_name, *[
-        sf.round(sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"], 2).alias(name_)
-        for name_ in normal_matrix.schema.names if name_ != index_name])
-
-    normal_matrix = normal_matrix.select(index_name, *[sf.when(sf.col(name_) > expr_limit_normal, 1).otherwise(0).alias(name_)
+            sf.round(sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"], 2).alias(name_)
             for name_ in normal_matrix.schema.names if name_ != index_name])
 
-    normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= expr_n_limit)  #.map(lambda x: x[0])
-    # def superSum(*cols):
-    #     return reduce(lambda a, b: a + b, cols)
+    normal_matrix = normal_matrix.select(index_name, *[
+        sf.when(sf.col(name_) > expr_limit_normal, 1).otherwise(0).alias(name_)
+        for name_ in normal_matrix.schema.names if name_ != index_name])
 
-    # i_add = sf.udf(superSum)
-    # logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-    # logging.info("reduce")
-    # normal_matrix = normal_matrix.withColumn('rowsum', i_add(*[normal_matrix[name_] for name_ in normal_matrix.schema.names if name_ != index_name]))
-    # normal_matrix = normal_matrix.filter(sf.col("rowsum") >= expr_n_limit)
-    # normal_matrix.checkpoint()
-    #
-    # logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-    # logging.info("reduce")
-    # rowsum = (reduce(add, (sf.col(name_) for name_ in normal_matrix.schema.names if name_ != index_name )).alias("sum")
-    # logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-    # logging.info("filter")
-    # normal_matrix = normal_matrix.filter(rowsum >= expr_n_limit)
+    normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= expr_n_limit)
+
 
     return normal_matrix
 
@@ -363,12 +347,8 @@ def preprocess_cancers(cancer_kmers, cancer_sample, drop_cols, expression_fields
 
 def filter_cancer(cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields_orig, threshold_cancer, parallelism):
     logging.info("partitions edges: {}".format(cancer_kmers_edge.rdd.getNumPartitions()))
-    cancer_kmers_edge = cancer_kmers_edge.repartition(parallelism)
-    logging.info("partitions edges : {}".format(cancer_kmers_edge.rdd.getNumPartitions()))
 
     logging.info("partitions segments: {}".format(cancer_kmers_segm.rdd.getNumPartitions()))
-    cancer_kmers_segm = cancer_kmers_segm.repartition(parallelism)
-    logging.info("partitions: {}".format(cancer_kmers_segm.rdd.getNumPartitions()))
 
     cancer_kmers_edge = cancer_kmers_edge.filter(sf.col(expression_fields_orig[
                                                             1]) >= threshold_cancer)  # if  max( edge expression 1 and 2) >=threshold: keep Expressed kmers
@@ -379,8 +359,6 @@ def filter_cancer(cancer_kmers_edge, cancer_kmers_segm, index_name, expression_f
 
     cancer_kmers = cancer_kmers_edge.union(cancer_kmers_segm)
 
-    logging.info("partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
-    cancer_kmers = cancer_kmers.repartition(parallelism)
     logging.info("partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
     return cancer_kmers
 
@@ -431,6 +409,7 @@ def mode_cancerspecif(arg):
         jct_col = "iscrossjunction"
         save_intermed = False
         save_kmersnormal = False
+        save_canc_int = False
 
         normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 1))
         if save_intermed:
@@ -493,7 +472,7 @@ def mode_cancerspecif(arg):
                 save_spark(normal_matrix, arg.output_dir, path_)
 
 
-            #normal_matrix = normal_matrix.select(sf.col(index_name))
+            normal_matrix = normal_matrix.select(sf.col(index_name))
             if save_kmersnormal:
                 path_ = os.path.join(arg.output_dir, 'index_normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + '.pq')
                 save_spark(normal_matrix, arg.output_dir, path_)
@@ -535,14 +514,20 @@ def mode_cancerspecif(arg):
 
 
             #TODO Keep junction type reduction in foreground or not? "--cross-junction"
-            extension = '.pq'
-            path_tmp_c = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
+            if save_canc_int:
+                extension = '.pq'
+                path_tmp_c = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0] + '_expressed_normalized_'  + extension)
-            save_spark(cancer_kmers, arg.output_dir, path_tmp_c)
+                save_spark(cancer_kmers, arg.output_dir, path_tmp_c)
+            
+            logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
 
             logging.info("Filtering normal background")
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
-
+    
+            logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
+            
+            extension = '.pq'
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0] + 'ctlim{}_filt-normals-ctlim{}-{}sample'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
             save_spark(cancer_kmers, arg.output_dir, path_final_fil)
