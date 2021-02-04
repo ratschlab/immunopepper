@@ -262,22 +262,6 @@ def hard_filter_normals(normal_matrix, index_name, libsize_n, expr_limit_normal,
 
 
 
-    # Filter on juction status
-    if cross_junction == 1:
-        logging.info("Keep cross junction kmers")
-        cancer_kmers = cancer_kmers.filter("{} == True".format(jct_col))
-        jct_type = "only-jct"
-    elif cross_junction == 0:
-        logging.info("Keep non-cross junction kmers")
-        cancer_kmers = cancer_kmers.filter("{} == False".format(jct_col))
-        jct_type = "non-jct"
-    else:
-        logging.info("Keep cross and non- junction kmers")
-        jct_type = "no-jct-filt"
-    if len(cancer_kmers.head(1)) == 0:
-        logging.info("WARNING: Restriction on junction status removed all foreground... Exiting")
-        sys.exit(1)
-
 def preprocess_cancers(cancer_kmers, cancer_sample, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
     ''' Preprocess cancer samples
     - Make kmers unique
@@ -349,9 +333,8 @@ def filter_cancer(cancer_kmers_edge, cancer_kmers_segm, index_name, expression_f
 
     logging.info("partitions segments: {}".format(cancer_kmers_segm.rdd.getNumPartitions()))
 
-    cancer_kmers_edge = cancer_kmers_edge.filter(sf.col(expression_fields_orig[
-                                                            1]) >= threshold_cancer)  # if  max( edge expression 1 and 2) >=threshold: keep Expressed kmers
-    cancer_kmers_segm = cancer_kmers_segm.filter(sf.col(expression_fields_orig[0]) >= threshold_cancer)
+    cancer_kmers_edge = cancer_kmers_edge.filter(sf.col(expression_fields_orig[1]) > threshold_cancer)  # if  max( edge expression 1 and 2) >=threshold: keep Expressed kmers
+    cancer_kmers_segm = cancer_kmers_segm.filter(sf.col(expression_fields_orig[0]) > threshold_cancer)
     cancer_kmers_segm = cancer_kmers_segm.join(cancer_kmers_edge,
                                                cancer_kmers_segm[index_name] == cancer_kmers_edge[index_name],
                                                how='left_anti')   # if  max( edge expression 1 and 2)<threshold and  max( segment expression 1 and 2)>= threshold: keep
@@ -503,13 +486,6 @@ def mode_cancerspecif(arg):
                                                             expression_fields, jct_col, index_name,
                                                             libsize_c, 0),
                                          index_name, expression_fields, arg.expr_limit_cancer, arg.parallelism)
-
-            ###Perform Background removal
-            #logging.info("Perform join")
-            #logging.info("BROADCAST NORMALS")
-            #normal_matrix = sf.broadcast(normal_matrix)
-            #cancer_kmers = sf.broadcast(cancer_kmers)
-            #cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
 
 
             #TODO Keep junction type reduction in foreground or not? "--cross-junction"
