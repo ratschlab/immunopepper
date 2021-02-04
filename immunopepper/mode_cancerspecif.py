@@ -528,7 +528,7 @@ def mode_cancerspecif(arg):
             
             extension = '.pq'
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
-                0] + 'ctlim{}_filt-normals-ctlim{}-{}sample'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
+                0] + 'ctlim{}_filt-normals-ctlim{}-{}samples'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
             save_spark(cancer_kmers, arg.output_dir, path_final_fil)
 
 
@@ -536,7 +536,7 @@ def mode_cancerspecif(arg):
             logging.info("Filtering kmers in uniprot")
             cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
-                0]  + 'ctlim{}_filt-normals-ctlim{}-{}sample_filt-uniprot'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
+                0]  + 'ctlim{}_filt-normals-ctlim{}-{}_samples_filt-uniprot'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
             save_spark(cancer_kmers, arg.output_dir, path_final_fil)
 
             if os.path.exists(cancer_path_tmp):
