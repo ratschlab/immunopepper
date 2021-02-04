@@ -144,8 +144,8 @@ def parse_arguments(argv):
                           action="store_true", required=False, default=False)
     required.add_argument("--paths-cancer-samples", nargs='+', help="file paths of all cancer samples", required=True, default='')
     required.add_argument("--ids-cancer-samples", nargs='+', help="list of all cancer samples (in same order as above)", required=True, default='')
-    required.add_argument("--path-normal-matrix-segm", help="segment expression integrated matrix of kmers * samples", required=False, default='')
-    required.add_argument("--path-normal-matrix-edge", help="edge expression integrated matrix of kmers * samples", required=False, default='')
+    required.add_argument("--path-normal-matrix-segm", nargs='+', help="segment expression integrated matrix of kmers * samples", required=False, default='')
+    required.add_argument("--path-normal-matrix-edge", nargs='+', help="edge expression integrated matrix of kmers * samples", required=False, default='')
     required.add_argument("--output-dir", help="output directory for the filtered matrix" , required=True, default='')
 
     optional = parser_cancerspecif.add_argument_group('OPTIONAL')

@@ -119,7 +119,7 @@ def pq_WithRenamedCols(path, outdir):
     return path_tmp
 
 
-def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, outdir, whitelist, parallelism, cross_junction):
+def process_normals(spark, index_name, jct_col, path_normal_matrix, outdir, whitelist, parallelism, cross_junction):
     ''' Preprocess normal samples
     - corrects names
     - corrects types
@@ -145,11 +145,11 @@ def process_normals(spark, index_name, jct_col, path_normal_matrix_segm, outdir,
     rename = False  # For development
     if rename:
         logging.info("Rename")
-        path_normal_matrix_segm_tmp = pq_WithRenamedCols(path_normal_matrix_segm, outdir)
+        path_normal_matrix_tmp = pq_WithRenamedCols(path_normal_matrix, outdir)
         logging.info("Load")
-        normal_matrix = spark.read.parquet(path_normal_matrix_segm_tmp)
+        normal_matrix = spark.read.parquet(*path_normal_matrix_tmp)
     else:
-        normal_matrix = spark.read.parquet(path_normal_matrix_segm)
+        normal_matrix = spark.read.parquet(*path_normal_matrix)
 
     # Keep relevant junction status and drop junction column
     if cross_junction:
