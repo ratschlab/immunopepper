@@ -230,7 +230,7 @@ def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_norm
     return high_expr_normals, normal_matrix
 
 
-def hard_filter_normals(normal_matrix, index_name, libsize_n, expr_limit_normal, expr_n_limit ):
+def hard_filter_normals(normal_matrix, index_name, libsize_n, out_dir, expr_limit_normal, expr_n_limit  ):
     ''' Filter normal samples based on j reads in at least n samples. The expressions are normalized for library size
 
     Parameters:
@@ -257,7 +257,10 @@ def hard_filter_normals(normal_matrix, index_name, libsize_n, expr_limit_normal,
         for name_ in normal_matrix.schema.names if name_ != index_name])
 
     normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= expr_n_limit)
-
+    # if os.path.exists(os.path.join(out_dir, "tmp_norm.tsv")):
+    #     os.chmod(os.path.join(out_dir, "tmp_norm.tsv"), 777)
+    #     os.remove(os.path.join(out_dir, "tmp_norm.tsv"))
+    normal_matrix.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(os.path.join(out_dir, "tmp_norm.tsv"))
     return normal_matrix
 
 
@@ -446,8 +449,9 @@ def mode_cancerspecif(arg):
         else:
             logging.info("\n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.expr_limit_normal))
             logging.info("expression filter")
-            normal_matrix = hard_filter_normals(normal_matrix, index_name, libsize_n, arg.expr_limit_normal, arg.n_samples_lim_normal)
-            normal_matrix = spark.createDataFrame(normal_matrix).withColumnRenamed('_1', index_name)
+            normal_matrix = hard_filter_normals(normal_matrix, index_name, libsize_n, arg.output_dir, arg.expr_limit_normal, arg.n_samples_lim_normal)
+            normal_matrix = spark.read.csv(os.path.join(arg.output_dir, "tmp_norm.tsv"), sep=r'\t', header=False)
+            normal_matrix = normal_matrix.withColumnRenamed('_c0', index_name)
 
             if save_intermed:
                 path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + '.pq')
@@ -455,9 +459,9 @@ def mode_cancerspecif(arg):
 
 
             normal_matrix = normal_matrix.select(sf.col(index_name))
-            if save_kmersnormal:
-                path_ = os.path.join(arg.output_dir, 'index_normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + '.pq')
-                save_spark(normal_matrix, arg.output_dir, path_)
+            # if save_kmersnormal:
+            #     path_ = os.path.join(arg.output_dir, 'index_normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + '.pq')
+            #     save_spark(normal_matrix, arg.output_dir, path_)
 
 
         ### Apply filtering to foreground
