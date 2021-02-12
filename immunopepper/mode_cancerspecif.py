@@ -230,7 +230,7 @@ def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_norm
     return high_expr_normals, normal_matrix
 
 
-def hard_filter_normals(normal_matrix, index_name, libsize_n, out_dir, expr_limit_normal, expr_n_limit  ):
+def hard_filter_normals(normal_matrix, index_name, libsize_n, out_dir, expr_limit_normal, n_samples_lim_normal  ):
     ''' Filter normal samples based on j reads in at least n samples. The expressions are normalized for library size
 
     Parameters:
@@ -256,12 +256,15 @@ def hard_filter_normals(normal_matrix, index_name, libsize_n, out_dir, expr_limi
         sf.when(sf.col(name_) > expr_limit_normal, 1).otherwise(0).alias(name_)
         for name_ in normal_matrix.schema.names if name_ != index_name])
 
-    normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= expr_n_limit)
-    # if os.path.exists(os.path.join(out_dir, "tmp_norm.tsv")):
-    #     os.chmod(os.path.join(out_dir, "tmp_norm.tsv"), 777)
-    #     os.remove(os.path.join(out_dir, "tmp_norm.tsv"))
-    normal_matrix.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(os.path.join(out_dir, "tmp_norm.tsv"))
-    return normal_matrix
+    normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= n_samples_lim_normal)
+
+    path_ = os.path.join(out_dir,
+                         'normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(
+                             n_samples_lim_normal, expr_limit_normal) + '.tsv')
+    logging.info("Save to {}".format(path_))
+    normal_matrix.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_)
+
+    return path_
 
 
 
@@ -383,31 +386,16 @@ def mode_cancerspecif(arg):
 
     spark_cfg = default_spark_config(arg.cores, arg.mem_per_core, arg.parallelism)
     with create_spark_session_from_config(spark_cfg) as spark:
-        if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
-            shutil.rmtree(os.path.join(arg.output_dir, "checkpoint"))
-        pathlib.Path(os.path.join(arg.output_dir, "checkpoint")).mkdir(exist_ok=True, parents=True)
-        spark.sparkContext.setCheckpointDir(os.path.join(arg.output_dir, "checkpoint"))
+        # if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
+        #     shutil.rmtree(os.path.join(arg.output_dir, "checkpoint"))
+        # pathlib.Path(os.path.join(arg.output_dir, "checkpoint")).mkdir(exist_ok=True, parents=True)
+        # spark.sparkContext.setCheckpointDir(os.path.join(arg.output_dir, "checkpoint"))
 
-        ### Preprocessing Normals
-        logging.info("\n >>>>>>>> Preprocessing Normal samples")
         index_name = 'kmer'
         jct_col = "iscrossjunction"
         save_intermed = False
         save_kmersnormal = False
         save_canc_int = False
-
-        normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 1))
-        if save_intermed:
-            path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge.pq')
-            save_spark(normal_matrix, arg.output_dir, path_)
-
-        # Take max expression between edge or segment expression
-        exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
-        normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
-        if save_intermed:
-            path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge_max_uniq.pq')
-            save_spark(normal_matrix, arg.output_dir, path_)
-
 
         ### Preprocessing Libsize
         logging.info("\n >>>>>>>> Preprocessing libsizes")
@@ -418,50 +406,60 @@ def mode_cancerspecif(arg):
         if arg.path_cancer_libsize:
             libsize_c = process_libsize(arg.path_cancer_libsize)
 
+        if arg.path_normal_kmer_list is None:
+            ### Preprocessing Normals
+            logging.info("\n >>>>>>>> Preprocessing Normal samples")
 
-        ### NORMALS: Statistical Filtering
-        if arg.statistical:
-            logging.info("\n >>>>>>>> Normals: Perform statistical filtering")
-            # Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
-            if arg.expr_high_limit_normal is not None:
-                logging.info( "... Normal kmers with expression >= {} in >= 1 sample are truly expressed. \n Will be substracted from cancer set".format(arg.expr_high_limit_normal))
-                high_expr_normals, normal_matrix = outlier_filtering(spark, normal_matrix, index_name, libsize_n, arg.expr_high_limit_normal)
-
-            if arg.tissue_grp_files is not None:
-                modelling_grps = []
-                for tissue_grp in arg.tissue_grp_files:
-                    grp = pd.read_csv(tissue_grp, header = None)[0].to_list()
-                    grp = [name_.replace('-','').replace('.','').replace('_','') for name_ in grp]
-                    grp.append(index_name)
-                    modelling_grps.append(grp)
-            else:
-                modelling_grps = [[name_ for name_ in normal_matrix.schema.names if name_ != index_name]]
-
-            logging.info(">>>... Fit Negative Binomial distribution on normal kmers ")
-            for grp in modelling_grps:
-            # Fit NB and Perform hypothesis testing
-                normal_matrix = fit_NB(spark, normal_matrix, index_name, arg.output_dir, arg.path_normal_matrix_segm, libsize_n, arg.cores)
-                normal_matrix = normal_matrix.filter(sf.col("proba_zero") < arg.threshold_noise) # Expressed kmers
-
-            # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
-
-        ### NORMALS: Hard Filtering
-        else:
-            logging.info("\n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.expr_limit_normal))
-            logging.info("expression filter")
-            normal_matrix = hard_filter_normals(normal_matrix, index_name, libsize_n, arg.output_dir, arg.expr_limit_normal, arg.n_samples_lim_normal)
-            normal_matrix = spark.read.csv(os.path.join(arg.output_dir, "tmp_norm.tsv"), sep=r'\t', header=False)
-            normal_matrix = normal_matrix.withColumnRenamed('_c0', index_name)
-
+            normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 1))
             if save_intermed:
-                path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + '.pq')
+                path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge.pq')
+                save_spark(normal_matrix, arg.output_dir, path_)
+
+            # Take max expression between edge or segment expression
+            exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
+            normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
+            if save_intermed:
+                path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge_max_uniq.pq')
                 save_spark(normal_matrix, arg.output_dir, path_)
 
 
-            normal_matrix = normal_matrix.select(sf.col(index_name))
-            # if save_kmersnormal:
-            #     path_ = os.path.join(arg.output_dir, 'index_normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(arg.n_samples_lim_normal, arg.expr_limit_normal) + '.pq')
-            #     save_spark(normal_matrix, arg.output_dir, path_)
+            ### NORMALS: Statistical Filtering
+            if arg.statistical:
+                logging.info("\n >>>>>>>> Normals: Perform statistical filtering")
+                # Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
+                if arg.expr_high_limit_normal is not None:
+                    logging.info( "... Normal kmers with expression >= {} in >= 1 sample are truly expressed. \n Will be substracted from cancer set".format(arg.expr_high_limit_normal))
+                    high_expr_normals, normal_matrix = outlier_filtering(spark, normal_matrix, index_name, libsize_n, arg.expr_high_limit_normal)
+
+                if arg.tissue_grp_files is not None:
+                   modelling_grps = []
+                   for tissue_grp in arg.tissue_grp_files:
+                       grp = pd.read_csv(tissue_grp, header = None)[0].to_list()
+                       grp = [name_.replace('-','').replace('.','').replace('_','') for name_ in grp]
+                       grp.append(index_name)
+                       modelling_grps.append(grp)
+                   else:
+                       modelling_grps = [[name_ for name_ in normal_matrix.schema.names if name_ != index_name]]
+
+                   logging.info(">>>... Fit Negative Binomial distribution on normal kmers ")
+                   for grp in modelling_grps:
+                   # Fit NB and Perform hypothesis testing
+                       normal_matrix = fit_NB(spark, normal_matrix, index_name, arg.output_dir, arg.path_normal_matrix_segm, libsize_n, arg.cores)
+                       normal_matrix = normal_matrix.filter(sf.col("proba_zero") < arg.threshold_noise) # Expressed kmers
+
+                   # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
+
+            ### NORMALS: Hard Filtering
+            else:
+                logging.info("\n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.expr_limit_normal))
+                logging.info("expression filter")
+
+                path_normal_kmers = hard_filter_normals(normal_matrix, index_name, libsize_n, arg.output_dir, arg.expr_limit_normal, arg.n_samples_lim_normal)
+                normal_matrix = spark.read.csv(path_normal_kmers, sep=r'\t', header=False)
+        else:
+            normal_matrix = spark.read.csv(arg.path_normal_kmer_list, sep=r'\t', header=False)
+        normal_matrix = normal_matrix.withColumnRenamed('_c0', index_name)
+        normal_matrix = normal_matrix.select(sf.col(index_name))
 
 
         ### Apply filtering to foreground
@@ -492,7 +490,6 @@ def mode_cancerspecif(arg):
                                          index_name, expression_fields, arg.expr_limit_cancer, arg.parallelism)
 
 
-            #TODO Keep junction type reduction in foreground or not? "--cross-junction"
             if save_canc_int:
                 extension = '.pq'
                 path_tmp_c = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[

@@ -157,7 +157,7 @@ def parse_arguments(argv):
     optional.add_argument("--uniprot", help="file containg uniprot k-mers. k-mers length should match the one of the cancer and normal files", required=False,
                           default=None)
 
-    optional.add_argument("--cross-junction", help="Filtering on junction status, None: no filtering, 1 keep junctions, 0 keep non junctions", type = int, required=False, default=None)
+    optional.add_argument("--path-normal-kmer-list", help="HARD FILTERING: Skip the hard filtering of the matrix of normals based on expression to use the provided list of kmer. Format tsv, with or without partitions", required=False, default=None)
     optional.add_argument("--tissue-grp-files", nargs='*', help="STATISTICAL: Allows the statistical modelling on normal samples to be performed on different tissue groups. Specify n paths of files, each containing the list of samples in the group. No header", required=False, default=None)
     optional.add_argument("--expr-high-limit-normal", type=float, help="STATISTICAL: Normal kmers with expression >= value in >= 1 sample are truly expressed. Will not be included in statistical modelling and will be substracted from cancer set", required=False, default=None)
     optional.add_argument("--threshold-noise-normal", type=float, help="STATISTICAL: Probability threshold on accepted noise in normals (High thresholds lead to leaner cancer kmer filtering)", required=False, default=None)
