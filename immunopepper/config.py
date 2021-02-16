@@ -94,7 +94,8 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
             set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").
            #.set("spark.driver.bindAddress", "192.168.0.15")
             set("spark.default.parallelism", parallelism).
-            set("spark.sql.shuffle.partitions", parallelism)
+            set("spark.sql.shuffle.partitions", parallelism).
+            set("spark.driver.maxResultSize", "0") #unlimited
              #TODO remove the personal IP address
             )
 

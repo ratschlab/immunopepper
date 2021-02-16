@@ -384,7 +384,7 @@ def save_spark(cancer_kmers, output_dir, path_final_fil):
 ### Main
 def mode_cancerspecif(arg):
 
-    spark_cfg = default_spark_config(arg.cores, arg.mem_per_core, arg.parallelism)
+    spark_cfg = default_spark_config(arg.cores, arg.mem_per_core, arg.parallelism, tmp_dir=arg.scratch_dir)
     with create_spark_session_from_config(spark_cfg) as spark:
         # if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
         #     shutil.rmtree(os.path.join(arg.output_dir, "checkpoint"))
