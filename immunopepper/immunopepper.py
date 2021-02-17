@@ -156,7 +156,7 @@ def parse_arguments(argv):
     optional.add_argument("--whitelist", help="file containg whitelist for normal samples", required=False, default=None)
     optional.add_argument("--uniprot", help="file containg uniprot k-mers. k-mers length should match the one of the cancer and normal files", required=False,
                           default=None)
-    optional.add_argument("--out-partitions", help="number of partitions to save the final tsv file, correspond to a coalesce operation", required=False, default=None)
+    optional.add_argument("--out-partitions", type=int, help="number of partitions to save the final tsv file, correspond to a coalesce operation", required=False, default=None)
     optional.add_argument("--scratch-dir", help="redirects spark scratch directory. can help shuffle on disk very large matrices", required=False, default='')
     optional.add_argument("--path-normal-kmer-list", help="HARD FILTERING: Skip the hard filtering of the matrix of normals based on expression to use the provided list of kmer. Format tsv, with or without partitions", required=False, default=None)
     optional.add_argument("--tissue-grp-files", nargs='*', help="STATISTICAL: Allows the statistical modelling on normal samples to be performed on different tissue groups. Specify n paths of files, each containing the list of samples in the group. No header", required=False, default=None)

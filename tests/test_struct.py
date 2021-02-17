@@ -159,7 +159,8 @@ def test_end_to_end_cancerspecif():
               "--uniprot", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/uniprot" ,
               "--expr-limit-cancer", "1",
               "--path-normal-kmer-list", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/filter_out/normals_merge-segm-edge_max_uniq_expr-in-3-samples-with-0.1-normalized-cts.tsv",
-              "--parallelism", "3"]
+              "--parallelism", "3",
+              "--out-partitions", "2"]
               #"--statistical"]
     immunopepper.split_mode(my_args)
 
