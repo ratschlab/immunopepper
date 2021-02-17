@@ -367,16 +367,14 @@ def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
     return cancer_kmers
 
 
-def save_spark(cancer_kmers, output_dir, path_final_fil):
+def save_spark(cancer_kmers, output_dir, path_final_fil, outpartions=None):
     # save
     logging.info("Save to {}".format(path_final_fil))
     pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
-    #repartitions_ = 1
-    repartitions_ = "default"
-    logging.info("repartition is {}".format(repartitions_))
-    #cancer_kmers.repartition(repartitions_).write.mode('overwrite').parquet(path_final_fil)
-    cancer_kmers.write.mode('overwrite').options(header="true",sep="\t").parquet(path_final_fil) # end name with pq
-
+    if outpartions is not None:
+        cancer_kmers.coalesce(outpartions).write.mode('overwrite').options(header="true",sep="\t").csv(path_final_fil) 
+    else:
+        cancer_kmers.write.mode('overwrite').options(header="true",sep="\t").csv(path_final_fil)
 
 
 
@@ -412,14 +410,14 @@ def mode_cancerspecif(arg):
 
             normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 1))
             if save_intermed:
-                path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge.pq')
+                path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge.tsv')
                 save_spark(normal_matrix, arg.output_dir, path_)
 
             # Take max expression between edge or segment expression
             exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
             normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
             if save_intermed:
-                path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge_max_uniq.pq')
+                path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge_max_uniq.tsv')
                 save_spark(normal_matrix, arg.output_dir, path_)
 
 
@@ -491,7 +489,7 @@ def mode_cancerspecif(arg):
 
 
             if save_canc_int:
-                extension = '.pq'
+                extension = '.tsv'
                 path_tmp_c = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0] + '_expressed_normalized_'  + extension)
                 save_spark(cancer_kmers, arg.output_dir, path_tmp_c)
@@ -503,10 +501,10 @@ def mode_cancerspecif(arg):
     
             logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
             
-            extension = '.pq'
+            extension = '.tsv'
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0] + 'ctlim{}_filt-normals-ctlim{}-{}samples'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
-            save_spark(cancer_kmers, arg.output_dir, path_final_fil)
+            save_spark(cancer_kmers, arg.output_dir, path_final_fil, outpartitions=arg.out_partitions)
 
 
             ### Remove Uniprot
@@ -514,7 +512,7 @@ def mode_cancerspecif(arg):
             cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
                 0]  + 'ctlim{}_filt-normals-ctlim{}-{}_samples_filt-uniprot'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
-            save_spark(cancer_kmers, arg.output_dir, path_final_fil)
+            save_spark(cancer_kmers, arg.output_dir, path_final_fil, outpartitions=arg.out_partitions)
 
             if os.path.exists(cancer_path_tmp):
                 os.remove(cancer_path_tmp)
