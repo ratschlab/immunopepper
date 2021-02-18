@@ -120,6 +120,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
                                                                                           np.max(time_per_gene),
                                                                                           np.max(mem_per_gene)))
                 pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
+            else:  logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(sample, outbase.split('/')[-1].split('_')[-1]))
         else:
             logging.info("> {} : Batch {} exists, skip processing ".format(sample, outbase.split('/')[-1].split('_')[-1]))
 
@@ -184,7 +185,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                     continue
 
                 idx = get_idx(countinfo, sample, gene_idxs[i])
-                logging.info("gene processed {}".format(i))
+                logging.info("process gene {} of batch_{}".format(i, outbase.split('/')[-1].split('_')[-1]))
                 # Gene counts information
                 if countinfo:
                     gidx = countinfo.gene_idx_dict[gene.name]
@@ -277,6 +278,8 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                                                                                               np.max(time_per_gene),
                                                                                             np.max(mem_per_gene)))
                 pathlib.Path(os.path.join(outbase, "Sample_IS_SUCCESS")).touch()
+
+            else:  logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(sample, outbase.split('/')[-1].split('_')[-1]))
 
         else:
             logging.info("> {} : Batch {} exists, skip processing ".format(sample, outbase.split('/')[-1].split('_')[-1]))
