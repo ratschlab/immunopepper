@@ -454,7 +454,6 @@ def mode_cancerspecif(arg):
 
                 path_normal_kmers = hard_filter_normals(normal_matrix, index_name, libsize_n, arg.output_dir, arg.expr_limit_normal, arg.n_samples_lim_normal)
                 normal_matrix = spark.read.csv(path_normal_kmers, sep=r'\t', header=False)
-                shutil.rmtree(path_normal_kmers)
         else:
             normal_matrix = spark.read.csv(arg.path_normal_kmer_list, sep=r'\t', header=False)
         normal_matrix = normal_matrix.withColumnRenamed('_c0', index_name)
@@ -517,8 +516,6 @@ def mode_cancerspecif(arg):
 
             if os.path.exists(cancer_path_tmp):
                 os.remove(cancer_path_tmp)
-
-
 
 
             #TODO Implement the intersection of the modelling tissues
