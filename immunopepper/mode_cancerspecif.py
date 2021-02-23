@@ -259,7 +259,7 @@ def hard_filter_normals(normal_matrix, index_name, libsize_n, out_dir, expr_limi
     normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= n_samples_lim_normal)
 
     path_ = os.path.join(out_dir,
-                         'normals_merge-segm-edge_max_uniq_expr-in-{}-samples-with-{}-normalized-cts'.format(
+                         'interm_normals_segm-edge_max_expr-in-{}-samples-with-{}-normalized-cts'.format(
                              n_samples_lim_normal, expr_limit_normal) + '.tsv')
     logging.info("Save to {}".format(path_))
     normal_matrix.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_)
@@ -503,7 +503,7 @@ def mode_cancerspecif(arg):
             
             extension = '.tsv'
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
-                0] + 'ctlim{}_filt-normals-ctlim{}-{}samples'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
+                0] + '_ctlim{}_filt-normals-ctlim{}-{}samples'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
             save_spark(cancer_kmers, arg.output_dir, path_final_fil, outpartitions=arg.out_partitions)
 
 
@@ -511,7 +511,7 @@ def mode_cancerspecif(arg):
             logging.info("Filtering kmers in uniprot")
             cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
             path_final_fil = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
-                0]  + 'ctlim{}_filt-normals-ctlim{}-{}_samples_filt-uniprot'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
+                0]  + '_ctlim{}_filt-normals-ctlim{}-{}_samples_filt-uniprot'.format(arg.expr_limit_cancer, arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
             save_spark(cancer_kmers, arg.output_dir, path_final_fil, outpartitions=arg.out_partitions)
 
             if os.path.exists(cancer_path_tmp):
