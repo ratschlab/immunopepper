@@ -1,4 +1,4 @@
-def translate_dna_to_peptide(str dna_str):
+def translate_dna_to_peptide(dna_str:str,all_read_frames:bool):
     """ Translate a DNA sequence encoding a peptide to amino-acid sequence via RNA.
 
     If 'N' is included in input dna, 'X' will be outputted since 'N' represents
@@ -7,6 +7,7 @@ def translate_dna_to_peptide(str dna_str):
     Parameters
     ----------
     dna_str: str or List(str). dna string to be translated.
+    all_read_frames: boolean for all reading frames translation versus annotated reading frame propagation. Given as string
 
     Returns
     -------
@@ -33,6 +34,7 @@ def translate_dna_to_peptide(str dna_str):
         'TGC': 'C', 'TGT': 'C', 'TGA': '_', 'TGG': 'W'
     }
     dna_str = dna_str.upper()
+    cdef list multiple_pep = []
     cdef bint has_stop_codon = False
     cdef list aa_str = []
     for idx in range(0, len(dna_str), 3):
@@ -44,8 +46,13 @@ def translate_dna_to_peptide(str dna_str):
         else:
             if codontable[codon] == '_':
                 has_stop_codon = True
-                return ''.join(aa_str), has_stop_codon
+                if not all_read_frames:
+                    return ''.join(aa_str), has_stop_codon
+                else:
+                    multiple_pep.append(''.join(aa_str))
+                    aa_str.clear()
             else:
                 aa_str.append(codontable[codon])
 
-    return ''.join(aa_str), has_stop_codon
+    multiple_pep.append(''.join(aa_str))
+    return multiple_pep, has_stop_codon

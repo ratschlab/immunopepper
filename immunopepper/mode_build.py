@@ -102,7 +102,8 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
                                                            countinfo=countinfo,
                                                            seg_counts=seg_counts,
                                                            Idx=idx,
-                                                           kmer=arg.kmer)
+                                                           kmer=arg.kmer,
+                                                           all_read_frames=arg.all_read_frames)
 
                 time_per_gene.append(timeit.default_timer() - start_time)
                 mem_per_gene.append(print_memory_diags(disable_print=True))
@@ -251,6 +252,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                                                 edge_counts=edge_counts,
                                                 seg_counts=seg_counts,
                                                 cross_graph_expr=arg.cross_graph_expr,
+                                                all_read_frames=arg.all_read_frames,
                                                 filepointer=filepointer,
                                                 graph_samples=graph_samples,
                                                 verbose_save=verbose
