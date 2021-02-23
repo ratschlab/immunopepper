@@ -173,9 +173,9 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                 ### measure time
                 start_time = timeit.default_timer()
 
-                # Genes not contained in the annotation...
-                if gene.name not in genetable.gene_to_cds_begin or \
-                   gene.name not in genetable.gene_to_ts:
+                # Genes not contained in the annotation in annotated CDS mode
+                if (not arg.all_read_frames) and (gene.name not in genetable.gene_to_cds_begin or \
+                   gene.name not in genetable.gene_to_ts):
                     #logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
                     continue
 
@@ -210,7 +210,8 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                             else:
                                 seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
 
-                gene_expr.append([gene.name] + get_total_gene_expr(gene, countinfo, idx, seg_counts, arg.cross_graph_expr))
+                if (gene.name in genetable.gene_to_cds_begin and gene.name in genetable.gene_to_ts): # library size calculated only for genes with CDS
+                    gene_expr.append([gene.name] + get_total_gene_expr(gene, countinfo, idx, seg_counts, arg.cross_graph_expr))
 
                 chrm = gene.chr.strip()
                 sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
