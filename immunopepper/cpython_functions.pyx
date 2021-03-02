@@ -47,7 +47,7 @@ def translate_dna_to_peptide(dna_str:str,all_read_frames:bool):
             if codontable[codon] == '_':
                 has_stop_codon = True
                 if not all_read_frames:
-                    return ''.join(aa_str), has_stop_codon
+                    return [''.join(aa_str)], has_stop_codon
                 else:
                     multiple_pep.append(''.join(aa_str))
                     aa_str.clear()
