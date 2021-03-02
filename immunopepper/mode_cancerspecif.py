@@ -372,7 +372,7 @@ def save_spark(cancer_kmers, output_dir, path_final_fil, outpartitions=None):
     logging.info("Save to {}".format(path_final_fil))
     pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
     if outpartitions is not None:
-        cancer_kmers.coalesce(outpartitions).write.mode('overwrite').options(header="true",sep="\t").csv(path_final_fil)
+        cancer_kmers.repartition(outpartitions).write.mode('overwrite').options(header="true",sep="\t").csv(path_final_fil)
     else:
         cancer_kmers.write.mode('overwrite').options(header="true",sep="\t").csv(path_final_fil)
 
