@@ -330,6 +330,9 @@ def mode_build(arg):
     else:
         num = arg.process_num
     
+    if arg.process_chr is not None:
+        graph_data = [gene for gene in graph_data if gene.chr in arg.process_chr]
+    
     # load graph metadata
     start_time = timeit.default_timer()
     if arg.count_path is not None:
