@@ -59,7 +59,7 @@ def mapper_funct(tuple_arg):
 def mapper_funct_back(tuple_arg):
     process_gene_batch_background(*tuple_arg)
 
-def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinfo, genetable, arg, outbase, filepointer, compression=None, verbose=False):
+def process_gene_batch_background(sample, genes, gene_idxs, all_read_frames, mutation, countinfo, genetable, arg, outbase, filepointer, compression=None, verbose=False):
     try:
         exception_ = None
         if not os.path.exists(os.path.join(outbase, "Annot_IS_SUCCESS")):
@@ -75,9 +75,9 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
                 start_time = timeit.default_timer()
 
                 # Genes not contained in the annotation...
-                if gene.name not in genetable.gene_to_cds_begin or \
-                        gene.name not in genetable.gene_to_ts:
-                    #logger.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
+                if (not all_read_frames) and (gene.name not in genetable.gene_to_cds_begin or \
+                        gene.name not in genetable.gene_to_ts):
+#                    logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
                     continue
 
                 idx = get_idx(countinfo, sample, gene_idxs[i])
@@ -407,7 +407,7 @@ def mode_build(arg):
                 # Build the background
                 logging.info(">>>>>>>>> Start Background processing")
                 pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
-                args = [(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg,
+                args = [(sample, graph_data[gene_idx], gene_idx, all_read_frames, mutation, countinfo, genetable, arg,
                       os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
 
                 result = pool_f.submit(mapper_funct_back, args)
@@ -442,7 +442,7 @@ def mode_build(arg):
             logging.info('Not Parallel')
             # Build the background
             logging.info(">>>>>>>>> Start Background processing")
-            process_gene_batch_background(sample, graph_data, gene_id_list, mutation, countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
+            process_gene_batch_background(sample, graph_data, gene_id_list, all_read_frames, mutation, countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
             process_gene_batch_foreground( sample, graph_samples, graph_data, graph_info, gene_id_list, len(gene_id_list), all_read_frames, mutation, junction_dict,
