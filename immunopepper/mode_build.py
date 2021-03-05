@@ -70,12 +70,16 @@ def process_gene_batch_background(sample, genes, gene_idxs, all_read_frames, mut
             mem_per_gene = []
             all_gene_idxs = []
 
+            if arg.parallel > 1:
+                batch_name = outbase.split('/')[-1].split('_')[-1]
+            else:
+                batch_name = 'all'
             for i, gene in enumerate(genes):
                 ### measure time
                 start_time = timeit.default_timer()
 
                 # Genes not contained in the annotation...
-                if (not all_read_frames) and (gene.name not in genetable.gene_to_cds_begin or \
+                if (gene.name not in genetable.gene_to_cds_begin or \
                         gene.name not in genetable.gene_to_ts):
 #                    logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
                     continue
@@ -116,14 +120,14 @@ def process_gene_batch_background(sample, genes, gene_idxs, all_read_frames, mut
 
             if all_gene_idxs:
                 logging.info("> {}: annotation graph from batch {}/{} processed, max time cost: {}, memory cost:{}".format(sample,
-                                                                                          outbase.split('/')[-1].split('_')[-1] ,
+                                                                                          batch_name,
                                                                                           len(gene_id_list),
                                                                                           np.max(time_per_gene),
                                                                                           np.max(mem_per_gene)))
                 pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
-            else:  logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(sample, outbase.split('/')[-1].split('_')[-1]))
+            else:  logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(sample, batch_name))
         else:
-            logging.info("> {} : Batch {} exists, skip processing ".format(sample, outbase.split('/')[-1].split('_')[-1]))
+            logging.info("> {} : Batch {} exists, skip processing ".format(sample, batch_name))
 
     except Exception as e:
         exception_ = ExceptionWrapper(e)
@@ -169,7 +173,11 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
             mem_per_gene = []
             all_gene_idxs = []
             gene_expr = []
-
+            
+            if arg.parallel > 1: 
+                batch_name = outbase.split('/')[-1].split('_')[-1]
+            else:
+                batch_name = 'all'
             for i, gene in enumerate(genes):
                 ### measure time
                 start_time = timeit.default_timer()
@@ -182,11 +190,11 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
 
                 # Genes with highly complex splicegraphs
                 if (len(gene.splicegraph.vertices[1]) > complexity_cap):
-                    logging.warning('> Gene {} : {} has a edge complexity > {}, not processed'.format(int(outbase.split("_")[-1]) + i,  gene.name, complexity_cap))
+                    logging.warning('> Gene {} has a edge complexity > {}, not processed'.format(gene.name, complexity_cap))
                     continue
 
                 idx = get_idx(countinfo, sample, gene_idxs[i])
-                logging.info("process gene {} of batch_{}".format(i, outbase.split('/')[-1].split('_')[-1]))
+                logging.info("process gene {} of batch_{}".format(i, batch_name))
                 # Gene counts information
                 if countinfo:
                     gidx = countinfo.gene_idx_dict[gene.name]
@@ -276,16 +284,16 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
 
             if all_gene_idxs:
                 logging.info("> {}: sample graph from batch {}/{} processed, max time cost: {}, memory cost:{} GB".format(sample,
-                                                                                              outbase.split('/')[-1].split('_')[-1] ,
+                                                                                              batch_name,
                                                                                               len(gene_id_list),
                                                                                               np.max(time_per_gene),
                                                                                             np.max(mem_per_gene)))
                 pathlib.Path(os.path.join(outbase, "Sample_IS_SUCCESS")).touch()
 
-            else:  logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(sample, outbase.split('/')[-1].split('_')[-1]))
+            else:  logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(sample, batch_name))
 
         else:
-            logging.info("> {} : Batch {} exists, skip processing ".format(sample, outbase.split('/')[-1].split('_')[-1]))
+            logging.info("> {} : Batch {} exists, skip processing ".format(sample, batch_name))
 
     except Exception as e:
 
