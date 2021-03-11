@@ -279,7 +279,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
 
 
                 for pep_idx in np.arange(len(peptide.mut)):
-                    if not peptide.mut[pep_idx] or (peptide.mut[pep_idx] in peptide.ref) or mutation.mode == 'ref' or output_silence: #TODO check change in condition
+                    if not peptide.mut[pep_idx] or not (peptide.mut[pep_idx] in peptide.ref or mutation.mode == 'ref' or output_silence):
                         continue
 
                     new_output_id = ':'.join([gene.name, '_'.join([str(v) for v in vertex_list]), str(variant_id), str(tran_start_pos), kmer_type])
