@@ -333,14 +333,14 @@ def mode_build(arg):
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
+    if arg.process_chr is not None:
+        graph_data = np.array([gene for gene in graph_data if gene.chr in arg.process_chr])
+    
     if arg.process_num == 0:  # Default process all genes
         num = len(graph_data)
     else:
         num = arg.process_num
-    
-    if arg.process_chr is not None:
-        graph_data = [gene for gene in graph_data if gene.chr in arg.process_chr]
-    
+
     # load graph metadata
     start_time = timeit.default_timer()
     if arg.count_path is not None:
