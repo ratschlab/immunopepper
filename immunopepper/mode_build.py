@@ -154,15 +154,17 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
         #    if os.path.exists(os.path.join(outbase, "Sample_IS_SUCCESS")):
         #        os.remove(os.path.join(outbase, "Sample_IS_SUCCESS"))
 
-        complexity_cap =1000
-        
+        complexity_cap = arg.complexity_cap
+        if complexity_cap==None:
+            complexity_cap=np.inf
+
         ### Temporary fix
-        gene_issue = 0
-        for i, gene in enumerate(genes):
-            if (len(gene.splicegraph.vertices[1]) >= complexity_cap):
-                gene_issue += 1
-        if gene_issue:
-            shutil.rmtree(outbase, ignore_errors=True)
+#        gene_issue = 0
+#        for i, gene in enumerate(genes):
+#            if (len(gene.splicegraph.vertices[1]) >= complexity_cap):
+#                gene_issue += 1
+#        if gene_issue:
+#            shutil.rmtree(outbase, ignore_errors=True)
  
         if not os.path.exists(os.path.join(outbase, "Sample_IS_SUCCESS")):
 
