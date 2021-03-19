@@ -52,7 +52,7 @@ def parse_arguments(argv):
     experimental.add_argument("--cross-graph-expr",
                           help="returns edge/segment expression matrices [kmer/peptides x samples] ",
                           action="store_true", required=False, default=False)
-
+    experimental.add_argument("--complexity-cap", type=int, help="limit the processing of the foreground to genes with complexity less than the cap", required=False, default=None)
     experimental.add_argument("--process-num", metavar='N', type=int, help="Only process the first N genes in the splicegraph, default: process all", required=False, default=0)
     experimental.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
     #specify the absolute path to expression library sizes
