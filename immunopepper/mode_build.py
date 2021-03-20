@@ -190,11 +190,6 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                     logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
                     continue
 
-                # Genes with highly complex splicegraphs
-                if (len(gene.splicegraph.vertices[1]) > complexity_cap):
-                    logging.warning('> Gene {} has a edge complexity > {}, not processed'.format(gene.name, complexity_cap))
-                    continue
-
                 idx = get_idx(countinfo, sample, gene_idxs[i])
                 logging.info("process gene {} of batch_{}".format(i, batch_name))
                 # Gene counts information
@@ -223,6 +218,11 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
 
                 if (gene.name in genetable.gene_to_cds_begin and gene.name in genetable.gene_to_ts): # library size calculated only for genes with CDS
                     gene_expr.append([gene.name] + get_total_gene_expr(gene, countinfo, idx, seg_counts, arg.cross_graph_expr))
+
+                # Genes with highly complex splicegraphs
+                if (len(gene.splicegraph.vertices[1]) > complexity_cap):
+                    logging.warning('> Gene {} has a edge complexity > {}, not processed'.format(gene.name, complexity_cap))
+                    continue
 
                 chrm = gene.chr.strip()
                 sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
