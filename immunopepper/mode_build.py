@@ -392,13 +392,11 @@ def mode_build(arg):
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
 
-
+        gzip_tag = ''
         if arg.compressed:
-            gzip_tag = '.gz'
-            pq_compression = 'GZIP'
+            pq_compression = 'SNAPPY'
         else:
             pq_compression = None
-            gzip_tag = ''
 
         filepointer = initialize_fp(output_path, mutation.mode, gzip_tag,
                   arg.kmer, arg.output_fasta, arg.cross_graph_expr)
