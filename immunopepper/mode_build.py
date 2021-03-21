@@ -136,7 +136,7 @@ def process_gene_batch_background(sample, genes, gene_idxs, all_read_frames, mut
 
 
 
-def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
+def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene_idxs, total_genes, all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
     try:
         exception_ = None
         ### Temporary fix
@@ -153,11 +153,6 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
         #else: # Exist issue
         #    if os.path.exists(os.path.join(outbase, "Sample_IS_SUCCESS")):
         #        os.remove(os.path.join(outbase, "Sample_IS_SUCCESS"))
-
-        complexity_cap = arg.complexity_cap
-        if complexity_cap==None:
-            complexity_cap=np.inf
-
         ### Temporary fix
 #        gene_issue = 0
 #        for i, gene in enumerate(genes):
@@ -335,6 +330,12 @@ def mode_build(arg):
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
+
+    if arg.complexity_cap is None or arg.complexity_cap==0: #Default no complexity cap
+        complexity_cap=np.inf
+    else:
+        complexity_cap = arg.complexity_cap
+
     if arg.process_chr is not None:
         graph_data = np.array([gene for gene in graph_data if gene.chr in arg.process_chr])
     
@@ -427,7 +428,7 @@ def mode_build(arg):
             logging.info(">>>>>>>>> Start Foreground processing")
             pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
             args = [(sample, graph_samples, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(
-                gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg,
+                gene_id_list), all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg,
                   os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
 
             result = pool_f.submit(mapper_funct, args)
@@ -455,7 +456,7 @@ def mode_build(arg):
             process_gene_batch_background(sample, graph_data, gene_id_list, all_read_frames, mutation, countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
-            process_gene_batch_foreground( sample, graph_samples, graph_data, graph_info, gene_id_list, len(gene_id_list), all_read_frames, mutation, junction_dict,
+            process_gene_batch_foreground( sample, graph_samples, graph_data, graph_info, gene_id_list, len(gene_id_list), all_read_frames, complexity_cap, mutation, junction_dict,
                              countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
 
         #if not arg.cross_graph_expr:
