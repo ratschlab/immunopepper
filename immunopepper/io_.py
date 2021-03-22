@@ -188,7 +188,7 @@ def initialize_fp(output_path, mutation_mode, gzip_tag,
     background_peptide_file_path = os.path.join(output_path, mutation_mode+ '_annot_peptides.fa.pq' + gzip_tag)
     background_kmer_file_path = os.path.join(output_path, mutation_mode + '_annot_kmer.pq' + gzip_tag)
     gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.pq' + gzip_tag)
-    junction_meta_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides_meta.tsv.gz.pq')
+    junction_meta_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides_meta.pq')
     junction_peptide_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides.fa.pq' + gzip_tag)
     junction_kmer_file_path = os.path.join(output_path, mutation_mode + '_sample_kmer.pq' + gzip_tag)
     graph_kmer_segment_expr_path = os.path.join(output_path, mutation_mode + '_graph_kmer_SegmExpr.pq' + gzip_tag)
