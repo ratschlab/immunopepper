@@ -115,11 +115,14 @@ def junction_is_annotated(gene, gene_to_transcript_table, transcript_to_cds_tabl
         while False indicates the exon pair not exist or it does not show in the
         given .gtf file.
     """
-    ts_list = gene_to_transcript_table[gene.name]
     vertices = gene.splicegraph.vertices
     edges = gene.splicegraph.edges
-
     junction_flag = np.zeros(edges.shape, dtype='bool')
+    
+    if gene.name not in gene_to_transcript_table:
+        return junction_flag
+    
+    ts_list = gene_to_transcript_table[gene.name]
     for ts in ts_list:
         if not ts in transcript_to_cds_table:
             continue

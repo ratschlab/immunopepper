@@ -59,7 +59,7 @@ def mapper_funct(tuple_arg):
 def mapper_funct_back(tuple_arg):
     process_gene_batch_background(*tuple_arg)
 
-def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinfo, genetable, arg, outbase, filepointer, compression=None, verbose=False):
+def process_gene_batch_background(sample, genes, gene_idxs, all_read_frames, mutation, countinfo, genetable, arg, outbase, filepointer, compression=None, verbose=False):
     try:
         exception_ = None
         if not os.path.exists(os.path.join(outbase, "Annot_IS_SUCCESS")):
@@ -70,14 +70,18 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
             mem_per_gene = []
             all_gene_idxs = []
 
+            if arg.parallel > 1:
+                batch_name = outbase.split('/')[-1].split('_')[-1]
+            else:
+                batch_name = 'all'
             for i, gene in enumerate(genes):
                 ### measure time
                 start_time = timeit.default_timer()
 
                 # Genes not contained in the annotation...
-                if gene.name not in genetable.gene_to_cds_begin or \
-                        gene.name not in genetable.gene_to_ts:
-                    #logger.warning('>Gene name {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
+                if (gene.name not in genetable.gene_to_cds_begin or \
+                        gene.name not in genetable.gene_to_ts):
+#                    logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
                     continue
 
                 idx = get_idx(countinfo, sample, gene_idxs[i])
@@ -102,7 +106,8 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
                                                            countinfo=countinfo,
                                                            seg_counts=seg_counts,
                                                            Idx=idx,
-                                                           kmer=arg.kmer)
+                                                           kmer=arg.kmer,
+                                                           all_read_frames=arg.all_read_frames)
 
                 time_per_gene.append(timeit.default_timer() - start_time)
                 mem_per_gene.append(print_memory_diags(disable_print=True))
@@ -115,14 +120,14 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
 
             if all_gene_idxs:
                 logging.info("> {}: annotation graph from batch {}/{} processed, max time cost: {}, memory cost:{}".format(sample,
-                                                                                          outbase.split('/')[-1].split('_')[-1] ,
+                                                                                          batch_name,
                                                                                           len(gene_id_list),
                                                                                           np.max(time_per_gene),
                                                                                           np.max(mem_per_gene)))
                 pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
-            else:  logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(sample, outbase.split('/')[-1].split('_')[-1]))
+            else:  logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(sample, batch_name))
         else:
-            logging.info("> {} : Batch {} exists, skip processing ".format(sample, outbase.split('/')[-1].split('_')[-1]))
+            logging.info("> {} : Batch {} exists, skip processing ".format(sample, batch_name))
 
     except Exception as e:
         exception_ = ExceptionWrapper(e)
@@ -131,7 +136,7 @@ def process_gene_batch_background(sample, genes, gene_idxs,  mutation , countinf
 
 
 
-def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene_idxs, total_genes, all_read_frames, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
+def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene_idxs, total_genes, all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
     try:
         exception_ = None
         ### Temporary fix
@@ -148,11 +153,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
         #else: # Exist issue
         #    if os.path.exists(os.path.join(outbase, "Sample_IS_SUCCESS")):
         #        os.remove(os.path.join(outbase, "Sample_IS_SUCCESS"))
-
-        complexity_cap = arg.complexity_cap
-        if complexity_cap==None:
-            complexity_cap=np.inf
-
+        
         ### Temporary fix
 #        gene_issue = 0
 #        for i, gene in enumerate(genes):
@@ -170,24 +171,23 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
             mem_per_gene = []
             all_gene_idxs = []
             gene_expr = []
-
+            
+            if arg.parallel > 1: 
+                batch_name = outbase.split('/')[-1].split('_')[-1]
+            else:
+                batch_name = 'all'
             for i, gene in enumerate(genes):
                 ### measure time
                 start_time = timeit.default_timer()
 
-                # Genes not contained in the annotation...
-                if gene.name not in genetable.gene_to_cds_begin or \
-                   gene.name not in genetable.gene_to_ts:
-                    #logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
-                    continue
-
-                # Genes with highly complex splicegraphs
-                if (len(gene.splicegraph.vertices[1]) > complexity_cap):
-                    logging.warning('> Gene {} : {} has a edge complexity > {}, not processed'.format(int(outbase.split("_")[-1]) + i,  gene.name, complexity_cap))
+                # Genes not contained in the annotation in annotated CDS mode
+                if (not all_read_frames) and (gene.name not in genetable.gene_to_cds_begin or \
+                        gene.name not in genetable.gene_to_ts): 
+                    logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
                     continue
 
                 idx = get_idx(countinfo, sample, gene_idxs[i])
-                logging.info("process gene {} of batch_{}".format(i, outbase.split('/')[-1].split('_')[-1]))
+                logging.info("process gene {} of batch_{}".format(i, batch_name))
                 # Gene counts information
                 if countinfo:
                     gidx = countinfo.gene_idx_dict[gene.name]
@@ -212,7 +212,13 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                             else:
                                 seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
 
-                gene_expr.append([gene.name] + get_total_gene_expr(gene, countinfo, idx, seg_counts, arg.cross_graph_expr))
+                if (gene.name in genetable.gene_to_cds_begin and gene.name in genetable.gene_to_ts): # library size calculated only for genes with CDS
+                    gene_expr.append([gene.name] + get_total_gene_expr(gene, countinfo, idx, seg_counts, arg.cross_graph_expr))
+
+                # Genes with highly complex splicegraphs
+                if (len(gene.splicegraph.vertices[1]) > complexity_cap):
+                    logging.warning('> Gene {} has a edge complexity > {}, not processed'.format(gene.name, complexity_cap))
+                    continue
 
                 chrm = gene.chr.strip()
                 sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
@@ -252,6 +258,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                                                 edge_counts=edge_counts,
                                                 seg_counts=seg_counts,
                                                 cross_graph_expr=arg.cross_graph_expr,
+                                                all_read_frames=arg.all_read_frames,
                                                 filepointer=filepointer,
                                                 graph_samples=graph_samples,
                                                 verbose_save=verbose
@@ -275,16 +282,16 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
 
             if all_gene_idxs:
                 logging.info("> {}: sample graph from batch {}/{} processed, max time cost: {}, memory cost:{} GB".format(sample,
-                                                                                              outbase.split('/')[-1].split('_')[-1] ,
+                                                                                              batch_name,
                                                                                               len(gene_id_list),
                                                                                               np.max(time_per_gene),
                                                                                             np.max(mem_per_gene)))
                 pathlib.Path(os.path.join(outbase, "Sample_IS_SUCCESS")).touch()
 
-            else:  logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(sample, outbase.split('/')[-1].split('_')[-1]))
+            else:  logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(sample, batch_name))
 
         else:
-            logging.info("> {} : Batch {} exists, skip processing ".format(sample, outbase.split('/')[-1].split('_')[-1]))
+            logging.info("> {} : Batch {} exists, skip processing ".format(sample, batch_name))
 
     except Exception as e:
 
@@ -324,11 +331,20 @@ def mode_build(arg):
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
+
+    if arg.complexity_cap is None or arg.complexity_cap==0: #Default no complexity cap
+        complexity_cap=np.inf
+    else:
+        complexity_cap = arg.complexity_cap
+
+    if arg.process_chr is not None:
+        graph_data = np.array([gene for gene in graph_data if gene.chr in arg.process_chr])
+    
     if arg.process_num == 0:  # Default process all genes
         num = len(graph_data)
     else:
         num = arg.process_num
-    
+
     # load graph metadata
     start_time = timeit.default_timer()
     if arg.count_path is not None:
@@ -377,13 +393,11 @@ def mode_build(arg):
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
 
-
+        gzip_tag = ''
         if arg.compressed:
-            gzip_tag = '.gz'
-            pq_compression = 'GZIP'
+            pq_compression = 'SNAPPY'
         else:
             pq_compression = None
-            gzip_tag = ''
 
         filepointer = initialize_fp(output_path, mutation.mode, gzip_tag,
                   arg.kmer, arg.output_fasta, arg.cross_graph_expr)
@@ -403,7 +417,7 @@ def mode_build(arg):
                 # Build the background
                 logging.info(">>>>>>>>> Start Background processing")
                 pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
-                args = [(sample, graph_data[gene_idx], gene_idx, mutation, countinfo, genetable, arg,
+                args = [(sample, graph_data[gene_idx], gene_idx, all_read_frames, mutation, countinfo, genetable, arg,
                       os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
 
                 result = pool_f.submit(mapper_funct_back, args)
@@ -413,7 +427,7 @@ def mode_build(arg):
             logging.info(">>>>>>>>> Start Foreground processing")
             pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
             args = [(sample, graph_samples, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(
-                gene_id_list), all_read_frames, mutation, junction_dict, countinfo, genetable, arg,
+                gene_id_list), all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg,
                   os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
 
             result = pool_f.submit(mapper_funct, args)
@@ -438,10 +452,10 @@ def mode_build(arg):
             logging.info('Not Parallel')
             # Build the background
             logging.info(">>>>>>>>> Start Background processing")
-            process_gene_batch_background(sample, graph_data, gene_id_list, mutation, countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
+            process_gene_batch_background(sample, graph_data, gene_id_list, all_read_frames, mutation, countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
-            process_gene_batch_foreground( sample, graph_samples, graph_data, graph_info, gene_id_list, len(gene_id_list), all_read_frames, mutation, junction_dict,
+            process_gene_batch_foreground( sample, graph_samples, graph_data, graph_info, gene_id_list, len(gene_id_list), all_read_frames, complexity_cap, mutation, junction_dict,
                              countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
 
         #if not arg.cross_graph_expr:

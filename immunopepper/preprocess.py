@@ -26,8 +26,8 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frame
         assert (gene.strand in ["+", "-"])
         assert (len(gene.transcripts) == len(gene.exons))
 
-        # Ignore genes that have no CDS annotated...
-        if gene.name not in gene_cds_begin_dict:
+        # Ignore genes that have no CDS annotated in annotated frame mode
+        if (not all_read_frames) and (gene.name not in gene_cds_begin_dict):
             gene_info.append(None)
             continue
 
