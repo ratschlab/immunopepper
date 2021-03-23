@@ -437,13 +437,13 @@ def mode_build(arg):
 
             # Collects and pools the files of each batch
             logging.debug('start collecting results')
+            collect_results(filepointer.gene_expr_fp, output_path, pq_compression, arg.mutation_mode)
             if arg.output_fasta:
-                collect_results(filepointer.background_peptide_fp, output_path, pq_compression, arg.mutation_mode)
                 collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, arg.mutation_mode)
+            collect_results(filepointer.background_peptide_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.junction_meta_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
             collect_results(filepointer.background_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
-            collect_results(filepointer.gene_expr_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, arg.mutation_mode)
 #            remove_folder_list(os.path.join(output_path, 'tmp_out_{}'.format(arg.mutation_mode)))
