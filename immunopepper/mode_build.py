@@ -181,7 +181,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                 start_time = timeit.default_timer()
 
                 # Genes not contained in the annotation in annotated CDS mode
-                if (not all_read_frames) and (gene.name not in genetable.gene_to_cds_begin or \
+                if (gene.name not in genetable.gene_to_cds_begin or \
                         gene.name not in genetable.gene_to_ts): 
                     logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
                     continue
