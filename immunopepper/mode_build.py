@@ -62,6 +62,11 @@ def mapper_funct_back(tuple_arg):
 def process_gene_batch_background(sample, genes, gene_idxs, all_read_frames, mutation, countinfo, genetable, arg, outbase, filepointer, compression=None, verbose=False):
     try:
         exception_ = None
+        if arg.parallel > 1:
+            batch_name = outbase.split('/')[-1].split('_')[-1]
+        else:
+            batch_name = 'all'
+
         if not os.path.exists(os.path.join(outbase, "Annot_IS_SUCCESS")):
             pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
             set_kmer_back =  defaultdict(set, {})
@@ -70,10 +75,6 @@ def process_gene_batch_background(sample, genes, gene_idxs, all_read_frames, mut
             mem_per_gene = []
             all_gene_idxs = []
 
-            if arg.parallel > 1:
-                batch_name = outbase.split('/')[-1].split('_')[-1]
-            else:
-                batch_name = 'all'
             for i, gene in enumerate(genes):
                 ### measure time
                 start_time = timeit.default_timer()
@@ -139,28 +140,10 @@ def process_gene_batch_background(sample, genes, gene_idxs, all_read_frames, mut
 def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene_idxs, total_genes, all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
     try:
         exception_ = None
-        ### Temporary fix
-        #parquet_issue = 0
-        #files_tmp_dir = glob.glob(outbase + '/*sample*') + glob.glob(outbase + '/*graph*') + glob.glob(outbase + '/*expression*')
-        #for file_ in files_tmp_dir:
-        #    try:
-        #        foo = pq.read_table(file_)
-        #    except:
-        #        parquet_issue += 1
-        #        logging.info("cannot read {}".format(file_))
-        #if (not parquet_issue) and len(files_tmp_dir) > 0: #No issue
-        #    pathlib.Path(os.path.join(outbase, "Sample_IS_SUCCESS")).touch()
-        #else: # Exist issue
-        #    if os.path.exists(os.path.join(outbase, "Sample_IS_SUCCESS")):
-        #        os.remove(os.path.join(outbase, "Sample_IS_SUCCESS"))
-        
-        ### Temporary fix
-#        gene_issue = 0
-#        for i, gene in enumerate(genes):
-#            if (len(gene.splicegraph.vertices[1]) >= complexity_cap):
-#                gene_issue += 1
-#        if gene_issue:
-#            shutil.rmtree(outbase, ignore_errors=True)
+        if arg.parallel > 1:
+            batch_name = outbase.split('/')[-1].split('_')[-1]
+        else:
+            batch_name = 'all'
  
         if not os.path.exists(os.path.join(outbase, "Sample_IS_SUCCESS")):
 
@@ -172,10 +155,6 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
             all_gene_idxs = []
             gene_expr = []
             
-            if arg.parallel > 1: 
-                batch_name = outbase.split('/')[-1].split('_')[-1]
-            else:
-                batch_name = 'all'
             for i, gene in enumerate(genes):
                 ### measure time
                 start_time = timeit.default_timer()
