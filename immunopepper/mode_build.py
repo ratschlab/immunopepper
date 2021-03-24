@@ -67,7 +67,7 @@ def process_gene_batch_background(sample, genes, gene_idxs, all_read_frames, mut
         else:
             batch_name = 'all'
 
-        if not os.path.exists(os.path.join(outbase, "Annot_IS_SUCCESS")):
+        if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "Annot_IS_SUCCESS"))):
             pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
             set_kmer_back =  defaultdict(set, {})
             dict_pept_backgrd = {}
@@ -145,7 +145,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
         else:
             batch_name = 'all'
  
-        if not os.path.exists(os.path.join(outbase, "Sample_IS_SUCCESS")):
+        if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "Sample_IS_SUCCESS"))):
 
             pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
             dict_kmer_foregr = defaultdict(dict, {})
