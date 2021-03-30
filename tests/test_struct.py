@@ -52,7 +52,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
                 #'--all-read-frames',
                 #'--process-num', '1',
                 #'--process-chr', 'chr1',
-                '--genes-interest', '/Users/laurieprelot/Documents/Projects/tmp_kmer/restrict_genes_test/genes_of_interest.tsv'
+                #'--genes-interest', '/Users/laurieprelot/Documents/Projects/tmp_kmer/restrict_genes_test/genes_of_interest.tsv'
              ]
     if is_parallel:
         my_args_build.extend(['--parallel', '4'])

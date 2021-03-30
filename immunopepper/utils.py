@@ -449,6 +449,7 @@ def select_genes(graph_data, genes_interest, process_chr, process_num):
 
     if genes_interest is not None:
         genes_interest = pd.read_csv(genes_interest,  header = None)[0].tolist()
+        genes_interest = [gene.split('.')[0] for gene in genes_interest] # Remove version 
         graph_data = np.array([gene for gene in graph_data if gene.name in genes_interest])
     if len(graph_data) == 0 :
         logging.error("Gene of interest not found in splicing graph. Check argument --genes_interest ")
