@@ -5,6 +5,7 @@ import h5py
 import logging
 import multiprocessing as mp
 import numpy as np
+import pandas as pd
 import pickle
 import signal as sig
 
@@ -568,4 +569,45 @@ def parse_junction_meta_info(h5f_path):
     return junction_dict
 
 
+def parse_gene_choices(genes_interest, process_chr, process_num, complexity_cap, disable_process_libsize, graph_data):
 
+    if process_num == 0:  # Default process all genes
+        num = len(graph_data)
+    else:
+        num = process_num
+        if num > len(graph_data):
+            logging.error(
+                "Requested more genes than available in splice graph. Check argument --process_num")
+            sys.exit(1)
+        graph_data = graph_data[:num]
+        disable_process_libsize = True
+        logging.warning(
+            "Developer mode, processing the first {} genes. Library size will not be outputted".format(process_num))
+
+    if genes_interest is not None:
+        genes_interest = pd.read_csv(genes_interest, header=None)[0].tolist()
+        genes_interest = [gene.split('.')[0] for gene in genes_interest]  # Does not take version
+        if len(np.array([gene for gene in graph_data if gene.name in genes_interest])) == 0:
+            logging.error("Gene of interest not found in splicing graph. Check argument --genes_interest")
+            sys.exit(1)
+    else:
+        genes_interest = [gene.name for gene in graph_data]
+
+    if process_chr is not None:
+        gene_with_chr = [gene.name for gene in graph_data if gene.chr in process_chr]
+        if len(gene_with_chr) == 0:
+            logging.error(
+                "Chromosome {} not found in splicing graph. Check argument --process_chr".format(
+                    process_chr))
+            sys.exit(1)
+        genes_interest = [gene for gene in genes_interest if gene in gene_with_chr]
+        if len(genes_interest) == 0:
+            logging.error(
+                "Gene of interest and chromosome of interest do not match. Check argument --genes_interest, --process_chr")
+            sys.exit(1)
+
+
+    if complexity_cap is None or complexity_cap==0: #Default no complexity cap
+        complexity_cap=np.inf
+
+    return graph_data, genes_interest, num, complexity_cap, disable_process_libsize

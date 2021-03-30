@@ -2,7 +2,6 @@
 """"""
 # Core operation of ImmunoPepper. Traverse splicegraph and get kmer/peptide output
 from collections import defaultdict
-import glob
 import h5py
 import logging
 import numpy as np
@@ -10,10 +9,8 @@ import os
 import pathlib
 import pickle
 import signal as sig
-import shutil
 import sys
 import timeit
-import pyarrow.parquet as pq
 
 # immuno module
 from .config import ExceptionWrapper
@@ -26,11 +23,11 @@ from .io_ import save_backgrd_pep_dict
 from .io_ import save_gene_expr_distr
 from .io_ import save_forgrd_kmer_dict
 from .io_ import save_forgrd_pep_dict
-from .io_ import switch_tmp_path
 from .mutations import get_mutation_mode_from_parser
 from .mutations import get_sub_mutation_tuple
 from .preprocess import genes_preprocess_all
 from .preprocess import parse_junction_meta_info
+from .preprocess import parse_gene_choices
 from .preprocess import parse_gene_metadata_info
 from .preprocess import preprocess_ann
 from .traversal import collect_background_transcripts
@@ -42,7 +39,7 @@ from .utils import create_libsize
 from .utils import get_idx
 from .utils import get_total_gene_expr
 from .utils import print_memory_diags
-from .utils import select_genes
+
 
 ### intermediate fix to load pickle files stored under previous version
 from spladder.classes import gene as cgene
@@ -138,7 +135,7 @@ def process_gene_batch_background(sample, genes, gene_idxs, all_read_frames, mut
 
 
 
-def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene_idxs, total_genes, all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
+def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene_idxs, total_genes, genes_interest, disable_process_libsize, all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
     try:
         exception_ = None
         if arg.parallel > 1:
@@ -162,39 +159,44 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
 
                 # Genes not contained in the annotation in annotated CDS mode
                 if (gene.name not in genetable.gene_to_cds_begin or \
-                        gene.name not in genetable.gene_to_ts): 
+                        gene.name not in genetable.gene_to_ts):
                     logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
                     continue
+
 
                 idx = get_idx(countinfo, sample, gene_idxs[i])
                 logging.info("process gene {} of batch_{}".format(i, batch_name))
                 # Gene counts information
-                if countinfo:
-                    gidx = countinfo.gene_idx_dict[gene.name]
+                # Gene of interest always compute expression, others compute expession if required for library
+                if not disable_process_libsize or (gene.name in genes_interest):
+                    if countinfo:
+                        gidx = countinfo.gene_idx_dict[gene.name]
 
-                    with h5py.File(countinfo.h5fname, 'r') as h5f:
-                            if countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_edgerange or \
-                                    countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_segrange:
-                                edge_idxs = None
-                                edge_counts = None
+                        with h5py.File(countinfo.h5fname, 'r') as h5f:
+                                if countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_edgerange or \
+                                        countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_segrange:
+                                    edge_idxs = None
+                                    edge_counts = None
 
-                            else:
-                                edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
-                                edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
-                                if arg.cross_graph_expr:
-                                    edge_counts = h5f['edges'][edge_gene_idxs,:] # will compute expression on whole graph
                                 else:
-                                    edge_counts = h5f['edges'][edge_gene_idxs,idx.sample]
-                            seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
-                                                      countinfo.gene_id_to_segrange[gidx][1])
-                            if arg.cross_graph_expr:
-                                seg_counts = h5f['segments'][seg_gene_idxs, :]
-                            else:
-                                seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
-
-                if (gene.name in genetable.gene_to_cds_begin and gene.name in genetable.gene_to_ts): # library size calculated only for genes with CDS
+                                    edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
+                                    edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
+                                    if arg.cross_graph_expr:
+                                        edge_counts = h5f['edges'][edge_gene_idxs,:] # will compute expression on whole graph
+                                    else:
+                                        edge_counts = h5f['edges'][edge_gene_idxs,idx.sample]
+                                seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
+                                                          countinfo.gene_id_to_segrange[gidx][1])
+                                if arg.cross_graph_expr:
+                                    seg_counts = h5f['segments'][seg_gene_idxs, :]
+                                else:
+                                    seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
+                # library size calculated only for genes with CDS
+                if (gene.name in genetable.gene_to_cds_begin and gene.name in genetable.gene_to_ts):
                     gene_expr.append([gene.name] + get_total_gene_expr(gene, countinfo, idx, seg_counts, arg.cross_graph_expr))
-
+                # Gene of interest
+                if (gene.name not in genes_interest):
+                    continue
                 # Genes with highly complex splicegraphs
                 if (len(gene.splicegraph.vertices[1]) > complexity_cap):
                     logging.warning('> Gene {} has a edge complexity > {}, not processed'.format(gene.name, complexity_cap))
@@ -283,6 +285,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
 
 
 def mode_build(arg):
+
     # read and process the annotation file
     logging.info(">>>>>>>>> Build: Start Preprocessing")
     logging.info('Building lookup structure ...')
@@ -294,6 +297,7 @@ def mode_build(arg):
 
     # read the variant file
     mutation = get_mutation_mode_from_parser(arg)
+
     # load splicegraph
     logging.info('Loading splice graph ...')
     start_time = timeit.default_timer()
@@ -302,22 +306,15 @@ def mode_build(arg):
     end_time = timeit.default_timer()
     logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
-    graph_data, num = select_genes(graph_data, arg.genes_interest, arg.process_chr, arg.process_num)
-    
+
+
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
     #graph_data = graph_data[400:5400]
     #graph_data = graph_data[0:20]
-    all_read_frames = arg.all_read_frames
+
 
     check_chr_consistence(chromosome_set,mutation,graph_data)
-
-
-    if arg.complexity_cap is None or arg.complexity_cap==0: #Default no complexity cap
-        complexity_cap=np.inf
-    else:
-        complexity_cap = arg.complexity_cap
-
 
     # load graph metadata
     start_time = timeit.default_timer()
@@ -343,17 +340,20 @@ def mode_build(arg):
     # add CDS starts and reading frames to the respective nodes
     logging.info('Add reading frame to splicegraph ...')
     start_time = timeit.default_timer()
-    graph_info = genes_preprocess_all(graph_data, genetable.gene_to_cds_begin, arg.parallel, all_read_frames)
+    graph_info = genes_preprocess_all(graph_data, genetable.gene_to_cds_begin, arg.parallel, arg.all_read_frames)
     end_time = timeit.default_timer()
     logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
     logging.info(">>>>>>>>> Finish Preprocessing")
     expr_distr_dict = {}
+
+    # Parse user choice for genes
+    graph_data, genes_interest, num, complexity_cap, disable_process_libsize = parse_gene_choices(arg.genes_interest, arg.process_chr, arg.process_num, arg.complexity_cap, arg.disable_process_libsize, graph_data)
+
     # process graph for each input sample
     output_libszie_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
     logging.info(">>>>>>>>> Start traversing splicegraph")
 
-    #if arg.parallel > 1:
     global gene_id_list
     global sample
     global filepointer
@@ -362,17 +362,15 @@ def mode_build(arg):
     for sample in arg.samples:
         logging.info(">>>> Processing sample {}, there are {} graphs in total".format(sample,num))
 
-        # prepare for the output file
+        # prepare the output files
         output_path = os.path.join(arg.output_dir, sample)
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
-
         gzip_tag = ''
         if arg.compressed:
             pq_compression = 'SNAPPY'
         else:
             pq_compression = None
-
         filepointer = initialize_fp(output_path, mutation.mode, gzip_tag,
                   arg.kmer, arg.output_fasta, arg.cross_graph_expr)
 
@@ -391,7 +389,7 @@ def mode_build(arg):
                 # Build the background
                 logging.info(">>>>>>>>> Start Background processing")
                 pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
-                args = [(sample, graph_data[gene_idx], gene_idx, all_read_frames, mutation, countinfo, genetable, arg,
+                args = [(sample, graph_data[gene_idx], gene_idx, arg.all_read_frames, mutation, countinfo, genetable, arg,
                       os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
 
                 result = pool_f.submit(mapper_funct_back, args)
@@ -401,7 +399,7 @@ def mode_build(arg):
             logging.info(">>>>>>>>> Start Foreground processing")
             pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
             args = [(sample, graph_samples, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(
-                gene_id_list), all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg,
+                gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg,
                   os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
 
             result = pool_f.submit(mapper_funct, args)
@@ -426,14 +424,14 @@ def mode_build(arg):
             logging.info('Not Parallel')
             # Build the background
             logging.info(">>>>>>>>> Start Background processing")
-            process_gene_batch_background(sample, graph_data, gene_id_list, all_read_frames, mutation, countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
+            process_gene_batch_background(sample, graph_data, gene_id_list, arg.all_read_frames, mutation, countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
-            process_gene_batch_foreground( sample, graph_samples, graph_data, graph_info, gene_id_list, len(gene_id_list), all_read_frames, complexity_cap, mutation, junction_dict,
+            process_gene_batch_foreground( sample, graph_samples, graph_data, graph_info, gene_id_list, len(gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict,
                              countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
 
-        #if not arg.cross_graph_expr:
-        create_libsize(filepointer.gene_expr_fp,output_libszie_fp, sample)
+        if disable_process_libsize:
+            create_libsize(filepointer.gene_expr_fp,output_libszie_fp, sample)
 
 
 

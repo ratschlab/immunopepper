@@ -39,7 +39,7 @@ def parse_arguments(argv):
     outputs.add_argument("--disable-concat",help="switch off concatenation of short exons to increase speed",action="store_true",default=False)
     outputs.add_argument("--use-mut-pickle", help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
     #outputs.add_argument("--peptides_tsv", help="save the peptides outputs as tsv files instead of fasta files", action="store_true", default=False)
-
+    outputs.add_argument("--disable_process_libsize",help="sample library size generation to increase speed",action="store_true",default=False)
     additional_file = parser_build.add_argument_group('ADDITIONAL FILES')
     additional_file.add_argument("--germline", help="absolute path of germline mutation file", required=False, default='')
     additional_file.add_argument("--somatic", help="absolute path of somatic mutation file", required=False, default='')
