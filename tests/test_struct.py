@@ -26,6 +26,7 @@ def test_end_to_end_build(test_id, case, mutation_mode, tmpdir):
                 '--kmer', '4',
                 '--all-read-frames']
 
+
     my_args = my_args_build
     sample_dir = sample_dir_build
     immunopepper.split_mode(my_args)
@@ -48,7 +49,11 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
                 '--kmer', '9',
                 '--batch-size', '1',
                 '--output-fasta',
-                '--all-read-frames']
+                #'--all-read-frames',
+                #'--process-num', '1',
+                #'--process-chr', 'chr1',
+                '--genes-interest', '/Users/laurieprelot/Documents/Projects/tmp_kmer/restrict_genes_test/genes_of_interest.tsv'
+             ]
     if is_parallel:
         my_args_build.extend(['--parallel', '4'])
     if graph_cross_sample:

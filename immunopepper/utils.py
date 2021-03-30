@@ -443,3 +443,31 @@ def print_memory_diags(disable_print=False):
         logging.info('\tMemory usage: {:.3f} GB'.format(memory))
     return memory
 
+
+def select_genes(graph_data, genes_interest, process_chr, process_num):
+    """ Restrict the set of genes, either based on n first genes, on a given chromosome or on a whitelist of genes"""
+
+    if genes_interest is not None:
+        genes_interest = pd.read_csv(genes_interest,  header = None)[0].tolist()
+        graph_data = np.array([gene for gene in graph_data if gene.name in genes_interest])
+    if len(graph_data) == 0 :
+        logging.error("Gene of interest not found in splicing graph. Check argument --genes_interest ")
+        sys.exit(1)
+
+    if process_chr is not None:
+        graph_data = np.array([gene for gene in graph_data if gene.chr in process_chr])
+    if len(graph_data) == 0:
+        logging.error("Chromosome {} not found in splicing graph. Check argument --process_chr or consistency with genes of interest provided".format(process_chr))
+        sys.exit(1)
+
+    if process_num == 0:  # Default process all genes
+        num = len(graph_data)
+    else:
+        num = process_num
+    if num > len(graph_data):
+        logging.error("Requested more genes than available in splice graph. Check argument --process_num or consistency with genes and chromosome of interest provided")
+        sys.exit(1)
+    graph_data = graph_data[:num]
+
+    return graph_data, num
+

@@ -42,6 +42,7 @@ from .utils import create_libsize
 from .utils import get_idx
 from .utils import get_total_gene_expr
 from .utils import print_memory_diags
+from .utils import select_genes
 
 ### intermediate fix to load pickle files stored under previous version
 from spladder.classes import gene as cgene
@@ -301,6 +302,7 @@ def mode_build(arg):
     end_time = timeit.default_timer()
     logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
+    graph_data, num = select_genes(graph_data, arg.genes_interest, arg.process_chr, arg.process_num)
     
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
@@ -316,13 +318,6 @@ def mode_build(arg):
     else:
         complexity_cap = arg.complexity_cap
 
-    if arg.process_chr is not None:
-        graph_data = np.array([gene for gene in graph_data if gene.chr in arg.process_chr])
-    
-    if arg.process_num == 0:  # Default process all genes
-        num = len(graph_data)
-    else:
-        num = arg.process_num
 
     # load graph metadata
     start_time = timeit.default_timer()

@@ -55,6 +55,7 @@ def parse_arguments(argv):
     experimental.add_argument("--process-chr", nargs='+',  help="Only process the list of given chromosomes from the splicegraph, default: process all", required=False, default=None)
     experimental.add_argument("--complexity-cap", type=int, help="limit the processing of the foreground to genes with complexity less than the cap", required=False, default=None)
     experimental.add_argument("--process-num", metavar='N', type=int, help="Only process the first N genes in the splicegraph, default: process all", required=False, default=0)
+    experimental.add_argument("--genes-interest", help="only process the genes given as input. Path to file without header", required=False, default=None)
     experimental.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
     #specify the absolute path to expression library sizes
     experimental.add_argument("--libsize-path", nargs='?', help=argparse.SUPPRESS,required=False, default=None)
