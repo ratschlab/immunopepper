@@ -340,7 +340,7 @@ def mode_build(arg):
     # add CDS starts and reading frames to the respective nodes
     logging.info('Add reading frame to splicegraph ...')
     start_time = timeit.default_timer()
-    graph_info = genes_preprocess_all(graph_data, genetable.gene_to_cds_begin, arg.parallel, arg.all_read_frames)
+    graph_info, graph_data = genes_preprocess_all(graph_data, genetable.gene_to_cds_begin, arg.parallel, arg.all_read_frames)
     end_time = timeit.default_timer()
     logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()

@@ -74,7 +74,7 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frame
         gene.to_sparse()
         gene_info.append(GeneInfo(vertex_succ_list, vertex_order, reading_frames, vertex_len_dict, gene.splicegraph.vertices.shape[1]))
     
-    return gene_info, gene_idxs
+    return gene_info, gene_idxs, genes
 
 
 def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames=False):
@@ -89,12 +89,15 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
     
     if parallel > 1:
         global genes_info
+        global genes_modif
         global cnt
         genes_info = np.zeros((genes.shape[0],), dtype=object)
+        genes_modif = np.zeros((genes.shape[0],), dtype=object)
         cnt = 0
         def update_gene_info(result):
             global genes_info
             global cnt
+            global genes_modif
             for i,tmp in enumerate(result[0]):
                 if cnt > 0 and cnt % 100 == 0:
                     sys.stdout.write('.')
@@ -103,6 +106,7 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
                     sys.stdout.flush()
                 cnt += 1
                 genes_info[result[1][i]] = tmp
+                genes_modif[i] = result[2][i]
             del result
 
         pool = mp.Pool(processes=parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN)) 
@@ -113,8 +117,9 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
         pool.join()
     else:
         genes_info = genes_preprocess_batch(genes, np.arange(genes.shape[0]), gene_cds_begin_dict, all_read_frames)[0]
-
-    return genes_info
+        genes_modif = genes
+    logging.info("len of gene data is .. {}".format(len(genes_modif)))
+    return genes_info, genes_modif
 
 
 def preprocess_ann(ann_path):
