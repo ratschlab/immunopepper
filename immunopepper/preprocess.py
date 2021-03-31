@@ -98,6 +98,7 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
             global genes_info
             global cnt
             global genes_modif
+            assert(len(result[0]) == len(result[2]))
             for i,tmp in enumerate(result[0]):
                 if cnt > 0 and cnt % 100 == 0:
                     sys.stdout.write('.')
@@ -106,7 +107,7 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
                     sys.stdout.flush()
                 cnt += 1
                 genes_info[result[1][i]] = tmp
-                genes_modif[i] = result[2][i]
+                genes_modif[result[1][i]] = result[2][i]
             del result
 
         pool = mp.Pool(processes=parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN)) 
@@ -118,7 +119,6 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
     else:
         genes_info = genes_preprocess_batch(genes, np.arange(genes.shape[0]), gene_cds_begin_dict, all_read_frames)[0]
         genes_modif = genes
-    logging.info("len of gene data is .. {}".format(len(genes_modif)))
     return genes_info, genes_modif
 
 
