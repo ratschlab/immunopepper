@@ -55,7 +55,7 @@ def mode_samplespecif(arg):
             
             output_file_path = os.path.join(arg.output_dir, junction_kmer_file )
             save_pd_toparquet( output_file_path, kmer_df,
-                  compression=arg.compression, verbose=True)
+                  compression='SNAPPY', verbose=True)
             logging.info("output bg-removed kmer file : {} \n ".format(output_file_path))
         else:
             logging.info("WARNING foreground file: {} does not exist".format(junction_kmer_file))
