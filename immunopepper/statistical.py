@@ -369,3 +369,24 @@ def save_spark(cancer_kmers, output_dir, path_final_fil, outpartitions=None):
     else:
         cancer_kmers.write.mode('overwrite').options(header="true",sep="\t").csv(path_final_fil)
 
+
+def filter_statistical(spark, tissue_grp_files, normal_matrix, index_name, path_normal_matrix_segm, libsize_n,
+                       threshold_noise, output_dir, cores):
+    if tissue_grp_files is not None:
+        modelling_grps = []
+        for tissue_grp in tissue_grp_files:
+            grp = pd.read_csv(tissue_grp, header=None)[0].to_list()
+            grp = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in grp]
+            grp.append(index_name)
+            modelling_grps.append(grp)
+        else:
+            modelling_grps = [[name_ for name_ in normal_matrix.schema.names if name_ != index_name]]
+
+        logging.info(">>>... Fit Negative Binomial distribution on normal kmers ")
+        for grp in modelling_grps:
+            # Fit NB and Perform hypothesis testing
+            normal_matrix = fit_NB(spark, normal_matrix, index_name, output_dir, path_normal_matrix_segm,
+                                   libsize_n, cores)
+            normal_matrix = normal_matrix.filter(sf.col("proba_zero") < threshold_noise)  # Expressed kmers
+
+        # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere

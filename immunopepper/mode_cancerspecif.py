@@ -16,6 +16,8 @@ from .statistical import filter_cancer
 from .statistical import preprocess_cancers
 from .statistical import remove_uniprot
 from .statistical import process_libsize
+from .statistical import filter_statistical
+
 
 ### Main
 def mode_cancerspecif(arg):
@@ -67,24 +69,8 @@ def mode_cancerspecif(arg):
                     logging.info( "... Normal kmers with expression >= {} in >= 1 sample are truly expressed. \n Will be substracted from cancer set".format(arg.expr_high_limit_normal))
                     high_expr_normals, normal_matrix = outlier_filtering(spark, normal_matrix, index_name, libsize_n, arg.expr_high_limit_normal)
 
-                if arg.tissue_grp_files is not None:
-                   modelling_grps = []
-                   for tissue_grp in arg.tissue_grp_files:
-                       grp = pd.read_csv(tissue_grp, header = None)[0].to_list()
-                       grp = [name_.replace('-','').replace('.','').replace('_','') for name_ in grp]
-                       grp.append(index_name)
-                       modelling_grps.append(grp)
-                   else:
-                       modelling_grps = [[name_ for name_ in normal_matrix.schema.names if name_ != index_name]]
-
-                   logging.info(">>>... Fit Negative Binomial distribution on normal kmers ")
-                   for grp in modelling_grps:
-                   # Fit NB and Perform hypothesis testing
-                       normal_matrix = fit_NB(spark, normal_matrix, index_name, arg.output_dir, arg.path_normal_matrix_segm, libsize_n, arg.cores)
-                       normal_matrix = normal_matrix.filter(sf.col("proba_zero") < arg.threshold_noise) # Expressed kmers
-
-                   # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
-
+                filter_statistical(spark, arg.tissue_grp_files, normal_matrix, index_name, arg.path_normal_matrix_segm,
+                                       libsize_n, arg.threshold_noise, arg.output_dir, arg.cores)
             ### NORMALS: Hard Filtering
             else:
                 logging.info("\n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.expr_limit_normal))
