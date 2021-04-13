@@ -49,16 +49,10 @@ def mode_cancerspecif(arg):
             logging.info("\n >>>>>>>> Preprocessing Normal samples")
 
             normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 1))
-            if save_intermed:
-                path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge.tsv')
-                save_spark(normal_matrix, arg.output_dir, path_)
 
             # Take max expression between edge or segment expression
             exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
             normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
-            if save_intermed:
-                path_ = os.path.join(arg.output_dir, 'normals_merge-segm-edge_max_uniq.tsv')
-                save_spark(normal_matrix, arg.output_dir, path_)
 
 
             ### NORMALS: Statistical Filtering
@@ -112,12 +106,7 @@ def mode_cancerspecif(arg):
                                          index_name, expression_fields, arg.expr_limit_cancer, arg.parallelism)
 
 
-            if save_canc_int:
-                extension = '.tsv'
-                path_tmp_c = os.path.join(arg.output_dir, os.path.basename(arg.paths_cancer_samples[0]).split('.')[
-                0] + '_expressed_normalized_'  + extension)
-                save_spark(cancer_kmers, arg.output_dir, path_tmp_c)
-            
+
             logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
 
             logging.info("Filtering normal background")
