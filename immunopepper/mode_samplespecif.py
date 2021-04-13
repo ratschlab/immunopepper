@@ -53,7 +53,7 @@ def mode_samplespecif(arg):
             else:
                 kmer_df['is_neo_flag'] = bg_flag
             
-            output_file_path = os.path.join(arg.output_dir, junction_kmer_file )
+            output_file_path = os.path.join(arg.output_dir, junction_kmer_file.split('/')[-1].replace('.pq', '') + '_' + arg.output_suffix + '.pq')
             save_pd_toparquet( output_file_path, kmer_df,
                   compression='SNAPPY', verbose=True)
             logging.info("output bg-removed kmer file : {} \n ".format(output_file_path))
