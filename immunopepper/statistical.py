@@ -112,7 +112,7 @@ def pq_WithRenamedCols(path, outdir):
     return path_tmp
 
 
-def process_normals(spark, index_name, jct_col, path_normal_matrix, outdir, whitelist, parallelism, cross_junction):
+def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, whitelist, parallelism, cross_junction):
     ''' Preprocess normal samples
     - corrects names
     - corrects types
@@ -232,7 +232,7 @@ def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_norm
     return high_expr_normals, normal_matrix
 
 
-def hard_filter_normals(normal_matrix, index_name, libsize_n, out_dir, expr_limit_normal, n_samples_lim_normal  ):
+def filter_hard_threshold(normal_matrix, index_name, libsize_n, out_dir, expr_limit_normal, n_samples_lim_normal  ):
     ''' Filter normal samples based on j reads in at least n samples. The expressions are normalized for library size
 
     Parameters:
@@ -270,7 +270,7 @@ def hard_filter_normals(normal_matrix, index_name, libsize_n, out_dir, expr_limi
 
 
 
-def preprocess_cancers(cancer_kmers, cancer_sample, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
+def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
     ''' Preprocess cancer samples
     - Make kmers unique
     - Filter kmers on junction status
@@ -294,8 +294,6 @@ def preprocess_cancers(cancer_kmers, cancer_sample, drop_cols, expression_fields
 
     def collapse_values(value):
         return max([np.float(i) if i != 'nan' else 0.0 for i in value.split('/')])  # np.nanmax not supported
-
-
 
     # Filter on juction status
     if cross_junction == 1:
@@ -336,7 +334,7 @@ def preprocess_cancers(cancer_kmers, cancer_sample, drop_cols, expression_fields
     return cancer_kmers
 
 
-def filter_cancer(cancer_kmers_edge, cancer_kmers_segm, expression_fields_orig, threshold_cancer):
+def filter_expr_kmer(cancer_kmers_edge, cancer_kmers_segm, expression_fields_orig, threshold_cancer):
     logging.info("partitions edges: {}".format(cancer_kmers_edge.rdd.getNumPartitions()))
     logging.info("partitions segments: {}".format(cancer_kmers_segm.rdd.getNumPartitions()))
     cancer_kmers_edge = cancer_kmers_edge.filter(sf.col(expression_fields_orig[1]) > threshold_cancer)  # if  max( edge expression 1 and 2) >=threshold: keep Expressed kmers
