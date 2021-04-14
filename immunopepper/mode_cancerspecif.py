@@ -18,6 +18,7 @@ from .statistical import remove_uniprot
 from .statistical import process_libsize
 from .statistical import filter_statistical
 from .statistical import combine_normals
+from .statistical import combine_cancer
 
 
 ### Main
@@ -98,15 +99,15 @@ def mode_cancerspecif(arg):
             # Preprocess cancer samples
             logging.info("\n >>>>>>>> Cancers: Perform differential filtering sample {}".format(cancer_sample))
 
-            cancer_kmers = filter_cancer(preprocess_cancers(cancer_kmers, cancer_sample, drop_cols,
+
+            cancer_junc = preprocess_cancers(cancer_kmers, cancer_sample, drop_cols,
                                                                       expression_fields, jct_col, index_name,
-                                                                        libsize_c, 1),
-                                         preprocess_cancers(cancer_kmers, cancer_sample, drop_cols,
+                                                                        libsize_c, 1)
+            cancer_segm = preprocess_cancers(cancer_kmers, cancer_sample, drop_cols,
                                                             expression_fields, jct_col, index_name,
-                                                            libsize_c, 0),
-                                         index_name, expression_fields, arg.expr_limit_cancer, arg.parallelism)
-
-
+                                                            libsize_c, 0)
+            cancer_junc, cancer_segm = filter_cancer(cancer_junc, cancer_segm, expression_fields, arg.expr_limit_cancer)
+            cancer_kmers = combine_cancer(cancer_junc, cancer_segm, index_name)
 
             logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
 

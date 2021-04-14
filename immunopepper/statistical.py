@@ -336,19 +336,18 @@ def preprocess_cancers(cancer_kmers, cancer_sample, drop_cols, expression_fields
     return cancer_kmers
 
 
-def filter_cancer(cancer_kmers_edge, cancer_kmers_segm, index_name, expression_fields_orig, threshold_cancer, parallelism):
+def filter_cancer(cancer_kmers_edge, cancer_kmers_segm, expression_fields_orig, threshold_cancer):
     logging.info("partitions edges: {}".format(cancer_kmers_edge.rdd.getNumPartitions()))
-
     logging.info("partitions segments: {}".format(cancer_kmers_segm.rdd.getNumPartitions()))
-
     cancer_kmers_edge = cancer_kmers_edge.filter(sf.col(expression_fields_orig[1]) > threshold_cancer)  # if  max( edge expression 1 and 2) >=threshold: keep Expressed kmers
     cancer_kmers_segm = cancer_kmers_segm.filter(sf.col(expression_fields_orig[0]) > threshold_cancer)
+    return cancer_kmers_edge, cancer_kmers_segm
+
+def combine_cancer(cancer_kmers_segm, cancer_kmers_edge, index_name):
     cancer_kmers_segm = cancer_kmers_segm.join(cancer_kmers_edge,
                                                cancer_kmers_segm[index_name] == cancer_kmers_edge[index_name],
                                                how='left_anti')   # if  max( edge expression 1 and 2)<threshold and  max( segment expression 1 and 2)>= threshold: keep
-
     cancer_kmers = cancer_kmers_edge.union(cancer_kmers_segm)
-
     logging.info("partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
     return cancer_kmers
 
