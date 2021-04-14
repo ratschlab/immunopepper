@@ -89,13 +89,11 @@ def mode_cancerspecif(arg):
         drop_cols = ['id']
 
         for cancer_path, cancer_sample in zip(arg.paths_cancer_samples, arg.ids_cancer_samples):
-            path_final_fil = os.path.join(arg.output_dir, os.path.basename(cancer_path).split('.')[
-                0] + '_ctlim{}_filt-normals-ctlim{}-{}samples'.format(arg.expr_limit_cancer, arg.expr_limit_normal,
-                                                                      arg.n_samples_lim_normal) + extension)
-            path_final_fil_uniprot = os.path.join(arg.output_dir, os.path.basename(cancer_path).split('.')[
-                0] + '_ctlim{}_filt-normals-ctlim{}-{}_samples_filt-uniprot'.format(arg.expr_limit_cancer,
-                                                                                    arg.expr_limit_normal,
-                                                                                    arg.n_samples_lim_normal) + extension)
+            path_final_fil = os.path.join(arg.output_dir, os.path.basename(cancer_path).replace('.pq', '').replace('.gz', '') + '_ctlim{}_filt-normals-ctlim{}-{}samples'.format(arg.expr_limit_cancer,
+                                                                    arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
+            path_final_fil_uniprot = os.path.join(arg.output_dir, os.path.basename(cancer_path).replace('.pq', '').replace('.gz', '') + '_ctlim{}_filt-normals-ctlim{}-{}_samples_filt-uniprot'.format(arg.expr_limit_cancer,
+                                                                    arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
+            print(path_final_fil)
             cancer_sample = cancer_sample.replace('-', '').replace('.', '').replace('_', '')
             cancer_path_tmp = pq_WithRenamedCols(cancer_path, arg.output_dir)
             cancer_kmers = spark.read.parquet(cancer_path_tmp)
