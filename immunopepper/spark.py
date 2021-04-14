@@ -190,7 +190,6 @@ def combine_normals(normal_segm, normal_junc, index_name):
     return normal_matrix
 
 
-
 def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_normal):
     ''' Remove very highly expressed kmers / expression outliers before fitting DESeq2. These kmers do not follow a NB,
     besides no hypothesis testing is required to set their expression status to True
@@ -232,6 +231,27 @@ def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_norm
     return high_expr_normals, normal_matrix
 
 
+def filter_statistical(spark, tissue_grp_files, normal_matrix, index_name, path_normal_matrix_segm, libsize_n,
+                       threshold_noise, output_dir, cores):
+    if tissue_grp_files is not None:
+        modelling_grps = []
+        for tissue_grp in tissue_grp_files:
+            grp = pd.read_csv(tissue_grp, header=None)[0].to_list()
+            grp = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in grp]
+            grp.append(index_name)
+            modelling_grps.append(grp)
+        else:
+            modelling_grps = [[name_ for name_ in normal_matrix.schema.names if name_ != index_name]]
+
+        logging.info(">>>... Fit Negative Binomial distribution on normal kmers ")
+        for grp in modelling_grps:
+            # Fit NB and Perform hypothesis testing
+            normal_matrix = fit_NB(spark, normal_matrix, index_name, output_dir, path_normal_matrix_segm,
+                                   libsize_n, cores)
+            normal_matrix = normal_matrix.filter(sf.col("proba_zero") < threshold_noise)  # Expressed kmers
+
+        # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
+
 def filter_hard_threshold(normal_matrix, index_name, libsize_n, out_dir, expr_limit_normal, n_samples_lim_normal  ):
     ''' Filter normal samples based on j reads in at least n samples. The expressions are normalized for library size
 
@@ -267,7 +287,6 @@ def filter_hard_threshold(normal_matrix, index_name, libsize_n, out_dir, expr_li
     normal_matrix.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_)
 
     return path_
-
 
 
 def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
@@ -341,6 +360,7 @@ def filter_expr_kmer(cancer_kmers_edge, cancer_kmers_segm, expression_fields_ori
     cancer_kmers_segm = cancer_kmers_segm.filter(sf.col(expression_fields_orig[0]) > threshold_cancer)
     return cancer_kmers_edge, cancer_kmers_segm
 
+
 def combine_cancer(cancer_kmers_segm, cancer_kmers_edge, index_name):
     cancer_kmers_segm = cancer_kmers_segm.join(cancer_kmers_edge,
                                                cancer_kmers_segm[index_name] == cancer_kmers_edge[index_name],
@@ -376,23 +396,4 @@ def save_spark(cancer_kmers, output_dir, path_final_fil, outpartitions=None):
         cancer_kmers.write.mode('overwrite').options(header="true",sep="\t").csv(path_final_fil)
 
 
-def filter_statistical(spark, tissue_grp_files, normal_matrix, index_name, path_normal_matrix_segm, libsize_n,
-                       threshold_noise, output_dir, cores):
-    if tissue_grp_files is not None:
-        modelling_grps = []
-        for tissue_grp in tissue_grp_files:
-            grp = pd.read_csv(tissue_grp, header=None)[0].to_list()
-            grp = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in grp]
-            grp.append(index_name)
-            modelling_grps.append(grp)
-        else:
-            modelling_grps = [[name_ for name_ in normal_matrix.schema.names if name_ != index_name]]
 
-        logging.info(">>>... Fit Negative Binomial distribution on normal kmers ")
-        for grp in modelling_grps:
-            # Fit NB and Perform hypothesis testing
-            normal_matrix = fit_NB(spark, normal_matrix, index_name, output_dir, path_normal_matrix_segm,
-                                   libsize_n, cores)
-            normal_matrix = normal_matrix.filter(sf.col("proba_zero") < threshold_noise)  # Expressed kmers
-
-        # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
