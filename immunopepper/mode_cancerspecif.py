@@ -17,6 +17,7 @@ from .statistical import preprocess_cancers
 from .statistical import remove_uniprot
 from .statistical import process_libsize
 from .statistical import filter_statistical
+from .statistical import combine_normals
 
 
 ### Main
@@ -45,14 +46,14 @@ def mode_cancerspecif(arg):
             libsize_c = process_libsize(arg.path_cancer_libsize)
 
         if arg.path_normal_kmer_list is None:
-            ### Preprocessing Normals
+        ### Preprocessing Normals
             logging.info("\n >>>>>>>> Preprocessing Normal samples")
 
-            normal_matrix = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 0).union(process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist, arg.parallelism, cross_junction = 1))
-
-            # Take max expression between edge or segment expression
-            exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
-            normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
+            normal_segm = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist,
+                            arg.parallelism, cross_junction=0)
+            normal_junc = process_normals(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist,
+                            arg.parallelism, cross_junction=1)
+            normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
 
 
             ### NORMALS: Statistical Filtering

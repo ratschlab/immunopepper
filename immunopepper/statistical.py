@@ -182,6 +182,15 @@ def process_normals(spark, index_name, jct_col, path_normal_matrix, outdir, whit
     return normal_matrix
 
 
+def combine_normals(normal_segm, normal_junc, index_name):
+    normal_matrix = normal_segm.union(normal_junc)
+    # Take max expression between edge or segment expression
+    exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
+    normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
+    return normal_matrix
+
+
+
 def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_normal):
     ''' Remove very highly expressed kmers / expression outliers before fitting DESeq2. These kmers do not follow a NB,
     besides no hypothesis testing is required to set their expression status to True
