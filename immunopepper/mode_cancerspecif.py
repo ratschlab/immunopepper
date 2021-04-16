@@ -57,6 +57,8 @@ def mode_cancerspecif(arg):
             libsize_n = None
         if arg.path_cancer_libsize:
             libsize_c = process_libsize(arg.path_cancer_libsize)
+        else:
+            libsize_c = None
 
         if arg.path_normal_kmer_list is None:
         ### Preprocessing Normals
@@ -103,10 +105,12 @@ def mode_cancerspecif(arg):
             cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name) #TODO does the function work here ?
             # Apply expression filter to foreground
             path_cancer_kmers = filter_hard_threshold(cancer_matrix, index_name, libsize_c, arg.output_dir,
-                                                      arg.expr_limit_cancer, arg.n_samples_lim_cancer)
+                                                      arg.expr_limit_cancer, arg.n_samples_lim_cancer, tag='cancer')
             valid_foreground = spark.read.csv(path_cancer_kmers, sep=r'\t', header=False)
+            valid_foreground = valid_foreground.withColumnRenamed('_c0', index_name) #TODO make an helper function?
+            valid_foreground = valid_foreground.select(sf.col(index_name))
             cancer_matrix = cancer_matrix.join(valid_foreground, cancer_matrix["kmer"] == valid_foreground["kmer"],
-                                             how='left') #TODO test if this works
+                                             how='right') #TODO test if this works
 
         for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
             cancer_sample = cancer_sample_ori.replace('-', '').replace('.', '').replace('_', '')

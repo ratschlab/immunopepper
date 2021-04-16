@@ -178,10 +178,10 @@ def test_end_to_end_cancerspecif_mx():
               "--cores", "2",
               "--mem-per-core", "6000",
               "--kmer", "9",
-              "--path-cancer-libsize",os.path.join(basedir,'cancer_no_ct_var', 'libsize_cancer.tsv'),
+              #"--path-cancer-libsize",os.path.join(basedir,'cancer_no_ct_var', 'libsize_cancer.tsv'),
               "--path-normal-libsize", os.path.join(basedir, 'normal', 'libsize_normals_top20'),
-              "--path-cancer-matrix-segm", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
-              "--path-cancer-matrix-edge", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
+              "--path-cancer-matrix-segm", os.path.join(basedir, 'cancer', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
+              "--path-cancer-matrix-edge", os.path.join(basedir, 'cancer', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
               "--path-normal-matrix-segm", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
               "--path-normal-matrix-edge", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
               '--ids-cancer-samples', "TCGA-13-1497-01A-01", "TCGA-24-1103-01A-01",
@@ -189,8 +189,8 @@ def test_end_to_end_cancerspecif_mx():
               '--expr-high-limit-normal', "2.0",
               '--expr-limit-normal', "0.1",
               "--n-samples-lim-normal", "3",
-              '--expr-limit-cancer', "0.1",
-              "--n-samples-lim-cancer", "1",
+              '--expr-limit-cancer', "0.2",
+              "--n-samples-lim-cancer", "3",
               "--expression-fields-c", 'segment_expr', 'junction_expr',
               "--tissue-grp-files", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt",
               '/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_OV.txt',
@@ -208,7 +208,7 @@ mutation_mode ='germline'
 #pr = cProfile.Profile()
 #pr.enable()
 #for mutation_mode in ['ref', 'somatic', 'germline', 'somatic_and_germline']:
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=False) #TODO add back
+#test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=False) #TODO add back
 
 #test_end_to_end_samplespecif('ERR2130621', tmpdir, "9", mutation_mode) # TEST DEPRECATED
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
@@ -219,8 +219,8 @@ test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cros
 #    test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
 #test_end_to_end_crosscohort(tmpdir) #TODO add back
 #mini_crosscohort()
-test_end_to_end_cancerspecif()
-#test_end_to_end_cancerspecif_mx()
+#test_end_to_end_cancerspecif()
+test_end_to_end_cancerspecif_mx()
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 

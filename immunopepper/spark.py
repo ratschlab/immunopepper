@@ -100,16 +100,19 @@ def process_libsize(path_lib):
     lib = lib.set_index('sample')
     return lib
 
-def pq_WithRenamedCols(path, outdir):
-    df = pq.read_table(path)
-    df = df.rename_columns(name_.replace('-', '').replace('.', '').replace('_', '') for name_ in df.schema.names) # characters causing issue in spark
-    path_tmp = os.path.join(outdir, os.path.basename(path).split('.')[0] + '_tmp' + '.pq')
-    if os.path.exists(path_tmp):
-        os.remove(path_tmp)
-    pqwriter = pq.ParquetWriter(path_tmp, df.schema, compression=None)
-    pqwriter.write_table(df)
-    pqwriter.close()
-    return path_tmp
+def pq_WithRenamedCols(list_paths, outdir):
+    list_path_tmp = []
+    for path in list_paths:
+        df = pq.read_table(path)
+        df = df.rename_columns(name_.replace('-', '').replace('.', '').replace('_', '') for name_ in df.schema.names) # characters causing issue in spark
+        path_tmp = os.path.join(outdir, os.path.basename(path).split('.')[0] + '_tmp' + '.pq')
+        if os.path.exists(path_tmp):
+            os.remove(path_tmp)
+        pqwriter = pq.ParquetWriter(path_tmp, df.schema, compression=None)
+        pqwriter.write_table(df)
+        pqwriter.close()
+        list_path_tmp.append(path_tmp)
+    return list_path_tmp
 
 
 def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, whitelist, parallelism, cross_junction):
@@ -135,7 +138,7 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
             [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in
              name_list])
     # Rename
-    rename = False  # For development
+    rename = True  # For development
     if rename:
         logging.info("Rename")
         path_normal_matrix_tmp = pq_WithRenamedCols(path_normal_matrix, outdir)
@@ -252,7 +255,7 @@ def filter_statistical(spark, tissue_grp_files, normal_matrix, index_name, path_
 
         # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
 
-def filter_hard_threshold(normal_matrix, index_name, libsize_n, out_dir, expr_limit_normal, n_samples_lim_normal  ):
+def filter_hard_threshold(normal_matrix, index_name, libsize_n, out_dir, expr_limit_normal, n_samples_lim_normal, tag='normals' ):
     ''' Filter normal samples based on j reads in at least n samples. The expressions are normalized for library size
 
     Parameters:
@@ -281,7 +284,7 @@ def filter_hard_threshold(normal_matrix, index_name, libsize_n, out_dir, expr_li
     normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= n_samples_lim_normal)
 
     path_ = os.path.join(out_dir,
-                         'interm_normals_segm-edge_max_expr-in-{}-samples-with-{}-normalized-cts'.format(
+                         'interm_{}_segm-edge_max_expr-in-{}-samples-with-{}-normalized-cts'.format( tag,
                              n_samples_lim_normal, expr_limit_normal) + '.tsv')
     logging.info("Save to {}".format(path_))
     normal_matrix.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_)
