@@ -161,10 +161,42 @@ def test_end_to_end_cancerspecif():
               "--expression-fields-c", 'segment_expr', 'junction_expr',
               "--tissue-grp-files", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt",
               '/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_OV.txt',
-              "--whitelist", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt" ,
+              "--whitelist-normal", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt" ,
               "--uniprot", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/uniprot" ,
               "--expr-limit-cancer", "1",
               "--path-normal-kmer-list", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/filter_out/normals_merge-segm-edge_max_uniq_expr-in-3-samples-with-0.1-normalized-cts.tsv",
+              "--parallelism", "3",
+              "--out-partitions", "2"]
+              #"--statistical"]
+    immunopepper.split_mode(my_args)
+
+
+def test_end_to_end_cancerspecif_mx():
+
+    basedir = "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test"
+    my_args =["cancerspecif",
+              "--cores", "2",
+              "--mem-per-core", "6000",
+              "--kmer", "9",
+              "--path-cancer-libsize",os.path.join(basedir,'cancer_no_ct_var', 'libsize_cancer.tsv'),
+              "--path-normal-libsize", os.path.join(basedir, 'normal', 'libsize_normals_top20'),
+              "--path-cancer-matrix-segm", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
+              "--path-cancer-matrix-edge", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
+              "--path-normal-matrix-segm", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
+              "--path-normal-matrix-edge", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
+              '--ids-cancer-samples', "TCGA-13-1497-01A-01", "TCGA-24-1103-01A-01",
+              "--output-dir", os.path.join(basedir, 'filter_out'),
+              '--expr-high-limit-normal', "2.0",
+              '--expr-limit-normal', "0.1",
+              "--n-samples-lim-normal", "3",
+              '--expr-limit-cancer', "0.1",
+              "--n-samples-lim-cancer", "1",
+              "--expression-fields-c", 'segment_expr', 'junction_expr',
+              "--tissue-grp-files", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt",
+              '/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_OV.txt',
+              "--whitelist-normal", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt" ,
+              "--uniprot", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/uniprot" ,
+              #"--path-normal-kmer-list", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/filter_out/normals_merge-segm-edge_max_uniq_expr-in-3-samples-with-0.1-normalized-cts.tsv",
               "--parallelism", "3",
               "--out-partitions", "2"]
               #"--statistical"]
@@ -188,6 +220,7 @@ test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cros
 #test_end_to_end_crosscohort(tmpdir) #TODO add back
 #mini_crosscohort()
 test_end_to_end_cancerspecif()
+#test_end_to_end_cancerspecif_mx()
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 

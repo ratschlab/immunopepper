@@ -20,9 +20,6 @@ from .spark import remove_uniprot
 
 
 
-
-
-
 ### Main
 def mode_cancerspecif(arg):
 
@@ -37,6 +34,19 @@ def mode_cancerspecif(arg):
         jct_col = "iscrossjunction"
         extension = '.tsv'
 
+        if arg.output_prefix:
+            prefix =  arg.output_prefix + '_'
+        else:
+            prefix = ''
+
+        if arg.paths_cancer_samples:
+            if arg.expression_fields_c is None:
+                expression_fields_orig = ['segment_expr', 'junction_expr']  # segment 1 , junction 2
+            else:
+                expression_fields_orig = arg.expression_fields_c
+            expression_fields = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in
+                                 expression_fields_orig]
+            drop_cols = ['id']
 
 
         ### Preprocessing Libsize
@@ -52,9 +62,9 @@ def mode_cancerspecif(arg):
         ### Preprocessing Normals
             logging.info("\n >>>>>>>> Preprocessing Normal samples")
 
-            normal_segm = process_matrix_file(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist,
+            normal_segm = process_matrix_file(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist_normal,
                             arg.parallelism, cross_junction=0)
-            normal_junc = process_matrix_file(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist,
+            normal_junc = process_matrix_file(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist_normal,
                             arg.parallelism, cross_junction=1)
             normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
 
@@ -80,52 +90,66 @@ def mode_cancerspecif(arg):
         normal_matrix = normal_matrix.withColumnRenamed('_c0', index_name)
         normal_matrix = normal_matrix.select(sf.col(index_name))
 
-
+        logging.info("\n >>>>>>>> Preprocessing Cancer samples")
         ### Apply filtering to foreground
-        if arg.expression_fields_c is None:
-            expression_fields_orig =  ['segment_expr', 'junction_expr'] # segment 1 , junction 2
-        else:
-            expression_fields_orig = arg.expression_fields_c
 
-        expression_fields = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in expression_fields_orig]
-        drop_cols = ['id']
+        ## Cancer file is matrix
+        if arg.path_cancer_matrix_segm and arg.path_cancer_matrix_edge:
+            # Preprocess cancer samples
+            cancer_segm = process_matrix_file(spark, index_name, jct_col, arg.path_cancer_matrix_segm, arg.output_dir, arg.whitelist_cancer,
+                            arg.parallelism, cross_junction=0)
+            cancer_junc = process_matrix_file(spark, index_name, jct_col, arg.path_cancer_matrix_edge, arg.output_dir, arg.whitelist_cancer,
+                            arg.parallelism, cross_junction=1)
+            cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name) #TODO does the function work here ?
+            # Apply expression filter to foreground
+            path_cancer_kmers = filter_hard_threshold(cancer_matrix, index_name, libsize_c, arg.output_dir,
+                                                      arg.expr_limit_cancer, arg.n_samples_lim_cancer)
+            valid_foreground = spark.read.csv(path_cancer_kmers, sep=r'\t', header=False)
+            cancer_matrix = cancer_matrix.join(valid_foreground, cancer_matrix["kmer"] == valid_foreground["kmer"],
+                                             how='left') #TODO test if this works
 
-        for cancer_path, cancer_sample in zip(arg.paths_cancer_samples, arg.ids_cancer_samples):
-            path_final_fil = os.path.join(arg.output_dir, os.path.basename(cancer_path).replace('.pq', '').replace('.gz', '') + '_ctlim{}_filt-normals-ctlim{}-{}samples'.format(arg.expr_limit_cancer,
-                                                                    arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
-            path_final_fil_uniprot = os.path.join(arg.output_dir, os.path.basename(cancer_path).replace('.pq', '').replace('.gz', '') + '_ctlim{}_filt-normals-ctlim{}-{}_samples_filt-uniprot'.format(arg.expr_limit_cancer,
-                                                                    arg.expr_limit_normal, arg.n_samples_lim_normal) + extension)
-            print(path_final_fil)
-            cancer_sample = cancer_sample.replace('-', '').replace('.', '').replace('_', '')
-            cancer_path_tmp = pq_WithRenamedCols(cancer_path, arg.output_dir)
-            cancer_kmers = spark.read.parquet(cancer_path_tmp)
+        for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
+            cancer_sample = cancer_sample_ori.replace('-', '').replace('.', '').replace('_', '')
+        ## Cancer file is kmer file
+            if arg.paths_cancer_samples:
+                cancer_path = arg.paths_cancer_samples[cix]
+                cancer_path_tmp = pq_WithRenamedCols(cancer_path, arg.output_dir)
+                cancer_kmers = spark.read.parquet(cancer_path_tmp)
+                # Preprocess cancer samples
+                cancer_junc = preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols,expression_fields, jct_col,
+                                                                                        index_name, libsize_c, 1)
+                cancer_segm = preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields, jct_col,
+                                                                                        index_name, libsize_c, 0)
+                # Apply expression filter to foreground
+                cancer_junc, cancer_segm = filter_expr_kmer(cancer_junc, cancer_segm, expression_fields, arg.expr_limit_cancer)
+                cancer_kmers = combine_cancer(cancer_junc, cancer_segm, index_name)
+                n_samples_lim_c = ''
+            elif arg.path_cancer_matrix_segm and arg.path_cancer_matrix_edge:
+                cancer_kmers = cancer_matrix.select([index_name, cancer_sample])
+                cancer_kmers = cancer_kmers.filter(sf.col(cancer_sample) > 0.0)
+                n_samples_lim_c = 'AndRecurrence{}'.format(arg.n_samples_lim_cancer)
 
-            logging.info("Renamed done")
-
-            ## Preprocess cancer samples
-            logging.info("\n >>>>>>>> Cancers: Perform differential filtering sample {}".format(cancer_sample))
-            cancer_junc = preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols,expression_fields, jct_col,
-                                                                                    index_name, libsize_c, 1)
-            cancer_segm = preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields, jct_col,
-                                                                                    index_name, libsize_c, 0)
-            
-            ## Apply expression filter to foreground
-            cancer_junc, cancer_segm = filter_expr_kmer(cancer_junc, cancer_segm, expression_fields, arg.expr_limit_cancer)
-            cancer_kmers = combine_cancer(cancer_junc, cancer_segm, index_name)
-
+        ## Cancer \ normals
+            logging.info("\n >>>>>>>> Cancers: Perform differential filtering sample {}".format(cancer_sample_ori))
             logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
 
-            ## Remove background from foreground
+            # outpaths
+            base_path_final= os.path.join(arg.output_dir, '{}{}_WithCtLim{}{}_FiltNormalsWithCtlim{}AndRecurrence{}'.format(prefix,
+                                                           cancer_sample_ori, arg.expr_limit_cancer, n_samples_lim_c,
+                                                                        arg.expr_limit_normal, arg.n_samples_lim_normal))
+            path_filter_final = base_path_final + extension
+            path_filter_final_uniprot  = base_path_final + '_FiltUniprot'+ extension
+
+            # Remove background from foreground
             logging.info("Filtering normal background")
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
             logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
-            save_spark(cancer_kmers, arg.output_dir, path_final_fil, outpartitions=arg.out_partitions)
+            save_spark(cancer_kmers, arg.output_dir, path_filter_final, outpartitions=arg.out_partitions)
 
-
-            ## Remove Uniprot
+            # Remove Uniprot
             logging.info("Filtering kmers in uniprot")
             cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
-            save_spark(cancer_kmers, arg.output_dir, path_final_fil_uniprot, outpartitions=arg.out_partitions)
+            save_spark(cancer_kmers, arg.output_dir, path_filter_final_uniprot, outpartitions=arg.out_partitions)
 
             if os.path.exists(cancer_path_tmp):
                 os.remove(cancer_path_tmp)

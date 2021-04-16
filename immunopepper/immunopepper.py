@@ -143,8 +143,9 @@ def parse_arguments(argv):
     so.add_argument("--kmer", help='kmer', required=True)
     so.add_argument("--output-dir", help="output directory for the filtered matrix" , required=True, default='')
     so.add_argument("--expression-fields-c", nargs='+', help="name of segment and junction expression field in cancer file, default ['segment_expr', 'junction_expr']",required=False, default=None)
-    so.add_argument("--output-suffix", help="suffix for the integrated matrix. e.g cancer or normals", required=False, default='')
-    so.add_argument("--whitelist", help="file containg whitelist for normal samples", required=False, default=None)
+    so.add_argument("--output-prefix", help="prefix for the output", required=False, default='')
+    so.add_argument("--whitelist-normal", help="file containg whitelist for normal samples", required=False, default=None)
+    so.add_argument("--whitelist-cancer", help="file containg whitelist for cancer samples", required=False, default=None)
 
     libsizes = parser_cancerspecif.add_argument_group('Libsizes')
     libsizes.add_argument("--path-cancer-libsize", help="libsize file path for cancer samples", required=False, default=None)
@@ -157,7 +158,7 @@ def parse_arguments(argv):
     nsf.add_argument("--tissue-grp-files", nargs='*', help="Allows the statistical modelling on normal samples to be performed on different tissue groups. Specify n paths of files, each containing the list of samples in the group. No header", required=False, default=None)
 
     nrf = parser_cancerspecif.add_argument_group('Normal_Recurrence_Filter')
-    nrf.add_argument("--path-normal-matrix-segm", nargs='+', help="segment expression integrated matrix of kmers * samples for background", required=False,                 default='')
+    nrf.add_argument("--path-normal-matrix-segm", nargs='+', help="segment expression integrated matrix of kmers * samples for background", required=False, default='')
     nrf.add_argument("--path-normal-matrix-edge", nargs='+', help="edge expression integrated matrix of kmers * samples for background", required=False, default='')
     nrf.add_argument("--n-samples-lim-normal", type=int, help="Number of normal samples in which the expression threshold should be met", required=False, default=None)
     nrf.add_argument("--expr-limit-normal", type=float, help="Expression threshold in the normal samples applied on normalized counts of normal cohort (see --expr-n-limit-normal )", required=False, default=None)
