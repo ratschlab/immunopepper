@@ -138,7 +138,7 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
             [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in
              name_list])
     # Rename
-    rename = True  # For development
+    rename = False  # For development
     if rename:
         logging.info("Rename")
         path_normal_matrix_tmp = pq_WithRenamedCols(path_normal_matrix, outdir)

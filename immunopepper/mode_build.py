@@ -160,7 +160,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                 # Genes not contained in the annotation in annotated CDS mode
                 if (gene.name not in genetable.gene_to_cds_begin or \
                         gene.name not in genetable.gene_to_ts):
-                    logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
+#                    logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
                     continue
 
 
@@ -418,7 +418,7 @@ def mode_build(arg):
             collect_results(filepointer.background_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
             collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, arg.mutation_mode)
-            remove_folder_list(os.path.join(output_path, 'tmp_out_{}'.format(arg.mutation_mode)))
+#            remove_folder_list(os.path.join(output_path, 'tmp_out_{}'.format(arg.mutation_mode)))
 
         else:
             logging.info('Not Parallel')
