@@ -255,7 +255,7 @@ def filter_statistical(spark, tissue_grp_files, normal_matrix, index_name, path_
 
         # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
 
-def filter_hard_threshold(normal_matrix, index_name, libsize_n, out_dir, expr_limit_normal, n_samples_lim_normal, tag='normals' ):
+def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limit, n_samples_lim, tag='normals' ):
     ''' Filter normal samples based on j reads in at least n samples. The expressions are normalized for library size
 
     Parameters:
@@ -263,29 +263,29 @@ def filter_hard_threshold(normal_matrix, index_name, libsize_n, out_dir, expr_li
     spark session
     normal matrix
     index column name
-    libsize_n matrix
-    expr_limit_normal (j reads)
-    expr_n_limit (n samples)
+    libsize matrix
+    expr_limit (j reads)
+    n_samples_lim (n samples)
     Returns :
     ----------
     spark context
     Filtered normal matrix
         '''
 
-    if libsize_n is not None:
+    if libsize is not None:
         normal_matrix = normal_matrix.select(index_name, *[
-            sf.round(sf.col(name_) / libsize_n.loc[name_, "libsize_75percent"], 2).alias(name_)
+            sf.round(sf.col(name_) / libsize.loc[name_, "libsize_75percent"], 2).alias(name_)
             for name_ in normal_matrix.schema.names if name_ != index_name])
 
     normal_matrix = normal_matrix.select(index_name, *[
-        sf.when(sf.col(name_) > expr_limit_normal, 1).otherwise(0).alias(name_)
+        sf.when(sf.col(name_) > expr_limit, 1).otherwise(0).alias(name_)
         for name_ in normal_matrix.schema.names if name_ != index_name])
 
-    normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= n_samples_lim_normal)
+    normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= n_samples_lim)
 
     path_ = os.path.join(out_dir,
                          'interm_{}_segm-edge_max_expr-in-{}-samples-with-{}-normalized-cts'.format( tag,
-                             n_samples_lim_normal, expr_limit_normal) + '.tsv')
+                             n_samples_lim, expr_limit) + '.tsv')
     logging.info("Save to {}".format(path_))
     normal_matrix.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_)
 
@@ -300,7 +300,7 @@ def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fiel
     Parameters:
     ----------
     cancer_kmers: cancer kmer matrix
-    cancer_sample: associated cacncer ID
+    cancer_sample: associated cancer ID
     drop_cols: colums to be dropped
     expression_fields: list of segment and junction expression column names
     jct_col: junction status column name

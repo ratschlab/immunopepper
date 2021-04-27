@@ -102,15 +102,15 @@ def mode_cancerspecif(arg):
                             arg.parallelism, cross_junction=0)
             cancer_junc = process_matrix_file(spark, index_name, jct_col, arg.path_cancer_matrix_edge, arg.output_dir, arg.whitelist_cancer,
                             arg.parallelism, cross_junction=1)
-            cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name) #TODO does the function work here ?
+            cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
             # Apply expression filter to foreground
             path_cancer_kmers = filter_hard_threshold(cancer_matrix, index_name, libsize_c, arg.output_dir,
                                                       arg.expr_limit_cancer, arg.n_samples_lim_cancer, tag='cancer')
             valid_foreground = spark.read.csv(path_cancer_kmers, sep=r'\t', header=False)
-            valid_foreground = valid_foreground.withColumnRenamed('_c0', index_name) #TODO make an helper function?
+            valid_foreground = valid_foreground.withColumnRenamed('_c0', index_name)
             valid_foreground = valid_foreground.select(sf.col(index_name))
-            cancer_matrix = cancer_matrix.join(valid_foreground, cancer_matrix["kmer"] == valid_foreground["kmer"],
-                                             how='right') #TODO test if this works
+            cancer_matrix = cancer_matrix.join(valid_foreground, ["kmer"] ,
+                                             how='right')
 
         for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
             cancer_sample = cancer_sample_ori.replace('-', '').replace('.', '').replace('_', '')
@@ -155,10 +155,10 @@ def mode_cancerspecif(arg):
             cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
             save_spark(cancer_kmers, arg.output_dir, path_filter_final_uniprot, outpartitions=arg.out_partitions)
 
-            if os.path.exists(cancer_path_tmp):
+
+            if arg.paths_cancer_samples and os.path.exists(cancer_path_tmp):
                 os.remove(cancer_path_tmp)
 
 
             #TODO Implement the intersection of the modelling tissues
-            #TODO transfer to junction xpression
 
