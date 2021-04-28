@@ -117,7 +117,11 @@ def mode_cancerspecif(arg):
         ## Cancer file is kmer file
             if arg.paths_cancer_samples:
                 cancer_path = arg.paths_cancer_samples[cix]
-                cancer_path_tmp = pq_WithRenamedCols(cancer_path, arg.output_dir)
+                rename = False # development
+                if rename: 
+                    cancer_path_tmp = pq_WithRenamedCols(cancer_path, arg.output_dir)
+                else: 
+                    cancer_path_tmp = cancer_path
                 cancer_kmers = spark.read.parquet(cancer_path_tmp)
                 # Preprocess cancer samples
                 cancer_junc = preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols,expression_fields, jct_col,
@@ -156,7 +160,7 @@ def mode_cancerspecif(arg):
             save_spark(cancer_kmers, arg.output_dir, path_filter_final_uniprot, outpartitions=arg.out_partitions)
 
 
-            if arg.paths_cancer_samples and os.path.exists(cancer_path_tmp):
+            if arg.paths_cancer_samples and os.path.exists(cancer_path_tmp) and rename:
                 os.remove(cancer_path_tmp)
 
 
