@@ -114,6 +114,7 @@ def mode_cancerspecif(arg):
 
         for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
             cancer_sample = cancer_sample_ori.replace('-', '').replace('.', '').replace('_', '')
+            mutation_mode = arg.mut_cancer_samples[cix]
         ## Cancer file is kmer file
             if arg.paths_cancer_samples:
                 cancer_path = arg.paths_cancer_samples[cix]
@@ -142,8 +143,8 @@ def mode_cancerspecif(arg):
             logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
 
             # outpaths
-            base_path_final= os.path.join(arg.output_dir, '{}{}_WithCtLim{}{}_FiltNormalsWithCtlim{}AndRecurrence{}'.format(prefix,
-                                                           cancer_sample_ori, arg.expr_limit_cancer, n_samples_lim_c,
+            base_path_final= os.path.join(arg.output_dir, '{}{}_{}_WithCtLim{}{}_FiltNormalsWithCtlim{}AndRecurrence{}'.format(prefix,
+                                                           cancer_sample_ori, mutation_mode, arg.expr_limit_cancer, n_samples_lim_c,
                                                                         arg.expr_limit_normal, arg.n_samples_lim_normal))
             path_filter_final = base_path_final + extension
             path_filter_final_uniprot  = base_path_final + '_FiltUniprot'+ extension

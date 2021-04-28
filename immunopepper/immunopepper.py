@@ -167,6 +167,7 @@ def parse_arguments(argv):
     cbp = parser_cancerspecif.add_argument_group('Cancer_Base_Param')
     cbp.add_argument("--expr-limit-cancer", type=float, help="Expression threshold for the cancer samples applied on normalized counts in a given sample (if --paths-cancer-samples is provided) OR across cancer sample cohort (if --expr-n-limit-cancer and path-cancer-matrix-segm resp. edge are provided)", required=False, default=None)
     cbp.add_argument("--ids-cancer-samples", nargs='+', help=" list of all cancer samples on which to apply the filtering. If --paths-cancer-samples provided they should be given in same order", required=True, default='')
+    cbp.add_argument("--mut-cancer-samples", nargs='+', help=" list of mutation modes corresponding to cancer samples. If --paths-cancer-samples provided they should be given in same order", required=True, default='')
 
     csf = parser_cancerspecif.add_argument_group('Cancer_Sample_Filter')
     csf.add_argument("--paths-cancer-samples", nargs='+', help="file paths of all cancer samples", required=False, default='')
