@@ -310,10 +310,11 @@ def mode_build(arg):
 
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
-    #graph_data = graph_data[400:5400]
     #graph_data = graph_data[0:20]
-
-
+    if arg.start_id != 0 and arg.start_id < len(graph_data): 
+        logging.info("development feature: starting at gene number {}".format(arg.start_id))
+        graph_data = graph_data[arg.start_id:]
+        
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
     # load graph metadata
@@ -390,7 +391,7 @@ def mode_build(arg):
                 logging.info(">>>>>>>>> Start Background processing")
                 pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
                 args = [(sample, graph_data[gene_idx], gene_idx, arg.all_read_frames, mutation, countinfo, genetable, arg,
-                      os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+                      os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
 
                 result = pool_f.submit(mapper_funct_back, args)
                 pool_f.terminate()
@@ -400,7 +401,7 @@ def mode_build(arg):
             pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
             args = [(sample, graph_samples, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(
                 gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg,
-                  os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+                  os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
 
             result = pool_f.submit(mapper_funct, args)
             pool_f.terminate()
@@ -424,7 +425,7 @@ def mode_build(arg):
             logging.info('Not Parallel')
             # Build the background
             logging.info(">>>>>>>>> Start Background processing")
-            process_gene_batch_background(sample, graph_data, gene_id_list, arg.all_read_frames, mutation, countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
+#            process_gene_batch_background(sample, graph_data, gene_id_list, arg.all_read_frames, mutation, countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
             process_gene_batch_foreground( sample, graph_samples, graph_data, graph_info, gene_id_list, len(gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict,
