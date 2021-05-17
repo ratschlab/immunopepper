@@ -1,12 +1,15 @@
 
 # Python libraries
 import argparse
+import shlex
 import logging
 import os
 import sys
 import cProfile
 
 from datetime import datetime
+from mhctools.cli.args import make_mhc_arg_parser
+from mhctools.cli.script import main as mhctools_main
 
 from .mode_build import mode_build
 from .mode_samplespecif import mode_samplespecif
@@ -22,7 +25,7 @@ def _add_general_args(parser):
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser(prog='immunopepper')
-    subparsers = parser.add_subparsers(help='Running modes', metavar='{build, make_bg, diff, filter}')
+    subparsers = parser.add_subparsers(help='Running modes', metavar='{build, samplespecif, filter, cancerspecif, mhcbind}')
 
     ### mode_build TODO Change argument groups Mode build
     parser_build = subparsers.add_parser('build', help='generate kmers library from a splicegraph')
@@ -181,9 +184,14 @@ def parse_arguments(argv):
     uf = parser_cancerspecif.add_argument_group('Uniprot_Filter')
     uf.add_argument("--uniprot", help="file containg uniprot k-mers. k-mers length should match the one of the cancer and normal files", required=False, default=None)
     _add_general_args(parser_cancerspecif)
-
-
-
+ 
+    ### mode_mhcbind
+    parser_mhcbind = subparsers.add_parser('mhcbind',help='Perform MHC binding prediction with a wrapper for MHCtools')
+    parser_mhcbind.add_argument("--mhc-software-path", help="path for MHC prediction software. e.g. netmhc3, netmhc4, netmhcpan, mhcflurry")
+    parser_mhcbind.add_argument("--argstring", help="MHCtool complete command line passed as a string e.g. '--mhc-predictor netmhc3 --mhc-predictor-path /dummypath' ", required=True, default='')
+    parser_mhcbind.add_argument("--output-dir", help="Specify the output directory for the MHC binding prediction")
+    _add_general_args(parser_mhcbind)
+    
     if len(argv) < 1:
         parser.print_help()
         sys.exit(1)
@@ -199,6 +207,12 @@ def parse_arguments(argv):
             parser_crosscohort.print_help()
         elif argv[0] == "cancerspecif":
             parser_cancerspecif.print_help()
+        elif argv[0] == "mhcbind":
+            sys.stdout.write("------------------------------ MHCBIND IMMUNOPEPPER USAGE ------------------------------ \n \n ")
+            parser_mhcbind.print_help() 
+            sys.stdout.write("\n------------------------------ MHCTOOLS AVAILABLE COMMAND LINE OPTIONS ------------------------------ \n \n ")
+            parser_mhc = make_mhc_arg_parser(prog="mhctools",description=("Predict MHC ligands from protein sequences"))
+            parser_mhc.print_help()
         else:
             parser.print_help()
 
@@ -245,7 +259,9 @@ def split_mode(options):
         mode_crosscohort(arg)
     if mode == "cancerspecif":
         mode_cancerspecif(arg)
-
+    if mode == "mhcbind":
+        os.environ["PATH"] +=":{}".format(arg.mhc_software_path)
+        mhctools_main(shlex.split(arg.argstring))
 
 
 def cmd_entry():
