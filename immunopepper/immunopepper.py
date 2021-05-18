@@ -1,7 +1,6 @@
 
 # Python libraries
 import argparse
-import shlex
 import logging
 import os
 import sys
@@ -9,13 +8,13 @@ import cProfile
 
 from datetime import datetime
 from mhctools.cli.args import make_mhc_arg_parser
-from mhctools.cli.script import main as mhctools_main
 
 from .mode_build import mode_build
 from .mode_samplespecif import mode_samplespecif
 from .mode_filter import mode_filter
 from .mode_crosscohort import mode_crosscohort
 from .mode_cancerspecif import mode_cancerspecif
+from .mode_mhcbind import mode_mhcbind
 
 def _add_general_args(parser):
     general = parser.add_argument_group('GENERAL')
@@ -187,9 +186,13 @@ def parse_arguments(argv):
  
     ### mode_mhcbind
     parser_mhcbind = subparsers.add_parser('mhcbind',help='Perform MHC binding prediction with a wrapper for MHCtools')
-    parser_mhcbind.add_argument("--mhc-software-path", help="path for MHC prediction software. e.g. netmhc3, netmhc4, netmhcpan, mhcflurry")
+    parser_mhcbind.add_argument("--mhc-software-path", help="path for MHC prediction software. e.g. netmhc3, netmhc4, netmhcpan, mhcflurry", required=True, default=None)
     parser_mhcbind.add_argument("--argstring", help="MHCtool complete command line passed as a string e.g. '--mhc-predictor netmhc3 --mhc-predictor-path /dummypath' ", required=True, default='')
-    parser_mhcbind.add_argument("--output-dir", help="Specify the output directory for the MHC binding prediction")
+    parser_mhcbind.add_argument("--output-dir", help="Specify the output directory for the MHC binding prediction", required=True, default='')
+    parser_mhcbind.add_argument("--partitioned-tsv", help="Take directly the output from cancerspecif mode, need to provide the folder containing a partitionned tsv, input-peptides-file for MHC tools will be generated on the fly and saved following the path given for input-peptides-file", required=False, default=None)
+    parser_mhcbind.add_argument("--bind-score-method", help="Scoring method for post binding prediction filtering e.g. score,affinity,percentile_rank for netmhc", required=False, default=None)
+    parser_mhcbind.add_argument("--bind-score-threshold", type=float, help="Scoring threshold (>= threshold) for post binding prediction filtering", required=False, default=None)        
+    parser_mhcbind.add_argument("--less-than", help="Scoring threshold operation becomes <= threshold", action="store_true", required=False, default=False)
     _add_general_args(parser_mhcbind)
     
     if len(argv) < 1:
@@ -260,9 +263,7 @@ def split_mode(options):
     if mode == "cancerspecif":
         mode_cancerspecif(arg)
     if mode == "mhcbind":
-        os.environ["PATH"] +=":{}".format(arg.mhc_software_path)
-        mhctools_main(shlex.split(arg.argstring))
-
+        mode_mhcbind(arg)
 
 def cmd_entry():
     #pr = cProfile.Profile()
