@@ -49,7 +49,7 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/ratschlab/immunopepper',
-    version='1.1.0',
+    version='2.0.0',
     zip_safe=False,
     ext_modules = cythonize("./immunopepper/cpython_functions.pyx")
 )
