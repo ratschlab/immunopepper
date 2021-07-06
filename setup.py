@@ -4,6 +4,10 @@
 """The setup script."""
 
 from setuptools import setup, find_packages
+from Cython.Build import cythonize
+
+
+
 
 with open('README.md') as readme_file:
     readme = readme_file.read()
@@ -32,7 +36,7 @@ setup(
     ],
     description="Software to translate splicing graphs into peptides",
     entry_points = {
-        'console_scripts': ['immunopepper=immunopepper.main_immuno:cmd_entry'],
+        'console_scripts': ['immunopepper=immunopepper.immunopepper:cmd_entry'],
     },
     install_requires=requirements,
     license="MIT license",
@@ -45,6 +49,7 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/ratschlab/immunopepper',
-    version='1.1.0',
+    version='2.0.0',
     zip_safe=False,
+    ext_modules = cythonize("./immunopepper/cpython_functions.pyx")
 )

@@ -1,0 +1,15 @@
+kmer	gene_name	seg_expr	is_crossjunction	junction_expr	is_neo_flag
+MGCG	GENE1:5_1:0:112	1385.33	False	.	False
+GCGF	GENE1:5_1:0:112	1473.76	True	869.0	False
+CGFR	GENE1:5_1:0:112	1558.31	True	869.0	False
+GFRY	GENE1:5_1:0:112	1635.14	True	869.0	False
+FRYV	GENE1:5_1:0:112	1736.55	False	.	False
+ARMV	GENE1:6_5_1:0:139	1597.59	False	.	False
+RMVM	GENE1:6_5_1:0:139	1628.26	True	1195.0	False
+MVMG	GENE1:6_5_1:0:139	1658.93	True	1195.0	False
+VMGC	GENE1:6_5_1:0:139	1689.6	True	1195.0	False
+MGCG	GENE1:6_5_1:0:139	1385.33	False	.	False
+GCGF	GENE1:6_5_1:0:139	1473.76	True	869.0	False
+CGFR	GENE1:6_5_1:0:139	1558.31	True	869.0	False
+GFRY	GENE1:6_5_1:0:139	1635.14	True	869.0	False
+FRYV	GENE1:6_5_1:0:139	1736.55	False	.	False

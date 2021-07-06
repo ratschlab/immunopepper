@@ -1,6 +1,10 @@
-h5py==2.8.0
+h5py==3.1.0
 numpy>=1.13
 psutil==5.4.6
-scipy==1.1.0
-biopython
-spladder==2.2.2
+spladder==2.4.2
+pyarrow==0.17.1
+pandas>=1.0.5
+cython>=0.29.17
+pyspark>=3.0.0
+tblib>=1.7.0
+mhctools>=1.5.0

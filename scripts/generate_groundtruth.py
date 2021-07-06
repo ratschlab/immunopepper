@@ -1,5 +1,8 @@
 import os
-from immunopepper import main_immuno
+import sys
+sys.path = sys.path.insert(0, '..')
+from immunopepper import immunopepper as ip
+
 test_id = 1
 case_list = ['pos','neg']
 mutation_list = ['ref','somatic','germline','somatic_and_germline']
@@ -24,9 +27,11 @@ for case in case_list:
                         '--ref-path', '{}/test{}{}.fa'.format(data_dir, test_id, case),
                         '--germline', '{}/test{}{}.vcf'.format(data_dir, test_id, case),
                         '--somatic', '{}/test{}{}.maf'.format(data_dir, test_id, case),
+                        '--gtex-junction-path','{}/{}graph/spladder/genes_graph_conf3.test1{}.junction.hdf5'.format(
+                            data_dir, case, case),
                         '--mutation-mode', mutation_mode,
                         '--kmer', '4']
-        main_immuno.split_mode(my_args)
+        ip.split_mode(my_args)
 
 # make_bg mode
 for case in case_list:
@@ -35,7 +40,7 @@ for case in case_list:
     back_file_dir = os.path.join(test_file_dir,'test{}'.format(test_id),'build',case,'test{}{}'.format(test_id,case))
     bg_file_list = [os.path.join(back_file_dir,'{}_back_kmer.txt'.format(mode)) for mode in ['ref','somatic','somatic_and_germline','germline']]
     my_args = ['make_bg','--kmer-files']+bg_file_list+['--output-file-path',output_file_name]+['--output-dir',output_dir]
-    main_immuno.split_mode(my_args)
+    ip.split_mode(my_args)
 
 # diff mode
 for case in case_list:
@@ -53,7 +58,7 @@ for case in case_list:
                    '--bg-file-path', bg_kmer_file_path,
                    '--output-file-path', output_file_path,
                    '--output-dir',output_dir]
-        main_immuno.split_mode(my_args)
+        ip.split_mode(my_args)
 
         my_args = ['diff', '--junction-kmer-file', junction_kmer_file_path,
                    '--bg-file-path', bg_kmer_file_path,
@@ -61,7 +66,7 @@ for case in case_list:
                    '--remove-bg',
                    '--output-dir', output_dir
                    ]
-        main_immuno.split_mode(my_args)
+        ip.split_mode(my_args)
 # filter mode
 for case in case_list:
     for mutation_mode in mutation_list:
@@ -69,26 +74,41 @@ for case in case_list:
                                         '{}'.format(case))
         junction_kmer_tsv_path = os.path.join(test_file_dir, 'test{}'.format(test_id), 'diff',
                                                '{}'.format(case), '{}_{}_junction_kmer_with_bg.txt'.format(case,mutation_mode))
-
+        meta_file_path = os.path.join(test_file_dir, 'test{}'.format(test_id), 'build',
+                                               '{}'.format(case), 'test{}{}'.format(test_id,case),'{}_metadata.tsv.gz'.format(mutation_mode))
         junction_kmer_tsv_file_name = '{}_{}_junction_kmer_with_bg.txt'.format(case,mutation_mode)
         my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_tsv_path,
                    '--output-file-path', os.path.join(output_dir,'cj_'+junction_kmer_tsv_file_name),
                    '--cross-junction',
                    '--output-dir', output_dir]
-        main_immuno.split_mode(my_args)
+        ip.split_mode(my_args)
 
         my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_tsv_path,
                    '--output-file-path', os.path.join(output_dir,'junc_expr_0_'+junction_kmer_tsv_file_name),
                    '--junc-expr',
                    '--output-dir', output_dir]
-        main_immuno.split_mode(my_args)
+        ip.split_mode(my_args)
 
         my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_tsv_path,
                    '--output-file-path', os.path.join(output_dir,'seg_expr_1300_'+junction_kmer_tsv_file_name),
                    '--seg-expr',
                    '--seg-expr-thresh',str(1300),
                    '--output-dir',output_dir]
-        main_immuno.split_mode(my_args)
+        ip.split_mode(my_args)
+
+        my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_tsv_path,
+                   '--output-file-path', os.path.join(output_dir,'all_filter_'+junction_kmer_tsv_file_name),
+                   '--meta-file-path', meta_file_path,
+                   '--seg-expr',
+                   '--seg-expr-thresh',str(1300),
+                   '--peptide-annotated',str(1),
+                   '--junction-annotated',str(1),
+                   '--has-stop-codon',str(1),
+                   '--is-in-junction-list',str(0),
+                   '--is-isolated',str(0),
+                   '--output-dir',output_dir]
+        ip.split_mode(my_args)
+
 
         my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_tsv_path,
                    '--output-file-path', os.path.join(output_dir,'junc_expr_500_seg_expr_1300_cj_'+junction_kmer_tsv_file_name),
@@ -98,5 +118,5 @@ for case in case_list:
                    '--seg-expr',
                    '--seg-expr-thresh', str(1300),
                    '--output-dir',output_dir]
-        main_immuno.split_mode(my_args)
+        ip.split_mode(my_args)
 

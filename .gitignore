@@ -108,3 +108,17 @@ ENV/
 tests/data/genome/
 /scripts/generate_gt_file.py
 *.bak
+
+
+tests/None/*
+/tests/mouse_usecase/*fa
+/tests/mouse_usecase/*fai
+/tests/.DS_Store
+/data_test
+/data_test/*
+
+
+immunopepper/cpython_functions.c
+/logs*
+/logs*/*
+

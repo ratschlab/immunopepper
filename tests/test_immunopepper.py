@@ -2,22 +2,38 @@ import gzip
 import os
 import pickle
 
-import Bio.SeqIO as BioIO
 import pytest
+import pysam
 import numpy as np
 
-from immunopepper.immuno_mutation import apply_germline_mutation,construct_mut_seq_with_str_concat,get_mutation_mode_from_parser,Mutation,get_sub_mutation_tuple
-from immunopepper.immuno_preprocess import preprocess_ann, genes_preprocess, \
-    parse_mutation_from_vcf, parse_mutation_from_maf
-from immunopepper.utils import get_sub_mut_dna,get_concat_peptide,convert_namedtuple_to_str,check_chr_consistence,get_idx,create_libsize
-from immunopepper.io_utils import load_pickled_graph
-from immunopepper.main_immuno import parse_arguments
-from immunopepper.immuno_model import create_output_kmer
-from immunopepper.immuno_nametuple import Coord,OutputBackground,OutputKmer
-from immunopepper.constant import NOT_EXIST
-from immunopepper.immuno_filter import get_junction_anno_flag
-data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
+from immunopepper.filter import junction_tuple_is_annotated
+from immunopepper.io_ import convert_namedtuple_to_str
+from immunopepper.io_ import gz_and_normal_open
+from immunopepper.io_ import load_pickled_graph
+from immunopepper.mutations import apply_germline_mutation
+from immunopepper.mutations import construct_mut_seq_with_str_concat
+from immunopepper.mutations import get_mutation_mode_from_parser
+from immunopepper.mutations import get_sub_mutation_tuple
+from immunopepper.preprocess import genes_preprocess_all
+from immunopepper.preprocess import parse_mutation_from_vcf
+from immunopepper.preprocess import parse_mutation_from_maf
+from immunopepper.preprocess import preprocess_ann
+from immunopepper.utils import check_chr_consistence
+from immunopepper.utils import create_libsize
+from immunopepper.utils import get_sub_mut_dna
+from immunopepper.utils import get_concat_peptide
+from immunopepper.translate import translate_dna_to_peptide
+from immunopepper.translate import complementary_seq
+from immunopepper.immunopepper import parse_arguments
+from immunopepper.immunopepper import split_mode
+from immunopepper.traversal import create_output_kmer
+from immunopepper.namedtuples import Coord
+from immunopepper.namedtuples import Mutation
+from immunopepper.namedtuples import OutputBackground
+from immunopepper.namedtuples import OutputKmer
 
+data_dir = os.path.join(os.path.dirname(__file__), 'test1','data')
+groundtruth_dir = os.path.join(os.path.dirname(__file__), 'test1')
 
 @pytest.fixture
 def load_gene_data():
@@ -29,15 +45,11 @@ def load_gene_data():
     (graph_data, graph_meta) = load_pickled_graph(f)  # cPickle.load(f)
     genetable,chr_set = preprocess_ann(ann_path)
     interesting_chr = list(map(str, range(1, 23))) + ["X", "Y", "MT"]
-    seq_dict = {}
-    for record in BioIO.parse(ref_path, "fasta"):
-        if record.id in interesting_chr:
-            seq_dict[record.id] = str(record.seq).strip()
 
     gene = graph_data[0]
     chrm = gene.chr.strip()
-    ref_seq = seq_dict[chrm]
-    return graph_data, ref_seq, genetable.gene_to_cds_begin
+    ref_seq = ref_path # seq_dict[chrm]
+    return graph_data, ref_path, genetable.gene_to_cds_begin
 
 
 @pytest.fixture
@@ -51,17 +63,18 @@ def load_mutation_data():
 
 
 def test_preprocess(load_gene_data):
-    graph_data, seq_dict, gene_cds_begin_dict = load_gene_data
-    genes_preprocess(graph_data, gene_cds_begin_dict)
-    assert graph_data[0].nvertices == 8
+    graph_data, _, gene_cds_begin_dict = load_gene_data
+    gene_info = genes_preprocess_all(graph_data, gene_cds_begin_dict)
+    assert gene_info[0].nvertices == 8
 
 
 def test_germline_mutation(load_gene_data, load_mutation_data):
-    graph_data, ref_seq, gene_cds_begin_dict = load_gene_data
+    graph_data, ref_path, gene_cds_begin_dict = load_gene_data
     mutation_dic_vcf, mutation_dic_maf = load_mutation_data
     gene = graph_data[0]
     mutation_sub_dic_vcf = mutation_dic_vcf['test1pos', gene.chr]
-    ref_mut_seq = apply_germline_mutation(ref_sequence=ref_seq,
+    ref_mut_seq = apply_germline_mutation(ref_sequence_file=ref_path,
+                                          chrm=gene.chr,
                                           pos_start=gene.start,
                                           pos_end=gene.stop,
                                           mutation_sub_dict=mutation_sub_dic_vcf)
@@ -69,7 +82,7 @@ def test_germline_mutation(load_gene_data, load_mutation_data):
 
 
 def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
-    graph_data, ref_seq, gene_cds_begin_dict = load_gene_data
+    graph_data, ref_path, gene_cds_begin_dict = load_gene_data
     mutation_dic_vcf, mutation_dic_maf = load_mutation_data
     gene = graph_data[0]
 
@@ -88,9 +101,11 @@ def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
     variant_comb = [(38,), (38, 41), '.']
     strand = ['+', '+', '+']
     for i, vlist in enumerate(test_list):
+        with pysam.FastaFile(ref_path) as fh:
+            ref_seq = fh.fetch(gene.chr, vlist[0], vlist[3])
         coord = Coord(vlist[0], vlist[1], vlist[2], vlist[3])
         sub_dna = get_sub_mut_dna(ref_seq, coord, variant_comb[i],
-                                  mutation_sub_dic_maf, strand[i])
+                                  mutation_sub_dic_maf, strand[i], vlist[0])
         assert sub_dna == groundtruth[i]
 
 
@@ -135,12 +150,12 @@ def test_construct_mut_seq_with_str_concat():
     mut_dict[10] = {'mut_base':'*','ref_base':'A'}
     mut_dict[25] = {'mut_base':'A','ref_base':'G'}
     mut_dict[26] = {'mut_base':'C','ref_base':'G'}
-    mut_seq1 = construct_mut_seq_with_str_concat(ref_seq, 45, 46, mut_dict) # test unclear mut_base
-    assert mut_seq1 == ref_seq
-    mut_seq2 = construct_mut_seq_with_str_concat(ref_seq, 25, 27, mut_dict) # [25,27) include 26
-    assert mut_seq2 == gt_mut_seq2
-    mut_seq3 = construct_mut_seq_with_str_concat(ref_seq, 25, 26, mut_dict) # [25,26) not include 26
-    assert mut_seq3 == gt_mut_seq3
+    mut_seq1 = construct_mut_seq_with_str_concat(ref_seq[45:], 45, 46, mut_dict) # test unclear mut_base
+    assert mut_seq1 == ref_seq[45:]
+    mut_seq2 = construct_mut_seq_with_str_concat(ref_seq[25:], 25, 27, mut_dict) # [25,27) include 26
+    assert mut_seq2 == gt_mut_seq2[25:]
+    mut_seq3 = construct_mut_seq_with_str_concat(ref_seq[25:], 25, 26, mut_dict) # [25,26) not include 26
+    assert mut_seq3 == gt_mut_seq3[25:]
 
 
 
@@ -199,11 +214,11 @@ def test_create_output_kmer():
     k = 3
     peptide = OutputBackground('1','MTHAW')
     expr_lists = [(8,1000),(1,220),(6,0)] # test 0 expression
-    c = create_output_kmer(peptide, expr_lists, k)
+    c = create_output_kmer(peptide, k, expr_lists)
     true_output = [OutputKmer('MTH','1',913.33,False,NOT_EXIST), OutputKmer('THA','1',580.0,False,NOT_EXIST), OutputKmer('HAW','1',246.67,False,NOT_EXIST)]
     assert c == true_output
     expr_lists = [(8,1000),(1,220),(0,0)] # test 0 expression
-    c = create_output_kmer(peptide, expr_lists, k)
+    c = create_output_kmer(peptide, k, expr_lists)
     true_output = [OutputKmer('MTH','1',913.33,False,NOT_EXIST), OutputKmer('THA','1',870.0,False,NOT_EXIST), OutputKmer('HAW','1',740.0,False,NOT_EXIST)]
     assert c == true_output
 
@@ -260,17 +275,17 @@ def test_get_junction_ann_flag():
     junction_flag = np.zeros((4,4))
     junction_flag[1,2] = 1
     junction_flag[2,3] = 1
-    vertex_id_tuple = (1,2,3)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == [1,1]
-    vertex_id_tuple = (0,2,3)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == [0,1]
-    vertex_id_tuple = (0,1,3)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == [0,0]
-    vertex_id_tuple = (1,2)
-    assert get_junction_anno_flag(junction_flag,vertex_id_tuple) == 1
+    vertex_id_tuple = (1, 2, 3)
+    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 1
+    vertex_id_tuple = (0, 2, 3)
+    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 1
+    vertex_id_tuple = (0, 1, 3)
+    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 0
+    vertex_id_tuple = (1, 2)
+    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 1
 
 def test_check_chr_consistence(load_gene_data, load_mutation_data):
-    graph_data, ref_seq, gene_cds_begin_dict = load_gene_data
+    graph_data, _, gene_cds_begin_dict = load_gene_data
     mutation_dic_vcf, mutation_dic_maf = load_mutation_data
     mutation = Mutation(None,mutation_dic_maf,mutation_dic_vcf) # vcf_dict[('test1pos','X')]
     ann_path = os.path.join(data_dir, 'test1pos.gtf')
@@ -293,28 +308,147 @@ def test_check_chr_consistence(load_gene_data, load_mutation_data):
         assert 1
 
 
-def test_get_idx():
-    sample_idx_table = {}
-    sample_idx_table['test1pos'] = 100
-    sample_idx_table['test1neg'] = 101
-    sample = 'test1pos'
-    gene_idx = 0
-    Idx = get_idx(sample_idx_table,sample,gene_idx)
-    assert Idx.gene == gene_idx
-    assert Idx.sample == sample_idx_table['test1pos']
-
-    # the inquiry sample name not in sample_idx_table
-    Idx = get_idx(sample_idx_table, 'test2', gene_idx)
-    assert Idx.gene == gene_idx
-    assert Idx.sample == None
-
-    # the sample_idx_table does not exist
-    Idx = get_idx(None, 'test2', gene_idx)
-    assert Idx.gene == gene_idx
-    assert Idx.sample == None
-
 def test_create_libsize():
     fp = 'temp.txt'
     expr_distr_dict = {'test1pos':['.'],'test1neg':[2,10,11]}
     libsize_count_dict = create_libsize(expr_distr_dict,fp,debug=True)
     assert libsize_count_dict == {'test1neg':(10.5,23)}
+
+
+def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic', sample=None,
+                         germline_file_path=None,somatic_file_path=None,basic_args=None):
+    """
+    Check if the exact dna position can output the same kmer
+    Parameters
+    ----------
+    new_junction_file: str. kmer_junction file path outputed by filter
+    genome_file: str. genome file path.
+    mutation_mode: str. choose from four modes. ref, germline, somatic, somatic_and_germline
+    sample: str. sample name
+    germline_file_path: str. germline file path
+    somatic_file_path: str. somatic file path
+    """
+
+    #read the variant file
+    if basic_args is None:
+        basic_args = ['build',
+                      '--samples','this_sample',
+                      '--splice-path','this_splicegraph',
+                      '--output-dir','this_output_dir',
+                      '--ann-path','this_ann_path',
+                      '--ref-path','this_ref_path']
+    my_args1 = basic_args+[
+               '--somatic', somatic_file_path,
+               '--germline',germline_file_path,
+               '--mutation-mode', mutation_mode]
+    args = parse_arguments(my_args1)
+    mutation = get_mutation_mode_from_parser(args)
+
+    # read genome file
+    seq_dict = {}
+    with pysam.FastaFile(genome_file) as fh:
+        refs = fh.references
+        lens = fh.lengths
+        for i,ref in enumerate(refs):
+            if mutation_mode in ['germline', 'somatic_and_germline']:
+                if (sample, ref) in mutation.germline_mutation_dict:
+                    seq_dict[ref] = apply_germline_mutation(ref_sequence_file=genome_file,
+                                                      chrm=ref,
+                                                      pos_start=0,
+                                                      pos_end=lens[i],
+                                                      mutation_sub_dict=mutation.germline_mutation_dict[(sample, ref)])['background']
+            else: 
+                seq_dict[ref] = fh.fetch(ref)
+
+    f = gz_and_normal_open(new_junction_file,'r')
+    headline = next(f)
+    for line_id, line in enumerate(f):
+        if line_id % 10000 == 0:
+            print("{} kmers validated".format(line_id))
+        items = line.strip().split('\t')
+        kmer = items[0]
+        exact_kmer_pos = items[5]
+        gene_chr, gene_strand, somatic_comb,pos_str = exact_kmer_pos.split('_')
+        pos_list = [int(pos) for pos in pos_str.split(';')]
+        sub_mutation = get_sub_mutation_tuple(mutation, sample, gene_chr)
+        somatic_comb_list = somatic_comb.split(';')
+        if somatic_comb_list[0] == NOT_EXIST:
+            somatic_comb_list = []
+
+        i = 0
+        seq_list = []
+        if gene_strand == '+':
+            while i < len(pos_list):
+                orig_str = seq_dict[gene_chr][pos_list[i]:pos_list[i+1]]
+                for somatic_mut_pos in somatic_comb_list:
+                    somatic_mut_pos = int(somatic_mut_pos)
+                    if somatic_mut_pos in range(pos_list[i],pos_list[i+1]):
+                        offset = somatic_mut_pos-pos_list[i]
+                        mut_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['mut_base']
+                        ref_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['ref_base']
+                        # assert ref_base == orig_str[offset]
+                        orig_str = orig_str[:offset] + mut_base+orig_str[offset+1:]
+                        #somatic_comb_list.remove(str(somatic_mut_pos))
+                seq_list.append(orig_str)
+                i += 2
+            seq = ''.join(seq_list)
+        else:
+            while i < len(pos_list)-1:
+                orig_str = seq_dict[gene_chr][pos_list[i+1]:pos_list[i]]
+                for somatic_mut_pos in somatic_comb_list:
+                    somatic_mut_pos = int(somatic_mut_pos)
+                    if somatic_mut_pos in range(pos_list[i+1], pos_list[i]):
+                        offset = somatic_mut_pos - pos_list[i+1]
+                        mut_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['mut_base']
+                        ref_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['ref_base']
+                        # assert ref_base == orig_str[offset]
+                        orig_str = orig_str[:offset] + mut_base + orig_str[offset+1:]
+                        #somatic_comb_list.remove(somatic_mut_pos)
+                seq_list.append(orig_str[::-1])
+                i += 2
+            seq = ''.join(seq_list)
+            seq = complementary_seq(seq)
+        aa,_ = translate_dna_to_peptide(seq)
+        assert aa == kmer
+
+
+# case='neg'
+# mutation_mode='somatic_and_germline'
+# sample='test1{}'.format(case)
+# new_junction_file = 'new_junction_kmer.txt'
+# genome_file = 'tests/test1/data/test1{}.fa'.format(case)
+# germline_file_path='tests/test1/data/test1{}.vcf'.format(case)
+# somatic_file_path='tests/test1/data/test1{}.maf'.format(case)
+# check_kmer_pos_valid(new_junction_file,genome_file,mutation_mode,sample,germline_file_path,somatic_file_path)
+
+@pytest.mark.parametrize("test_id,case,mutation_mode", [
+    ['1', 'pos', 'ref'],
+    ['1', 'pos', 'germline'],
+    ['1', 'pos', 'somatic'],
+    ['1', 'pos', 'somatic_and_germline'],
+    ['1', 'neg', 'ref'],
+    ['1', 'neg', 'germline'],
+    ['1', 'neg', 'somatic'],
+    ['1', 'neg', 'somatic_and_germline']
+])
+def test_filter_infer_dna_pos(test_id, case, tmpdir, mutation_mode):
+    tmpdir = str(tmpdir)
+    test_name = 'test{}{}'.format(test_id,case)
+    junction_kmer_file_path = os.path.join(groundtruth_dir, 'build',
+                                           case,test_name,'{}_junction_kmer.txt'.format(mutation_mode))
+    meta_file_path = os.path.join(groundtruth_dir,'build',case,test_name,'{}_metadata.tsv.gz'.format(mutation_mode))
+    output_file_path = os.path.join(tmpdir,'junction_exact_dna_pos.txt')
+
+    genome_path = os.path.join(data_dir, '{}.fa'.format(test_name))
+    somatic_path = os.path.join(data_dir, '{}.maf'.format(test_name))
+    germline_path = os.path.join(data_dir, '{}.vcf'.format(test_name))
+    # infer dna pos output
+    my_args = ['filter', '--junction-kmer-tsv-path', junction_kmer_file_path,
+               '--output-file-path', output_file_path,
+               '--output-dir', tmpdir,
+               '--meta-file-path',meta_file_path,
+               '--infer-dna-pos']
+    split_mode(my_args)
+    check_kmer_pos_valid(output_file_path,genome_file=genome_path,
+                         mutation_mode=mutation_mode,sample=test_name,
+                         germline_file_path=germline_path,somatic_file_path=somatic_path)

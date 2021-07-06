@@ -1,20 +1,20 @@
 """Contain functions to deal with mutation"""
 import bisect
-import sys
-from collections import namedtuple
-from functools import reduce
 import logging
+import sys
+import numpy as np
+import pysam
+import h5py
 
-from .constant import NOT_EXIST
-from .immuno_preprocess import parse_mutation_from_maf,parse_mutation_from_vcf
+from functools import reduce
+
+from .namedtuples import Mutation
+from .preprocess import parse_mutation_from_maf
+from .preprocess import parse_mutation_from_vcf
 from .utils import get_all_comb
 
-import numpy as np
 
-Mutation = namedtuple('Mutation', ['mode','germline_mutation_dict','somatic_mutation_dict'])
-
-
-def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict):
+def apply_germline_mutation(ref_sequence_file, chrm, pos_start, pos_end, mutation_sub_dict):
     """Apply germline mutation on the reference sequence
 
     Parameters
@@ -22,15 +22,16 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict)
     ref_sequence: str. reference sequence of certain chromosome.
     pos_start: int. start position of sequence for applying germiline mutation.
     pos_end: int. Ending position of sequence for applying germline mutation.
-    mutation_sub_dict_vcf: dict. (position) -> variant details
+    mutation_sub_dict: dict. (position) -> variant details
 
     Returns
     -------
-    output_seq: dict. (sequence_type) -> list[char]. output['ref'] is the original
-    reference sequence output['background'] is the germline-mutation-applied sequence
-    if .maf file (somatic mutation) exists while is original sequence if no somatic
-    information is available.
+    output_seq: dict. (sequence_type) -> list[char]. where
+        output['ref'] is the original reference sequence 
+        output['background'] is the reference seq with germline-mutation-applied
     """
+    with pysam.FastaFile(ref_sequence_file) as fh:
+        ref_sequence = fh.fetch(chrm, pos_start, pos_end)
     output_seq = {}
     output_seq['ref'] = ref_sequence  # copy the reference
     if mutation_sub_dict is not None:
@@ -39,30 +40,6 @@ def apply_germline_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict)
     else:
         output_seq['background'] = ref_sequence
     return output_seq
-
-
-def apply_somatic_mutation(ref_sequence, pos_start, pos_end, mutation_sub_dict):
-    """Apply somatic mutation on the reference sequence
-
-    Parameters
-    ----------
-    ref_sequence: str. reference sequence of certain chromosome.
-    pos_start: int. start position of sequence for applying somatic mutation.
-    pos_end: int. Ending position of sequence for applying somatic mutation.
-    mutation_sub_dict: dict. (position) -> variant details
-
-    Returns
-    -------
-    output_seq: dict. (sequence_type) -> list[char]. output['ref'] is the original
-    reference sequence output['background'] is the germline-mutation-applied sequence
-    if .maf file (somatic mutation) exists while is original sequence if no somatic
-    information is available.
-    """
-    if mutation_sub_dict is not None:
-        mut_seq = construct_mut_seq_with_str_concat(ref_sequence, pos_start, pos_end, mutation_sub_dict)
-    else:
-        mut_seq = ref_sequence
-    return mut_seq
 
 
 def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
@@ -82,7 +59,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     variant_pos_candi = [ipos for ipos in list(mut_dict.keys()) if ipos >= pos_start and ipos < pos_end]
     if len(variant_pos_candi) > 0:
         variant_pos_sorted = np.sort(variant_pos_candi)
-        mut_seq_list = [ref_seq[:variant_pos_sorted[0]]]
+        mut_seq_list = [ref_seq[:variant_pos_sorted[0] - pos_start]]
         for i in range(len(variant_pos_sorted)-1):  # process all the mutation in order except the last one
             mut_base = mut_dict[variant_pos_sorted[i]]['mut_base']
             ref_base = mut_dict[variant_pos_sorted[i]]['ref_base']
@@ -90,7 +67,7 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
                 mut_seq_list.append(mut_base)
             else:
                 mut_seq_list.append(ref_base)
-            mut_seq_list.append(ref_seq[variant_pos_sorted[i]+1:variant_pos_sorted[i+1]])
+            mut_seq_list.append(ref_seq[variant_pos_sorted[i] - pos_start + 1:variant_pos_sorted[i + 1] - pos_start])
         # process the last mutation separately
         mut_base = mut_dict[variant_pos_sorted[-1]]['mut_base']
         ref_base = mut_dict[variant_pos_sorted[-1]]['ref_base']
@@ -98,18 +75,19 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
             mut_seq_list.append(mut_base)
         else:
             mut_seq_list.append(ref_base)
-        mut_seq_list.append(ref_seq[variant_pos_sorted[-1]+1:])
+        mut_seq_list.append(ref_seq[variant_pos_sorted[-1] -pos_start + 1 :])
         mut_seq = ''.join(mut_seq_list)
     else:
         mut_seq = ref_seq
     return mut_seq
 
-def parse_mutation_file(mutation_file_path,output_dir,heter_code,mut_pickle=False,h5_sample_list=None):
+
+def parse_mutation_file(mutation_tag, mutation_file_path,output_dir,heter_code,mut_pickle=False,target_sample_list=None, name_eq_dict={}):
     if mutation_file_path.lower().endswith('.maf'):
-        mutation_dict = parse_mutation_from_maf(maf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle)
+        mutation_dict = parse_mutation_from_maf(mutation_tag=mutation_tag, target_sample_list=target_sample_list, maf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle,sample_eq_dict=name_eq_dict)
     elif mutation_file_path.lower().endswith('.vcf') or mutation_file_path.lower().endswith('.h5'): # we also accept hdf5 file format
-        mutation_dict = parse_mutation_from_vcf(vcf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle,
-                                                heter_code=heter_code,h5_sample_list=h5_sample_list)
+        mutation_dict = parse_mutation_from_vcf(mutation_tag=mutation_tag, vcf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle,
+                                                heter_code=heter_code,target_sample_list=target_sample_list, sample_eq_dict=name_eq_dict)
     else:
         logging.error("Invalid mutation files. Please ensure it is in maf or vcf format.")
         sys.exit(1)
@@ -124,21 +102,41 @@ def get_mutation_mode_from_parser(args):
     output_dir = args.output_dir
     heter_code = args.heter_code
     mut_pickle = args.use_mut_pickle
-    h5_sample_list = args.samples
+    target_sample_list = args.samples
     is_error = True
+    graph_to_somatic_names = {}
+    graph_to_germline_names = {}
+    sample_name_map_tbl = args.sample_name_map
+    if sample_name_map_tbl is not None:
+        with open(sample_name_map_tbl, "r") as f:
+            for line in f.readlines():
+                equivalence = line.split("\n")[0].split('\t')
+                if len(equivalence) == 2:
+                    graph_to_somatic_names[equivalence[0]] = equivalence[1]
+                    graph_to_germline_names[equivalence[0]] = equivalence[1]
+                elif len(equivalence) == 3:
+                    graph_to_germline_names[equivalence[0]] = equivalence[1]
+                    graph_to_somatic_names[equivalence[0]] = equivalence[2]
+                else:
+                    logging.error("--args.sample_name_map provided with wrong input format, please check documentation")
+                    sys.exit(1)
+    else:
+        for sample in target_sample_list:
+            graph_to_somatic_names[sample] = sample
+        graph_to_germline_names = graph_to_somatic_names
     if mutation_mode == 'somatic_and_germline':
         if somatic_file_path != '' and germline_file_path != '':
-            somatic_mutation_dict = parse_mutation_file(somatic_file_path,output_dir,heter_code,mut_pickle,h5_sample_list)
-            germline_mutation_dict = parse_mutation_file(germline_file_path,output_dir,heter_code,mut_pickle,h5_sample_list)
+            somatic_mutation_dict = parse_mutation_file("somatic", somatic_file_path,output_dir,heter_code,mut_pickle,target_sample_list, graph_to_somatic_names)
+            germline_mutation_dict = parse_mutation_file("germline", germline_file_path,output_dir,heter_code,mut_pickle,target_sample_list, graph_to_germline_names)
             is_error = False
     elif mutation_mode == 'germline':
         if germline_file_path != '':
             somatic_mutation_dict = {}  # empty dic
-            germline_mutation_dict = parse_mutation_file(germline_file_path,output_dir,heter_code,mut_pickle,h5_sample_list)
+            germline_mutation_dict = parse_mutation_file("germline", germline_file_path,output_dir,heter_code,mut_pickle,target_sample_list, graph_to_germline_names)
             is_error = False
     elif mutation_mode == 'somatic':
         if somatic_file_path != '':
-            somatic_mutation_dict = parse_mutation_file(somatic_file_path,output_dir,heter_code,mut_pickle,h5_sample_list)
+            somatic_mutation_dict = parse_mutation_file("somatic", somatic_file_path,output_dir,heter_code,mut_pickle,target_sample_list, graph_to_somatic_names)
             germline_mutation_dict = {}
             is_error = False
     elif mutation_mode == 'ref':
@@ -149,7 +147,7 @@ def get_mutation_mode_from_parser(args):
         logging.error('Mutation mode "%s" not recognized, please check again.' % mutation_mode)
 
     if is_error:
-         logging.error("immuno_mutation.py: The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")
+         logging.error("mutations.py: The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")
          sys.exit(1)
     mutation = Mutation(mutation_mode,germline_mutation_dict=germline_mutation_dict,somatic_mutation_dict=somatic_mutation_dict)
     return mutation
@@ -165,46 +163,49 @@ def get_exon_som_dict(gene, mutation_pos):
         for i in range(exon_list.shape[1]):
             if ipos in range(exon_list[0,i], exon_list[1,i]):
                 exon_som_dict[i].append(ipos)
-    exon_som_dict[NOT_EXIST] = []  # for single cds case
+    exon_som_dict[np.nan] = []  # for single cds case
     return exon_som_dict
 
 
-def get_som_expr_dict(gene, mutation_pos, segments, Idx):
+def get_som_expr_dict(gene, mutation_pos, countinfo, Idx):
     """
     Build somatic mutation position(key) to expression data(value) dictionary.
     """
-    if segments is None:
+    if countinfo is None:
         return None
     seg_mat = gene.segmentgraph.segments[0]
     som_expr_dict = {}
 
-    seg_pos_list = segments.lookup_table[gene.name]
+    gidx = countinfo.gene_idx_dict[gene.name]
+    seg_pos_list = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
+    h5f = h5py.File(countinfo.h5fname, 'r')
     for ipos in mutation_pos:
         seg_id = bisect.bisect(seg_mat,ipos)
         if seg_id > 0 and ipos <= gene.segmentgraph.segments[1][seg_id-1]: # the mutation is within the pos
-            expr = segments.expr[seg_pos_list[seg_id-1],Idx.sample]
+            expr = h5f['segments'][seg_pos_list[seg_id - 1], Idx.sample]
             som_expr_dict[ipos] = expr
+    h5f.close()
+
     return som_expr_dict
 
 
-def get_mut_comb(exon_som_dict,vertex_list):
+def get_mut_comb(exon_som_dict, vertex_list):
     """
     Get all the mutation combination given the mutation given.
     Parameters
     ----------
     exon_som_dict: dict, keys (exon id), values (somatic mutation position)
-    idx: int, first exon id
-    prop_vertex: int, second exon id
+    vertex_list: list, array of vertex ids
 
     Returns
     -------
     mut_comb: list of tuple, list of mutation combination
 
     """
-    mut_comb = [NOT_EXIST]
+    mut_comb = [np.nan]
     if exon_som_dict is not None:
-        exon_list = map(lambda x: exon_som_dict[x],vertex_list)
-        all_comb = get_all_comb(reduce(lambda x,y:x+y,exon_list))
+        exon_list = map(lambda x: exon_som_dict[x], vertex_list)
+        all_comb = get_all_comb(reduce(lambda x, y: x + y, exon_list))
         mut_comb += all_comb
     return mut_comb
 
