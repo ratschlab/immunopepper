@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path = ['..'] + sys.path
+sys.path = sys.path.insert(0, '..')
 from immunopepper import immunopepper as ip
 
 test_id = 1
