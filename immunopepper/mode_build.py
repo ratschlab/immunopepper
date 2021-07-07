@@ -188,8 +188,8 @@ def process_gene_batch_foreground(sample, graph_samples_ids, genes, genes_info, 
                                 seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
                                                           countinfo.gene_id_to_segrange[gidx][1])
                                 if arg.cross_graph_expr:
-                                    seg_counts = h5f['segments'][:, graph_samples_ids]
-                                    seg_counts = seg_counts[seg_gene_idxs] # limitation fancy hdf5 indexing
+                                    seg_counts = h5f['segments'][seg_gene_idxs, :]
+                                    seg_counts = seg_counts[:, graph_samples_ids] # limitation fancy hdf5 indexing
                                 else:
                                     seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
                 # library size calculated only for genes with CDS
