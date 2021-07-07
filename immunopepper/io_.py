@@ -160,7 +160,7 @@ def save_gene_expr_distr(data,  graph_samples, sample, filepointer, outbase, com
         data = pd.DataFrame(data)
         path = switch_tmp_path(filepointer.gene_expr_fp, outbase)
         if graph_samples is not None:
-            data.columns = filepointer.gene_expr_fp['columns'] + graph_samples
+            data.columns = filepointer.gene_expr_fp['columns'] + list(graph_samples)
         else:
             data.columns = filepointer.gene_expr_fp['columns'] + [sample]
         save_pd_toparquet(path, data, compression, verbose)

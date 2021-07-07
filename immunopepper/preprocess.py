@@ -352,9 +352,10 @@ def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
                           h5fname)
     h5f.close()
     if cross_graph_expr:
-        graph_samples = [i.decode() for i in sample_names]
+        graph_samples = np.array([s_idx for input_sample in sample_list for s_idx, graph_sample in enumerate(sample_names) if graph_sample.decode() == input_sample ])
     else:
         graph_samples = None
+
     return countinfo, graph_samples
 
 

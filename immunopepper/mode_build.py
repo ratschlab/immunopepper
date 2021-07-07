@@ -135,7 +135,7 @@ def process_gene_batch_background(sample, genes, gene_idxs, all_read_frames, mut
 
 
 
-def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene_idxs, total_genes, genes_interest, disable_process_libsize, all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
+def process_gene_batch_foreground(sample, graph_samples_ids, genes, genes_info, gene_idxs, total_genes, genes_interest, disable_process_libsize, all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
     try:
         exception_ = None
         if arg.parallel > 1:
@@ -188,7 +188,8 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                                 seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
                                                           countinfo.gene_id_to_segrange[gidx][1])
                                 if arg.cross_graph_expr:
-                                    seg_counts = h5f['segments'][seg_gene_idxs, :]
+                                    seg_counts = h5f['segments'][:, graph_samples_ids]
+                                    seg_counts = seg_counts[seg_gene_idxs] # limitation fancy hdf5 indexing
                                 else:
                                     seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
                 # library size calculated only for genes with CDS
@@ -242,7 +243,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                                                 cross_graph_expr=arg.cross_graph_expr,
                                                 all_read_frames=arg.all_read_frames,
                                                 filepointer=filepointer,
-                                                graph_samples=graph_samples,
+                                                graph_samples=arg.samples,
                                                 verbose_save=verbose
                 )
 
@@ -251,7 +252,7 @@ def process_gene_batch_foreground(sample, graph_samples, genes, genes_info, gene
                 mem_per_gene.append(print_memory_diags(disable_print=True))
                 all_gene_idxs.append(gene_idxs[i])
 
-            save_gene_expr_distr(gene_expr, graph_samples, sample,  filepointer, outbase, compression, verbose)
+            save_gene_expr_distr(gene_expr, graph_samples_ids, sample,  filepointer, outbase, compression, verbose)
             save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, arg.output_fasta, verbose)
             dict_pept_forgrd.clear()
             if not arg.cross_graph_expr:
@@ -321,9 +322,8 @@ def mode_build(arg):
     start_time = timeit.default_timer()
     if arg.count_path is not None:
         logging.info('Loading count data ...')
-        countinfo, graph_samples = parse_gene_metadata_info(arg.count_path, arg.samples, arg.cross_graph_expr)
-        if graph_samples is not None:
-            graph_samples = [sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') for sample in graph_samples]
+        countinfo, graph_samples_ids = parse_gene_metadata_info(arg.count_path, arg.samples, arg.cross_graph_expr)
+
         end_time = timeit.default_timer()
         logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
         print_memory_diags()
@@ -358,9 +358,19 @@ def mode_build(arg):
     global gene_id_list
     global sample
     global filepointer
+    
+    # handle sample relatively to output mode 
+    if arg.cross_graph_expr:
+        process_samples = ['cohort']
+        arg.samples = np.array(arg.samples)[np.argsort(graph_samples_ids)]
+        arg.samples = [sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') for sample in  arg.samples]
+        graph_samples_ids = graph_samples_ids[np.argsort(graph_samples_ids)]
 
-
-    for sample in arg.samples:
+    else:
+        process_samples = arg.samples
+        
+        
+    for sample in process_samples:
         logging.info(">>>> Processing sample {}, there are {} graphs in total".format(sample,num))
 
         # prepare the output files
@@ -399,7 +409,7 @@ def mode_build(arg):
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
             pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
-            args = [(sample, graph_samples, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(
+            args = [(sample, graph_samples_ids, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(
                 gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg,
                   os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
 
@@ -428,7 +438,7 @@ def mode_build(arg):
 #            process_gene_batch_background(sample, graph_data, gene_id_list, arg.all_read_frames, mutation, countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
-            process_gene_batch_foreground( sample, graph_samples, graph_data, graph_info, gene_id_list, len(gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict,
+            process_gene_batch_foreground( sample, graph_samples_ids, graph_data, graph_info, gene_id_list, len(gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict,
                              countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
 
         if disable_process_libsize:

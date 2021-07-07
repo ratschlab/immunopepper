@@ -222,7 +222,7 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
     # Todo: deal with absense of count file
     if vstart is np.nan or vstop is np.nan:  # isolated exon case
         return np.zeros((0, out_shape), dtype='float')
-    if countinfo is None or Idx.sample is None:
+    if countinfo is None:
         return np.zeros((0, out_shape), dtype='float') #[np.nan]
 
     segments = gene.segmentgraph.segments
