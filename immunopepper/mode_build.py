@@ -374,7 +374,12 @@ def mode_build(arg):
         logging.info(">>>> Processing output_sample {}, there are {} graphs in total".format(output_sample,num))
 
         # prepare the output files
-        output_path = os.path.join(arg.output_dir, output_sample)
+
+        if output_sample != arg.mutation_sample:
+            output_path = os.path.join(arg.output_dir, '{}_mut{}'.format(output_sample, arg.mutation_sample))
+        elif (output_sample == arg.mutation_sample) or (not arg.mutation_sample):
+            output_path = os.path.join(arg.output_dir, output_sample)
+
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
         gzip_tag = ''

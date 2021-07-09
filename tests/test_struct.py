@@ -206,7 +206,7 @@ def test_end_to_end_cancerspecif_mx():
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
-mutation_mode ='germline'
+mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
 #for mutation_mode in ['ref', 'somatic', 'germline', 'somatic_and_germline']:
