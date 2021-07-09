@@ -9,8 +9,9 @@ def test_end_to_end_build(test_id, case, mutation_mode, tmpdir):
     out_dir = str(tmpdir)
     sample_dir_build = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'diff','{}'.format(case),'test{}{}'.format(test_id,case))
 
-    my_args_build = ['build','--samples', 'test{}{}'.format(test_id,case),
-               '--output-dir', out_dir,
+    my_args_build = ['build','--output-samples', 'test{}{}'.format(test_id,case),
+                     '--mutation-sample', 'ENCSR000BZG',
+                     '--output-dir', out_dir,
                '--splice-path',
                '{}/{}graph/spladder/genes_graph_conf3.merge_graphs.pickle'.format(
                    data_dir, case),
@@ -37,23 +38,24 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
     out_dir = str(tmpdir)
     #sample_dir_build = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'diff','{}'.format(case),'test{}{}'.format(test_id,case))
     my_args_build = ['build',
-               '--samples', 'ERR2130621', 'ENCSR000BZG',#'ERR2130621','ENCSR000BZG'
+               '--output-samples', 'ERR2130621', 'ENCSR000BZG',  #'ERR2130621','ENCSR000BZG'
+               '--mutation-sample', 'ENCSR000BZG',
                '--output-dir', out_dir,
-               '--splice-path',os.path.join(data_dir,'ImmunoPepper_usecase.pickle'),
+               '--splice-path', os.path.join(data_dir,'ImmunoPepper_usecase.pickle'),
                '--count-path', os.path.join(data_dir,'ImmunoPepper_usecase.count.hdf5'),
                '--ann-path', os.path.join(data_dir,'ImmunoPepper_usecase.gtf'),
                '--ref-path', os.path.join(data_dir,'GRCm38.p6.genome.fa'),
                '--germline', os.path.join(data_dir,'ImmunoPepper_usecase.vcf'),
                '--somatic', os.path.join(data_dir,'ImmunoPepper_usecase.maf'),
-                '--mutation-mode', mutation_mode,
-                '--kmer', '9',
-                '--batch-size', '1',
-                '--output-fasta',
-                #'--all-read-frames',
-                '--process-num', '1',
-                #'--process-chr', 'chr2',
-                #'--genes-interest', '/Users/laurieprelot/Documents/Projects/tmp_kmer/restrict_genes_test/genes_of_interest.tsv'
-             ]
+                     '--mutation-mode', mutation_mode,
+                     '--kmer', '9',
+                     '--batch-size', '1',
+                     '--output-fasta',
+                     #'--all-read-frames',
+                     '--process-num', '1',
+                     #'--process-chr', 'chr2',
+                     #'--genes-interest', '/Users/laurieprelot/Documents/Projects/tmp_kmer/restrict_genes_test/genes_of_interest.tsv'
+                     ]
     if is_parallel:
         my_args_build.extend(['--parallel', '4'])
     if graph_cross_sample:
@@ -114,7 +116,7 @@ def test_end_to_end_crosscohort(tmpdir):
               "--mem-per-core", "5000",
               "--mutation-modes","ref",
               "--kmer", "9",
-              "--samples", "ERR2130621", "ENCSR000BZG",
+              "--output-samples", "ERR2130621", "ENCSR000BZG",
               "--input-dir", tmpdir,
               "--output-dir", tmpdir,
               "--output-suffix", "test",
@@ -131,7 +133,7 @@ def mini_crosscohort():
               "--mem-per-core", "5000",
               "--mutation-modes","ref", "germline", "somatic", "somatic_and_germline",
               "--kmer", "9",
-              "--samples", "TCGA-AO-A12D-01A-11", "TCGA-AR-A0TT-01A-31",
+              "--output-samples", "TCGA-AO-A12D-01A-11", "TCGA-AR-A0TT-01A-31",
               "--input-dir", cancer_dir,
               "--output-dir", cancer_dir,
               "--output-suffix", "_test",
@@ -204,11 +206,11 @@ def test_end_to_end_cancerspecif_mx():
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
-mutation_mode ='ref'
+mutation_mode ='germline'
 #pr = cProfile.Profile()
 #pr.enable()
 #for mutation_mode in ['ref', 'somatic', 'germline', 'somatic_and_germline']:
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=True) #TODO add back
+test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=False) #TODO add back
 
 #test_end_to_end_samplespecif('ERR2130621', tmpdir, "9", mutation_mode) # TEST DEPRECATED
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)

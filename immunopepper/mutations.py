@@ -102,7 +102,7 @@ def get_mutation_mode_from_parser(args):
     output_dir = args.output_dir
     heter_code = args.heter_code
     mut_pickle = args.use_mut_pickle
-    target_sample_list = args.samples
+    target_sample_list = args.output_samples
     is_error = True
     graph_to_somatic_names = {}
     graph_to_germline_names = {}
@@ -126,17 +126,17 @@ def get_mutation_mode_from_parser(args):
         graph_to_germline_names = graph_to_somatic_names
     if mutation_mode == 'somatic_and_germline':
         if somatic_file_path != '' and germline_file_path != '':
-            somatic_mutation_dict = parse_mutation_file("somatic", somatic_file_path,output_dir,heter_code,mut_pickle,target_sample_list, graph_to_somatic_names)
-            germline_mutation_dict = parse_mutation_file("germline", germline_file_path,output_dir,heter_code,mut_pickle,target_sample_list, graph_to_germline_names)
+            somatic_mutation_dict = parse_mutation_file("somatic", somatic_file_path, output_dir, heter_code, mut_pickle, target_sample_list, graph_to_somatic_names)
+            germline_mutation_dict = parse_mutation_file("germline", germline_file_path, output_dir, heter_code, mut_pickle, target_sample_list, graph_to_germline_names)
             is_error = False
     elif mutation_mode == 'germline':
         if germline_file_path != '':
             somatic_mutation_dict = {}  # empty dic
-            germline_mutation_dict = parse_mutation_file("germline", germline_file_path,output_dir,heter_code,mut_pickle,target_sample_list, graph_to_germline_names)
+            germline_mutation_dict = parse_mutation_file("germline", germline_file_path, output_dir, heter_code, mut_pickle, target_sample_list, graph_to_germline_names)
             is_error = False
     elif mutation_mode == 'somatic':
         if somatic_file_path != '':
-            somatic_mutation_dict = parse_mutation_file("somatic", somatic_file_path,output_dir,heter_code,mut_pickle,target_sample_list, graph_to_somatic_names)
+            somatic_mutation_dict = parse_mutation_file("somatic", somatic_file_path, output_dir, heter_code, mut_pickle, target_sample_list, graph_to_somatic_names)
             germline_mutation_dict = {}
             is_error = False
     elif mutation_mode == 'ref':
@@ -149,7 +149,7 @@ def get_mutation_mode_from_parser(args):
     if is_error:
          logging.error("mutations.py: The input mutation file does not match the mutation mode (somatic, germline, somatic_and_germline), please check again")
          sys.exit(1)
-    mutation = Mutation(mutation_mode,germline_mutation_dict=germline_mutation_dict,somatic_mutation_dict=somatic_mutation_dict)
+    mutation = Mutation(mutation_mode, germline_mutation_dict=germline_mutation_dict, somatic_mutation_dict=somatic_mutation_dict)
     return mutation
 
 

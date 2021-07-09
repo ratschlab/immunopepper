@@ -155,14 +155,14 @@ def save_forgrd_pep_dict(data, filepointer, compression=None, outbase=None, save
         save_pd_toparquet(path_meta, data, compression, verbose)  # Test keep peptide name in the metadata file
 
 
-def save_gene_expr_distr(data,  graph_samples, sample, filepointer, outbase, compression, verbose):
+def save_gene_expr_distr(data, input_samples, process_sample, filepointer, outbase, compression, verbose):
     if data:
         data = pd.DataFrame(data)
         path = switch_tmp_path(filepointer.gene_expr_fp, outbase)
-        if graph_samples is not None:
-            data.columns = filepointer.gene_expr_fp['columns'] + list(graph_samples)
+        if process_sample == 'cohort':
+            data.columns = filepointer.gene_expr_fp['columns'] + list(input_samples)
         else:
-            data.columns = filepointer.gene_expr_fp['columns'] + [sample]
+            data.columns = filepointer.gene_expr_fp['columns'] + [process_sample]
         save_pd_toparquet(path, data, compression, verbose)
 
 

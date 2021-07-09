@@ -29,7 +29,7 @@ def parse_arguments(argv):
     ### mode_build TODO Change argument groups Mode build
     parser_build = subparsers.add_parser('build', help='generate kmers library from a splicegraph')
     required = parser_build.add_argument_group('MANDATORY')
-    required.add_argument("--samples", nargs='+', help="list of sample names to consider", required=True, default='')
+    required.add_argument("--output-samples", nargs='+', help="list of sample names to output, names must match the graph samples", required=True, default='')
     required.add_argument("--output-dir", help="output directory [default: output]", required=True, default='output')
     required.add_argument("--ann-path", help="absolute path of reference gene annotation file", required=True)
     required.add_argument("--splice-path", help="absolute path of splicegraph file", required=True)
@@ -43,6 +43,7 @@ def parse_arguments(argv):
     #outputs.add_argument("--peptides_tsv", help="save the peptides outputs as tsv files instead of fasta files", action="store_true", default=False)
     outputs.add_argument("--disable_process_libsize",help="sample library size generation to increase speed",action="store_true",default=False)
     additional_file = parser_build.add_argument_group('ADDITIONAL FILES')
+    additional_file.add_argument("--mutation-sample", help="sample id for the somatic and germline application, ids should match the count/graphs but equivalence with the mutation files can be specified (see --sample-name-map)", required=False, default='')
     additional_file.add_argument("--germline", help="absolute path of germline mutation file", required=False, default='')
     additional_file.add_argument("--somatic", help="absolute path of somatic mutation file", required=False, default='')
     additional_file.add_argument("--count-path",help="absolute path of count hdf5 file", required=False, default=None)
