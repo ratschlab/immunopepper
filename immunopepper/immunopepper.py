@@ -14,7 +14,7 @@ from .mode_samplespecif import mode_samplespecif
 from .mode_filter import mode_filter
 from .mode_crosscohort import mode_crosscohort
 from .mode_cancerspecif import mode_cancerspecif
-from .mode_mhcbind import mode_mhcbind
+
 
 def _add_general_args(parser):
     general = parser.add_argument_group('GENERAL')
@@ -264,6 +264,7 @@ def split_mode(options):
     if mode == "cancerspecif":
         mode_cancerspecif(arg)
     if mode == "mhcbind":
+        from .mode_mhcbind import mode_mhcbind #import here due to logging conflict
         mode_mhcbind(arg)
 
 def cmd_entry():
