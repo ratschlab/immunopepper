@@ -252,7 +252,7 @@ def process_gene_batch_foreground(sample, graph_samples_ids, genes, genes_info, 
                 mem_per_gene.append(print_memory_diags(disable_print=True))
                 all_gene_idxs.append(gene_idxs[i])
 
-            save_gene_expr_distr(gene_expr, graph_samples_ids, sample,  filepointer, outbase, compression, verbose)
+            save_gene_expr_distr(gene_expr, arg.samples, sample,  filepointer, outbase, compression, verbose)
             save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, arg.output_fasta, verbose)
             dict_pept_forgrd.clear()
             if not arg.cross_graph_expr:

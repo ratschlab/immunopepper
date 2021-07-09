@@ -295,7 +295,7 @@ def get_total_gene_expr(gene, countinfo, Idx, seg_expr, cross_graph_expr):
     else:
         n_samples = seg_expr.shape[1]
 
-    if countinfo is None or Idx.sample is None:
+    if countinfo is None:
         return [np.nan] * n_samples
     seg_len = gene.segmentgraph.segments[1] - gene.segmentgraph.segments[0]
 
