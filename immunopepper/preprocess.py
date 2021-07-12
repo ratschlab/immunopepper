@@ -359,7 +359,7 @@ def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
     return countinfo, graph_samples
 
 
-def parse_mutation_from_vcf(mutation_tag, vcf_path, output_dir='', heter_code=0, mut_pickle=False, target_sample_list=None, sample_eq_dict={}):
+def parse_mutation_from_vcf(mutation_tag, vcf_path, output_dir='', heter_code=0, mut_pickle=False, target_sample_list=None, mutation_sample=None, sample_eq_dict={}):
     """Extract germline mutation information from the given vcf file and vcf.h5 file
 
     Parameters
@@ -387,7 +387,7 @@ def parse_mutation_from_vcf(mutation_tag, vcf_path, output_dir='', heter_code=0,
 
     file_type = vcf_path.split('.')[-1]
     if file_type == 'h5': # hdf5 filr
-        mutation_dic = parse_mutation_from_vcf_h5(vcf_path,target_sample_list,heter_code, sample_eq_dict)
+        mutation_dic = parse_mutation_from_vcf_h5(vcf_path, target_sample_list, mutation_sample, heter_code, sample_eq_dict)
         logging.info("Get germline mutation dict from h5 file in {}. No pickle file created".format(vcf_path))
         return mutation_dic
     else: # vcf text file
@@ -401,7 +401,7 @@ def parse_mutation_from_vcf(mutation_tag, vcf_path, output_dir='', heter_code=0,
                 fields = line.strip().split('\t')
                 file_sample_list = fields[9:]
                 for target_sample in target_sample_list:
-                    if sample_eq_dict[target_sample] not in file_sample_list:
+                    if (sample_eq_dict[target_sample] not in file_sample_list) and (mutation_sample == target_sample):
                         logging.error("samples in mutation file: {}".format(file_sample_list))
                         logging.error("No mutations for sample {} found in vcf file, please check samples above, consider using --sample-name-map ".format(sample_eq_dict[target_sample]))
                         sys.exit(1)
@@ -433,7 +433,7 @@ def parse_mutation_from_vcf(mutation_tag, vcf_path, output_dir='', heter_code=0,
     return mutation_dic
 
 
-def parse_mutation_from_vcf_h5(h5_vcf_path, target_sample_list, heter_code=0, sample_eq_dict={}):
+def parse_mutation_from_vcf_h5(h5_vcf_path, target_sample_list, mutation_sample, heter_code=0, sample_eq_dict={}):
     """
     Extract germline mutation information from given vcf h5py file.
 
@@ -455,10 +455,13 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, target_sample_list, heter_code=0, sa
     file_sample_list = [decodeUTF8(item) for item in a['gtid']]
     for target_sample in target_sample_list:
         if sample_eq_dict[target_sample] not in file_sample_list:
-            logging.error("samples in mutation file: {}".format(file_sample_list))
-            logging.error("No mutations for sample {} found in vcf_h5 file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
-            sys.exit(1)
-            continue
+            if mutation_sample != target_sample:
+                logging.warning("No mutations for sample {} found in vcf_h5 file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
+                continue
+            else:
+                logging.error("samples in mutation file: {}".format(file_sample_list))
+                logging.error("No mutations for sample {} found in vcf_h5 file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
+                sys.exit(1)
         col_id = [i for (i, item) in enumerate(file_sample_list) if item == sample_eq_dict[target_sample]][0]
         row_id = np.where(np.logical_or(a['gt'][:,col_id] == heter_code,a['gt'][:,col_id] == 1))[0]
         for irow in row_id:
@@ -475,7 +478,7 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, target_sample_list, heter_code=0, sa
     return mut_dict
 
 
-def parse_mutation_from_maf(mutation_tag, target_sample_list, maf_path, output_dir='', mut_pickle=False, sample_eq_dict={}):
+def parse_mutation_from_maf(mutation_tag, target_sample_list, mutation_sample, maf_path, output_dir='', mut_pickle=False, sample_eq_dict={}):
     """
     Extract somatic mutation information from given maf file.
 
@@ -502,9 +505,13 @@ def parse_mutation_from_maf(mutation_tag, target_sample_list, maf_path, output_d
                 file_sample_set.add(sample_id)
             for target_sample in target_sample_list:
                 if sample_eq_dict[target_sample] not in file_sample_set:
-                    logging.error("samples in mutation file: {}".format(file_sample_set))
-                    logging.error("No mutations for sample {} found in maf file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
-                    sys.exit(1)
+                    if mutation_sample != target_sample:
+                        logging.warning("No mutations for sample {} found in vcf_h5 file, please check samples above, consider using --sample-name-map".format(
+                            sample_eq_dict[target_sample]))
+                    else:
+                        logging.error("samples in mutation file: {}".format(file_sample_set))
+                        logging.error("No mutations for sample {} found in maf file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
+                        sys.exit(1)
             return mutation_dic
 
     f = open(maf_path)
@@ -540,9 +547,12 @@ def parse_mutation_from_maf(mutation_tag, target_sample_list, maf_path, output_d
     
     for target_sample in target_sample_list:
         if sample_eq_dict[target_sample] not in file_sample_set:
-            logging.error("samples in mutation file: {}".format(file_sample_set))
-            logging.error("No mutations for sample {} found in maf file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
-            sys.exit(1)
+            if mutation_sample != target_sample:
+                logging.warning("No mutations for sample {} found in vcf_h5 file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
+            else:
+                logging.error("samples in mutation file: {}".format(file_sample_set))
+                logging.error("No mutations for sample {} found in maf file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
+                sys.exit(1)
     return mutation_dic
 
 #todo: support tsv file in the future

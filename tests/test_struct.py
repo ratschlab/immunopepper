@@ -39,7 +39,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
     #sample_dir_build = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'diff','{}'.format(case),'test{}{}'.format(test_id,case))
     my_args_build = ['build',
                '--output-samples', 'ERR2130621', 'ENCSR000BZG',  #'ERR2130621','ENCSR000BZG'
-               '--mutation-sample', 'ENCSR000BZG',
+               '--mutation-sample', 'ERR2130621',
                '--output-dir', out_dir,
                '--splice-path', os.path.join(data_dir,'ImmunoPepper_usecase.pickle'),
                '--count-path', os.path.join(data_dir,'ImmunoPepper_usecase.count.hdf5'),
@@ -206,7 +206,7 @@ def test_end_to_end_cancerspecif_mx():
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
-mutation_mode ='ref'
+mutation_mode ='germline'
 #pr = cProfile.Profile()
 #pr.enable()
 #for mutation_mode in ['ref', 'somatic', 'germline', 'somatic_and_germline']:
