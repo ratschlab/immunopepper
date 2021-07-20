@@ -124,7 +124,9 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
                                                                                           np.max(time_per_gene),
                                                                                           np.max(mem_per_gene)))
                 pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
-            else:  logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(output_sample, batch_name))
+            else:  
+                logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(output_sample, batch_name))
+                pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
         else:
             logging.info("> {} : Batch {} exists, skip processing ".format(output_sample, batch_name))
 
@@ -271,8 +273,9 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
                                                                                             np.max(mem_per_gene)))
                 pathlib.Path(os.path.join(outbase, "output_sample_IS_SUCCESS")).touch()
 
-            else:  logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(output_sample, batch_name))
-
+            else:  
+                logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(output_sample, batch_name))
+                pathlib.Path(os.path.join(outbase, "output_sample_IS_SUCCESS")).touch()
         else:
             logging.info("> {} : Batch {} exists, skip processing ".format(output_sample, batch_name))
 
