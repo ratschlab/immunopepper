@@ -181,7 +181,7 @@ def get_som_expr_dict(gene, mutation_pos, countinfo, seg_counts):
     for ipos in mutation_pos:
         seg_id = bisect.bisect(seg_mat,ipos)
         if seg_id > 0 and ipos <= gene.segmentgraph.segments[1][seg_id-1]: # the mutation is within the pos
-            expr = seg_counts[seg_pos_list[seg_id - 1]]
+            expr = seg_counts[seg_id - 1]
             som_expr_dict[ipos] = expr
 
     return som_expr_dict
