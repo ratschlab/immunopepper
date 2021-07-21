@@ -321,7 +321,8 @@ def get_idx(countinfo, sample, gene_idx):
     if not countinfo is None:
         if not sample in countinfo.sample_idx_dict:
             sample_idx = None
-            logging.warning("utils.py: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
+            if sample != 'cohort':
+                logging.warning("utils.py: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
         else:
             sample_idx = countinfo.sample_idx_dict[sample]
     else:
