@@ -257,7 +257,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
-    som_exp_dict = get_som_expr_dict(gene, list(mutation.somatic_mutation_dict.keys()), countinfo, idx)
+    som_exp_dict = get_som_expr_dict(gene, list(mutation.somatic_mutation_dict.keys()), countinfo, seg_counts)
     kmer_matrix = [[], [], [], []] # in cross sample mode, will contain unique kmers per gene (1), is_junction (2), segments expr per sample (3), junction expr per sample (4)
 
 
@@ -297,7 +297,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                     else:
                         segment_expr, expr_list = np.nan, None
                     if countinfo and not flag.is_isolated and edge_counts is not None: ## Will flag is isolated overlap with edge_counts is None?
-                        edge_expr = search_edge_metadata_segmentgraph(gene, modi_coord, countinfo, idx, edge_idxs, edge_counts, cross_graph_expr=cross_graph_expr)
+                        edge_expr = search_edge_metadata_segmentgraph(gene, modi_coord, edge_idxs, edge_counts, cross_graph_expr=cross_graph_expr)
                     else:
                         edge_expr = np.nan
 

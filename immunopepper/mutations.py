@@ -167,7 +167,7 @@ def get_exon_som_dict(gene, mutation_pos):
     return exon_som_dict
 
 
-def get_som_expr_dict(gene, mutation_pos, countinfo, Idx):
+def get_som_expr_dict(gene, mutation_pos, countinfo, seg_counts):
     """
     Build somatic mutation position(key) to expression data(value) dictionary.
     """
@@ -178,13 +178,11 @@ def get_som_expr_dict(gene, mutation_pos, countinfo, Idx):
 
     gidx = countinfo.gene_idx_dict[gene.name]
     seg_pos_list = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
-    h5f = h5py.File(countinfo.h5fname, 'r')
     for ipos in mutation_pos:
         seg_id = bisect.bisect(seg_mat,ipos)
         if seg_id > 0 and ipos <= gene.segmentgraph.segments[1][seg_id-1]: # the mutation is within the pos
-            expr = h5f['segments'][seg_pos_list[seg_id - 1], Idx.sample]
+            expr = seg_counts[seg_pos_list[seg_id - 1]]
             som_expr_dict[ipos] = expr
-    h5f.close()
 
     return som_expr_dict
 

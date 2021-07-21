@@ -246,7 +246,7 @@ def attribute_item_to_dict(a_item, file_type, feature_type):
     return gtf_dict
 
 
-def search_edge_metadata_segmentgraph(gene, coord, countinfo, Idx, edge_idxs=None, edge_counts=None, cross_graph_expr=None):
+def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=None, cross_graph_expr=None):
     """Given the ordered edge coordinates of the edge, return expression information of the edge
 
     Parameters
