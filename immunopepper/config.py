@@ -31,7 +31,7 @@ class MyPool:
     def submit(self, function, my_args):
         """Submits a new task to the pool, blocks if Pool queue is full."""
         result = self.pool.imap(function, my_args, chunksize=1) #, callback=self.task_done)
-
+        return result
         # for res in result._value:
         #     if isinstance(res, ExceptionWrapper): #WHY DOES IT NOT EXIT
         #         res.re_raise()
