@@ -414,8 +414,6 @@ def mode_build(arg):
             pool_f.terminate()
             for res in result:
                 logging.info(res)
-                ligging.info('test')
-                print(res)
 
             # Collects and pools the files of each batch
             logging.debug('start collecting results')
