@@ -353,6 +353,9 @@ def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
     h5f.close()
     if cross_graph_expr:
         graph_samples = np.array([s_idx for input_sample in sample_list for s_idx, graph_sample in enumerate(sample_names) if graph_sample.decode() == input_sample ])
+        if countinfo and not graph_samples:
+            logging.error("Output samples do not match count file samples")
+            sys.exit(1)
     else:
         graph_samples = None
 

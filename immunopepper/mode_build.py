@@ -352,7 +352,7 @@ def mode_build(arg):
     global filepointer
     
     # handle output_sample relatively to output mode 
-    if arg.cross_graph_expr:
+    if arg.cross_graph_expr and countinfo:
         process_output_samples = ['cohort']
         arg.output_samples = np.array(arg.output_samples)[np.argsort(graph_output_samples_ids)]
         arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') for output_sample in  arg.output_samples]
