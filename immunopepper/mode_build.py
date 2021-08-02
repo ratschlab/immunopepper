@@ -58,82 +58,77 @@ def mapper_funct_back(tuple_arg):
     process_gene_batch_background(*tuple_arg)
 
 def process_gene_batch_background(output_sample, mutation_sample, genes, gene_idxs, all_read_frames, mutation, countinfo, genetable, arg, outbase, filepointer, compression=None, verbose=False):
-    try:
-        exception_ = None
-        if arg.parallel > 1:
-            batch_name = outbase.split('/')[-1].split('_')[-1]
-        else:
-            batch_name = 'all'
+    if arg.parallel > 1:
+        batch_name = outbase.split('/')[-1].split('_')[-1]
+    else:
+        batch_name = 'all'
 
-        if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "Annot_IS_SUCCESS"))):
-            pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
-            set_kmer_back =  defaultdict(set, {})
-            dict_pept_backgrd = {}
-            time_per_gene = []
-            mem_per_gene = []
-            all_gene_idxs = []
+    if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "Annot_IS_SUCCESS"))):
+        pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
+        set_kmer_back =  defaultdict(set, {})
+        dict_pept_backgrd = {}
+        time_per_gene = []
+        mem_per_gene = []
+        all_gene_idxs = []
 
-            for i, gene in enumerate(genes):
-                ### measure time
-                start_time = timeit.default_timer()
+        for i, gene in enumerate(genes):
+            ### measure time
+            start_time = timeit.default_timer()
 
-                # Genes not contained in the annotation...
-                if (gene.name not in genetable.gene_to_cds_begin or \
-                        gene.name not in genetable.gene_to_ts):
+            # Genes not contained in the annotation...
+            if (gene.name not in genetable.gene_to_cds_begin or \
+                    gene.name not in genetable.gene_to_ts):
 #                    logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
-                    continue
+                continue
 
-                idx = get_idx(countinfo, output_sample, gene_idxs[i])
-                all_gene_idxs.append(gene_idxs[i])
+            idx = get_idx(countinfo, output_sample, gene_idxs[i])
+            all_gene_idxs.append(gene_idxs[i])
 
-                chrm = gene.chr.strip()
-                sub_mutation = get_sub_mutation_tuple(mutation, mutation_sample, chrm)
-                ref_mut_seq = collect_background_transcripts(gene=gene, ref_seq_file=arg.ref_path, chrm=chrm, mutation=sub_mutation)
+            chrm = gene.chr.strip()
+            sub_mutation = get_sub_mutation_tuple(mutation, mutation_sample, chrm)
+            ref_mut_seq = collect_background_transcripts(gene=gene, ref_seq_file=arg.ref_path, chrm=chrm, mutation=sub_mutation)
 
-                # Gene counts information
-                if countinfo:
-                    gidx = countinfo.gene_idx_dict[gene.name]
-                    count_segments = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
-                    with h5py.File(countinfo.h5fname, 'r') as h5f:
-                        seg_counts = h5f['segments'][count_segments, idx.output_sample]
+            # Gene counts information
+            if countinfo:
+                gidx = countinfo.gene_idx_dict[gene.name]
+                count_segments = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
+                with h5py.File(countinfo.h5fname, 'r') as h5f:
+                    seg_counts = h5f['segments'][count_segments, idx.output_sample]
 
-                get_and_write_background_peptide_and_kmer(peptide_dict = dict_pept_backgrd,
-                                                          kmer_dict = set_kmer_back,
-                                                          gene=gene,
-                                                          ref_mut_seq=ref_mut_seq,
-                                                           gene_table=genetable,
-                                                           countinfo=countinfo,
-                                                           seg_counts=seg_counts,
-                                                           Idx=idx,
-                                                           kmer=arg.kmer,
-                                                           all_read_frames=arg.all_read_frames)
+            get_and_write_background_peptide_and_kmer(peptide_dict = dict_pept_backgrd,
+                                                      kmer_dict = set_kmer_back,
+                                                      gene=gene,
+                                                      ref_mut_seq=ref_mut_seq,
+                                                       gene_table=genetable,
+                                                       countinfo=countinfo,
+                                                       seg_counts=seg_counts,
+                                                       Idx=idx,
+                                                       kmer=arg.kmer,
+                                                       all_read_frames=arg.all_read_frames)
 
-                time_per_gene.append(timeit.default_timer() - start_time)
-                mem_per_gene.append(print_memory_diags(disable_print=True))
+            time_per_gene.append(timeit.default_timer() - start_time)
+            mem_per_gene.append(print_memory_diags(disable_print=True))
 
-            save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression, outbase, verbose)
-            dict_pept_backgrd.clear()
-            for kmer_length in set_kmer_back:
-                save_backgrd_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
-            set_kmer_back.clear()
+        save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression, outbase, verbose)
+        dict_pept_backgrd.clear()
+        for kmer_length in set_kmer_back:
+            save_backgrd_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
+        set_kmer_back.clear()
 
-            if all_gene_idxs:
-                logging.info("> {}: annotation graph from batch {}/{} processed, max time cost: {}, memory cost:{}".format(output_sample,
-                                                                                          batch_name,
-                                                                                          len(gene_id_list),
-                                                                                          np.max(time_per_gene),
-                                                                                          np.max(mem_per_gene)))
-                pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
-            else:  
-                logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(output_sample, batch_name))
-                pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
-        else:
-            logging.info("> {} : Batch {} exists, skip processing ".format(output_sample, batch_name))
+        if all_gene_idxs:
+            logging.info("> {}: annotation graph from batch {}/{} processed, max time cost: {}, memory cost:{}".format(output_sample,
+                                                                                      batch_name,
+                                                                                      len(gene_id_list),
+                                                                                      np.max(time_per_gene),
+                                                                                      np.max(mem_per_gene)))
+            pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
+        else:  
+            logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(output_sample, batch_name))
+            pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
+    else:
+        logging.info("> {} : Batch {} exists, skip processing ".format(output_sample, batch_name))
 
-    except Exception as e:
-        exception_ = ExceptionWrapper(e)
-        exception_.re_raise() # only printed in non parallel mode
-    return exception_
+    return 'multiprocessing is success'
 
 
 
@@ -142,7 +137,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
         batch_name = outbase.split('/')[-1].split('_')[-1]
     else:
         batch_name = 'all'
-    int('abc') # CUSTOM ERROR TODO REMOVE
+    
     if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "output_sample_IS_SUCCESS"))):
 
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
@@ -418,12 +413,9 @@ def mode_build(arg):
             result = pool_f.submit(mapper_funct, args)
             pool_f.terminate()
             for res in result:
-                print('hello')
-                print(res)
-                logging.info('world')
                 logging.info(res)
-
-
+                ligging.info('test')
+                print(res)
 
             # Collects and pools the files of each batch
             logging.debug('start collecting results')
