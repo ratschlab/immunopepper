@@ -223,7 +223,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                          gene=None, all_vertex_pairs=None, ref_mut_seq=None, idx=None,
                          exon_som_dict=None, countinfo=None,
                          edge_idxs=None, edge_counts=None, seg_counts=None,
-                         mutation=None,table=None,
+                         mutation=None, mut_count_id=None, table=None,
                          size_factor=None, junction_list=None,
                          filepointer=None,
                          output_silence=False, kmer=None,
@@ -257,7 +257,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
-    som_exp_dict = get_som_expr_dict(gene, list(mutation.somatic_mutation_dict.keys()), countinfo, seg_counts)
+    som_exp_dict = get_som_expr_dict(gene, list(mutation.somatic_mutation_dict.keys()), countinfo, seg_counts, mut_count_id)
     kmer_matrix = [[], [], [], []] # in cross sample mode, will contain unique kmers per gene (1), is_junction (2), segments expr per sample (3), junction expr per sample (4)
 
 

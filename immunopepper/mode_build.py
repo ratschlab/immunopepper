@@ -200,6 +200,10 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
 
             chrm = gene.chr.strip()
             sub_mutation = get_sub_mutation_tuple(mutation, mutation_sample, chrm)
+            if arg.mutation_sample is not None:
+                mut_count_id = [idx for idx, sample in enumerate(arg.output_samples) if arg.mutation_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') == sample][0]
+            else:
+                mut_count_id = None
             junction_list = None
             if not junction_dict is None and chrm in junction_dict:
                 junction_list = junction_dict[chrm]
@@ -226,6 +230,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
                                             exon_som_dict=exon_som_dict,
                                             countinfo=countinfo,
                                             mutation=sub_mutation,
+                                            mut_count_id=mut_count_id,
                                             table=genetable,
                                             size_factor=None,
                                             junction_list=junction_list,

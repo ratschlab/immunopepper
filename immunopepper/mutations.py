@@ -167,12 +167,14 @@ def get_exon_som_dict(gene, mutation_pos):
     return exon_som_dict
 
 
-def get_som_expr_dict(gene, mutation_pos, countinfo, seg_counts):
+def get_som_expr_dict(gene, mutation_pos, countinfo, seg_counts, mut_count_id):
     """
     Build somatic mutation position(key) to expression data(value) dictionary.
     """
     if countinfo is None:
         return None
+    if mut_count_id is not None:
+        seg_counts = seg_counts[:,mut_count_id]
     seg_mat = gene.segmentgraph.segments[0]
     som_expr_dict = {}
 
