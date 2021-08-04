@@ -200,7 +200,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
 
             chrm = gene.chr.strip()
             sub_mutation = get_sub_mutation_tuple(mutation, mutation_sample, chrm)
-            if arg.mutation_sample is not None:
+            if (arg.mutation_sample is not None) and (arg.cross_graph_expr):
                 mut_count_id = [idx for idx, sample in enumerate(arg.output_samples) if arg.mutation_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') == sample][0]
             else:
                 mut_count_id = None
