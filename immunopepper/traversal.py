@@ -227,7 +227,8 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                          size_factor=None, junction_list=None,
                          filepointer=None,
                          output_silence=False, kmer=None,
-                         cross_graph_expr=None, all_read_frames=None, graph_samples=None,outbase=None, verbose_save=None):
+                         cross_graph_expr=None, all_read_frames=None, graph_output_samples_ids=None,
+                         graph_samples=None,outbase=None, verbose_save=None):
     """
 
     Parameters
@@ -330,7 +331,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
 
                     ### kmers
                     if cross_graph_expr: #generate kmer x sample expression matrix for all samples in graph
-                        kmer_matrix = create_output_kmer_cross_samples(output_peptide, kmer[0], expr_list, graph_samples, kmer_matrix) # Only one kmer lengthsupported for this mode
+                        kmer_matrix = create_output_kmer_cross_samples(output_peptide, kmer[0], expr_list, graph_output_samples_ids, kmer_matrix) # Only one kmer lengthsupported for this mode
 
                     else:
                         if kmer:
@@ -466,7 +467,7 @@ def create_output_kmer(output_peptide, k, expr_list):
     return output_kmer_list
 
 
-def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_samples, kmer_matrix):
+def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_output_samples_ids, kmer_matrix):
     """Calculate the output kmer and the corresponding expression based on output peptide
 
     Parameters
@@ -506,18 +507,18 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_sa
             # junction expression
             if j in spanning_index1:
                 is_in_junction = True
-                sublist_jun = [junction_count[sample][0] if junction_count is not np.nan else np.nan for sample in np.arange(len(graph_samples))]
+                sublist_jun = [junction_count[sample_id][0] if junction_count is not np.nan else np.nan for sample_id in graph_output_samples_ids]
             elif j in spanning_index2:
                 is_in_junction = True
-                sublist_jun = [junction_count[sample][1] if junction_count is not np.nan else np.nan for sample in np.arange(len(graph_samples))]
+                sublist_jun = [junction_count[sample_id][1] if junction_count is not np.nan else np.nan for sample_id in graph_output_samples_ids]
             else:
                 is_in_junction = False
-                sublist_jun = [np.nan] * len(graph_samples)
+                sublist_jun = [np.nan] * len(graph_output_samples_ids)
 
 
             # segment expression
             if segm_expr_list is None:
-                sublist_seg = [np.nan] * len(graph_samples)
+                sublist_seg = [np.nan] * len(graph_output_samples_ids)
             else:
                 W = np.zeros(segm_expr_list.shape[0])
                 left = min(np.where(positions >= (j * 3))[0])

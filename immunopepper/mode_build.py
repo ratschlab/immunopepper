@@ -243,6 +243,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
                                             cross_graph_expr=arg.cross_graph_expr,
                                             all_read_frames=arg.all_read_frames,
                                             filepointer=filepointer,
+                                            graph_output_samples_ids = graph_output_samples_ids,
                                             graph_samples=arg.output_samples,
                                             verbose_save=verbose
             )
