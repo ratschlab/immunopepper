@@ -552,8 +552,8 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
                 else:
                     idx = kmer_idx[0]
                     kmer_matrix[1][idx] = max(kmer_matrix[1][idx],is_in_junction )
-                    kmer_matrix[2][idx] = [ max(i, j) for i, j in zip(kmer_matrix[2][idx], np.round(sublist_seg, 2))] # make unique per gene with maximum
-                    kmer_matrix[3][idx] = [max(i, j) for i, j in zip(kmer_matrix[3][idx], sublist_jun)]
+                    kmer_matrix[2][idx] = [ np.nanmax([i, j]) for i, j in zip(kmer_matrix[2][idx], np.round(sublist_seg, 2))] # make unique per gene with maximum
+                    kmer_matrix[3][idx] = [np.nanmax([i, j]) for i, j in zip(kmer_matrix[3][idx], sublist_jun)]
 
     return kmer_matrix
 
