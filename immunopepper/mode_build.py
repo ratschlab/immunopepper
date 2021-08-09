@@ -411,7 +411,8 @@ def mode_build(arg):
 
                 result = pool_f.submit(mapper_funct_back, args)
                 pool_f.terminate()
-
+                for res in result:
+                    logging.info(res)
 
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
