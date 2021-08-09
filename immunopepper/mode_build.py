@@ -412,6 +412,7 @@ def mode_build(arg):
                 result = pool_f.submit(mapper_funct_back, args)
                 pool_f.terminate()
 
+
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
             pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
@@ -435,7 +436,9 @@ def mode_build(arg):
             collect_results(filepointer.background_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
             collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, arg.mutation_mode)
-            remove_folder_list(os.path.join(output_path, 'tmp_out_{}_batch'.format(arg.mutation_mode)))
+            if not arg.skip_tmpfiles_rm:
+                logging.info("Cleaning temporary files")
+                remove_folder_list(os.path.join(output_path, 'tmp_out_{}_batch'.format(arg.mutation_mode)))
 
         else:
             logging.info('Not Parallel')

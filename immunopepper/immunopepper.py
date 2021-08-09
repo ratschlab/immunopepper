@@ -61,7 +61,8 @@ def parse_arguments(argv):
     experimental.add_argument("--genes-interest", help="only process the genes given as input. Path to file without header", required=False, default=None)
     experimental.add_argument("--start-id", type=int, help="development feature: start processing the graph at the given id (Tmp folder numbering in parallel mode is conserved)", required=False, default=0)
     experimental.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
-    experimental.add_argument("--skip-annotation",help='skip the generation of the annotated peptides and kmers', action="store_true", default=False)
+    experimental.add_argument("--skip-annotation", help='skip the generation of the annotated peptides and kmers', action="store_true", default=False)
+    experimental.add_argument("--skip-tmpfiles-rm", help='skip the removal of the intermediate directories in parallel mode', action="store_true", default=False)
     #specify the absolute path to expression library sizes
     experimental.add_argument("--libsize-path", nargs='?', help=argparse.SUPPRESS,required=False, default=None)
     # output mutated peptide even it is the same as reference peptide
