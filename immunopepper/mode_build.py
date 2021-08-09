@@ -96,7 +96,7 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
                 gidx = countinfo_b.gene_idx_dict[gene.name]
                 count_segments = np.arange(countinfo_b.gene_id_to_segrange[gidx][0], countinfo_b.gene_id_to_segrange[gidx][1])
                 with h5py.File(countinfo_b.h5fname, 'r') as h5f:
-                    seg_counts = h5f['segments'][count_segments, idx.output_sample]
+                    seg_counts = h5f['segments'][count_segments, idx.sample]
 
             get_and_write_background_peptide_and_kmer(peptide_dict = dict_pept_backgrd,
                                                       kmer_dict = set_kmer_back,
