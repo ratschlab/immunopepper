@@ -218,12 +218,13 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
         and the expression count of that segment.
 
     """
+    if countinfo is None:
+        return np.zeros((0, 1), dtype='float') #[np.nan]
+
     out_shape = (seg_counts.shape[1] + 1) if len(seg_counts.shape) > 1 else 2
-    # Todo: deal with absense of count file
     if vstart is np.nan or vstop is np.nan:  # isolated exon case
         return np.zeros((0, out_shape), dtype='float')
-    if countinfo is None:
-        return np.zeros((0, out_shape), dtype='float') #[np.nan]
+
 
     segments = gene.segmentgraph.segments
 

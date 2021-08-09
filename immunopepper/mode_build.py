@@ -57,7 +57,7 @@ def mapper_funct(tuple_arg):
 def mapper_funct_back(tuple_arg):
     process_gene_batch_background(*tuple_arg)
 
-def process_gene_batch_background(output_sample, mutation_sample, genes, gene_idxs, all_read_frames, mutation, countinfo, genetable, arg, outbase, filepointer, compression=None, verbose=False):
+def process_gene_batch_background(output_sample, mutation_sample, genes, gene_idxs, all_read_frames, mutation, countinfo_b, genetable, arg, outbase, filepointer, compression=None, verbose=False):
     if arg.parallel > 1:
         batch_name = outbase.split('/')[-1].split('_')[-1]
     else:
@@ -81,7 +81,7 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
 #                    logging.warning('>Gene {} is not in the genetable and not processed, please check the annotation file.'.format(gene.name))
                 continue
 
-            idx = get_idx(countinfo, output_sample, gene_idxs[i])
+            idx = get_idx(countinfo_b, output_sample, gene_idxs[i])
             all_gene_idxs.append(gene_idxs[i])
 
             chrm = gene.chr.strip()
@@ -89,10 +89,13 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
             ref_mut_seq = collect_background_transcripts(gene=gene, ref_seq_file=arg.ref_path, chrm=chrm, mutation=sub_mutation)
 
             # Gene counts information
-            if countinfo:
-                gidx = countinfo.gene_idx_dict[gene.name]
-                count_segments = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
-                with h5py.File(countinfo.h5fname, 'r') as h5f:
+            if arg.cross_graph_expr:
+                countinfo_b = None
+                seg_counts = None
+            if countinfo_b:
+                gidx = countinfo_b.gene_idx_dict[gene.name]
+                count_segments = np.arange(countinfo_b.gene_id_to_segrange[gidx][0], countinfo_b.gene_id_to_segrange[gidx][1])
+                with h5py.File(countinfo_b.h5fname, 'r') as h5f:
                     seg_counts = h5f['segments'][count_segments, idx.output_sample]
 
             get_and_write_background_peptide_and_kmer(peptide_dict = dict_pept_backgrd,
@@ -100,7 +103,7 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
                                                       gene=gene,
                                                       ref_mut_seq=ref_mut_seq,
                                                        gene_table=genetable,
-                                                       countinfo=countinfo,
+                                                       countinfo=countinfo_b,
                                                        seg_counts=seg_counts,
                                                        Idx=idx,
                                                        kmer=arg.kmer,
@@ -399,7 +402,7 @@ def mode_build(arg):
             gene_batches = [(i, gene_id_list[i:min(i + batch_size, len(gene_id_list))]) for i in
                             range(0, len(gene_id_list), batch_size)]
 
-            if not arg.cross_graph_expr:
+            if not arg.skip_annotation:
                 # Build the background
                 logging.info(">>>>>>>>> Start Background processing")
                 pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
@@ -438,7 +441,8 @@ def mode_build(arg):
             logging.info('Not Parallel')
             # Build the background
             logging.info(">>>>>>>>> Start Background processing")
-#            process_gene_batch_background(output_sample, arg.mutation_sample, graph_data, gene_id_list, arg.all_read_frames, mutation, countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
+            if not arg.skip_annotation:
+                process_gene_batch_background(output_sample, arg.mutation_sample, graph_data, gene_id_list, arg.all_read_frames, mutation, countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
             process_gene_batch_foreground( output_sample, arg.mutation_sample, graph_output_samples_ids, graph_data, graph_info, gene_id_list, len(gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict,

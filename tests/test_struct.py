@@ -59,7 +59,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
     if is_parallel:
         my_args_build.extend(['--parallel', '4'])
     if graph_cross_sample:
-        my_args_build.extend(['--cross-graph-exp'])
+        my_args_build.extend(['--cross-graph-exp' ])
     my_args = my_args_build
     immunopepper.split_mode(my_args)
 
