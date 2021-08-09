@@ -404,7 +404,7 @@ def mode_build(arg):
                 logging.info(">>>>>>>>> Start Background processing")
                 pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
                 args = [(output_sample, arg.mutation_sample,  graph_data[gene_idx], gene_idx, arg.all_read_frames, mutation, countinfo, genetable, arg,
-                      os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+                      os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
 
                 result = pool_f.submit(mapper_funct_back, args)
                 pool_f.terminate()
@@ -414,7 +414,7 @@ def mode_build(arg):
             pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
             args = [(output_sample, arg.mutation_sample, graph_output_samples_ids, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(
                 gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg,
-                  os.path.join(output_path, 'tmp_out_{}_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+                  os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
 
             result = pool_f.submit(mapper_funct, args)
             pool_f.terminate()
@@ -432,7 +432,7 @@ def mode_build(arg):
             collect_results(filepointer.background_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
             collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, arg.mutation_mode)
-#            remove_folder_list(os.path.join(output_path, 'tmp_out_{}'.format(arg.mutation_mode)))
+            remove_folder_list(os.path.join(output_path, 'tmp_out_{}_batch'.format(arg.mutation_mode)))
 
         else:
             logging.info('Not Parallel')
