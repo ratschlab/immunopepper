@@ -101,7 +101,7 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
             for i,tmp in enumerate(result[0]):
                 if cnt > 0 and cnt % 100 == 0:
                     sys.stdout.write('.')
-                    if cnt % 1000 == 0:
+                    if cnt % 10000 == 0:
                         sys.stdout.write('%i/%i\n' % (cnt, genes.shape[0]))
                     sys.stdout.flush()
                 cnt += 1
