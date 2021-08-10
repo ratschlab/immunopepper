@@ -24,7 +24,6 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frame
     gene_info = []
     for gene in genes:
         gene.from_sparse()
-        gene.name = gene.name.split('.')[0] #Do not consider the version
         assert (gene.strand in ["+", "-"])
         assert (len(gene.transcripts) == len(gene.exons))
 
@@ -155,7 +154,6 @@ def preprocess_ann(ann_path):
         # store relationship between gene ID and its transcript IDs
         if feature_type in ['transcript', 'mRNA']:
             gene_id = attribute_dict['gene_id']
-            gene_id = gene_id.split('.')[0]
             transcript_id = attribute_dict['transcript_id']
             if attribute_dict['gene_type'] != 'protein_coding' or attribute_dict['transcript_type']  != 'protein_coding':
                 continue
@@ -327,7 +325,7 @@ def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
     
     ### create a gene name dictionary mapping gene names to indices
     gene_names = h5f['gene_names'][:] if len(h5f['gene_names'].shape) == 1 else h5f['gene_names'][:, 0]
-    gene_idx_dict = dict([(n.decode('utf8').split('.')[0], i) for i, n in enumerate(gene_names)])
+    gene_idx_dict = dict([(n.decode('utf8'), i) for i, n in enumerate(gene_names)])
 
     gene_ids_segs = h5f['gene_ids_segs'][:] if len(h5f['gene_ids_segs'].shape) == 1 else h5f['gene_ids_segs'][:, 0]
     gene_ids_edges = h5f['gene_ids_edges'][:] if len(h5f['gene_ids_edges'].shape) == 1 else h5f['gene_ids_edges'][:, 0]
@@ -605,7 +603,6 @@ def parse_gene_choices(genes_interest, process_chr, process_num, complexity_cap,
 
     if genes_interest is not None:
         genes_interest = pd.read_csv(genes_interest, header=None)[0].tolist()
-        genes_interest = [gene.split('.')[0] for gene in genes_interest]  # Does not take version
         if len(np.array([gene for gene in graph_data if gene.name in genes_interest])) == 0:
             logging.error("Gene of interest not found in splicing graph. Check argument --genes_interest")
             sys.exit(1)
