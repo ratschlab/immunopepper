@@ -141,7 +141,6 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
     else:
         batch_name = 'all'
     if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "output_sample_IS_SUCCESS"))):
-
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
         dict_kmer_foregr = defaultdict(dict, {})
         dict_pept_forgrd = {}
@@ -410,8 +409,7 @@ def mode_build(arg):
 
                 result = pool_f.submit(mapper_funct_back, args)
                 pool_f.terminate()
-                for batch, res in enumerate(result): # Get error traceback and number of batches error free
-                    logging.info('    Close batch {}'.format(batch))
+                exits_if_exception = [res for res in result]
 
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
@@ -422,8 +420,8 @@ def mode_build(arg):
 
             result = pool_f.submit(mapper_funct, args)
             pool_f.terminate()
-            for batch, res in enumerate(result):  # Get error traceback and number of batches error free
-                logging.info('    Close batch {}'.format(batch))
+            exits_if_exception = [res for res in result]
+
 
             # Collects and pools the files of each batch
             logging.debug('start collecting results')
