@@ -226,8 +226,5 @@ def get_sub_mutation_tuple(mutation, sample, chrm):
         loaded_mode_code += mode_map['somatic']
     else:
         somatic_mutation_sub_dict = {}
-    if expected_mode_code != loaded_mode_code:
-        logging.warning("The expected mode is {} but the loaded mode is {}."
-              " Probably there is no mutation in the given chromosome for the given sample.".format(inv_mode_map[expected_mode_code],inv_mode_map[loaded_mode_code]))
     submutation = Mutation(mode=mutation.mode,somatic_mutation_dict=somatic_mutation_sub_dict,germline_mutation_dict=germline_mutation_sub_dict)
     return submutation
