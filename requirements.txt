@@ -8,3 +8,4 @@ cython>=0.29.17
 pyspark>=3.0.0
 tblib>=1.7.0
 mhctools>=1.5.0
+rpy2>=3.4.5
