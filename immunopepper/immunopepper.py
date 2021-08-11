@@ -232,16 +232,10 @@ def split_mode(options):
     if not os.path.isdir(arg.output_dir):
         os.makedirs(arg.output_dir)
     now = datetime.now()
-    timestamp = datetime.timestamp(now)
-    runlog_name = 'run_'+mode+'_'+str(timestamp)+'.log'
-    log_dir = os.path.join(arg.output_dir, runlog_name)
 
-    file_handler = logging.FileHandler(filename=log_dir)
     if arg.verbose > 0:
         stdout_handler = logging.StreamHandler(sys.stdout)
-        handlers = [file_handler, stdout_handler]
-    else:
-        handlers = [file_handler]
+        handlers = [stdout_handler]
     ### set log level
     if arg.verbose == 0:
         log_level = logging.WARNING
