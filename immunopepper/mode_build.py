@@ -162,7 +162,6 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
 
 
             idx = get_idx(countinfo, output_sample, gene_idxs[i])
-            logging.info("process gene {} of batch_{}".format(i, batch_name))
             # Gene counts information
             # Gene of interest always compute expression, others compute expession if required for library
             if not disable_process_libsize or (gene.name in genes_interest):
