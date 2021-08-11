@@ -118,15 +118,12 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
             save_backgrd_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
         set_kmer_back.clear()
 
-        if all_gene_idxs and (batch_name != 'all') and (batch_name % 10000 == 0):
+        if (batch_name != 'all') and (batch_name % 10000 == 0):
             logging.info("....{}: annotation graph from batch {}/{} processed, max time cost: {}, memory cost:{} GB".format(output_sample,
                                                                                       batch_name,
                                                                                       len(gene_id_list),
                                                                                       np.round(np.max(time_per_gene), 2),
                                                                                       np.round(np.max(mem_per_gene), 2) ))
-            pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
-        else:  
-            logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(output_sample, batch_name))
             pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
     else:
         if (batch_name != 'all') and (batch_name % 10000 == 0):
@@ -265,17 +262,14 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
             filepointer.kmer_segm_expr_fp['pqwriter'].close()
             filepointer.kmer_edge_expr_fp['pqwriter'].close()
 
-        if all_gene_idxs and (batch_name != 'all') and (batch_name % 10000 == 0):
+        if (batch_name != 'all') and (batch_name % 10000 == 0):
             logging.info("....{}: output_sample graph from batch {}/{} processed, max time cost: {}, memory cost:{} GB".format(output_sample,
                                                                                           batch_name,
                                                                                           len(gene_id_list),
                                                                                           np.round(np.max(time_per_gene), 2),
-                                                                                        np.round(np.max(mem_per_gene), 2)))
+                                                                                          np.round(np.max(mem_per_gene), 2)))
             pathlib.Path(os.path.join(outbase, "output_sample_IS_SUCCESS")).touch()
 
-        else:  
-            logging.info("> {} : Batch {}, no genes fulfilling processing conditions".format(output_sample, batch_name))
-            pathlib.Path(os.path.join(outbase, "output_sample_IS_SUCCESS")).touch()
     else:
         if (batch_name != 'all') and (batch_name % 10000 == 0):
             logging.info("> {} : Batch {} exists, skip processing ".format(output_sample, batch_name))
