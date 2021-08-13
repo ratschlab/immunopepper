@@ -453,7 +453,7 @@ def mode_build(arg):
             process_gene_batch_foreground( output_sample, arg.mutation_sample, graph_output_samples_ids, graph_data, graph_info, gene_id_list, len(gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict,
                              countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
 
-        if disable_process_libsize:
+        if not disable_process_libsize:
             create_libsize(filepointer.gene_expr_fp, output_libszie_fp, output_sample)
 
 
