@@ -347,7 +347,7 @@ def create_libsize(expr_distr_fp, output_fp, sample, debug=False):
     sample_expr_distr = pa.parquet.read_table(expr_distr_fp['path']).to_pandas()
 
     libsize_count= pd.DataFrame({'sample': sample_expr_distr.columns[1:],
-                                 'libsize_75percent': np.percentile(sample_expr_distr.iloc[:, 1:], 75, axis=0, interpolation='higher'),
+                                 'libsize_75percent': np.percentile(sample_expr_distr.iloc[:, 1:], 75, axis=0, interpolation='linear'),
                                   'libsize_total_count': np.sum(sample_expr_distr.iloc[:, 1:], axis=0)}, index = None)
 
     df_libsize = pd.DataFrame(libsize_count)
