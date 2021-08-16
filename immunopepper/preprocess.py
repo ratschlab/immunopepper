@@ -520,7 +520,6 @@ def parse_mutation_from_maf(mutation_tag, target_sample_list, mutation_sample, m
     mutation_dic = {}
     file_sample_set = set()
     for i,line in enumerate(lines[1:]):
-        print(i)
         items = line.strip().split('\t')
         if items[9] == 'SNP':  # only consider snp
             file_sample = items[15]
