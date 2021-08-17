@@ -91,12 +91,13 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
             # Gene counts information
             if arg.cross_graph_expr:
                 countinfo_b = None
-                seg_counts = None
             if countinfo_b:
                 gidx = countinfo_b.gene_idx_dict[gene.name]
                 count_segments = np.arange(countinfo_b.gene_id_to_segrange[gidx][0], countinfo_b.gene_id_to_segrange[gidx][1])
                 with h5py.File(countinfo_b.h5fname, 'r') as h5f:
                     seg_counts = h5f['segments'][count_segments, idx.sample]
+            else:
+                seg_counts = None
 
             get_and_write_background_peptide_and_kmer(peptide_dict = dict_pept_backgrd,
                                                       kmer_dict = set_kmer_back,
@@ -191,8 +192,13 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
                                 seg_counts = seg_counts[:, graph_output_samples_ids] # limitation fancy hdf5 indexing
                             else:
                                 seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
+                else:
+                    edge_idxs = None
+                    edge_counts = None
+                    seg_counts = None
+
             # library size calculated only for genes with CDS
-            if (gene.name in genetable.gene_to_cds_begin and gene.name in genetable.gene_to_ts):
+            if (gene.name in genetable.gene_to_cds_begin) and (gene.name in genetable.gene_to_ts) and countinfo:
                 gene_expr.append([gene.name] + get_total_gene_expr(gene, countinfo, idx, seg_counts, arg.cross_graph_expr))
             # Gene of interest
             if (gene.name not in genes_interest):
@@ -372,6 +378,7 @@ def mode_build(arg):
 
     else:
         process_output_samples = arg.output_samples
+        graph_output_samples_ids = None
         
         
     for output_sample in process_output_samples:
