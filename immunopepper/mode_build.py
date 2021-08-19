@@ -436,6 +436,7 @@ def mode_build(arg):
 
 
             # Collects and pools the files of each batch
+            logging.info("Start collecting results")
             collect_results(filepointer.gene_expr_fp, output_path, pq_compression, arg.mutation_mode)
             if arg.output_fasta:
                 collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, arg.mutation_mode)
