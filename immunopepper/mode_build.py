@@ -67,8 +67,8 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
         set_kmer_back =  defaultdict(set, {})
         dict_pept_backgrd = {}
-        time_per_gene = []
-        mem_per_gene = []
+        time_per_gene = [np.nan]
+        mem_per_gene = [np.nan]
         all_gene_idxs = []
 
         for i, gene in enumerate(genes):
@@ -149,8 +149,8 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
         dict_kmer_foregr = defaultdict(dict, {})
         dict_pept_forgrd = {}
-        time_per_gene = []
-        mem_per_gene = []
+        time_per_gene = [np.nan]
+        mem_per_gene = [np.nan]
         all_gene_idxs = []
         gene_expr = []
         
