@@ -71,6 +71,7 @@ def mode_cancerspecif(arg):
             normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
 
 
+
             ### NORMALS: Statistical Filtering
             # Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
             if arg.statistical:
@@ -96,7 +97,8 @@ def mode_cancerspecif(arg):
         ### Apply filtering to foreground
 
         ## Cancer file is matrix
-        if arg.path_cancer_matrix_segm and arg.path_cancer_matrix_edge:
+        if arg.path_cancer_matrix_segm or arg.path_cancer_matrix_edge:
+            mutation_mode = arg.mut_cancer_samples[0]
             # Preprocess cancer samples
             cancer_segm = process_matrix_file(spark, index_name, jct_col, arg.path_cancer_matrix_segm, arg.output_dir, arg.whitelist_cancer,
                             arg.parallelism, cross_junction=0)
@@ -133,7 +135,7 @@ def mode_cancerspecif(arg):
                 cancer_junc, cancer_segm = filter_expr_kmer(cancer_junc, cancer_segm, expression_fields, arg.expr_limit_cancer)
                 cancer_kmers = combine_cancer(cancer_junc, cancer_segm, index_name)
                 n_samples_lim_c = ''
-            elif arg.path_cancer_matrix_segm and arg.path_cancer_matrix_edge:
+            elif arg.path_cancer_matrix_segm or arg.path_cancer_matrix_edge:
                 cancer_kmers = cancer_matrix.select([index_name, cancer_sample])
                 cancer_kmers = cancer_kmers.filter(sf.col(cancer_sample) > 0.0)
                 n_samples_lim_c = 'AndRecurrence{}'.format(arg.n_samples_lim_cancer)

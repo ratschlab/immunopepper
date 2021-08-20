@@ -12,6 +12,7 @@ from rpy2.robjects import pandas2ri, Formula, r
 from rpy2.robjects.packages import importr
 import scipy
 from scipy import stats
+import sys
 
 from .io_ import save_pd_toparquet
 
@@ -137,61 +138,70 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
         return normal_matrix.select(
             [sf.col(name_).cast(st.DoubleType()).alias(name_) if name_ != index_name else sf.col(name_) for name_ in
              name_list])
-    # Rename
-    rename = False  # For development
-    if rename:
-        logging.info("Rename")
-        path_normal_matrix_tmp = pq_WithRenamedCols(path_normal_matrix, outdir)
-        logging.info("Load")
-        normal_matrix = spark.read.parquet(*path_normal_matrix_tmp)
+
+    if path_normal_matrix is not None:
+        # Rename
+        rename = True  # For development
+        if rename:
+            logging.info("Rename")
+            path_normal_matrix_tmp = pq_WithRenamedCols(path_normal_matrix, outdir)
+            logging.info("Load")
+            normal_matrix = spark.read.parquet(*path_normal_matrix_tmp)
+        else:
+            normal_matrix = spark.read.parquet(*path_normal_matrix)
+
+        # Keep relevant junction status and drop junction column
+        if cross_junction:
+            normal_matrix = normal_matrix.filter("{} == True".format(jct_col))
+        else:
+            normal_matrix = normal_matrix.filter("{} == False".format(jct_col))
+        normal_matrix = normal_matrix.drop(jct_col)
+
+        # Cast type and fill nans + Reduce samples (columns) to whitelist
+        logging.info("Cast types")
+        if whitelist is not None:
+            whitelist = pd.read_csv(whitelist, sep='\t', header=None)[0].to_list()
+            whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
+            whitelist.append(index_name)
+            normal_matrix = cast_type_dbl(normal_matrix, whitelist, index_name)
+        else:
+            normal_matrix = cast_type_dbl(normal_matrix, normal_matrix.schema.names, index_name)
+
+        # Fill Nans
+        logging.info("Remove Nans")
+        normal_matrix = normal_matrix.na.fill(0)
+
+        # Remove kmers abscent from all samples
+        logging.info("Remove non expressed kmers SQL-")
+        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+        not_null = ' OR '.join(
+            ['({} != 0.0)'.format(col_name)
+             for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # All zeros
+        normal_matrix = normal_matrix.filter(not_null)
+
+        # Make unique
+        logging.info("Make unique")
+        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+        exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
+        normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
+        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+        return normal_matrix
     else:
-        normal_matrix = spark.read.parquet(*path_normal_matrix)
+        return None
 
-    # Keep relevant junction status and drop junction column
-    if cross_junction:
-        normal_matrix = normal_matrix.filter("{} == True".format(jct_col))
-    else:
-        normal_matrix = normal_matrix.filter("{} == False".format(jct_col))
-    normal_matrix = normal_matrix.drop(jct_col)
-
-    # Cast type and fill nans + Reduce samples (columns) to whitelist
-    logging.info("Cast types")
-    if whitelist is not None:
-        whitelist = pd.read_csv(whitelist, sep='\t', header=None)[0].to_list()
-        whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
-        whitelist.append(index_name)
-        normal_matrix = cast_type_dbl(normal_matrix, whitelist, index_name)
-    else:
-        normal_matrix = cast_type_dbl(normal_matrix, normal_matrix.schema.names, index_name)
-
-    # Fill Nans
-    logging.info("Remove Nans")
-    normal_matrix = normal_matrix.na.fill(0)
-
-    # Remove kmers abscent from all samples
-    logging.info("Remove non expressed kmers SQL-")
-    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-    not_null = ' OR '.join(
-        ['({} != 0.0)'.format(col_name)
-         for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # All zeros
-    normal_matrix = normal_matrix.filter(not_null)
-
-    # Make unique
-    logging.info("Make unique")
-    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-    exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
-    normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
-    logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
-    return normal_matrix
 
 
 def combine_normals(normal_segm, normal_junc, index_name):
-    normal_matrix = normal_segm.union(normal_junc)
-    # Take max expression between edge or segment expression
-    exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
-    normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
-    return normal_matrix
-
+    if (normal_segm is not None) and (normal_junc is not None):
+        normal_matrix = normal_segm.union(normal_junc)
+        # Take max expression between edge or segment expression
+        exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
+        normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
+        return normal_matrix
+    elif normal_segm is None:
+        return normal_junc
+    elif normal_junc is None:
+        return normal_segm
 
 def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_normal):
     ''' Remove very highly expressed kmers / expression outliers before fitting DESeq2. These kmers do not follow a NB,
@@ -365,12 +375,17 @@ def filter_expr_kmer(cancer_kmers_edge, cancer_kmers_segm, expression_fields_ori
 
 
 def combine_cancer(cancer_kmers_segm, cancer_kmers_edge, index_name):
-    cancer_kmers_segm = cancer_kmers_segm.join(cancer_kmers_edge,
-                                               cancer_kmers_segm[index_name] == cancer_kmers_edge[index_name],
-                                               how='left_anti')   # if  max( edge expression 1 and 2)<threshold and  max( segment expression 1 and 2)>= threshold: keep
-    cancer_kmers = cancer_kmers_edge.union(cancer_kmers_segm)
-    logging.info("partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
-    return cancer_kmers
+    if (cancer_kmers_segm is not None) and (cancer_kmers_edge is not None):
+        cancer_kmers_segm = cancer_kmers_segm.join(cancer_kmers_edge,
+                                                   cancer_kmers_segm[index_name] == cancer_kmers_edge[index_name],
+                                                   how='left_anti')   # if  max( edge expression 1 and 2)<threshold and  max( segment expression 1 and 2)>= threshold: keep
+        cancer_kmers = cancer_kmers_edge.union(cancer_kmers_segm)
+        logging.info("partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
+        return cancer_kmers
+    elif (cancer_kmers_segm is None):
+        return cancer_kmers_edge
+    elif (cancer_kmers_edge is None):
+        return cancer_kmers_segm
 
 
 def remove_uniprot(spark, cancer_kmers, uniprot, index_name):

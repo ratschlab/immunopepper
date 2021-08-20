@@ -54,6 +54,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
                      #'--all-read-frames',
                      '--process-num', '1',
                      '--verbose', '1',
+                     #'--min-pep-len', '2',
                      #'--process-chr', 'chr2',
                      #'--genes-interest', '/Users/laurieprelot/Documents/Projects/tmp_kmer/restrict_genes_test/genes_of_interest.tsv'
                      ]
@@ -169,7 +170,8 @@ def test_end_to_end_cancerspecif():
               "--expr-limit-cancer", "1",
               "--path-normal-kmer-list", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/filter_out/normals_merge-segm-edge_max_uniq_expr-in-3-samples-with-0.1-normalized-cts.tsv",
               "--parallelism", "3",
-              "--out-partitions", "2"]
+              "--out-partitions", "2",
+              "--mut-cancer-samples", "ref", "ref"]
               #"--statistical"]
     immunopepper.split_mode(my_args)
 
@@ -201,7 +203,8 @@ def test_end_to_end_cancerspecif_mx():
               "--uniprot", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/uniprot" ,
               #"--path-normal-kmer-list", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/filter_out/normals_merge-segm-edge_max_uniq_expr-in-3-samples-with-0.1-normalized-cts.tsv",
               "--parallelism", "3",
-              "--out-partitions", "2"]
+              "--out-partitions", "2",
+              "--mut-cancer-samples", "ref", "ref"]
               #"--statistical"]
     immunopepper.split_mode(my_args)
 
@@ -211,7 +214,7 @@ mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
 #for mutation_mode in ['ref', 'somatic', 'germline', 'somatic_and_germline']:
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=False) #TODO add back
+#test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=False) #TODO add back
 
 #test_end_to_end_samplespecif('ERR2130621', tmpdir, "9", mutation_mode) # TEST DEPRECATED
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
@@ -223,7 +226,7 @@ test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cros
 #test_end_to_end_crosscohort(tmpdir) #TODO add back
 #mini_crosscohort()
 #test_end_to_end_cancerspecif()
-# test_end_to_end_cancerspecif_mx()
+test_end_to_end_cancerspecif_mx()
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 

@@ -164,8 +164,8 @@ def parse_arguments(argv):
     nsf.add_argument("--tissue-grp-files", nargs='*', help="Allows the statistical modelling on normal samples to be performed on different tissue groups. Specify n paths of files, each containing the list of samples in the group. No header", required=False, default=None)
 
     nrf = parser_cancerspecif.add_argument_group('Normal_Recurrence_Filter')
-    nrf.add_argument("--path-normal-matrix-segm", nargs='+', help="segment expression integrated matrix of kmers * samples for background", required=False, default='')
-    nrf.add_argument("--path-normal-matrix-edge", nargs='+', help="edge expression integrated matrix of kmers * samples for background", required=False, default='')
+    nrf.add_argument("--path-normal-matrix-segm", nargs='+', help="segment expression integrated matrix of kmers * samples for background", required=False, default=None)
+    nrf.add_argument("--path-normal-matrix-edge", nargs='+', help="edge expression integrated matrix of kmers * samples for background", required=False, default=None)
     nrf.add_argument("--n-samples-lim-normal", type=int, help="Number of normal samples in which the expression threshold should be met", required=False, default=None)
     nrf.add_argument("--expr-limit-normal", type=float, help="Expression threshold in the normal samples applied on normalized counts of normal cohort (see --expr-n-limit-normal )", required=False, default=None)
     nrf.add_argument("--path-normal-kmer-list", help="Skip the hard filtering of the matrix of normals based on expression to use the provided list of kmer. Format tsv, with or without partitions", required=False, default=None)
@@ -179,8 +179,8 @@ def parse_arguments(argv):
     csf.add_argument("--paths-cancer-samples", nargs='+', help="file paths of all cancer samples", required=False, default='')
 
     crf = parser_cancerspecif.add_argument_group('Cancer_Recurrence_Filter')
-    crf.add_argument("--path-cancer-matrix-segm", nargs='+', help="segment expression integrated matrix of kmers * samples for foreground", required=False, default='')
-    crf.add_argument("--path-cancer-matrix-edge", nargs='+', help="edge expression integrated matrix of kmers * samples for foreground", required=False, default='')
+    crf.add_argument("--path-cancer-matrix-segm", nargs='+', help="segment expression integrated matrix of kmers * samples for foreground", required=False, default=None)
+    crf.add_argument("--path-cancer-matrix-edge", nargs='+', help="edge expression integrated matrix of kmers * samples for foreground", required=False, default=None)
     crf.add_argument("--n-samples-lim-cancer", type=int, help="Number of normal samples in which the expression threshold should be met (if --expr-limit-cancer and path-cancer-matrix-segm resp. edge are provided)", required=False, default=None)
 
     uf = parser_cancerspecif.add_argument_group('Uniprot_Filter')
