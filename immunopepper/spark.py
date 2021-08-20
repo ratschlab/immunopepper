@@ -142,10 +142,10 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
     if path_normal_matrix is not None:
         # Rename
         rename = True  # For development
+        logging.info("Load {}".format(path_normal_matrix))
         if rename:
             logging.info("Rename")
             path_normal_matrix_tmp = pq_WithRenamedCols(path_normal_matrix, outdir)
-            logging.info("Load")
             normal_matrix = spark.read.parquet(*path_normal_matrix_tmp)
         else:
             normal_matrix = spark.read.parquet(*path_normal_matrix)
@@ -173,7 +173,7 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
 
         # Remove kmers abscent from all samples
         logging.info("Remove non expressed kmers SQL-")
-        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+        logging.info("...partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
         not_null = ' OR '.join(
             ['({} != 0.0)'.format(col_name)
              for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # All zeros
@@ -181,10 +181,10 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
 
         # Make unique
         logging.info("Make unique")
-        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+        logging.info("...partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
         exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
         normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
-        logging.info("partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
+        logging.info("...partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
         return normal_matrix
     else:
         return None
@@ -193,6 +193,7 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
 
 def combine_normals(normal_segm, normal_junc, index_name):
     if (normal_segm is not None) and (normal_junc is not None):
+        logging.info("Combine segment and edges")
         normal_matrix = normal_segm.union(normal_junc)
         # Take max expression between edge or segment expression
         exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
@@ -265,8 +266,9 @@ def filter_statistical(spark, tissue_grp_files, normal_matrix, index_name, path_
 
         # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
 
-def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limit, n_samples_lim, tag='normals' ):
-    ''' Filter normal samples based on j reads in at least n samples. The expressions are normalized for library size
+def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limit, n_samples_lim, target_sample='', tag='normals' ):
+    ''' Filter samples based on j reads in at least n samples. The expressions are normalized for library size
+    The filtering is either performed on the full cohort in the matrix or in the cohort excluding a target sample
 
     Parameters:
     ----------
@@ -276,12 +278,16 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
     libsize matrix
     expr_limit (j reads)
     n_samples_lim (n samples)
+    target_sample
     Returns :
     ----------
     spark context
     Filtered normal matrix
         '''
 
+    logging.info("Filter matrix with cohort expression support {} in {} samples".format(expr_limit, n_samples_lim))
+    if target_sample:
+        logging.info("Target sample {} not included in the cohort filtering".format(target_sample))
     if libsize is not None:
         normal_matrix = normal_matrix.select(index_name, *[
             sf.round(sf.col(name_) / libsize.loc[name_, "libsize_75percent"], 2).alias(name_)
@@ -289,7 +295,7 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
 
     normal_matrix = normal_matrix.select(index_name, *[
         sf.when(sf.col(name_) > expr_limit, 1).otherwise(0).alias(name_)
-        for name_ in normal_matrix.schema.names if name_ != index_name])
+        for name_ in normal_matrix.schema.names if (name_ != index_name) and (name_ != target_sample ) ]) #TODO TEST LINE
 
     normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= n_samples_lim)
 
@@ -366,21 +372,21 @@ def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fiel
     return cancer_kmers
 
 
-def filter_expr_kmer(cancer_kmers_edge, cancer_kmers_segm, expression_fields_orig, threshold_cancer):
-    logging.info("partitions edges: {}".format(cancer_kmers_edge.rdd.getNumPartitions()))
-    logging.info("partitions segments: {}".format(cancer_kmers_segm.rdd.getNumPartitions()))
-    cancer_kmers_edge = cancer_kmers_edge.filter(sf.col(expression_fields_orig[1]) > threshold_cancer)  # if  max( edge expression 1 and 2) >=threshold: keep Expressed kmers
-    cancer_kmers_segm = cancer_kmers_segm.filter(sf.col(expression_fields_orig[0]) > threshold_cancer)
-    return cancer_kmers_edge, cancer_kmers_segm
+def filter_expr_kmer(matrix_kmers, filter_field, threshold):
+    logging.info("Filter out if {} <= {}".format(filter_field, threshold))
+    logging.info("...partitions: {}".format(matrix_kmers.rdd.getNumPartitions()))
+    matrix_kmers = matrix_kmers.filter(sf.col(filter_field) > threshold)
+    return matrix_kmers
 
 
 def combine_cancer(cancer_kmers_segm, cancer_kmers_edge, index_name):
     if (cancer_kmers_segm is not None) and (cancer_kmers_edge is not None):
+        logging.info("Combine segment and edges")
         cancer_kmers_segm = cancer_kmers_segm.join(cancer_kmers_edge,
                                                    cancer_kmers_segm[index_name] == cancer_kmers_edge[index_name],
                                                    how='left_anti')   # if  max( edge expression 1 and 2)<threshold and  max( segment expression 1 and 2)>= threshold: keep
         cancer_kmers = cancer_kmers_edge.union(cancer_kmers_segm)
-        logging.info("partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
+        logging.info("...partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
         return cancer_kmers
     elif (cancer_kmers_segm is None):
         return cancer_kmers_edge
@@ -392,6 +398,7 @@ def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
     def I_L_replace(value):
         return value.replace('I', 'L')
     if uniprot is not None:
+        logging.info("Filter out uniprot")
         uniprot = spark.read.csv(uniprot, sep='\t', header=None)
         uniprot_header = index_name + "_IL_eq"
         uniprot = uniprot.withColumnRenamed("_c0", uniprot_header)
