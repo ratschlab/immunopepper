@@ -112,16 +112,22 @@ def mode_cancerspecif(arg):
                                                   arg.parallelism, cross_junction=1)
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
                 # Apply expression filter to foreground
+                if arg.scratch_dir:
+                    cancer_out = arg.scratch_dir
+                else:
+                    cancer_out = arg.output_dir
                 cancer_matrix = filter_expr_kmer(cancer_matrix, cancer_sample, arg.sample_expr_support_cancer)
-                path_cancer_kmers = filter_hard_threshold(cancer_matrix, index_name, libsize_c, arg.output_dir,
+                path_cancer_kmers = filter_hard_threshold(cancer_matrix, index_name, libsize_c, cancer_out,
                                                           arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
                                                           target_sample=cancer_sample,
-                                                          tag='cancer')
+                                                          tag='cancer_{}'.format(mutation_mode))
                 valid_foreground = spark.read.csv(path_cancer_kmers, sep=r'\t', header=False)
                 valid_foreground = valid_foreground.withColumnRenamed('_c0', index_name)
                 valid_foreground = valid_foreground.select(sf.col(index_name))
                 cancer_matrix = cancer_matrix.join(valid_foreground, ["kmer"],
                                                    how='right')
+                cancer_kmers = cancer_matrix.select([index_name, cancer_sample])
+                cancer_kmers = cancer_kmers.filter(sf.col(cancer_sample) > 0.0)
 
             ## Cancer file is kmer file
             if arg.paths_cancer_samples:
@@ -141,11 +147,7 @@ def mode_cancerspecif(arg):
                 cancer_junc = filter_expr_kmer(cancer_junc, expression_fields[1], arg.sample_expr_support_cancer)
                 cancer_segm = filter_expr_kmer(cancer_segm, expression_fields[0], arg.sample_expr_support_cancer)
                 cancer_kmers = combine_cancer(cancer_junc, cancer_segm, index_name)
-                n_samples_lim_c = ''
-            elif arg.path_cancer_matrix_segm or arg.path_cancer_matrix_edge:
-                cancer_kmers = cancer_matrix.select([index_name, cancer_sample])
-                cancer_kmers = cancer_kmers.filter(sf.col(cancer_sample) > 0.0)
-                n_samples_lim_c = 'AndRecurrence{}'.format(arg.n_samples_lim_cancer)
+
 
         ## Cancer \ normals
             logging.info("\n \n >>>>>>>> Cancers: Perform differential filtering sample {}".format(cancer_sample_ori))
@@ -154,7 +156,7 @@ def mode_cancerspecif(arg):
             # outpaths
             base_path_final= os.path.join(arg.output_dir, '{}{}_{}_SampleLim{}CohortLim{}Across{}_FiltNormalsCohortlim{}Across{}'.format(prefix,
                                                            cancer_sample_ori, mutation_mode, arg.sample_expr_support_cancer,
-                                                                        arg.cohort_expr_support_cancer, n_samples_lim_c,
+                                                                        arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
                                                                         arg.cohort_expr_support_normal, arg.n_samples_lim_normal))
             path_filter_final = base_path_final + extension
             path_filter_final_uniprot  = base_path_final + '_FiltUniprot'+ extension

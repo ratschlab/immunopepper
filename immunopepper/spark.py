@@ -299,9 +299,13 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
 
     normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= n_samples_lim)
 
+    if target_sample:
+        suffix = 'Except{}'.format(target_sample)
+    else:
+        suffix = ''
     path_ = os.path.join(out_dir,
-                         'interm_{}_segm-edge_max_expr-in-{}-samples-with-{}-normalized-cts'.format( tag,
-                             n_samples_lim, expr_limit) + '.tsv')
+                         'interm_{}_combiExprCohortLim{}Across{}{}'.format( tag, expr_limit,
+                             n_samples_lim, suffix) + '.tsv')
     logging.info("Save to {}".format(path_))
     normal_matrix.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_)
 
