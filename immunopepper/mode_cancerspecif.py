@@ -89,6 +89,7 @@ def mode_cancerspecif(arg):
                 path_normal_kmers = filter_hard_threshold(normal_matrix, index_name, libsize_n, arg.output_dir, arg.cohort_expr_support_normal, arg.n_samples_lim_normal)
                 normal_matrix = spark.read.csv(path_normal_kmers, sep=r'\t', header=False)
         else:
+            logging.info("Load {}".format(arg.path_normal_kmer_list))
             normal_matrix = spark.read.csv(arg.path_normal_kmer_list, sep=r'\t', header=False)
         normal_matrix = normal_matrix.withColumnRenamed('_c0', index_name)
         normal_matrix = normal_matrix.select(sf.col(index_name))
