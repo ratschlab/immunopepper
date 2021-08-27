@@ -232,11 +232,11 @@ def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_norm
              for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style
     # Without libsize
     else:
-        highly_expressed_normals = ' AND '.join(['({} > {})'.format(col_name, expr_high_limit_normal)
+        highly_expressed_normals = ' AND '.join(['({} >= {})'.format(col_name, expr_high_limit_normal)
                                                  for col_name in normal_matrix.schema.names if
                                                  col_name != index_name])  # SQL style  # Expressed kmers
 
-        ambigous_expression_normals = ' OR '.join(['({} <= {})'.format(col_name, expr_high_limit_normal)
+        ambigous_expression_normals = ' OR '.join(['({} < {})'.format(col_name, expr_high_limit_normal)
                                                    for col_name in normal_matrix.schema.names if
                                                    col_name != index_name])  # SQL style
 
@@ -294,7 +294,7 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
             for name_ in normal_matrix.schema.names if name_ != index_name])
 
     normal_matrix = normal_matrix.select(index_name, *[
-        sf.when(sf.col(name_) > expr_limit, 1).otherwise(0).alias(name_)
+        sf.when(sf.col(name_) >= expr_limit, 1).otherwise(0).alias(name_)
         for name_ in normal_matrix.schema.names if (name_ != index_name) and (name_ != target_sample ) ]) #TODO TEST LINE
 
     normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= n_samples_lim)
@@ -379,7 +379,7 @@ def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fiel
 def filter_expr_kmer(matrix_kmers, filter_field, threshold):
     logging.info("Filter out if {} <= {}".format(filter_field, threshold))
     logging.info("...partitions: {}".format(matrix_kmers.rdd.getNumPartitions()))
-    matrix_kmers = matrix_kmers.filter(sf.col(filter_field) > threshold)
+    matrix_kmers = matrix_kmers.filter(sf.col(filter_field) >= threshold)
     return matrix_kmers
 
 
