@@ -168,7 +168,7 @@ def parse_arguments(argv):
     nrf.add_argument("--path-normal-matrix-edge", nargs='+', help="edge expression integrated matrix of kmers * samples for background", required=False, default=None)
     nrf.add_argument("--n-samples-lim-normal", type=int, help="Number of normal samples in which the expression threshold should be met", required=False, default=None)
     nrf.add_argument("--cohort-expr-support-normal", type=float, help="Expression threshold on the normal cohort applied on normalized counts of (see --expr-n-limit-normal )", required=False, default=None)
-    nrf.add_argument("--path-normal-kmer-list", help="Skip the hard filtering of the matrix of normals based on expression to use the provided list of kmer. Format tsv, with or without partitions", required=False, default=None)
+    nrf.add_argument("--path-normal-kmer-list",  nargs='+', help="Provide a list of kmer as background. Format tsv: 1 file/folder allowed,'.tsv' in filenames, format parquet: one or multiple parquets with kmer in first column", required=False, default=None)
 
     cbp = parser_cancerspecif.add_argument_group('Cancer_Base_Param')
     cbp.add_argument("--sample-expr-support-cancer", type=float, help="Expression threshold for the cancer target applied on normalized counts")

@@ -90,7 +90,10 @@ def mode_cancerspecif(arg):
                 normal_matrix = spark.read.csv(path_normal_kmers, sep=r'\t', header=False)
         else:
             logging.info("Load {}".format(arg.path_normal_kmer_list))
-            normal_matrix = spark.read.csv(arg.path_normal_kmer_list, sep=r'\t', header=False)
+            if 'tsv' in arg.path_normal_kmer_list[0]:
+                normal_matrix = spark.read.csv(arg.path_normal_kmer_list[0], sep=r'\t', header=False)
+            else:
+                normal_matrix = spark.read.parquet(*arg.path_normal_kmer_list)
         normal_matrix = normal_matrix.withColumnRenamed('_c0', index_name)
         normal_matrix = normal_matrix.select(sf.col(index_name))
 
