@@ -437,7 +437,8 @@ def mode_build(arg):
 
             # Collects and pools the files of each batch
             logging.info("Start collecting results")
-            collect_results(filepointer.gene_expr_fp, output_path, pq_compression, arg.mutation_mode)
+            if countinfo:
+                collect_results(filepointer.gene_expr_fp, output_path, pq_compression, arg.mutation_mode)
             if arg.output_fasta:
                 collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, arg.mutation_mode)
             collect_results(filepointer.background_peptide_fp, output_path, pq_compression, arg.mutation_mode)
@@ -461,7 +462,7 @@ def mode_build(arg):
             process_gene_batch_foreground( output_sample, arg.mutation_sample, graph_output_samples_ids, graph_data, graph_info, gene_id_list, len(gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict,
                              countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
 
-        if not disable_process_libsize:
+        if (not disable_process_libsize) and countinfo:
             create_libsize(filepointer.gene_expr_fp, output_libszie_fp, output_sample)
 
 
