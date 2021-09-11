@@ -320,8 +320,8 @@ def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
     assert (h5f["gene_ids_edges"].size == h5f["edges"].shape[0])
 
     ### create a sample name dictionary mapping sample names to indices
-    sample_names = h5f['strains'][:] if len(h5f['strains'].shape) == 1 else h5f['strains'][:, 0]
-    sample_idx_dict = dict([(n.decode('utf8'), i) for i, n in enumerate(sample_names)])
+    count_names = h5f['strains'][:] if len(h5f['strains'].shape) == 1 else h5f['strains'][:, 0]
+    sample_idx_dict = dict([(n.decode('utf8'), i) for i, n in enumerate(count_names)])
     
     ### create a gene name dictionary mapping gene names to indices
     gene_names = h5f['gene_names'][:] if len(h5f['gene_names'].shape) == 1 else h5f['gene_names'][:, 0]
@@ -349,15 +349,18 @@ def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
                           gene_id_to_edgerange,
                           h5fname)
     h5f.close()
-    if cross_graph_expr:
-        graph_samples = np.array([s_idx for input_sample in sample_list for s_idx, graph_sample in enumerate(sample_names) if graph_sample.decode() == input_sample ])
-        if countinfo is not None and len(graph_samples) == 0:
+    if cross_graph_expr and sample_list:
+        # Retrieve count id matching input samples
+        matching_count_ids = np.array([s_idx for input_sample in sample_list for s_idx, graph_sample in enumerate(count_names)
+                                  if graph_sample.decode() == input_sample ])
+        if countinfo is not None and len(matching_count_ids) == 0:
             logging.error("Output samples do not match count file samples")
             sys.exit(1)
     else:
-        graph_samples = None
+        matching_count_ids = None
 
-    return countinfo, graph_samples
+    matching_count_samples = [n.decode('utf8') for n in count_names]
+    return countinfo, matching_count_samples, matching_count_ids
 
 
 def parse_mutation_from_vcf(mutation_tag, vcf_path, output_dir='', heter_code=0, mut_pickle=False, target_sample_list=None, mutation_sample=None, sample_eq_dict={}):

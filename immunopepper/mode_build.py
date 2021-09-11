@@ -140,7 +140,7 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
 
 
 
-def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_samples_ids, genes, genes_info, gene_idxs, total_genes, genes_interest, disable_process_libsize, all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
+def process_gene_batch_foreground(output_sample, mutation_sample, output_samples_ids, genes, genes_info, gene_idxs, total_genes, genes_interest, disable_process_libsize, all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg, outbase, filepointer, compression, verbose):
     if arg.parallel > 1:
         batch_name = int(outbase.split('/')[-1].split('_')[-1])
     else:
@@ -173,11 +173,11 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
                     gidx = countinfo.gene_idx_dict[gene.name]
 
                     with h5py.File(countinfo.h5fname, 'r') as h5f:
+                            # Get edges counts
                             if countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_edgerange or \
                                     countinfo.gene_idx_dict[gene.name] not in countinfo.gene_id_to_segrange:
                                 edge_idxs = None
                                 edge_counts = None
-
                             else:
                                 edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0], countinfo.gene_id_to_edgerange[gidx][1])
                                 edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
@@ -185,11 +185,15 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
                                     edge_counts = h5f['edges'][edge_gene_idxs,:] # will compute expression on whole graph
                                 else:
                                     edge_counts = h5f['edges'][edge_gene_idxs,idx.sample]
+                            # Get segment counts
                             seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
                                                       countinfo.gene_id_to_segrange[gidx][1])
                             if arg.cross_graph_expr:
                                 seg_counts = h5f['segments'][seg_gene_idxs, :]
-                                seg_counts = seg_counts[:, graph_output_samples_ids] # limitation fancy hdf5 indexing
+                                if output_samples_ids is not None:
+                                    seg_counts = seg_counts[:, output_samples_ids] # limitation fancy hdf5 indexing
+                                else:
+                                    output_samples_ids = np.arange(seg_counts.shape[1])
                             else:
                                 seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
                 else:
@@ -253,7 +257,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, graph_output_s
                                             cross_graph_expr=arg.cross_graph_expr,
                                             all_read_frames=arg.all_read_frames,
                                             filepointer=filepointer,
-                                            graph_output_samples_ids = graph_output_samples_ids,
+                                            graph_output_samples_ids = output_samples_ids,
                                             graph_samples=arg.output_samples,
                                             verbose_save=verbose
             )
@@ -332,7 +336,7 @@ def mode_build(arg):
     start_time = timeit.default_timer()
     if arg.count_path is not None:
         logging.info('Loading count data ...')
-        countinfo, graph_output_samples_ids = parse_gene_metadata_info(arg.count_path, arg.output_samples, arg.cross_graph_expr)
+        countinfo, matching_count_samples, matching_count_ids  = parse_gene_metadata_info(arg.count_path, arg.output_samples, arg.cross_graph_expr)
 
         end_time = timeit.default_timer()
         logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
@@ -372,24 +376,30 @@ def mode_build(arg):
     # handle output_sample relatively to output mode 
     if arg.cross_graph_expr and countinfo:
         process_output_samples = ['cohort']
-        arg.output_samples = np.array(arg.output_samples)[np.argsort(graph_output_samples_ids)]
-        arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') for output_sample in  arg.output_samples]
-        graph_output_samples_ids = graph_output_samples_ids[np.argsort(graph_output_samples_ids)]
-
+        # If samples requested, look for sample ids in count file
+        if arg.output_samples:
+            arg.output_samples = np.array(arg.output_samples)[np.argsort(matching_count_ids)]
+            arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '')
+                                  for output_sample in  arg.output_samples]
+            output_samples_ids = matching_count_ids[np.argsort(matching_count_ids)]
+        # If no samples requested, take all samples in countfile
+        else:
+            arg.output_samples = matching_count_samples
+            output_samples_ids = None
     else:
         process_output_samples = arg.output_samples
-        graph_output_samples_ids = None
+        output_samples_ids = None
         
         
     for output_sample in process_output_samples:
         logging.info(">>>> Processing output_sample {}, there are {} graphs in total".format(output_sample,num))
 
         # prepare the output files
-
         if output_sample != arg.mutation_sample:
             output_path = os.path.join(arg.output_dir, '{}_mut{}'.format(output_sample, arg.mutation_sample))
         elif (output_sample == arg.mutation_sample) or (not arg.mutation_sample):
             output_path = os.path.join(arg.output_dir, output_sample)
+        logging.info("Saving results to {}".format(output_path))
 
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
@@ -426,7 +436,7 @@ def mode_build(arg):
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
             pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
-            args = [(output_sample, arg.mutation_sample, graph_output_samples_ids, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(
+            args = [(output_sample, arg.mutation_sample, output_samples_ids, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(
                 gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg,
                   os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
 
@@ -459,7 +469,7 @@ def mode_build(arg):
                 process_gene_batch_background(output_sample, arg.mutation_sample, graph_data, gene_id_list, arg.all_read_frames, mutation, countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
-            process_gene_batch_foreground( output_sample, arg.mutation_sample, graph_output_samples_ids, graph_data, graph_info, gene_id_list, len(gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict,
+            process_gene_batch_foreground( output_sample, arg.mutation_sample, output_samples_ids, graph_data, graph_info, gene_id_list, len(gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict,
                              countinfo, genetable, arg, output_path, filepointer, pq_compression, verbose=True)
 
         if (not disable_process_libsize) and countinfo:
