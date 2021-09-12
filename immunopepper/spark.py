@@ -141,7 +141,7 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
 
     if path_normal_matrix is not None:
         # Rename
-        rename = True  # For development
+        rename = False # For development
         logging.info("Load {}".format(path_normal_matrix))
         if rename:
             logging.info("Rename")
