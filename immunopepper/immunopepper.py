@@ -143,7 +143,7 @@ def parse_arguments(argv):
     rp.add_argument("--mem-per-core",type=int, help="memory per core", required=True)
     rp.add_argument("--parallelism", type=int, help="parallelism parameter for spark JVM", required=True, default='3')
     rp.add_argument("--out-partitions", type=int, help="number of partitions to save the final tsv file, correspond to a coalesce operation", required=False, default=None)
-    rp.add_argument("--scratch-dir", help="redirects spark scratch directory. can help shuffle on disk very large matrices", required=False, default='')
+    rp.add_argument("--scratch-dir", help="os environement variable name containing the scratch directory path ", required=False, default='')
 
     so = parser_cancerspecif.add_argument_group('Samples_and_Outputs')
     so.add_argument("--kmer", help='kmer', required=True)

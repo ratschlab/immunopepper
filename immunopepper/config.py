@@ -43,7 +43,7 @@ class MyPool:
 
 
 def default_spark_config(cores: int, memory_per_executor: int, parallelism: int, driver_overhead: int = 2000,
-                         tmp_dir: str = '', extra_java_options: str = '', enable_arrow: bool = True, use_utc: bool= False) -> SparkConf:
+                          extra_java_options: str = '', enable_arrow: bool = True, use_utc: bool= False) -> SparkConf:
     '''
     See also https://spark.apache.org/docs/latest/configuration.html for more information
     about the semantics of the configurations
@@ -65,8 +65,8 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
     
     cfg = SparkConf()
 
-    if tmp_dir:
-        cfg.set("spark.local.dir", tmp_dir)
+    #if tmp_dir:
+    #    cfg.set("spark.local.dir", tmp_dir)
     
     #TODO set as parameter 
     java_options = str(extra_java_options)

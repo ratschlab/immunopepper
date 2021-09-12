@@ -23,7 +23,7 @@ from .spark import remove_uniprot
 ### Main
 def mode_cancerspecif(arg):
 
-    spark_cfg = default_spark_config(arg.cores, arg.mem_per_core, arg.parallelism, tmp_dir=arg.scratch_dir)
+    spark_cfg = default_spark_config(arg.cores, arg.mem_per_core, arg.parallelism)
     with create_spark_session_from_config(spark_cfg) as spark:
         # if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
         #     shutil.rmtree(os.path.join(arg.output_dir, "checkpoint"))
@@ -117,7 +117,7 @@ def mode_cancerspecif(arg):
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
                 # Apply expression filter to foreground
                 if arg.scratch_dir:
-                    cancer_out = arg.scratch_dir
+                    cancer_out = os.environ[arg.scratch_dir]
                 else:
                     cancer_out = arg.output_dir
                 cancer_matrix = filter_expr_kmer(cancer_matrix, cancer_sample, arg.sample_expr_support_cancer)
