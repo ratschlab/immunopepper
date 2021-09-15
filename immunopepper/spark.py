@@ -379,7 +379,10 @@ def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fiel
 def filter_expr_kmer(matrix_kmers, filter_field, threshold):
     logging.info("Filter out if {} <= {}".format(filter_field, threshold))
     logging.info("...partitions: {}".format(matrix_kmers.rdd.getNumPartitions()))
-    matrix_kmers = matrix_kmers.filter(sf.col(filter_field) >= threshold)
+    if threshold != 0:
+        matrix_kmers = matrix_kmers.filter(sf.col(filter_field) >= threshold)
+    else:
+        matrix_kmers = matrix_kmers.filter(sf.col(filter_field) > threshold)
     return matrix_kmers
 
 

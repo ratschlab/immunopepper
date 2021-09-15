@@ -120,7 +120,7 @@ def mode_cancerspecif(arg):
                     cancer_out = os.environ[arg.scratch_dir]
                 else:
                     cancer_out = arg.output_dir
-                cancer_matrix = filter_expr_kmer(cancer_matrix, cancer_sample, arg.sample_expr_support_cancer)
+
                 path_cancer_kmers = filter_hard_threshold(cancer_matrix, index_name, libsize_c, cancer_out,
                                                           arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
                                                           target_sample=cancer_sample,
@@ -131,7 +131,7 @@ def mode_cancerspecif(arg):
                 cancer_matrix = cancer_matrix.join(valid_foreground, ["kmer"],
                                                    how='right')
                 cancer_kmers = cancer_matrix.select([index_name, cancer_sample])
-                cancer_kmers = cancer_kmers.filter(sf.col(cancer_sample) > 0.0)
+                cancer_kmers = filter_expr_kmer(cancer_kmers, cancer_sample, arg.sample_expr_support_cancer)
 
             ## Cancer file is kmer file
             if arg.paths_cancer_samples:
