@@ -120,7 +120,8 @@ def mode_cancerspecif(arg):
                     cancer_out = os.environ[arg.scratch_dir]
                 else:
                     cancer_out = arg.output_dir
-
+                logging.info('remove line 123-134 filter hard threshold cancer')
+                #cross sample filter
                 path_cancer_kmers = filter_hard_threshold(cancer_matrix, index_name, libsize_c, cancer_out,
                                                           arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
                                                           target_sample=cancer_sample,
@@ -128,11 +129,13 @@ def mode_cancerspecif(arg):
                 valid_foreground = spark.read.csv(path_cancer_kmers, sep=r'\t', header=False)
                 valid_foreground = valid_foreground.withColumnRenamed('_c0', index_name)
                 valid_foreground = valid_foreground.select(sf.col(index_name))
-                cancer_matrix = cancer_matrix.join(valid_foreground, ["kmer"],
-                                                   how='right')
-                cancer_kmers = cancer_matrix.select([index_name, cancer_sample])
-                cancer_kmers = filter_expr_kmer(cancer_kmers, cancer_sample, arg.sample_expr_support_cancer)
-
+                cancer_cross_filter = cancer_matrix.join(valid_foreground, ["kmer"], # Probably do union differently
+                                                   how='right').select([index_name, cancer_sample])
+                # sample specific filter
+                cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample])
+                cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, arg.sample_expr_support_cancer)
+                
+                cancer_kmers = cancer_cross_filter.union(cancer_sample_filter).distinct()
             ## Cancer file is kmer file
             if arg.paths_cancer_samples:
                 cancer_path = arg.paths_cancer_samples[cix]
