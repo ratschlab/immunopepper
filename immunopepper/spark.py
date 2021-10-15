@@ -94,9 +94,12 @@ def fit_NB(spark, normal_matrix, index_name, output_dir, path_normal_matrix_segm
     return spark, normal_matrix
 
 
-def process_libsize(path_lib):
+def process_libsize(path_lib, custom_normalizer):
     lib = pd.read_csv(path_lib, sep='\t')
-    lib['libsize_75percent'] = lib['libsize_75percent'] / np.median(lib['libsize_75percent'])
+    if custom_normalizer:
+        lib['libsize_75percent'] = lib['libsize_75percent'] / custom_normalizer
+    else:
+        lib['libsize_75percent'] = lib['libsize_75percent'] / np.median(lib['libsize_75percent'])
     lib['sample'] = [sample.replace('-', '').replace('.', '').replace('_','') for sample in lib['sample']]
     lib = lib.set_index('sample')
     return lib

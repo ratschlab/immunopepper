@@ -53,11 +53,11 @@ def mode_cancerspecif(arg):
         ### Preprocessing Libsize
         logging.info("\n \n >>>>>>>> Preprocessing libsizes")
         if arg.path_normal_libsize:
-            libsize_n = process_libsize(arg.path_normal_libsize)
+            libsize_n = process_libsize(arg.path_normal_libsize, arg.normalizer_normal_libsize)
         else:
             libsize_n = None
         if arg.path_cancer_libsize:
-            libsize_c = process_libsize(arg.path_cancer_libsize)
+            libsize_c = process_libsize(arg.path_cancer_libsize, arg.normalizer_cancer_libsize)
         else:
             libsize_c = None
 
