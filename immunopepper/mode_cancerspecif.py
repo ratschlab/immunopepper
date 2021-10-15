@@ -120,7 +120,6 @@ def mode_cancerspecif(arg):
                     cancer_out = os.environ[arg.scratch_dir]
                 else:
                     cancer_out = arg.output_dir
-                logging.info('remove line 123-134 filter hard threshold cancer')
                 #cross sample filter
                 path_cancer_kmers = filter_hard_threshold(cancer_matrix, index_name, libsize_c, cancer_out,
                                                           arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
@@ -139,7 +138,7 @@ def mode_cancerspecif(arg):
             ## Cancer file is kmer file
             if arg.paths_cancer_samples:
                 cancer_path = arg.paths_cancer_samples[cix]
-                rename = False # development
+                rename = True # development
                 if rename: 
                     cancer_path_tmp = pq_WithRenamedCols(cancer_path, arg.output_dir)
                 else: 
