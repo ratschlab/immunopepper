@@ -10,6 +10,7 @@ from .spark import combine_normals
 from .spark import filter_expr_kmer
 from .spark import filter_hard_threshold
 from .spark import filter_statistical
+from .spark import loader
 from .spark import outlier_filtering
 from .spark import pq_WithRenamedCols
 from .spark import preprocess_kmer_file
@@ -60,8 +61,8 @@ def mode_cancerspecif(arg):
         else:
             libsize_c = None
 
-        if arg.path_normal_kmer_list is None:
         ### Preprocessing Normals
+        if (arg.path_normal_matrix_segm is not None) or (arg.path_normal_matrix_edge is not None):
             logging.info("\n \n >>>>>>>> Preprocessing Normal samples")
 
             normal_segm = process_matrix_file(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist_normal,
@@ -70,10 +71,7 @@ def mode_cancerspecif(arg):
                             arg.parallelism, cross_junction=1)
             normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
 
-
-
-            ### NORMALS: Statistical Filtering
-            # Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
+            # NORMALS: Statistical Filtering # Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
             if arg.statistical:
                 logging.info("\n \n >>>>>>>> Normals: Perform statistical filtering")
                 if arg.expr_high_limit_normal is not None:
@@ -82,27 +80,28 @@ def mode_cancerspecif(arg):
 
                 filter_statistical(spark, arg.tissue_grp_files, normal_matrix, index_name, arg.path_normal_matrix_segm,
                                        libsize_n, arg.threshold_noise, arg.output_dir, arg.cores)
-            ### NORMALS: Hard Filtering
+            # NORMALS: Hard Filtering
             else:
                 logging.info("\n \n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.cohort_expr_support_normal))
                 logging.info("expression filter")
                 path_normal_kmers = filter_hard_threshold(normal_matrix, index_name, libsize_n, arg.output_dir, arg.cohort_expr_support_normal, arg.n_samples_lim_normal)
                 normal_matrix = spark.read.csv(path_normal_kmers, sep=r'\t', header=False)
-        else:
+
+        if arg.path_normal_kmer_list is not None:
             logging.info("Load {}".format(arg.path_normal_kmer_list))
-            if 'tsv' in arg.path_normal_kmer_list[0]:
-                normal_matrix = spark.read.csv(arg.path_normal_kmer_list[0], sep=r'\t', header=False)
-            else:
-                normal_matrix = spark.read.parquet(*arg.path_normal_kmer_list)
+            normal_matrix = loader(spark, arg.path_normal_kmer_list)
+
+
         normal_matrix = normal_matrix.withColumnRenamed('_c0', index_name)
         normal_matrix = normal_matrix.select(sf.col(index_name))
 
-        logging.info("\n \n >>>>>>>> Preprocessing Cancer samples")
+
         ### Apply filtering to foreground
 
         for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
             cancer_sample = cancer_sample_ori.replace('-', '').replace('.', '').replace('_', '')
             mutation_mode = arg.mut_cancer_samples[cix]
+            logging.info("\n \n >>>>>>>> Preprocessing Cancer sample {}  ".format(cancer_sample_ori))
 
             ## Cancer file is matrix
             if arg.path_cancer_matrix_segm or arg.path_cancer_matrix_edge:
@@ -156,7 +155,7 @@ def mode_cancerspecif(arg):
 
 
         ## Cancer \ normals
-            logging.info("\n \n >>>>>>>> Cancers: Perform differential filtering sample {}".format(cancer_sample_ori))
+            logging.info("\n \n >>>>>>>> Cancers: Perform differential filtering")
             logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
 
             # outpaths

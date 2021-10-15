@@ -429,3 +429,11 @@ def save_spark(cancer_kmers, output_dir, path_final_fil, outpartitions=None):
 
 
 
+def loader(spark, path_normal_kmer_list):
+    #TODO allow multiple tsv
+    if 'tsv' in path_normal_kmer_list[0]:
+        normal_matrix = spark.read.csv(path_normal_kmer_list[0], sep=r'\t', header=False)
+    else:
+        normal_matrix = spark.read.parquet(*path_normal_kmer_list)
+
+    return normal_matrix
