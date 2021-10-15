@@ -61,6 +61,7 @@ def mode_cancerspecif(arg):
         else:
             libsize_c = None
 
+        normal_matrix = None
         ### Preprocessing Normals
         if (arg.path_normal_matrix_segm is not None) or (arg.path_normal_matrix_edge is not None):
             logging.info("\n \n >>>>>>>> Preprocessing Normal samples")
@@ -86,14 +87,17 @@ def mode_cancerspecif(arg):
                 logging.info("expression filter")
                 path_normal_kmers = filter_hard_threshold(normal_matrix, index_name, libsize_n, arg.output_dir, arg.cohort_expr_support_normal, arg.n_samples_lim_normal)
                 normal_matrix = spark.read.csv(path_normal_kmers, sep=r'\t', header=False)
+                normal_matrix = normal_matrix.withColumnRenamed('_c0', index_name)
+                normal_matrix = normal_matrix.select(sf.col(index_name))
 
         if arg.path_normal_kmer_list is not None:
             logging.info("Load {}".format(arg.path_normal_kmer_list))
-            normal_matrix = loader(spark, arg.path_normal_kmer_list)
-
-
-        normal_matrix = normal_matrix.withColumnRenamed('_c0', index_name)
-        normal_matrix = normal_matrix.select(sf.col(index_name))
+            normal_list = loader(spark, arg.path_normal_kmer_list)
+            normal_list = normal_list.select(sf.col(index_name))
+            if normal_matrix:
+                normal_matrix = normal_matrix.union(normal_list).distinct()
+            else:
+                normal_matrix = normal_list
 
 
         ### Apply filtering to foreground
