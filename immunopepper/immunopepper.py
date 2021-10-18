@@ -156,9 +156,9 @@ def parse_arguments(argv):
     libsizes = parser_cancerspecif.add_argument_group('Libsizes')
     libsizes.add_argument("--path-cancer-libsize", help="libsize file path for cancer samples", required=False, default=None)
     libsizes.add_argument("--path-normal-libsize", help="libsize file path for normal samples", required=False, default=None)
-    libsizes.add_argument("--normalizer-cancer-libsize", help="Input custom rescaling factor for cancer libsize. Default: Median of libsize", required=False,
+    libsizes.add_argument("--normalizer-cancer-libsize", type=float, help="Input custom rescaling factor for cancer libsize. Default: Median of libsize", required=False,
                           default=None)
-    libsizes.add_argument("--normalizer-normal-libsize", help="Input custom rescaling factor for normal libsize. Default: Median of libsize", required=False,
+    libsizes.add_argument("--normalizer-normal-libsize", type=float, help="Input custom rescaling factor for normal libsize. Default: Median of libsize", required=False,
                           default=None)
 
     nsf = parser_cancerspecif.add_argument_group('Normal_Statistical_Filter')
