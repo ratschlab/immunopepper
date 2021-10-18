@@ -104,19 +104,12 @@ def process_libsize(path_lib, custom_normalizer):
     lib = lib.set_index('sample')
     return lib
 
-def pq_WithRenamedCols(list_paths, outdir):
-    list_path_tmp = []
-    for path in list_paths:
-        df = pq.read_table(path)
-        df = df.rename_columns(name_.replace('-', '').replace('.', '').replace('_', '') for name_ in df.schema.names) # characters causing issue in spark
-        path_tmp = os.path.join(outdir, os.path.basename(path).split('.')[0] + '_tmp' + '.pq')
-        if os.path.exists(path_tmp):
-            os.remove(path_tmp)
-        pqwriter = pq.ParquetWriter(path_tmp, df.schema, compression=None)
-        pqwriter.write_table(df)
-        pqwriter.close()
-        list_path_tmp.append(path_tmp)
-    return list_path_tmp
+def pq_WithRenamedCols(spark, list_paths, outdir):
+    df = spark.read.parquet(*list_paths)
+    old_name = df.columns
+    new_names = [name_.replace('-', '').replace('.', '').replace('_', '')  for name_ in  old_name]
+    df = df.toDF(*new_names)
+    return df
 
 
 def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, whitelist, parallelism, cross_junction):
@@ -148,8 +141,7 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
         logging.info("Load {}".format(path_normal_matrix))
         if rename:
             logging.info("Rename")
-            path_normal_matrix_tmp = pq_WithRenamedCols(path_normal_matrix, outdir)
-            normal_matrix = spark.read.parquet(*path_normal_matrix_tmp)
+            normal_matrix = pq_WithRenamedCols(spark, path_normal_matrix, outdir)
         else:
             normal_matrix = spark.read.parquet(*path_normal_matrix)
 

@@ -142,11 +142,11 @@ def mode_cancerspecif(arg):
             if arg.paths_cancer_samples:
                 cancer_path = arg.paths_cancer_samples[cix]
                 rename = True # development
-                if rename: 
-                    cancer_path_tmp = pq_WithRenamedCols(cancer_path, arg.output_dir)
-                else: 
-                    cancer_path_tmp = cancer_path
-                cancer_kmers = spark.read.parquet(cancer_path_tmp)
+                if rename:
+                    cancer_kmers = pq_WithRenamedCols(spark, cancer_path, arg.output_dir)
+                else:
+                    cancer_kmers = spark.read.parquet(cancer_path)
+
                 # Preprocess cancer samples
                 cancer_junc = preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols,expression_fields, jct_col,
                                                                                         index_name, libsize_c, 1)
