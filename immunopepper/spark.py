@@ -279,21 +279,6 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
     spark context
     Filtered normal matrix
         '''
-
-    logging.info("Filter matrix with cohort expression support {} in {} samples".format(expr_limit, n_samples_lim))
-    if target_sample:
-        logging.info("Target sample {} not included in the cohort filtering".format(target_sample))
-    if libsize is not None:
-        normal_matrix = normal_matrix.select(index_name, *[
-            sf.round(sf.col(name_) / libsize.loc[name_, "libsize_75percent"], 2).alias(name_)
-            for name_ in normal_matrix.schema.names if name_ != index_name])
-
-    normal_matrix = normal_matrix.select(index_name, *[
-        sf.when(sf.col(name_) >= expr_limit, 1).otherwise(0).alias(name_)
-        for name_ in normal_matrix.schema.names if (name_ != index_name) and (name_ != target_sample ) ]) #TODO TEST LINE
-
-    normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= n_samples_lim)
-
     if target_sample:
         suffix = 'Except{}'.format(target_sample)
     else:
@@ -301,8 +286,26 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
     path_ = os.path.join(out_dir,
                          'interm_{}_combiExprCohortLim{}Across{}{}'.format( tag, expr_limit,
                              n_samples_lim, suffix) + '.tsv')
-    logging.info("Save to {}".format(path_))
-    normal_matrix.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_)
+
+    if not os.path.isfile(os.path.join(path_, '_SUCCESS')):
+        logging.info("Filter matrix with cohort expression support {} in {} samples".format(expr_limit, n_samples_lim))
+        if target_sample:
+            logging.info("Target sample {} not included in the cohort filtering".format(target_sample))
+        if libsize is not None:
+            normal_matrix = normal_matrix.select(index_name, *[
+                sf.round(sf.col(name_) / libsize.loc[name_, "libsize_75percent"], 2).alias(name_)
+                for name_ in normal_matrix.schema.names if name_ != index_name])
+
+        normal_matrix = normal_matrix.select(index_name, *[
+            sf.when(sf.col(name_) >= expr_limit, 1).otherwise(0).alias(name_)
+            for name_ in normal_matrix.schema.names if (name_ != index_name) and (name_ != target_sample ) ]) #TODO TEST LINE
+
+        normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= n_samples_lim)
+
+        logging.info("Save to {}".format(path_))
+        normal_matrix.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_)
+    else: 
+        logging.info("Filter matrix with cohort expression support {} in {} samples already performed. Loading results from {}".format(expr_limit, n_samples_lim, path_))
 
     return path_
 
