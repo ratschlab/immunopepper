@@ -96,8 +96,9 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
             #set("spark.driver.bindAddress", "192.168.0.13").
             set("spark.default.parallelism", parallelism).
             set("spark.sql.shuffle.partitions", parallelism).
-            set("spark.driver.maxResultSize", "0") #unlimited
-             #TODO remove the personal IP address
+            set("spark.driver.maxResultSize", "0"). #unlimited
+            set("spark.ui.showConsoleProgress", "false")
+                        #TODO remove the personal IP address
             )
 
 
