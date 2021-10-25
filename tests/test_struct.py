@@ -188,6 +188,7 @@ def test_end_to_end_cancerspecif_mx():
               #"--path-cancer-matrix-segm", os.path.join(basedir, 'cancer', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
               "--path-cancer-matrix-edge", os.path.join(basedir, 'cancer', 'simple_foreground.pq'),
               "--path-normal-matrix-segm", os.path.join(basedir, 'normal',  'simple_background.pq'),  os.path.join(basedir, 'normal', 'nested' ,'simple_background_tmp_copy.pq'),
+              #"--path-normal-matrix-segm", os.path.join(basedir, 'normal', 'nested', 'simple_background_overlay2.pq'), os.path.join(basedir, 'normal', 'nested', 'simple_background_overlay1.pq'),
               # "--path-normal-matrix-edge", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
               #"--path-normal-matrix-edge", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
               #"--path-normal-kmer-list", os.path.join(basedir, 'normal', 'simple_annotation.pq'),

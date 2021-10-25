@@ -105,7 +105,7 @@ def process_libsize(path_lib, custom_normalizer):
     return lib
 
 def pq_WithRenamedCols(spark, list_paths, outdir):
-    df = spark.read.parquet(*list_paths)
+    df = spark.read.parquet(*list_paths , mergeSchema=True)
     old_name = df.columns
     new_names = [name_.replace('-', '').replace('.', '').replace('_', '')  for name_ in  old_name]
     df = df.toDF(*new_names)
@@ -143,7 +143,7 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
             logging.info("Rename")
             normal_matrix = pq_WithRenamedCols(spark, path_normal_matrix, outdir)
         else:
-            normal_matrix = spark.read.parquet(*path_normal_matrix)
+            normal_matrix = spark.read.parquet(*path_normal_matrix , mergeSchema=True)
 
         # Keep relevant junction status and drop junction column
         if cross_junction:
