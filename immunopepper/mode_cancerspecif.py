@@ -118,6 +118,8 @@ def mode_cancerspecif(arg):
                                                   arg.output_dir, arg.whitelist_cancer,
                                                   arg.parallelism, cross_junction=1)
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
+                mycount=cancer_matrix.count()
+                logging.info('Load cancer kmers n = {}'.format(mycount))
                 # Apply expression filter to foreground
                 if arg.scratch_dir:
                     cancer_out = os.environ[arg.scratch_dir]
@@ -136,8 +138,19 @@ def mode_cancerspecif(arg):
                 # sample specific filter
                 cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample])
                 cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, arg.sample_expr_support_cancer)
+
+                mycount=cancer_sample_filter.count()
+                logging.info('Load filter foreground sample = {}'.format(mycount))
                 
-                cancer_kmers = cancer_cross_filter.union(cancer_sample_filter).distinct()
+                intersect = True 
+                if intersect:
+                    cancer_kmers = cancer_cross_filter.join(cancer_sample_filter ["kmer"],
+                                                   how='inner')
+                else:
+                    cancer_kmers = cancer_cross_filter.union(cancer_sample_filter).distinct()
+                
+                mycount=cancer_kmers.count()
+                logging.info('Load filter foregroground cohort = {}'.format(mycount))
             ## Cancer file is kmer file
             if arg.paths_cancer_samples:
                 cancer_path = arg.paths_cancer_samples[cix]
