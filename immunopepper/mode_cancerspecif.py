@@ -147,11 +147,11 @@ def mode_cancerspecif(arg):
 
                 output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
-                intersect = True 
-                if intersect:
-                    cancer_kmers = cancer_cross_filter.join(cancer_sample_filter.drop(cancer_sample), ["kmer"], how='inner')
-                else:
+                if arg.cancer_support_union:
                     cancer_kmers = cancer_cross_filter.union(cancer_sample_filter).distinct()
+                else:
+                    cancer_kmers = cancer_cross_filter.join(cancer_sample_filter.drop(cancer_sample), ["kmer"], how='inner')
+
 
                 output_count(arg.output_count, cancer_kmers, report_count, report_steps, 'Filter_Sample_Cohort')
 

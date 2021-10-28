@@ -169,6 +169,7 @@ def parse_arguments(argv):
     nsf.add_argument("--tissue-grp-files", nargs='*', help="Allows the statistical modelling on normal samples to be performed on different tissue groups. Specify n paths of files, each containing the list of samples in the group. No header", required=False, default=None)
 
     nrf = parser_cancerspecif.add_argument_group('Normal_Recurrence_Filter')
+    nrf.add_argument("--cancer-support-union", help="Choose how to combine sample-support and cohort-support in cancer. Request union, default intersection", action="store_true", required=False, default=False)
     nrf.add_argument("--id-normals",  help="Specific name for the normal cohort experiment to be saved in counting file (see output-count)", required=False, default=None)
     nrf.add_argument("--path-normal-matrix-segm", nargs='+', help="segment expression integrated matrix of kmers * samples for background", required=False, default=None)
     nrf.add_argument("--path-normal-matrix-edge", nargs='+', help="edge expression integrated matrix of kmers * samples for background", required=False, default=None)
