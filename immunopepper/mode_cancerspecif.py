@@ -12,10 +12,12 @@ from .spark import filter_hard_threshold
 from .spark import filter_statistical
 from .spark import loader
 from .spark import outlier_filtering
+from .spark import output_count
 from .spark import pq_WithRenamedCols
 from .spark import preprocess_kmer_file
 from .spark import process_matrix_file
 from .spark import process_libsize
+from .spark import save_output_count
 from .spark import save_spark
 from .spark import remove_uniprot
 
@@ -34,6 +36,9 @@ def mode_cancerspecif(arg):
         index_name = 'kmer'
         jct_col = "iscrossjunction"
         extension = '.tsv'
+        report_count = []
+        report_steps = []
+
 
         if arg.output_prefix:
             prefix =  arg.output_prefix + '_'
@@ -118,8 +123,9 @@ def mode_cancerspecif(arg):
                                                   arg.output_dir, arg.whitelist_cancer,
                                                   arg.parallelism, cross_junction=1)
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
-                mycount=cancer_matrix.count()
-                logging.info('Load cancer kmers n = {}'.format(mycount))
+
+                output_count(arg.output_count, cancer_matrix, report_count, report_steps, 'Init_cancer')
+
                 # Apply expression filter to foreground
                 if arg.scratch_dir:
                     cancer_out = os.environ[arg.scratch_dir]
@@ -139,18 +145,16 @@ def mode_cancerspecif(arg):
                 cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample])
                 cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, arg.sample_expr_support_cancer)
 
-                mycount=cancer_sample_filter.count()
-                logging.info('Load filter foreground sample = {}'.format(mycount))
-                
+                output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
+
                 intersect = True 
                 if intersect:
-                    cancer_kmers = cancer_cross_filter.join(cancer_sample_filter ["kmer"],
-                                                   how='inner')
+                    cancer_kmers = cancer_cross_filter.join(cancer_sample_filter.drop(cancer_sample), ["kmer"], how='inner')
                 else:
                     cancer_kmers = cancer_cross_filter.union(cancer_sample_filter).distinct()
-                
-                mycount=cancer_kmers.count()
-                logging.info('Load filter foregroground cohort = {}'.format(mycount))
+
+                output_count(arg.output_count, cancer_kmers, report_count, report_steps, 'Filter_Sample_Cohort')
+
             ## Cancer file is kmer file
             if arg.paths_cancer_samples:
                 cancer_path = arg.paths_cancer_samples[cix]
@@ -188,12 +192,20 @@ def mode_cancerspecif(arg):
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
             logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
             save_spark(cancer_kmers, arg.output_dir, path_filter_final, outpartitions=arg.out_partitions)
+            output_count(arg.output_count, cancer_kmers, report_count, report_steps,
+                         'Filter_Sample_Cohort_CohortNormal')
 
             # Remove Uniprot
             logging.info("Filtering kmers in uniprot")
             cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
             save_spark(cancer_kmers, arg.output_dir, path_filter_final_uniprot, outpartitions=arg.out_partitions)
+            output_count(arg.output_count, cancer_kmers, report_count, report_steps,
+                         'Filter_Sample_Cohort_CohortNormal_Uniprot')
 
+            save_output_count(arg.output_count, report_count, report_steps, prefix,
+                                cancer_sample_ori, mutation_mode, arg.sample_expr_support_cancer,
+                                arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
+                                arg.cohort_expr_support_normal, arg.n_samples_lim_normal, arg.id_normals)
 
             if arg.paths_cancer_samples and os.path.exists(cancer_path_tmp) and rename:
                 os.remove(cancer_path_tmp)

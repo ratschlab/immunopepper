@@ -148,6 +148,7 @@ def parse_arguments(argv):
     so = parser_cancerspecif.add_argument_group('Samples_and_Outputs')
     so.add_argument("--kmer", help='kmer', required=True)
     so.add_argument("--output-dir", help="output directory for the filtered matrix" , required=True, default='')
+    so.add_argument("--output-count", help="request to write the intermediate number of kmer at each each step to the given path (risk of slow down)" , required=False, default='')
     so.add_argument("--expression-fields-c", nargs='+', help="name of segment and junction expression field in cancer file, default ['segment_expr', 'junction_expr']",required=False, default=None)
     so.add_argument("--output-prefix", help="prefix for the output", required=False, default='')
     so.add_argument("--whitelist-normal", help="file containg whitelist for normal samples", required=False, default=None)
@@ -168,6 +169,7 @@ def parse_arguments(argv):
     nsf.add_argument("--tissue-grp-files", nargs='*', help="Allows the statistical modelling on normal samples to be performed on different tissue groups. Specify n paths of files, each containing the list of samples in the group. No header", required=False, default=None)
 
     nrf = parser_cancerspecif.add_argument_group('Normal_Recurrence_Filter')
+    nrf.add_argument("--id-normals",  help="Specific name for the normal cohort experiment to be saved in counting file (see output-count)", required=False, default=None)
     nrf.add_argument("--path-normal-matrix-segm", nargs='+', help="segment expression integrated matrix of kmers * samples for background", required=False, default=None)
     nrf.add_argument("--path-normal-matrix-edge", nargs='+', help="edge expression integrated matrix of kmers * samples for background", required=False, default=None)
     nrf.add_argument("--n-samples-lim-normal", type=int, help="Number of normal samples in which the expression threshold should be met", required=False, default=None)
