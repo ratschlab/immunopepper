@@ -200,7 +200,7 @@ def test_end_to_end_cancerspecif_mx():
               '--cohort-expr-support-normal', "1",
               "--n-samples-lim-normal", "3",
               '--sample-expr-support-cancer', "4",
-              '--cohort-expr-support-cancer', "20",
+              #'--cohort-expr-support-cancer', "20",
               "--n-samples-lim-cancer", "1",
               #"--expression-fields-c", 'segment_expr', 'junction_expr',
               #"--tissue-grp-files", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt",
