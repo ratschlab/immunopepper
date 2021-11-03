@@ -124,7 +124,7 @@ def mode_cancerspecif(arg):
                                                   arg.parallelism, cross_junction=1)
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
 
-                output_count(arg.output_count, cancer_matrix, report_count, report_steps, 'Init_cancer')
+
 
                 # Apply expression filter to foreground
                 if arg.scratch_dir:
@@ -133,9 +133,13 @@ def mode_cancerspecif(arg):
                     cancer_out = arg.output_dir
 
                 # sample specific filter
+                if arg.output_count and (arg.sample_expr_support_cancer != 0): #Retrieve initial number of kmers in sample
+                    cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample])
+                    cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0)
+                    output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Init_cancer')
+
                 cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample])
                 cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, arg.sample_expr_support_cancer)
-
                 output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
                 #cross sample filter
