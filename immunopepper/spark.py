@@ -451,17 +451,17 @@ def save_output_count(output_count, report_count, report_steps, prefix, cancer_s
     if output_count:
         header = '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format("sample", "mutation_mode", "min_sample_reads", "#_of_cohort_samples", "reads_per_cohort_sample", "#_normal_samples_allowed", "normal_cohort_id", "reads_per_normal_sample")
         line =   '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(cancer_sample_ori, mutation_mode, sample_expr_support_cancer, n_samples_lim_cancer, cohort_expr_support_cancer, n_samples_lim_normal, id_normals, cohort_expr_support_normal)
-    for idx in np.arange(len(report_count)):
-        header += "\t{}".format(report_steps[idx])
-        line += "\t{}".format(report_count[idx])
-    if prefix:
-        header += "\t{}".format("info")
-        line += "\t{}".format(prefix)
-    header += "\n"
-    line += "\n"
-    if not os.path.exists(output_count):
-        with open(output_count,"w") as f:
-            f.write(header)
-    with open(output_count, "a") as f:
-        f.write(line)
-    logging.info("Save intermediate info to {}".format(output_count))
+        for idx in np.arange(len(report_count)):
+            header += "\t{}".format(report_steps[idx])
+            line += "\t{}".format(report_count[idx])
+        if prefix:
+            header += "\t{}".format("info")
+            line += "\t{}".format(prefix)
+        header += "\n"
+        line += "\n"
+        if not os.path.exists(output_count):
+            with open(output_count,"w") as f:
+                f.write(header)
+        with open(output_count, "a") as f:
+            f.write(line)
+        logging.info("Save intermediate info to {}".format(output_count))
