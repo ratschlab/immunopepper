@@ -133,14 +133,19 @@ def mode_cancerspecif(arg):
                     cancer_out = arg.output_dir
 
                 # sample specific filter
-                if arg.output_count and (arg.sample_expr_support_cancer != 0): #Retrieve initial number of kmers in sample
-                    cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample])
-                    cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0)
-                    output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Init_cancer')
-
                 cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample])
-                cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, arg.sample_expr_support_cancer)
-                output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
+                cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0) #Retrieve initial number of kmers in sample
+                output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Init_cancer')
+
+                if arg.output_count and (arg.sample_expr_support_cancer != 0):
+                    cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample])
+                    cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample,
+                                                            arg.sample_expr_support_cancer)
+                    output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
+
+                else:
+                    output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
+
 
                 #cross sample filter
                 if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
