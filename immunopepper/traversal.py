@@ -258,7 +258,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
     # as a  junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
     som_exp_dict = get_som_expr_dict(gene, list(mutation.somatic_mutation_dict.keys()), countinfo, seg_counts, mut_count_id)
-    kmer_matrix = [[], [], [], []] # in cross sample mode, will contain unique kmers per gene (1), is_junction (2), segments expr per sample (3), junction expr per sample (4)
+    kmer_matrix = [{}, {},{}]  # in cross sample mode, will contain unique kmers per gene (1), is_junction (2), segments expr per sample (3), junction expr per sample (4)
 
 
     ### iterate over all vertex pairs and translate
@@ -500,9 +500,6 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
         for j in range(len(peptide) - k + 1):
             kmer_peptide = peptide[j:j+k]
 
-            # Find kmer index in storage matrix
-            kmer_idx = [idx for idx, kmer in enumerate(kmer_matrix[0]) if kmer == kmer_peptide]
-
             # junction expression
             if j in spanning_index1:
                 is_in_junction = True
@@ -542,17 +539,15 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
 
             # update the cross samples matrix
             if sum(np.isnan(sublist_seg)) != len(sublist_seg) or sum(np.isnan(sublist_jun)) != len(sublist_jun):
-                if not kmer_idx:
-                    kmer_matrix[0].append(kmer_peptide)
-                    kmer_matrix[1].append(is_in_junction)
-                    kmer_matrix[2].append(np.round(sublist_seg, 2))
-                    kmer_matrix[3].append(sublist_jun)
-
+                if kmer_peptide not in kmer_matrix:
+                    kmer_matrix[0][kmer_peptide] = is_in_junction
+                    kmer_matrix[1][kmer_peptide] = np.round(sublist_seg, 2)
+                    kmer_matrix[2][kmer_peptide] =  np.array(sublist_jun)
                 else:
-                    idx = kmer_idx[0]
-                    kmer_matrix[1][idx] = max(kmer_matrix[1][idx],is_in_junction )
-                    kmer_matrix[2][idx] = [ np.nanmax([i, j]) for i, j in zip(kmer_matrix[2][idx], np.round(sublist_seg, 2))] # make unique per gene with maximum
-                    kmer_matrix[3][idx] = [np.nanmax([i, j]) for i, j in zip(kmer_matrix[3][idx], sublist_jun)]
+                    kmer_matrix[0][kmer_peptide] = max(kmer_matrix[kmer_peptide][0] ,is_in_junction )
+                    kmer_matrix[1][kmer_peptide] = np.nanmax(np.array( [kmer_matrix[1][kmer_peptide], np.round(sublist_seg, 2)]), axis = 0)# make unique per gene with maximum
+                    kmer_matrix[2][kmer_peptide] = np.nanmax(np.array( [kmer_matrix[2][kmer_peptide], sublist_jun]), axis = 0)
+
 
     return kmer_matrix
 

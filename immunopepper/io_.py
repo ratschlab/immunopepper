@@ -171,13 +171,14 @@ def save_kmer_matrix(data, graph_samples, filepointer, compression=None, outbase
    if data[0]:
        segm_path = switch_tmp_path(filepointer.kmer_segm_expr_fp, outbase)
        edge_path = switch_tmp_path(filepointer.kmer_edge_expr_fp, outbase)
-       data[2] = pd.DataFrame(data[2], columns = graph_samples )
-       data[3] = pd.DataFrame(data[3], columns = graph_samples)
-       filepointer.kmer_segm_expr_fp['pqwriter'] = save_pd_toparquet(segm_path, pd.concat([pd.DataFrame({filepointer.kmer_segm_expr_fp['columns'][0]: data[0],
-                                                                                                         filepointer.kmer_segm_expr_fp['columns'][1]: data[1]}), data[2]], axis=1),
+       data[1] = pd.DataFrame.from_dict(data[1], orient='index', columns = graph_samples).reset_index().rename({'index':filepointer.kmer_segm_expr_fp['columns'][0]}, axis=1 )
+       data[2] = pd.DataFrame.from_dict(data[2], orient='index', columns = graph_samples).reset_index().rename({'index':filepointer.kmer_segm_expr_fp['columns'][0]}, axis=1 )
+
+       data[1][ filepointer.kmer_segm_expr_fp['columns'][1]] = data[0].values()
+       data[2][ filepointer.kmer_segm_expr_fp['columns'][1]] = data[0].values()
+       filepointer.kmer_segm_expr_fp['pqwriter'] = save_pd_toparquet(segm_path, data[1],
                          compression=compression, verbose=verbose, pqwriter=filepointer.kmer_segm_expr_fp['pqwriter'], writer_close=False)
-       filepointer.kmer_edge_expr_fp['pqwriter'] = save_pd_toparquet(edge_path, pd.concat([pd.DataFrame({filepointer.kmer_edge_expr_fp['columns'][0]: data[0],
-                                                                                                         filepointer.kmer_edge_expr_fp['columns'][1]: data[1]}), data[3]], axis=1),
+       filepointer.kmer_edge_expr_fp['pqwriter'] = save_pd_toparquet(edge_path, data[2],
                          compression=compression, verbose=verbose, pqwriter=filepointer.kmer_edge_expr_fp['pqwriter'], writer_close=False)
 
 
