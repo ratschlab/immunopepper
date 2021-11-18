@@ -40,11 +40,6 @@ def mode_cancerspecif(arg):
         report_steps = []
 
 
-        if arg.output_prefix:
-            prefix =  arg.output_prefix + '_'
-        else:
-            prefix = ''
-
         if arg.paths_cancer_samples:
             if arg.expression_fields_c is None:
                 expression_fields_orig = ['segment_expr', 'junction_expr']  # segment 1 , junction 2
@@ -194,10 +189,10 @@ def mode_cancerspecif(arg):
             logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
 
             # outpaths
-            base_path_final= os.path.join(arg.output_dir, '{}{}_{}_SampleLim{}CohortLim{}Across{}_FiltNormalsCohortlim{}Across{}'.format(prefix,
+            base_path_final= os.path.join(arg.output_dir, '{}_{}_SampleLim{}CohortLim{}Across{}_FiltNormals{}Cohortlim{}Across{}'.format(
                                                            cancer_sample_ori, mutation_mode, arg.sample_expr_support_cancer,
                                                                         arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
-                                                                        arg.cohort_expr_support_normal, arg.n_samples_lim_normal))
+                                                                        arg.tag_normals, arg.cohort_expr_support_normal, arg.n_samples_lim_normal))
             path_filter_final = base_path_final + extension
             path_filter_final_uniprot  = base_path_final + '_FiltUniprot'+ extension
 
@@ -216,7 +211,7 @@ def mode_cancerspecif(arg):
             output_count(arg.output_count, cancer_kmers, report_count, report_steps,
                          'Filter_Sample_Cohort_CohortNormal_Uniprot')
 
-            save_output_count(arg.output_count, report_count, report_steps, prefix,
+            save_output_count(arg.output_count, report_count, report_steps, arg.tag_normals,
                                 cancer_sample_ori, mutation_mode, arg.sample_expr_support_cancer,
                                 arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
                                 arg.cohort_expr_support_normal, arg.n_samples_lim_normal, arg.id_normals)
