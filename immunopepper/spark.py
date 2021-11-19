@@ -112,7 +112,7 @@ def pq_WithRenamedCols(spark, list_paths, outdir):
     return df
 
 
-def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, whitelist, parallelism, cross_junction, take_hash):
+def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, whitelist, parallelism, cross_junction, tot_batches, batch_id):
     ''' Preprocess normal samples
     - corrects names
     - corrects types
@@ -146,14 +146,11 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
             normal_matrix = spark.read.parquet(*path_normal_matrix , mergeSchema=True)
 
         # Dev remove kmers for the matrix based on the hash function
-        if take_hash:
-            logging.info("Filter foreground and background based on Hash {}".format(take_hash))
-            nh = normal_matrix.select(sf.hash('kmer').alias('hash')).distinct()
-            nh.write.mode('overwrite').options(header="False",sep="\t").csv(os.path.join(outdir, 'hash_kmers'))
-        if take_hash == 'g_0':
-            normal_matrix = normal_matrix.filter(sf.hash('kmer') > 0)
-        elif take_hash == 'i_0':
-            normal_matrix = normal_matrix.filter(sf.hash('kmer') <= 0)
+        if tot_batches:
+            logging.info("Filter foreground and background based on Hash ; making {} batches, select batch number {}".format(tot_batches, batch_id))
+
+            normal_matrix = normal_matrix.filter(sf.hash('kmer') % tot_batches == batch_id)
+
 
         # Keep relevant junction status and drop junction column
         if cross_junction:

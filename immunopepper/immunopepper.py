@@ -195,8 +195,8 @@ def parse_arguments(argv):
     uf.add_argument("--uniprot", help="file containg uniprot k-mers. k-mers length should match the one of the cancer and normal files", required=False, default=None)
 
     dv = parser_cancerspecif.add_argument_group('Dev parameters')
-    dv.add_argument("--take-hash", help="Filter foreground and in background kmers based on hash function. values: g_0 >0 and i_0 <= 0",required=False, default='')
-
+    dv.add_argument("--tot-batches", type=int, help="Filter foreground and in background kmers based on hash function. Set number of batches",required=False, default=None)
+    dv.add_argument("--batch-id", type=int, help="Filter foreground and in background kmers based on hash function. Set batch id",required=False, default=None)
     _add_general_args(parser_cancerspecif)
  
     ### mode_mhcbind
