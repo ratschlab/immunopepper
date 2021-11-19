@@ -539,7 +539,7 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
 
             # update the cross samples matrix
             if sum(np.isnan(sublist_seg)) != len(sublist_seg) or sum(np.isnan(sublist_jun)) != len(sublist_jun):
-                if kmer_peptide not in kmer_matrix:
+                if kmer_peptide not in kmer_matrix[0]:
                     kmer_matrix[0][kmer_peptide] = is_in_junction
                     kmer_matrix[1][kmer_peptide] = np.round(sublist_seg, 2)
                     kmer_matrix[2][kmer_peptide] =  np.array(sublist_jun)
