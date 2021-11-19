@@ -67,9 +67,9 @@ def mode_cancerspecif(arg):
             logging.info("\n \n >>>>>>>> Preprocessing Normal samples")
 
             normal_segm = process_matrix_file(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist_normal,
-                            arg.parallelism, cross_junction=0)
+                            arg.parallelism, cross_junction=0, take_hash=arg.take_hash)
             normal_junc = process_matrix_file(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist_normal,
-                            arg.parallelism, cross_junction=1)
+                            arg.parallelism, cross_junction=1, take_hash=arg.take_hash)
             normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
 
             # NORMALS: Statistical Filtering # Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
@@ -113,10 +113,10 @@ def mode_cancerspecif(arg):
                 # Preprocess cancer samples
                 cancer_segm = process_matrix_file(spark, index_name, jct_col, arg.path_cancer_matrix_segm,
                                                   arg.output_dir, arg.whitelist_cancer,
-                                                  arg.parallelism, cross_junction=0)
+                                                  arg.parallelism, cross_junction=0, take_hash=arg.take_hash)
                 cancer_junc = process_matrix_file(spark, index_name, jct_col, arg.path_cancer_matrix_edge,
                                                   arg.output_dir, arg.whitelist_cancer,
-                                                  arg.parallelism, cross_junction=1)
+                                                  arg.parallelism, cross_junction=1, take_hash=arg.take_hash)
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
 
 
