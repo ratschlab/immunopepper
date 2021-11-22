@@ -17,9 +17,12 @@ from .spark import pq_WithRenamedCols
 from .spark import preprocess_kmer_file
 from .spark import process_matrix_file
 from .spark import process_libsize
+from .spark import redirect_scratch
+from .spark import remove_uniprot
 from .spark import save_output_count
 from .spark import save_spark
-from .spark import remove_uniprot
+
+
 
 
 
@@ -44,6 +47,8 @@ def mode_cancerspecif(arg):
             arg.tag_prefix = arg.tag_prefix + '_'
         report_count = []
         report_steps = []
+
+        normal_out, cancer_out = redirect_scratch(arg.scratch_dir, arg.interm_dir_norm, arg.interm_dir_canc, arg.output_dir)
 
 
         if arg.paths_cancer_samples:
@@ -91,7 +96,7 @@ def mode_cancerspecif(arg):
             else:
                 logging.info("\n \n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.cohort_expr_support_normal))
                 logging.info("expression filter")
-                path_normal_kmers = filter_hard_threshold(normal_matrix, index_name, libsize_n, arg.output_dir, arg.cohort_expr_support_normal, arg.n_samples_lim_normal, batch_tag=batch_tag)
+                path_normal_kmers = filter_hard_threshold(normal_matrix, index_name, libsize_n, normal_out, arg.cohort_expr_support_normal, arg.n_samples_lim_normal, batch_tag=batch_tag)
                 normal_matrix = spark.read.csv(path_normal_kmers, sep=r'\t', header=False)
                 normal_matrix = normal_matrix.withColumnRenamed('_c0', index_name)
                 normal_matrix = normal_matrix.select(sf.col(index_name))
@@ -125,13 +130,6 @@ def mode_cancerspecif(arg):
                                                   arg.parallelism, cross_junction=1, tot_batches=arg.tot_batches, batch_id=arg.batch_id)
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
 
-
-
-                # Apply expression filter to foreground
-                if arg.scratch_dir:
-                    cancer_out = os.environ[arg.scratch_dir]
-                else:
-                    cancer_out = arg.output_dir
 
                 # sample specific filter
                 cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample])
@@ -224,8 +222,8 @@ def mode_cancerspecif(arg):
                                 arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
                                 arg.cohort_expr_support_normal, arg.n_samples_lim_normal, arg.tag_normals)
 
-            if arg.paths_cancer_samples and os.path.exists(cancer_path_tmp) and rename:
-                os.remove(cancer_path_tmp)
+            #if arg.paths_cancer_samples and os.path.exists(cancer_path_tmp) and rename:
+            #    os.remove(cancer_path_tmp)
 
 
             #TODO Implement the intersection of the modelling tissues

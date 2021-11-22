@@ -481,3 +481,18 @@ def save_output_count(output_count, report_count, report_steps, prefix, cancer_s
         with open(output_count, "a") as f:
             f.write(line)
         logging.info("Save intermediate info to {}".format(output_count))
+
+def redirect_scratch(scratch_dir, interm_dir_norm, interm_dir_canc, output_dir):
+    if scratch_dir:
+        cancer_out = os.environ[scratch_dir]
+        normal_out = os.environ[scratch_dir]
+        return normal_out, cancer_out
+    if interm_dir_canc:
+        cancer_out = interm_dir_canc
+    else:
+        cancer_out = output_dir
+    if  interm_dir_norm:
+        normal_out = interm_dir_norm
+    else:
+        normal_out = output_dir
+    return normal_out, cancer_out
