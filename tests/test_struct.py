@@ -205,6 +205,7 @@ def test_end_to_end_cancerspecif_mx():
               "--n-samples-lim-cancer", "1",
               "--tot-batches", "2",
               "--batch-id","0",
+              "--tag-prefix", 'G_',
               #"--expression-fields-c", 'segment_expr', 'junction_expr',
               #"--tissue-grp-files", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt",
               #'/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_OV.txt',

@@ -40,6 +40,8 @@ def mode_cancerspecif(arg):
             batch_tag = '_batch{}'.format(arg.batch_id)
         else:
             batch_tag = ''
+        if (arg.tag_prefix is not None) and arg.tag_prefix[-1] != '_':
+            arg.tag_prefix =  arg.tag_prefix + '_'
         report_count = []
         report_steps = []
 
@@ -194,10 +196,10 @@ def mode_cancerspecif(arg):
             logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
 
             # outpaths
-            base_path_final= os.path.join(arg.output_dir, '{}_{}_SampleLim{}CohortLim{}Across{}_FiltNormals{}Cohortlim{}Across{}'.format(
-                                                           cancer_sample_ori, mutation_mode, arg.sample_expr_support_cancer,
-                                                                        arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
-                                                                        arg.tag_normals, arg.cohort_expr_support_normal, arg.n_samples_lim_normal))
+            base_path_final= os.path.join(arg.output_dir, '{}{}_{}_SampleLim{}CohortLim{}Across{}_FiltNormals{}Cohortlim{}Across{}'.format(
+                                                            arg.tag_prefix, cancer_sample_ori, mutation_mode, arg.sample_expr_support_cancer,
+                                                            arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
+                                                            arg.tag_normals, arg.cohort_expr_support_normal, arg.n_samples_lim_normal))
 
             path_filter_final = base_path_final + batch_tag + extension
             path_filter_final_uniprot  = base_path_final + '_FiltUniprot'+ batch_tag + extension
