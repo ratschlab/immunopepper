@@ -150,7 +150,7 @@ def parse_arguments(argv):
     so.add_argument("--output-dir", help="output directory for the filtered matrix" , required=True, default='')
     so.add_argument("--output-count", help="request to write the intermediate number of kmer at each each step to the given path (risk of slow down)" , required=False, default='')
     so.add_argument("--expression-fields-c", nargs='+', help="name of segment and junction expression field in cancer file, default ['segment_expr', 'junction_expr']",required=False, default=None)
-    so.add_argument("--tag-normals", help="name for the normal cohort", required=False, default='')
+    so.add_argument("--tag-normals", help="name for the normal cohort output files, use when various normal cohorts", required=False, default='')
     so.add_argument("--whitelist-normal", help="file containg whitelist for normal samples", required=False, default=None)
     so.add_argument("--whitelist-cancer", help="file containg whitelist for cancer samples", required=False, default=None)
 
@@ -170,7 +170,6 @@ def parse_arguments(argv):
 
     nrf = parser_cancerspecif.add_argument_group('Normal_Recurrence_Filter')
     nrf.add_argument("--cancer-support-union", help="Choose how to combine sample-support and cohort-support in cancer. Request union, default intersection", action="store_true", required=False, default=False)
-    nrf.add_argument("--id-normals",  help="Specific name for the normal cohort experiment to be saved in counting file (see output-count)", required=False, default=None)
     nrf.add_argument("--path-normal-matrix-segm", nargs='+', help="segment expression integrated matrix of kmers * samples for background", required=False, default=None)
     nrf.add_argument("--path-normal-matrix-edge", nargs='+', help="edge expression integrated matrix of kmers * samples for background", required=False, default=None)
     nrf.add_argument("--n-samples-lim-normal", type=int, help="Number of normal samples in which the expression threshold should be met", required=False, default=None)
