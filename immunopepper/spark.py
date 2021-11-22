@@ -268,7 +268,7 @@ def filter_statistical(spark, tissue_grp_files, normal_matrix, index_name, path_
 
         # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
 
-def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limit, n_samples_lim, target_sample='', tag='normals' ):
+def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limit, n_samples_lim, target_sample='', tag='normals', batch_tag=''):
     ''' Filter samples based on j reads in at least n samples. The expressions are normalized for library size
     The filtering is either performed on the full cohort in the matrix or in the cohort excluding a target sample
 
@@ -291,8 +291,8 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
     else:
         suffix = ''
     path_ = os.path.join(out_dir,
-                         'interm_{}_combiExprCohortLim{}Across{}{}'.format( tag, expr_limit,
-                             n_samples_lim, suffix) + '.tsv')
+                         'interm_{}_combiExprCohortLim{}Across{}{}{}'.format( tag, expr_limit,
+                             n_samples_lim, suffix, batch_tag) + '.tsv')
 
     if not os.path.isfile(os.path.join(path_, '_SUCCESS')):
         logging.info("Filter matrix with cohort expression support {} in {} samples".format(expr_limit, n_samples_lim))

@@ -36,6 +36,10 @@ def mode_cancerspecif(arg):
         index_name = 'kmer'
         jct_col = "iscrossjunction"
         extension = '.tsv'
+        if arg.batch_id is not None:
+            batch_tag = '_batch{}'.format(arg.batch_id)
+        else:
+            batch_tag = ''
         report_count = []
         report_steps = []
 
@@ -85,7 +89,7 @@ def mode_cancerspecif(arg):
             else:
                 logging.info("\n \n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.cohort_expr_support_normal))
                 logging.info("expression filter")
-                path_normal_kmers = filter_hard_threshold(normal_matrix, index_name, libsize_n, arg.output_dir, arg.cohort_expr_support_normal, arg.n_samples_lim_normal)
+                path_normal_kmers = filter_hard_threshold(normal_matrix, index_name, libsize_n, arg.output_dir, arg.cohort_expr_support_normal, arg.n_samples_lim_normal, batch_tag=batch_tag)
                 normal_matrix = spark.read.csv(path_normal_kmers, sep=r'\t', header=False)
                 normal_matrix = normal_matrix.withColumnRenamed('_c0', index_name)
                 normal_matrix = normal_matrix.select(sf.col(index_name))
@@ -147,7 +151,8 @@ def mode_cancerspecif(arg):
                     path_cancer_kmers = filter_hard_threshold(cancer_matrix, index_name, libsize_c, cancer_out,
                                                               arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
                                                               target_sample=cancer_sample,
-                                                              tag='cancer_{}'.format(mutation_mode))
+                                                              tag='cancer_{}'.format(mutation_mode),
+                                                              batch_tag=batch_tag)
                     valid_foreground = spark.read.csv(path_cancer_kmers, sep=r'\t', header=False)
                     valid_foreground = valid_foreground.withColumnRenamed('_c0', index_name)
                     valid_foreground = valid_foreground.select(sf.col(index_name))
@@ -193,8 +198,9 @@ def mode_cancerspecif(arg):
                                                            cancer_sample_ori, mutation_mode, arg.sample_expr_support_cancer,
                                                                         arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
                                                                         arg.tag_normals, arg.cohort_expr_support_normal, arg.n_samples_lim_normal))
-            path_filter_final = base_path_final + extension
-            path_filter_final_uniprot  = base_path_final + '_FiltUniprot'+ extension
+
+            path_filter_final = base_path_final + batch_tag + extension
+            path_filter_final_uniprot  = base_path_final + '_FiltUniprot'+ batch_tag + extension
 
             # Remove background from foreground
             logging.info("Filtering normal background")
