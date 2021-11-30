@@ -112,7 +112,7 @@ def pq_WithRenamedCols(spark, list_paths, outdir):
     return df
 
 
-def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, whitelist, parallelism, cross_junction, tot_batches, batch_id):
+def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, whitelist, parallelism, cross_junction, tot_batches=None, batch_id=None):
     ''' Preprocess normal samples
     - corrects names
     - corrects types
@@ -149,7 +149,7 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
         if tot_batches:
             logging.info("Filter foreground and background based on Hash ; making {} batches, select batch number {}".format(tot_batches, batch_id))
 
-            normal_matrix = normal_matrix.filter(sf.hash('kmer') % tot_batches == batch_id)
+            normal_matrix = normal_matrix.filter(sf.abs(sf.hash('kmer') % tot_batches) == batch_id)
 
 
         # Keep relevant junction status and drop junction column
