@@ -6,6 +6,8 @@ from pyspark.sql import functions as sf
 from .config import create_spark_session_from_config
 from .config import default_spark_config
 from .spark import combine_cancer
+from .spark import combine_hard_threshold_cancers
+from .spark import combine_hard_threshold_normals
 from .spark import combine_normals
 from .spark import filter_expr_kmer
 from .spark import filter_hard_threshold
@@ -96,10 +98,8 @@ def mode_cancerspecif(arg):
             else:
                 logging.info("\n \n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.cohort_expr_support_normal))
                 logging.info("expression filter")
-                path_normal_kmers = filter_hard_threshold(normal_matrix, index_name, libsize_n, normal_out, arg.cohort_expr_support_normal, arg.n_samples_lim_normal, batch_tag=batch_tag)
-                normal_matrix = spark.read.csv(path_normal_kmers, sep=r'\t', header=False)
-                normal_matrix = normal_matrix.withColumnRenamed('_c0', index_name)
-                normal_matrix = normal_matrix.select(sf.col(index_name))
+                path_normal_kmers_e, path_normal_kmers_s = filter_hard_threshold(normal_matrix, index_name, libsize_n, normal_out, arg.cohort_expr_support_normal, arg.n_samples_lim_normal, batch_tag=batch_tag)
+                normal_matrix = combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers_s, arg.n_samples_lim_normal, index_name)
 
         if arg.path_normal_kmer_list is not None:
             logging.info("Load {}".format(arg.path_normal_kmer_list))
@@ -148,16 +148,13 @@ def mode_cancerspecif(arg):
 
                 #cross sample filter
                 if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
-                    path_cancer_kmers = filter_hard_threshold(cancer_matrix, index_name, libsize_c, cancer_out,
+                    path_cancer_kmers_e, path_cancer_kmers_s  = filter_hard_threshold(cancer_matrix, index_name, libsize_c, cancer_out,
                                                               arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
                                                               target_sample=cancer_sample,
                                                               tag='cancer_{}'.format(mutation_mode),
                                                               batch_tag=batch_tag)
-                    valid_foreground = spark.read.csv(path_cancer_kmers, sep=r'\t', header=False)
-                    valid_foreground = valid_foreground.withColumnRenamed('_c0', index_name)
-                    valid_foreground = valid_foreground.select(sf.col(index_name))
-                    cancer_cross_filter = cancer_matrix.join(valid_foreground, ["kmer"], # Probably do union differently
-                                                       how='right').select([index_name, cancer_sample])
+                    cancer_cross_filter = combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer, index_name, cancer_sample)
+
 
                     if arg.cancer_support_union:
                         cancer_kmers = cancer_cross_filter.union(cancer_sample_filter).distinct()

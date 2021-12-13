@@ -286,43 +286,92 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
     spark context
     Filtered normal matrix
         '''
+    path_e = None
+    path_s = None
+    base_n_samples  = 1
+    base_expr = 0 
     if target_sample:
         suffix = 'Except{}'.format(target_sample)
     else:
         suffix = ''
-    path_ = os.path.join(out_dir,
-                         'interm_{}_combiExprCohortLim{}Across{}{}{}'.format( tag, expr_limit,
-                             n_samples_lim, suffix, batch_tag) + '.tsv')
 
-    if not os.path.isfile(os.path.join(path_, '_SUCCESS')):
 
-        if target_sample:
-            logging.info("Target sample {} not included in the cohort filtering".format(target_sample))
-        if libsize is not None:
-            normal_matrix = normal_matrix.select(index_name, *[
-                sf.round(sf.col(name_) / libsize.loc[name_, "libsize_75percent"], 2).alias(name_)
-                for name_ in normal_matrix.schema.names if name_ != index_name])
+    if target_sample:
+        logging.info("Target sample {} not included in the cohort filtering".format(target_sample))
+    if libsize is not None:
+        normal_matrix = normal_matrix.select(index_name, *[
+            sf.round(sf.col(name_) / libsize.loc[name_, "libsize_75percent"], 2).alias(name_)
+            for name_ in normal_matrix.schema.names if name_ != index_name])
 
-        if expr_limit > 0:
-            logging.info("Filter matrix with cohort expression support >= {} in {} sample(s)".format(expr_limit, n_samples_lim))
-            normal_matrix = normal_matrix.select(index_name, *[
+    if expr_limit:  #a.k.a exclude >= X reads in >= 1 sample)
+        path_e = os.path.join(out_dir,'interm_{}_combiExprCohortLim{}Across{}{}{}'.format(tag, expr_limit, base_n_samples, suffix, batch_tag) + '.tsv')
+        if not os.path.isfile(os.path.join(path_e, '_SUCCESS')):
+            logging.info("Filter matrix with cohort expression support >= {} in {} sample".format(expr_limit, base_n_samples))
+            normal_matrix_e = normal_matrix.select(index_name, *[
                 sf.when(sf.col(name_) >= expr_limit, 1).otherwise(0).alias(name_)
                 for name_ in normal_matrix.schema.names if (name_ != index_name) and (name_ != target_sample ) ])
+            normal_matrix_e = normal_matrix_e.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= base_n_samples)
+            logging.info("Save to {}".format(path_e))
+            normal_matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e)
         else:
-            logging.info("Filter matrix with cohort expression support > {} in {} sample(s)".format(expr_limit, n_samples_lim))
-            normal_matrix = normal_matrix.select(index_name, *[
-                sf.when(sf.col(name_) > expr_limit, 1).otherwise(0).alias(name_)
+            logging.info(
+            "Filter matrix with cohort expression support {} in {} sample(s) already performed. Loading results from {}".format(
+                expr_limit, base_n_samples, path_e))
+            
+    if n_samples_lim: # (a.k.a exclude >0  reads in >= H samples) --> H samples filtering done subsequently 
+        path_s = os.path.join(out_dir,'interm_{}_combiExprCohortLim{}Across{}{}{}'.format(tag, base_expr, base_n_samples, suffix, batch_tag) + '.tsv')
+        if not os.path.isfile(os.path.join(path_s, '_SUCCESS')):
+            logging.info("Filter matrix with cohort expression support > {} in {} sample".format(base_expr, base_n_samples))
+            normal_matrix_s = normal_matrix.select(index_name, *[
+                sf.when(sf.col(name_) > base_expr, 1).otherwise(0).alias(name_)
                 for name_ in normal_matrix.schema.names if (name_ != index_name) and (name_ != target_sample ) ])
+            normal_matrix_s = normal_matrix_s.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= base_n_samples)
+            logging.info("Save to {}".format(path_s))
+            normal_matrix_s.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_s)
+        else:
+            logging.info(
+            "Filter matrix with cohort expression support {} in {} sample(s) already performed. Loading results from {}".format(
+                base_expr, base_n_samples, path_s))
 
-        normal_matrix = normal_matrix.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= n_samples_lim)
+    return path_e, path_s
+#  (a.k.a exclude >= X reads in >= 1 sample) → 3.0 reads >= 1
+#  (a.k.a exclude < X reads in <= 1 sample)
+# Do keep if normalized expression > 0 in < H samples
+#  (a.k.a exclude >0  reads in >= H samples) → 0 reads, >= 10 samples
 
-        logging.info("Save to {}".format(path_))
-        normal_matrix.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_)
-    else: 
-        logging.info("Filter matrix with cohort expression support {} in {} sample(s) already performed. Loading results from {}".format(expr_limit, n_samples_lim, path_))
+def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers_s, n_samples_lim_normal, index_name):
+    if path_normal_kmers_e: #a.k.a exclude >= X reads in >= 1 sample)
+        normal_matrix_e = spark.read.csv(path_normal_kmers_e, sep=r'\t', header=False)
+        normal_matrix_e = normal_matrix_e.withColumnRenamed('_c0', index_name)
+        normal_matrix_e = normal_matrix_e.select(sf.col(index_name))
+        if not path_normal_kmers_s:
+            return normal_matrix_e
+    if path_normal_kmers_s:  # (a.k.a exclude >0  reads in >= H samples)
+        normal_matrix_s = spark.read.csv(path_normal_kmers_s, sep=r'\t', header=False)
+        normal_matrix_s = normal_matrix_s.withColumnRenamed('_c0', index_name)
+        normal_matrix_s = normal_matrix_s.withColumnRenamed('_c1', "n_samples")
+        if n_samples_lim_normal > 1:
+            logging.info( "Filter matrix with cohort expression support > {} in {} sample(s)".format(0, n_samples_lim_normal))
+            normal_matrix_s.filter(sf.col('n_samples') >= n_samples_lim_normal)
+        normal_matrix_s = normal_matrix_s.select(sf.col(index_name))
+        if not path_normal_kmers_e:
+            return normal_matrix_s
 
-    return path_
+    normal_matrix_res = normal_matrix_e.union(normal_matrix_s) # Do not make distinct
+    return normal_matrix_res
 
+
+def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, cohort_expr_support_cancer, n_samples_lim_cancer, index_name, cancer_sample):
+    valid_foreground = spark.read.csv(path_cancer_kmers_e, sep=r'\t', header=False)
+    valid_foreground = valid_foreground.withColumnRenamed('_c0', index_name)
+    valid_foreground = valid_foreground.withColumnRenamed('_c1', "n_samples")
+    if n_samples_lim_cancer > 1:
+        logging.info( "Filter matrix with cohort expression support >= {} in {} sample(s)".format(cohort_expr_support_cancer, n_samples_lim_cancer))
+        valid_foreground.filter(sf.col('n_samples') >= n_samples_lim_cancer)
+    valid_foreground = valid_foreground.select(sf.col(index_name))
+    cancer_cross_filter = cancer_matrix.join(valid_foreground, ["kmer"],  # Probably do union differently
+                                             how='right').select([index_name, cancer_sample]) # Intersect with preprocessed cancer matrix
+    return cancer_cross_filter
 
 def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
     ''' Preprocess cancer samples
