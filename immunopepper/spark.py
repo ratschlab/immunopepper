@@ -334,10 +334,7 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
                 base_expr, base_n_samples, path_s))
 
     return path_e, path_s
-#  (a.k.a exclude >= X reads in >= 1 sample) → 3.0 reads >= 1
-#  (a.k.a exclude < X reads in <= 1 sample)
-# Do keep if normalized expression > 0 in < H samples
-#  (a.k.a exclude >0  reads in >= H samples) → 0 reads, >= 10 samples
+
 
 def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers_s, n_samples_lim_normal, index_name):
     if path_normal_kmers_e: #a.k.a exclude >= X reads in >= 1 sample)
