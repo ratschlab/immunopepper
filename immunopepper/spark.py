@@ -289,7 +289,7 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
     path_e = None
     path_s = None
     base_n_samples  = 1
-    base_expr = 0 
+    base_expr = 0.0 
     if target_sample:
         suffix = 'Except{}'.format(target_sample)
     else:
