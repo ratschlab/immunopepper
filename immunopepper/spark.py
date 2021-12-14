@@ -318,7 +318,7 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
             "Filter matrix with cohort expression support {} in {} sample(s) already performed. Loading results from {}".format(
                 expr_limit, base_n_samples, path_e))
             
-    if n_samples_lim: # (a.k.a exclude >0  reads in >= H samples) --> H samples filtering done subsequently 
+    if n_samples_lim is not None: # (a.k.a exclude >0  reads in >= H samples) --> H samples filtering done subsequently # n_samples_lim can be 0 -> 1 i used
         path_s = os.path.join(out_dir,'interm_{}_combiExprCohortLim{}Across{}{}{}'.format(tag, base_expr, base_n_samples, suffix, batch_tag) + '.tsv')
         if not os.path.isfile(os.path.join(path_s, '_SUCCESS')):
             logging.info("Filter matrix with cohort expression support > {} in {} sample".format(base_expr, base_n_samples))
