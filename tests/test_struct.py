@@ -198,7 +198,7 @@ def test_end_to_end_cancerspecif_mx():
               "--output-dir", os.path.join(basedir, 'filter_out'),
               "--output-count", os.path.join(basedir, 'filter_out', "collect.txt"),
               '--expr-high-limit-normal', "0.0",
-              '--cohort-expr-support-normal', "1",
+              '--cohort-expr-support-normal', "2",
               "--n-samples-lim-normal", "3",
               '--sample-expr-support-cancer', "4",
               '--cohort-expr-support-cancer', "20",

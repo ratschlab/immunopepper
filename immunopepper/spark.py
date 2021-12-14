@@ -349,7 +349,7 @@ def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers
         normal_matrix_s = normal_matrix_s.withColumnRenamed('_c1', "n_samples")
         if n_samples_lim_normal > 1:
             logging.info( "Filter matrix with cohort expression support > {} in {} sample(s)".format(0, n_samples_lim_normal))
-            normal_matrix_s.filter(sf.col('n_samples') >= n_samples_lim_normal)
+            normal_matrix_s = normal_matrix_s.filter(sf.col('n_samples') >= n_samples_lim_normal)
         normal_matrix_s = normal_matrix_s.select(sf.col(index_name))
         if not path_normal_kmers_e:
             return normal_matrix_s
@@ -366,7 +366,7 @@ def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, co
     valid_foreground = valid_foreground.withColumnRenamed('_c1', "n_samples")
     if n_samples_lim_cancer > 1:
         logging.info( "Filter matrix with cohort expression support >= {} in {} sample(s)".format(cohort_expr_support_cancer, n_samples_lim_cancer))
-        valid_foreground.filter(sf.col('n_samples') >= n_samples_lim_cancer)
+        valid_foreground = valid_foreground.filter(sf.col('n_samples') >= n_samples_lim_cancer)
     valid_foreground = valid_foreground.select(sf.col(index_name))
     cancer_cross_filter = cancer_matrix.join(valid_foreground, ["kmer"],  # Probably do union differently
                                              how='right').select([index_name, cancer_sample]) # Intersect with preprocessed cancer matrix
