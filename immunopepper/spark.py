@@ -353,9 +353,11 @@ def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers
         normal_matrix_s = normal_matrix_s.select(sf.col(index_name))
         if not path_normal_kmers_e:
             return normal_matrix_s
-
-    normal_matrix_res = normal_matrix_e.union(normal_matrix_s) # Do not make distinct
-    return normal_matrix_res
+    if path_normal_kmers_e and path_normal_kmers_s:
+        normal_matrix_res = normal_matrix_e.union(normal_matrix_s) # Do not make distinct
+        return normal_matrix_res
+    else:
+        return None
 
 
 def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, cohort_expr_support_cancer, n_samples_lim_cancer, index_name, cancer_sample):
