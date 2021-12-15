@@ -360,8 +360,11 @@ def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers
         return None
 
 
-def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, cohort_expr_support_cancer, n_samples_lim_cancer, index_name, cancer_sample):
-    valid_foreground = spark.read.csv(path_cancer_kmers_e, sep=r'\t', header=False)
+def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, path_cancer_kmers_s, cohort_expr_support_cancer, n_samples_lim_cancer, index_name, cancer_sample):
+    if cohort_expr_support_cancer != 0.0:
+        valid_foreground = spark.read.csv(path_cancer_kmers_e, sep=r'\t', header=False)
+    else:
+        valid_foreground = spark.read.csv(path_cancer_kmers_s, sep=r'\t', header=False)
     valid_foreground = valid_foreground.withColumnRenamed('_c0', index_name)
     valid_foreground = valid_foreground.withColumnRenamed('_c1', "n_samples")
     if n_samples_lim_cancer > 1:

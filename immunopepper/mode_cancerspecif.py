@@ -153,12 +153,14 @@ def mode_cancerspecif(arg):
                                                               target_sample=cancer_sample,
                                                               tag='cancer_{}'.format(mutation_mode),
                                                               batch_tag=batch_tag)
-                    cancer_cross_filter = combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer, index_name, cancer_sample)
+                    cancer_cross_filter = combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, path_cancer_kmers_s, arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer, index_name, cancer_sample)
 
 
                     if arg.cancer_support_union:
+                        logging.info("support union")
                         cancer_kmers = cancer_cross_filter.union(cancer_sample_filter).distinct()
                     else:
+                        logging.info("support intersect")
                         cancer_kmers = cancer_cross_filter.join(cancer_sample_filter.drop(cancer_sample), ["kmer"], how='inner')
                 else:
                     cancer_kmers = cancer_sample_filter
