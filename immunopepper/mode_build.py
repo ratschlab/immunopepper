@@ -310,8 +310,23 @@ def mode_build(arg):
     logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
     print_memory_diags()
 
+    # load graph metadata
+    start_time = timeit.default_timer()
+    if arg.count_path is not None:
+        logging.info('Loading count data ...')
+        countinfo, matching_count_samples, matching_count_ids  = parse_gene_metadata_info(arg.count_path, arg.output_samples, arg.cross_graph_expr)
+
+        end_time = timeit.default_timer()
+        logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
+        print_memory_diags()
+        #size_factor = get_size_factor(strains, arg.libsize_path)
+        #size_factor = None
+    else:
+        countinfo = None
+        size_factor = None
+
     # read the variant file
-    mutation = get_mutation_mode_from_parser(arg)
+    mutation = get_mutation_mode_from_parser(arg, matching_count_samples)
 
     # load splicegraph
     logging.info('Loading splice graph ...')
@@ -332,21 +347,6 @@ def mode_build(arg):
         
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
-    # load graph metadata
-    start_time = timeit.default_timer()
-    if arg.count_path is not None:
-        logging.info('Loading count data ...')
-        countinfo, matching_count_samples, matching_count_ids  = parse_gene_metadata_info(arg.count_path, arg.output_samples, arg.cross_graph_expr)
-
-        end_time = timeit.default_timer()
-        logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
-        print_memory_diags()
-        #size_factor = get_size_factor(strains, arg.libsize_path)
-        #size_factor = None
-    else:
-        countinfo = None
-        size_factor = None
-   
 
     # read the intron of interest file gtex_junctions.hdf5
     junction_dict = parse_junction_meta_info(arg.gtex_junction_path)

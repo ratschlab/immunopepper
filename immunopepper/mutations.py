@@ -94,7 +94,7 @@ def parse_mutation_file(mutation_tag, mutation_file_path, output_dir, heter_code
     return mutation_dict
 
 
-def get_mutation_mode_from_parser(args):
+def get_mutation_mode_from_parser(args, target_sample_list):
     "Check if the input files match the mutation mode"
     mutation_mode = args.mutation_mode
     germline_file_path = args.germline
@@ -102,7 +102,6 @@ def get_mutation_mode_from_parser(args):
     output_dir = args.output_dir
     heter_code = args.heter_code
     mut_pickle = args.use_mut_pickle
-    target_sample_list = args.output_samples
     is_error = True
     graph_to_somatic_names = {}
     graph_to_germline_names = {}
