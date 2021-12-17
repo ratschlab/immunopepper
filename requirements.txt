@@ -1,4 +1,4 @@
-h5py==2.10.0
+h5py==3.1.0
 numpy>=1.13
 psutil==5.4.6
 spladder==2.4.2
