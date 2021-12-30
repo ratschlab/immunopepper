@@ -149,7 +149,7 @@ def mode_cancerspecif(arg):
                 #cross sample filter
                 if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
                     path_cancer_kmers_e, path_cancer_kmers_s  = filter_hard_threshold(cancer_matrix, index_name, libsize_c, cancer_out,
-                                                              arg.cohort_expr_support_cancer, None,
+                                                              arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
                                                               target_sample=cancer_sample,
                                                               tag='cancer_{}'.format(mutation_mode),
                                                               batch_tag=batch_tag)
