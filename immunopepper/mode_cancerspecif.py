@@ -42,7 +42,7 @@ def mode_cancerspecif(arg):
         jct_col = "iscrossjunction"
         extension = '.tsv'
         if arg.batch_id is not None:
-            batch_tag = '_batch{}'.format(arg.batch_id)
+            batch_tag = '_batch{}_{}'.format(arg.batch_id, arg.tot_batches)
         else:
             batch_tag = ''
         if (arg.tag_prefix is not None) and arg.tag_prefix[-1] != '_':
