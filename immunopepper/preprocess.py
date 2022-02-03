@@ -510,7 +510,7 @@ def parse_mutation_from_maf(mutation_tag, target_sample_list, mutation_sample, m
             for target_sample in target_sample_list:
                 if sample_eq_dict[target_sample] not in file_sample_set:
                     if mutation_sample != target_sample:
-                        logging.warning("No mutations for sample {} found in vcf_h5 file, please check samples above, consider using --sample-name-map".format(
+                        logging.warning("No mutations for sample {} found in maf file, please check samples above, consider using --sample-name-map".format(
                             sample_eq_dict[target_sample]))
                     else:
                         logging.error("samples in mutation file: {}".format(file_sample_set))

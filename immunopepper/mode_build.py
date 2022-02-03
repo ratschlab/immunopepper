@@ -384,7 +384,8 @@ def mode_build(arg):
             output_samples_ids = matching_count_ids[np.argsort(matching_count_ids)]
         # If no samples requested, take all samples in countfile
         else:
-            arg.output_samples = matching_count_samples
+            arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '')
+                                  for output_sample in  matching_count_samples]
             output_samples_ids = None
     else:
         process_output_samples = arg.output_samples
