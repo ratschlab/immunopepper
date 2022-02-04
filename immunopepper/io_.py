@@ -250,6 +250,11 @@ def output_info(path, file_columns, kmer_list=None, pq_writer=False):
 
 def save_pd_toparquet(path, pd_df, compression = None, verbose = False, pqwriter=None, writer_close=True):
     s1 = timeit.default_timer()
+    size_init = pd_df.shape[1]
+    pd_df = pd_df.loc[:, ~pd_df.columns.duplicated(keep='first')]
+    size_new = pd_df.shape[1]
+    if size_init != size_new:
+        logging.warning("Graph/Count file contains duplicated sample names. Kept the first occurence")
     table = pa.Table.from_pandas(pd_df, preserve_index=False)
 
     if pqwriter is None:
