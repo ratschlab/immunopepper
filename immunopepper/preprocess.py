@@ -457,28 +457,23 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, target_sample_list, mutation_sample,
     a = h5py.File(h5_vcf_path,'r')
     mut_dict = {}
     file_sample_list = [decodeUTF8(item) for item in a['gtid']]
-    for target_sample in target_sample_list:
-        if sample_eq_dict[target_sample] not in file_sample_list:
-            if mutation_sample != target_sample:
-                logging.warning("No mutations for sample {} found in vcf_h5 file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
-                continue
-            else:
-                logging.error("samples in mutation file: {}".format(file_sample_list))
-                logging.error("No mutations for sample {} found in vcf_h5 file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
-                sys.exit(1)
-        col_id = [i for (i, item) in enumerate(file_sample_list) if item == sample_eq_dict[target_sample]][0]
-        row_id = np.where(np.logical_or(a['gt'][:,col_id] == heter_code,a['gt'][:,col_id] == 1))[0]
-        for irow in row_id:
-            chromo = encode_chromosome(a['pos'][irow,0])
-            pos = a['pos'][irow,1]-1
-            mut_base = decodeUTF8(a['allele_alt'][irow])
-            ref_base = decodeUTF8(a['allele_ref'][irow])
-            var_dict = {"mut_base":mut_base,"ref_base":ref_base}
-            if (target_sample,chromo)  in mut_dict:
-                mut_dict[(target_sample,chromo)][pos] = var_dict
-            else:
-                mut_dict[(target_sample,chromo)] = {}
-                mut_dict[(target_sample,chromo)][pos] = var_dict
+    if mutation_sample not in file_sample_list:
+        logging.error("Sample {} not found in the h5 variant file".format(mutation_sample))
+        sys.exit(1)
+    col_id = [i for (i, item) in enumerate(file_sample_list) if item == mutation_sample][0]
+    row_id = np.where(np.logical_or(a['gt'][:,col_id] == heter_code,a['gt'][:,col_id] == 1))[0]
+    for irow in row_id:
+        chromo = encode_chromosome(a['pos'][irow,0])
+        pos = a['pos'][irow,1]-1
+        mut_base = decodeUTF8(a['allele_alt'][irow])
+        ref_base = decodeUTF8(a['allele_ref'][irow])
+        var_dict = {"mut_base":mut_base,"ref_base":ref_base}
+        if (mutation_sample,chromo) in mut_dict:
+            mut_dict[(mutation_sample,chromo)][pos] = var_dict
+        else:
+            mut_dict[(mutation_sample,chromo)] = {}
+            mut_dict[(mutation_sample,chromo)][pos] = var_dict
+    logging.info("TEST {}".format(len(mut_dict)))
     return mut_dict
 
 
