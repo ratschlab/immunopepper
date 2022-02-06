@@ -423,7 +423,6 @@ def parse_mutation_from_vcf(mutation_tag, vcf_path, output_dir='', heter_code=0,
                     if items[9+i].split(':')[0] in {'1|1' ,'1|0', '0|1', '0/1', '1/0', '1/1'}:
                         if file_sample not in sample_eq_dict_reverse.keys():
                             sample_eq_dict_reverse[file_sample] = file_sample
-                            logging.warning("No sample equivalence graph/count to vcf has been provided for sample {} of vcf".format(file_sample))
                         if (sample_eq_dict_reverse[file_sample] ,chr) in list(mutation_dic.keys()):
                             mutation_dic[(sample_eq_dict_reverse[file_sample],chr)][int(pos)] = var_dict
                         else:
@@ -504,10 +503,7 @@ def parse_mutation_from_maf(mutation_tag, target_sample_list, mutation_sample, m
                 file_sample_set.add(sample_id)
             for target_sample in target_sample_list:
                 if sample_eq_dict[target_sample] not in file_sample_set:
-                    if mutation_sample != target_sample:
-                        logging.warning("No mutations for sample {} found in maf file, please check samples above, consider using --sample-name-map".format(
-                            sample_eq_dict[target_sample]))
-                    else:
+                    if mutation_sample == target_sample:
                         logging.error("samples in mutation file: {}".format(file_sample_set))
                         logging.error("No mutations for sample {} found in maf file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
                         sys.exit(1)
@@ -532,7 +528,6 @@ def parse_mutation_from_maf(mutation_tag, target_sample_list, mutation_sample, m
             var_dict['variant_Type'] = items[9]
             if file_sample not in sample_eq_dict_reverse.keys():
                 sample_eq_dict_reverse[file_sample] = file_sample
-                logging.warning("No sample equivalence graph/count to vcf has been provided for sample {} of maf".format(file_sample))
             if (sample_eq_dict_reverse[file_sample],chr) in list(mutation_dic.keys()):
                 mutation_dic[((sample_eq_dict_reverse[file_sample],chr))][int(pos)] = var_dict
             else:
@@ -545,9 +540,7 @@ def parse_mutation_from_maf(mutation_tag, target_sample_list, mutation_sample, m
     
     for target_sample in target_sample_list:
         if sample_eq_dict[target_sample] not in file_sample_set:
-            if mutation_sample != target_sample:
-                logging.warning("No mutations for sample {} found in vcf_h5 file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
-            else:
+            if mutation_sample == target_sample:
                 logging.error("samples in mutation file: {}".format(file_sample_set))
                 logging.error("No mutations for sample {} found in maf file, please check samples above, consider using --sample-name-map".format(sample_eq_dict[target_sample]))
                 sys.exit(1)
