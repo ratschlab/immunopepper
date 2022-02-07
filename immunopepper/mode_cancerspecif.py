@@ -3,8 +3,8 @@ import os
 from pyspark.sql import functions as sf
 
 
-from .config import create_spark_session_from_config
-from .config import default_spark_config
+from .spark_config import create_spark_session_from_config
+from .spark_config import default_spark_config
 from .spark import combine_cancer
 from .spark import combine_normals
 from .spark import filter_expr_kmer
@@ -119,9 +119,9 @@ def mode_cancerspecif(arg):
             if arg.paths_cancer_samples:
                 cancer_path = arg.paths_cancer_samples[cix]
                 rename = False # development
-                if rename: 
+                if rename:
                     cancer_path_tmp = pq_WithRenamedCols(cancer_path, arg.output_dir)
-                else: 
+                else:
                     cancer_path_tmp = cancer_path
                 cancer_kmers = spark.read.parquet(cancer_path_tmp)
                 # Preprocess cancer samples

@@ -14,7 +14,7 @@ import sys
 import timeit
 
 # immuno module
-from .config import MyPool
+from .spark_config import MyPool
 from .io_ import collect_results
 from .io_ import initialize_fp
 from .io_ import remove_folder_list
