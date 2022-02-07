@@ -6,7 +6,6 @@ import pathlib
 import pyarrow.parquet as pq
 from pyspark.sql import functions as sf
 from pyspark.sql import types as st
-import rpy2
 import rpy2.robjects as ro
 from rpy2.robjects import pandas2ri, Formula, r
 from rpy2.robjects.packages import importr

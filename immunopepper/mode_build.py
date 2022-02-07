@@ -4,6 +4,7 @@
 from collections import defaultdict
 import h5py
 import logging
+import multiprocessing as mp
 import numpy as np
 import os
 import pathlib
@@ -13,7 +14,6 @@ import sys
 import timeit
 
 # immuno module
-from .config import ExceptionWrapper
 from .config import MyPool
 from .io_ import collect_results
 from .io_ import initialize_fp
@@ -153,7 +153,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
         mem_per_gene = [np.nan]
         all_gene_idxs = []
         gene_expr = []
-        
+
         for i, gene in enumerate(genes):
             ### measure time
             start_time = timeit.default_timer()
@@ -341,10 +341,10 @@ def mode_build(arg):
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
     #graph_data = graph_data[0:20]
-    if arg.start_id != 0 and arg.start_id < len(graph_data): 
+    if arg.start_id != 0 and arg.start_id < len(graph_data):
         logging.info("development feature: starting at gene number {}".format(arg.start_id))
         graph_data = graph_data[arg.start_id:]
-        
+
     check_chr_consistence(chromosome_set,mutation,graph_data)
 
 
@@ -372,8 +372,8 @@ def mode_build(arg):
     global gene_id_list
     global output_sample
     global filepointer
-    
-    # handle output_sample relatively to output mode 
+
+    # handle output_sample relatively to output mode
     if arg.cross_graph_expr and countinfo:
         process_output_samples = ['cohort']
         # If samples requested, look for sample ids in count file
@@ -390,8 +390,8 @@ def mode_build(arg):
     else:
         process_output_samples = arg.output_samples
         output_samples_ids = None
-        
-        
+
+
     for output_sample in process_output_samples:
         logging.info(">>>> Processing output_sample {}, there are {} graphs in total".format(output_sample,num))
 
@@ -426,24 +426,18 @@ def mode_build(arg):
             if not arg.skip_annotation:
                 # Build the background
                 logging.info(">>>>>>>>> Start Background processing")
-                pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
-                args = [(output_sample, arg.mutation_sample,  graph_data[gene_idx], gene_idx, arg.all_read_frames, mutation, countinfo, genetable, arg,
-                      os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
-
-                result = pool_f.submit(mapper_funct_back, args)
-                pool_f.terminate()
-                exits_if_exception = [res for res in result]
+                with mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN)) as pool:
+                    args = [(output_sample, arg.mutation_sample,  graph_data[gene_idx], gene_idx, arg.all_read_frames, mutation, countinfo, genetable, arg,
+                          os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+                    pool.imap(mapper_funct_back, args, chunksize=1)
 
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
-            pool_f = MyPool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
-            args = [(output_sample, arg.mutation_sample, output_samples_ids, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(
-                gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg,
-                  os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
-
-            result = pool_f.submit(mapper_funct, args)
-            pool_f.terminate()
-            exits_if_exception = [res for res in result]
+            with mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN)) as pool:
+                args = [(output_sample, arg.mutation_sample, output_samples_ids, graph_data[gene_idx], graph_info[gene_idx], gene_idx, len(
+                    gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg,
+                      os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+                pool.submit(mapper_funct, args, chunksize=1)
 
 
             # Collects and pools the files of each batch
