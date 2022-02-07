@@ -43,7 +43,7 @@ class MyPool:
 
 
 def default_spark_config(cores: int, memory_per_executor: int, parallelism: int, driver_overhead: int = 2000,
-                         tmp_dir: str = '', extra_java_options: str = '', enable_arrow: bool = True, use_utc: bool= False) -> SparkConf:
+                          extra_java_options: str = '', enable_arrow: bool = True, use_utc: bool= False) -> SparkConf:
     '''
     See also https://spark.apache.org/docs/latest/configuration.html for more information
     about the semantics of the configurations
@@ -65,12 +65,12 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
     
     cfg = SparkConf()
 
-    if tmp_dir:
-        cfg.set("spark.local.dir", tmp_dir)
+    #if tmp_dir:
+    #    cfg.set("spark.local.dir", tmp_dir)
     
     #TODO set as parameter 
     java_options = str(extra_java_options)
-    java_options = "-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintFlagsFinal"
+    #java_options = "-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintFlagsFinal"
     #java_options = java_options + " -XX:+PrintReferenceGC -XX:+PrintAdaptiveSizePolicy -XX:+UnlockDiagnosticVMOptions -XX:+G1SummarizeConcMark"
     #java_options = java_options + " -XX:+HeapDumpOnOutOfMemoryError"
     java_options = java_options + " -XX:ThreadStackSize=81920"
@@ -91,12 +91,14 @@ def default_spark_config(cores: int, memory_per_executor: int, parallelism: int,
             set("spark.sql.debug.maxToStringFields", 11000).
             set("spark.executor.heartbeatInterval", 10000).
             set("spark.network.timeout", 1000000).
+            set("spark.sql.autoBroadcastJoinThreshold", "-1").
             set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").
             #set("spark.driver.bindAddress", "192.168.0.13").
             set("spark.default.parallelism", parallelism).
             set("spark.sql.shuffle.partitions", parallelism).
-            set("spark.driver.maxResultSize", "0") #unlimited
-             #TODO remove the personal IP address
+            set("spark.driver.maxResultSize", "0"). #unlimited
+            set("spark.ui.showConsoleProgress", "false")
+                        #TODO remove the personal IP address
             )
 
 
