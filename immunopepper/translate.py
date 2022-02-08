@@ -6,7 +6,7 @@ import numpy as np
 import pyximport; pyximport.install()
 import sys
 
-from immunopepper.cpython_functions import translate_dna_to_peptide
+from immunopepper.dna_to_peptide import dna_to_peptide
 
 from .namedtuples import Coord
 from .namedtuples import Flag
@@ -14,12 +14,8 @@ from .namedtuples import Peptide
 from .namedtuples import ReadingFrameTuple
 from .utils import get_exon_expr,get_sub_mut_dna
 
-# def translate_dna_to_peptide(dna_str):
-#     """ Translate a DNA sequence encoding a peptide to amino-acid sequence via RNA.
-
-
 def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts, Idx, mode, all_read_frames):
-    """ 
+    """
     Output translated peptide and segment expression list given cds_list
 
     Parameters
@@ -71,7 +67,7 @@ def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts, Idx, mode, all_
         else:
             logging.error("ERROR: Invalid strand. Got %s but expect + or -" % gene.strand.strip())
             sys.exit(1)
-    cds_peptide, is_stop_flag = translate_dna_to_peptide(cds_string, all_read_frames)
+    cds_peptide, is_stop_flag = dna_to_peptide(cds_string, all_read_frames)
     return cds_expr_list, cds_string, cds_peptide
 
 
@@ -147,8 +143,8 @@ def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_
     assert (len(peptide_dna_str_mut) == len(peptide_dna_str_ref))
     # if len(peptide_dna_str_mut) % 3 != 0:
     #     print("Applied mutations have changed the length of the DNA fragment - no longer divisible by 3")
-    peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut, all_read_frames)
-    peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref, all_read_frames)
+    peptide_mut, mut_has_stop_codon = dna_to_peptide(peptide_dna_str_mut, all_read_frames)
+    peptide_ref, ref_has_stop_codon = dna_to_peptide(peptide_dna_str_ref, all_read_frames)
 
     # if the stop codon appears before translating the second exon, mark 'single'
     is_isolated = False
@@ -206,8 +202,8 @@ def isolated_peptide_result(read_frame, strand, variant_comb, somatic_mutation_s
         peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand, gene_start))
         peptide_dna_str_ref = complementary_seq(ref_seq[start_v1 - gene_start:stop_v1 - gene_start][::-1])
 
-    peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut, all_read_frames)
-    peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref, all_read_frames)
+    peptide_mut, mut_has_stop_codon = dna_to_peptide(peptide_dna_str_mut, all_read_frames)
+    peptide_ref, ref_has_stop_codon = dna_to_peptide(peptide_dna_str_ref, all_read_frames)
 
     is_isolated = True
 
@@ -231,8 +227,8 @@ def get_peptide_result(simple_meta_data, strand, variant_comb, somatic_mutation_
     else:  # strand == "-"
         peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, modi_coord, variant_comb, somatic_mutation_sub_dict, strand, gene_start))
         peptide_dna_str_ref = complementary_seq(get_sub_mut_dna(ref_seq, modi_coord, np.nan, somatic_mutation_sub_dict, strand, gene_start))
-    peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut, all_read_frames)
-    peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref, all_read_frames)
+    peptide_mut, mut_has_stop_codon = dna_to_peptide(peptide_dna_str_mut, all_read_frames)
+    peptide_ref, ref_has_stop_codon = dna_to_peptide(peptide_dna_str_ref, all_read_frames)
 
     # if the stop codon appears before translating the second exon, mark 'single'
     if modi_coord.start_v2 is np.nan or len(peptide_mut[0])*3 <= abs(modi_coord.stop_v1 - modi_coord.start_v1) + 1:

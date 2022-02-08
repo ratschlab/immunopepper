@@ -118,7 +118,8 @@ tests/None/*
 /data_test/*
 
 
-immunopepper/cpython_functions.c
+immunopepper/dna_to_peptide.c
+immunopepper/dna_to_peptide.html
 /logs*
 /logs*/*
 

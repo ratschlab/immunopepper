@@ -6,9 +6,6 @@
 from setuptools import setup, find_packages
 from Cython.Build import cythonize
 
-
-
-
 with open('README.md') as readme_file:
     readme = readme_file.read()
 
@@ -42,6 +39,7 @@ setup(
     license="MIT license",
     long_description=readme,
     include_package_data=True,
+    include_dirs='.',
     keywords='immunopepper',
     name='immunopepper',
     packages=find_packages(include=['immunopepper']),
@@ -51,5 +49,5 @@ setup(
     url='https://github.com/ratschlab/immunopepper',
     version='2.0.0',
     zip_safe=False,
-    ext_modules = cythonize("./immunopepper/cpython_functions.pyx")
+    ext_modules = cythonize('./immunopepper/dna_to_peptide.pyx', include_path=['.'], annotate=True)
 )

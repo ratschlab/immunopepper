@@ -1,19 +1,12 @@
-def translate_dna_to_peptide(dna_str:str,all_read_frames:bool):
-    """ Translate a DNA sequence encoding a peptide to amino-acid sequence via RNA.
+def dna_to_peptide(dna_str: str, all_read_frames: bool):
+    """ Translate a DNA sequence encoding a peptide to the corresponding amino-acid sequence.
 
-    If 'N' is included in input dna, 'X' will be outputted since 'N' represents
-    uncertainty. Also will output a flag indicating if has stop codon.
+    All codons that include an 'N' will be translated to 'X'.
 
-    Parameters
-    ----------
-    dna_str: str or List(str). dna string to be translated.
-    all_read_frames: boolean for all reading frames translation versus annotated reading frame propagation. Given as string
-
-    Returns
-    -------
-    aa_str: translated peptide
-    has_stop_codon: Indicator for showing if the input dna contains stop codon
-
+    :param dna_str: dna string to be translated.
+    :param all_read_frames: if false, only the first peptide until the stop codon is returned, otherwise a list of
+      all translated peptides (for each stop codon) is provided
+    :return: a tuple containing the translated peptide and a boolean indicating if a stop codon was found
     """
     cdef dict codontable = {
         'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
@@ -34,25 +27,23 @@ def translate_dna_to_peptide(dna_str:str,all_read_frames:bool):
         'TGC': 'C', 'TGT': 'C', 'TGA': '_', 'TGG': 'W'
     }
     dna_str = dna_str.upper()
-    cdef list multiple_pep = []
+    cdef list peptides = []
     cdef bint has_stop_codon = False
     cdef list aa_str = []
-    for idx in range(0, len(dna_str), 3):
+    for idx in range(0, (len(dna_str) // 3) * 3, 3):
         codon = dna_str[idx:idx + 3]
-        if len(codon) < 3:
-            break
         if 'N' in codon:
             aa_str.append('X')
         else:
-            if codontable[codon] == '_':
+            amino_acid = codontable[codon]
+            if amino_acid == '_':
                 has_stop_codon = True
                 if not all_read_frames:
                     return [''.join(aa_str)], has_stop_codon
-                else:
-                    multiple_pep.append(''.join(aa_str))
-                    aa_str.clear()
+                peptides.append(''.join(aa_str))
+                aa_str.clear()
             else:
-                aa_str.append(codontable[codon])
+                aa_str.append(amino_acid)
 
-    multiple_pep.append(''.join(aa_str))
-    return multiple_pep, has_stop_codon
+    peptides.append(''.join(aa_str))
+    return peptides, has_stop_codon
