@@ -3,8 +3,8 @@ import os
 from pyspark.sql import functions as sf
 
 
-from .config import create_spark_session_from_config
-from .config import default_spark_config
+from .spark_config import create_spark_session_from_config
+from .spark_config import default_spark_config
 from .spark import combine_cancer
 from .spark import combine_hard_threshold_cancers
 from .spark import combine_hard_threshold_normals
