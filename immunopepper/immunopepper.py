@@ -11,7 +11,6 @@ from mhctools.cli.args import make_mhc_arg_parser
 from .mode_build import mode_build
 from .mode_samplespecif import mode_samplespecif
 from .mode_filter import mode_filter
-from .mode_crosscohort import mode_crosscohort
 from .mode_cancerspecif import mode_cancerspecif
 
 
@@ -271,8 +270,6 @@ def split_mode(options):
         mode_samplespecif(arg)
     if mode == 'filter':
         mode_filter(arg)
-    if mode == "crosscohort":
-        mode_crosscohort(arg)
     if mode == "cancerspecif":
         mode_cancerspecif(arg)
     if mode == "mhcbind":
