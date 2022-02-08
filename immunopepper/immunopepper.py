@@ -10,7 +10,6 @@ from mhctools.cli.args import make_mhc_arg_parser
 
 from .mode_build import mode_build
 from .mode_samplespecif import mode_samplespecif
-from .mode_filter import mode_filter
 from .mode_cancerspecif import mode_cancerspecif
 
 
@@ -84,35 +83,6 @@ def parse_arguments(argv):
     required.add_argument("--remove-bg", help="choose to simply remove background rows or add a new flag column to indicate"
                                               " if the kmer exists in the background kmers", action="store_true", required=False, default=False)
     _add_general_args(parser_samplespecif)
-
-    ### mode_filter
-    parser_filter = subparsers.add_parser('filter', help='apply different filter rules')
-    required = parser_filter.add_argument_group('MANDATORY')
-    required.add_argument("--junction-kmer-tsv-path", help="the kmer tsv file", required=True, default='')
-    required.add_argument("--output-dir",help='specify the directory to store the log file',required=True)
-    required.add_argument("--output-file-path", help="directory to save filtered kmer file", required=True)
-
-    optional = parser_filter.add_argument_group('OPTIONAL')
-    optional.add_argument("--cross-junction", help="only output the cross-junction kmers", action="store_true",default=False)
-    optional.add_argument("--seg-expr", help="only output kmers that have segment expression greater than threshold", action="store_true",default=False)
-    optional.add_argument("--seg-expr-thresh", type=float, help="segment expression threshold [0]", default=0)
-    optional.add_argument("--junc-expr", help="only output kmers that have junction expression greater than threshold", action="store_true",default=False)
-    optional.add_argument("--junc-expr-thresh", type=float, help="junction expression threshold [0]", default=0)
-    optional.add_argument("--meta-file-path",help="specify the meta data file for more filters")
-    optional.add_argument('--peptide-annotated',help="filter the kmers based on whether their original kmers appear in background peptide, 0 means keeping"
-                                                     "the kmers whose original peptide does not show in background peptide. 1 means the opposite")
-    optional.add_argument('--junction-annotated',help="filter the kmers based on whether their corresponding junction appear in annotation file, 0 means keeping"
-                                                     "the kmers whose original junction does not show in annotation file. 1 means the opposite")
-    optional.add_argument('--has-stop-codon',help="filter the kmers based on whether their corresponding sequence contains stop codon, 0 means keeping"
-                                                     "the kmers whose corresponding dna does not contain stop codon. 1 means the opposite")
-    optional.add_argument('--is-in-junction-list',help="filter the kmers based on whether their corresponding intron is in the junction whitelist, 0 means keeping"
-                                                     "the kmers whose corresponding intron id not in the junction whitelist. 1 means the opposite")
-    optional.add_argument('--is-isolated',help="filter the kmers based on whether their corresponding peptide comes from single exon or not, 0 means keeping"
-                                                     "the kmers whose corresponding peptide comes from exon pairs. 1 means the opposite")
-    optional.add_argument("--infer-dna-pos",help="infer the exact dna positions that output the given kmer for rna-seq filter. Need meta file provided"
-                                                 "otherwise no effect",action="store_true",default=False)
-
-    _add_general_args(parser_filter)
 
     ### mode_cancerspecif
     parser_cancerspecif = subparsers.add_parser('cancerspecif',help='Performs differential filtering against a panel of normal samples')
@@ -200,10 +170,6 @@ def parse_arguments(argv):
             parser_build.print_help()
         elif argv[0] == 'samplespecif':
             parser_samplespecif.print_help()
-        elif argv[0] == 'filter':
-            parser_filter.print_help()
-        elif argv[0] == "crosscohort":
-            parser_crosscohort.print_help()
         elif argv[0] == "cancerspecif":
             parser_cancerspecif.print_help()
         elif argv[0] == "mhcbind":
@@ -246,8 +212,6 @@ def split_mode(options):
         mode_build(arg)
     if mode == 'samplespecif':
         mode_samplespecif(arg)
-    if mode == 'filter':
-        mode_filter(arg)
     if mode == "cancerspecif":
         mode_cancerspecif(arg)
     if mode == "mhcbind":
