@@ -3,7 +3,6 @@
 
 """The setup script."""
 
-import platform
 from setuptools import setup, find_packages
 from Cython.Build import cythonize
 
@@ -16,12 +15,6 @@ with open('requirements.txt') as f:
     requirements = list(f.readlines())
 
 test_requirements = ['pytest']
-
-compile_args = ['-std=c++11']
-link_args = ['-std=c++11']
-if platform.system() != 'Darwin':
-    compile_args.append('-fopenmp')
-    link_args.append('-fopenmp')
 
 setup(
     author="Andre Kahles",

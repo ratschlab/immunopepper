@@ -14,10 +14,6 @@ from .namedtuples import Peptide
 from .namedtuples import ReadingFrameTuple
 from .utils import get_exon_expr,get_sub_mut_dna
 
-# def dna_to_peptide(dna_str):
-#     """ Translate a DNA sequence encoding a peptide to amino-acid sequence via RNA.
-
-
 def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts, Idx, mode, all_read_frames):
     """
     Output translated peptide and segment expression list given cds_list
