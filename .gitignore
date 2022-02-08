@@ -119,6 +119,7 @@ tests/None/*
 
 
 immunopepper/dna_to_peptide.c
+immunopepper/dna_to_peptide.html
 /logs*
 /logs*/*
 
