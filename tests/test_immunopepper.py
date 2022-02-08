@@ -22,7 +22,7 @@ from immunopepper.utils import check_chr_consistence
 from immunopepper.utils import create_libsize
 from immunopepper.utils import get_sub_mut_dna
 from immunopepper.utils import get_concat_peptide
-from immunopepper.translate import translate_dna_to_peptide
+from immunopepper.translate import dna_to_peptide
 from immunopepper.translate import complementary_seq
 from immunopepper.immunopepper import parse_arguments
 from immunopepper.immunopepper import split_mode
@@ -357,7 +357,7 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
                                                       pos_start=0,
                                                       pos_end=lens[i],
                                                       mutation_sub_dict=mutation.germline_mutation_dict[(sample, ref)])['background']
-            else: 
+            else:
                 seq_dict[ref] = fh.fetch(ref)
 
     f = gz_and_normal_open(new_junction_file,'r')
@@ -408,7 +408,7 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
                 i += 2
             seq = ''.join(seq_list)
             seq = complementary_seq(seq)
-        aa,_ = translate_dna_to_peptide(seq)
+        aa,_ = dna_to_peptide(seq)
         assert aa == kmer
 
 

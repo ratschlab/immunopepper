@@ -3,11 +3,9 @@
 
 """The setup script."""
 
+import platform
 from setuptools import setup, find_packages
 from Cython.Build import cythonize
-
-
-
 
 with open('README.md') as readme_file:
     readme = readme_file.read()
@@ -18,6 +16,12 @@ with open('requirements.txt') as f:
     requirements = list(f.readlines())
 
 test_requirements = ['pytest']
+
+compile_args = ['-std=c++11']
+link_args = ['-std=c++11']
+if platform.system() != 'Darwin':
+    compile_args.append('-fopenmp')
+    link_args.append('-fopenmp')
 
 setup(
     author="Andre Kahles",
@@ -42,6 +46,7 @@ setup(
     license="MIT license",
     long_description=readme,
     include_package_data=True,
+    include_dirs='.',
     keywords='immunopepper',
     name='immunopepper',
     packages=find_packages(include=['immunopepper']),
@@ -51,5 +56,5 @@ setup(
     url='https://github.com/ratschlab/immunopepper',
     version='2.0.0',
     zip_safe=False,
-    ext_modules = cythonize("./immunopepper/cpython_functions.pyx")
+    ext_modules = cythonize('./immunopepper/dna_to_peptide.pyx', include_path=['.'], annotate=True)
 )
