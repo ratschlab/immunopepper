@@ -24,6 +24,7 @@ jobs:
           command: |
             mkdir ~/test_reports
             source ~/env/bin/activate
+            python setup.py build_ext --inplace
             pytest --junitxml=~/test_reports/pytest-results.xml tests/test_dna_to_peptide.py
       - store_test_results:
           path: ~/test_reports
