@@ -8,9 +8,9 @@ import sys
 from datetime import datetime
 from mhctools.cli.args import make_mhc_arg_parser
 
-from .mode_build import mode_build
-from .mode_samplespecif import mode_samplespecif
-from .mode_cancerspecif import mode_cancerspecif
+from mode_build import mode_build
+from mode_samplespecif import mode_samplespecif
+from mode_cancerspecif import mode_cancerspecif
 
 
 def _add_general_args(parser):
@@ -48,7 +48,7 @@ def parse_arguments(argv):
     additional_file.add_argument("--count-path",help="absolute path of count hdf5 file", required=False, default=None)
     additional_file.add_argument("--gtex-junction-path",help="absolute path of whitelist junction file, currently only support hdf5 format. Will suport tsv"
                                                              "format in the future", required=False, default=None)
-    additional_file.add_argument("--sample-name-map", help="provide an naming equivalence between the count/graphs files, the germline and the somatic mutation file Format:[ no header, 2 or 3 columns]. If 2 columns [ name in count/graphs files \t name in mutations files ] If 3 columns [name in count/graphs files \t name in germline file \t name in somatic file]", required=False, default=None) 
+    additional_file.add_argument("--sample-name-map", help="provide an naming equivalence between the count/graphs files, the germline and the somatic mutation file Format:[ no header, 2 or 3 columns]. If 2 columns [ name in count/graphs files \t name in mutations files ] If 3 columns [name in count/graphs files \t name in germline file \t name in somatic file]", required=False, default=None)
     _add_general_args(parser_build)
 
     experimental = parser_build.add_argument_group('EXPERIMENTAL')
@@ -149,7 +149,7 @@ def parse_arguments(argv):
     dv.add_argument("--tot-batches", type=int, help="Filter foreground and in background kmers based on hash function. Set number of batches",required=False, default=None)
     dv.add_argument("--batch-id", type=int, help="Filter foreground and in background kmers based on hash function. Set 0<= batch_id <tot_batches",required=False, default=None)
     _add_general_args(parser_cancerspecif)
- 
+
     ### mode_mhcbind
     parser_mhcbind = subparsers.add_parser('mhcbind',help='Perform MHC binding prediction with a wrapper for MHCtools')
     parser_mhcbind.add_argument("--mhc-software-path", help="path for MHC prediction software. e.g. netmhc3, netmhc4, netmhcpan, mhcflurry", required=True, default=None)
@@ -157,10 +157,10 @@ def parse_arguments(argv):
     parser_mhcbind.add_argument("--output-dir", help="Specify the output directory for the MHC binding prediction", required=True, default='')
     parser_mhcbind.add_argument("--partitioned-tsv", help="Take directly the output from cancerspecif mode, need to provide the folder containing a partitionned tsv, input-peptides-file for MHC tools will be generated on the fly and saved following the path given for input-peptides-file", required=False, default=None)
     parser_mhcbind.add_argument("--bind-score-method", help="Scoring method for post binding prediction filtering e.g. score,affinity,percentile_rank for netmhc", required=False, default=None)
-    parser_mhcbind.add_argument("--bind-score-threshold", type=float, help="Scoring threshold (>= threshold) for post binding prediction filtering", required=False, default=None)        
+    parser_mhcbind.add_argument("--bind-score-threshold", type=float, help="Scoring threshold (>= threshold) for post binding prediction filtering", required=False, default=None)
     parser_mhcbind.add_argument("--less-than", help="Scoring threshold operation becomes <= threshold", action="store_true", required=False, default=False)
     _add_general_args(parser_mhcbind)
-    
+
     if len(argv) < 1:
         parser.print_help()
         sys.exit(1)
@@ -174,7 +174,7 @@ def parse_arguments(argv):
             parser_cancerspecif.print_help()
         elif argv[0] == "mhcbind":
             sys.stdout.write("------------------------------ MHCBIND IMMUNOPEPPER USAGE ------------------------------ \n \n ")
-            parser_mhcbind.print_help() 
+            parser_mhcbind.print_help()
             sys.stdout.write("\n------------------------------ MHCTOOLS AVAILABLE COMMAND LINE OPTIONS ------------------------------ \n \n ")
             parser_mhc = make_mhc_arg_parser(prog="mhctools",description=("Predict MHC ligands from protein sequences"))
             parser_mhc.print_help()
@@ -202,7 +202,7 @@ def split_mode(options):
         log_level = logging.INFO
     else:
         log_level = logging.DEBUG
-        
+
     logging.basicConfig(
                         level=log_level,
                         handlers=handlers,
