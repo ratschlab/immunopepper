@@ -32,7 +32,7 @@ def dna_to_peptide(dna_str: str, all_read_frames: bool):
     cdef list aa_str = []
     for idx in range(0, (len(dna_str) // 3) * 3, 3):
         codon = dna_str[idx:idx + 3]
-        if codon[0] == 'N' or codon[1] == 'N' or codon[2] == 'N':
+        if 'N' in codon:
             aa_str.append('X')
         else:
             amino_acid = codontable[codon]
