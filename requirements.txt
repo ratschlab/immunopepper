@@ -1,6 +1,6 @@
 cython>=0.29.17
 h5py==2.10.0
-mhctools>=1.5.0
+mhctools
 numpy>=1.13
 pandas>=1.0.5
 psutil==5.4.6
