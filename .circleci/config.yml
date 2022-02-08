@@ -6,6 +6,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: install R
+          command: sudo apt install r-base
+      - run:
           name: setup environment
           command: |
             mkdir ~/env
