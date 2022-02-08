@@ -2,7 +2,6 @@ from collections import defaultdict
 import glob
 import logging
 import os
-import numpy as np
 import pathlib
 from pyspark.sql import functions as sf
 from pyspark.sql import types as st

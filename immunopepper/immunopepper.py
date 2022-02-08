@@ -4,7 +4,6 @@ import argparse
 import logging
 import os
 import sys
-import cProfile
 
 from datetime import datetime
 from mhctools.cli.args import make_mhc_arg_parser

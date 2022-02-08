@@ -1,7 +1,6 @@
 """Contains all the output computation based on gene splicegraph"""
 
 from collections import defaultdict
-import logging
 import numpy as np
 
 from .filter import add_dict_kmer_forgrd
@@ -11,9 +10,7 @@ from .filter import get_filtered_metadata_list
 from .filter import junction_is_annotated
 from .filter import junction_is_in_given_list
 from .filter import junction_tuple_is_annotated
-from .io_ import gz_and_normal_open
 from .io_ import save_kmer_matrix
-from .io_ import switch_tmp_path
 from .mutations import apply_germline_mutation
 from .mutations import get_exon_som_dict
 from .mutations import get_mut_comb

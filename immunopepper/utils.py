@@ -1,7 +1,5 @@
 """Contain functions to help compute, to preprocess"""
-from collections import defaultdict
 import bisect
-import h5py
 import itertools
 import logging
 import numpy as np

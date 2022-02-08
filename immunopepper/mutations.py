@@ -4,7 +4,6 @@ import logging
 import sys
 import numpy as np
 import pysam
-import h5py
 
 from functools import reduce
 

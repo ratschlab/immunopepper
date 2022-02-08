@@ -3,7 +3,6 @@ import numpy as np
 import os
 import pandas as pd
 import pathlib
-import pyarrow.parquet as pq
 from pyspark.sql import functions as sf
 from pyspark.sql import types as st
 import rpy2.robjects as ro
@@ -11,7 +10,6 @@ from rpy2.robjects import pandas2ri, Formula, r
 from rpy2.robjects.packages import importr
 import scipy
 from scipy import stats
-import sys
 
 from .io_ import save_pd_toparquet
 

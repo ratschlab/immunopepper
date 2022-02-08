@@ -1,6 +1,4 @@
 """Contains the functionality used for filtering"""
-import sys
-import re
 
 import numpy as np
 
