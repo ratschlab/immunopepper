@@ -14,30 +14,30 @@ import sys
 import timeit
 
 # immuno module
-from .io_ import collect_results
-from .io_ import initialize_fp
-from .io_ import remove_folder_list
-from .io_ import save_backgrd_kmer_set
-from .io_ import save_backgrd_pep_dict
-from .io_ import save_gene_expr_distr
-from .io_ import save_forgrd_kmer_dict
-from .io_ import save_forgrd_pep_dict
-from .mutations import get_mutation_mode_from_parser
-from .mutations import get_sub_mutation_tuple
-from .preprocess import genes_preprocess_all
-from .preprocess import parse_junction_meta_info
-from .preprocess import parse_gene_choices
-from .preprocess import parse_gene_metadata_info
-from .preprocess import preprocess_ann
-from .traversal import collect_background_transcripts
-from .traversal import collect_vertex_pairs
-from .traversal import get_and_write_background_peptide_and_kmer
-from .traversal import get_and_write_peptide_and_kmer
-from .utils import check_chr_consistence
-from .utils import create_libsize
-from .utils import get_idx
-from .utils import get_total_gene_expr
-from .utils import print_memory_diags
+from io_ import collect_results
+from io_ import initialize_fp
+from io_ import remove_folder_list
+from io_ import save_backgrd_kmer_set
+from io_ import save_backgrd_pep_dict
+from io_ import save_gene_expr_distr
+from io_ import save_forgrd_kmer_dict
+from io_ import save_forgrd_pep_dict
+from mutations import get_mutation_mode_from_parser
+from mutations import get_sub_mutation_tuple
+from preprocess import genes_preprocess_all
+from preprocess import parse_junction_meta_info
+from preprocess import parse_gene_choices
+from preprocess import parse_gene_metadata_info
+from preprocess import preprocess_ann
+from traversal import collect_background_transcripts
+from traversal import collect_vertex_pairs
+from traversal import get_and_write_background_peptide_and_kmer
+from traversal import get_and_write_peptide_and_kmer
+from utils import check_chr_consistence
+from utils import create_libsize
+from utils import get_idx
+from utils import get_total_gene_expr
+from utils import print_memory_diags
 
 
 ### intermediate fix to load pickle files stored under previous version

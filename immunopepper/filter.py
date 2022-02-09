@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from .io_ import convert_to_str_Coord_namedtuple
-from .io_ import list_to_tuple
+from io_ import convert_to_str_Coord_namedtuple
+from io_ import list_to_tuple
 
 
 def _collect_remove_ids(exon_junction_dict):

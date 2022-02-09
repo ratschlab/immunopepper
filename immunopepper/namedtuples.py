@@ -4,13 +4,14 @@ from collections import namedtuple
 """
 Coord namedtuple
 start and stop position of the junction pairs (two exons). If it only consists of one exon,
-start_v2 and stop_v2 is np.nan.
+start_v2 and stop_v2 are np.nan.
 """
 try:
     Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2', 'start_v3', 'stop_v3'], defaults=(None,) * 2)
 except:
     Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2', 'start_v3', 'stop_v3'])
     Coord.__new__.__defaults__ = (None,) * 2
+
 
 """
 Output_junc_peptide namedtuple
@@ -23,10 +24,10 @@ OutputJuncPeptide = namedtuple('OutputJuncPeptide', ['output_id','peptide','exon
 
 
 """
-Output_metadata namedtuple. 
+Output_metadata namedtuple.
 - id:  the same with that in Output_junc_peptide
 - output_id: the same with that in Output_junc_peptide with '>'
-- read_frame: int (0,1,2). The number of base left to the next junction pair. 
+- read_frame: int (0,1,2). The number of base left to the next junction pair.
 - gene_name: str. The name of Gene.
 - gene_chr: str. The Chromosome id where the gene is located.
 - gene_strand: str ('+', '_'). The strand of gene.
@@ -39,15 +40,15 @@ Output_metadata namedtuple.
     eg. 5;25 means the somatic mutation of position 5 and 25 take effect in this output.
 - variant_seg_expr: shows the corresponding expression of segments where the corresponding somatic mutation is in.
     eg. 257.0;123.2 means the segment where the somatic mutation in position 5 is in has counts 257.0
-- modified_exons_coor. Coord namedtuple. Shows exon coordination. Usually we have 4 number start_v1;stop_v1;start_v2;stop_v2. They 
+- modified_exons_coor. Coord namedtuple. Shows exon coordination. Usually we have 4 number start_v1;stop_v1;start_v2;stop_v2. They
     have already absorb reading frame so you can use the coord directly to generate the same output peptide.
 - original_exons_coord. Coord namedtuple. Shows the original exon coordination.
 - vertex_idx. shows the vertex id of the given junction. eg 5,6 means this junction pars consists of the fifth and
     sixth vertex.
 - junction_expr. float. The expression of the junction.
-- segment_expr. float. The weighted sum of segment expression. We split the junction into segments and compute the segment 
+- segment_expr. float. The weighted sum of segment expression. We split the junction into segments and compute the segment
     expression with the length-weighted-sum expression.
-- kmer_type. str indicates whether the peptide is generated from vertice_pair, or 'vertice_triplet_xmer' ie. a triplet was necessary to generate the desired kmer length 
+- kmer_type. str indicates whether the peptide is generated from vertice_pair, or 'vertice_triplet_xmer' ie. a triplet was necessary to generate the desired kmer length
 """
 OutputMetadata = namedtuple('OutputMetadata', ['peptide', 'output_id', 'read_frame', 'gene_name', 'gene_chr',
                                                  'gene_strand',	'mutation_mode',
@@ -134,7 +135,7 @@ CountInfo = namedtuple('CountInfo', ['sample_idx_dict', 'gene_idx_dict', 'gene_i
 
 """
 filepointer namedtuple
-namedtuple that contain all the file paths objects 
+namedtuple that contain all the file paths objects
 - junction_peptide_fp:
 - junction_meta_fp:
 - background_peptide_fp:
@@ -152,7 +153,7 @@ Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp'
 """
 Mutation namedtuple
 namedtuple that contains all mutation information
-- mode: 
+- mode:
 - germline_mutation_dict:
 - somatic_mutation_dict:
 """

@@ -8,9 +8,9 @@ import sys
 from datetime import datetime
 from mhctools.cli.args import make_mhc_arg_parser
 
-from mode_build import mode_build
-from mode_samplespecif import mode_samplespecif
-from mode_cancerspecif import mode_cancerspecif
+from immunopepper.mode_build import mode_build
+from immunopepper.mode_samplespecif import mode_samplespecif
+from immunopepper.mode_cancerspecif import mode_cancerspecif
 
 
 def _add_general_args(parser):

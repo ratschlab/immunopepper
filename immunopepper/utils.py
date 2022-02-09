@@ -10,7 +10,7 @@ import psutil
 import pyarrow as pa
 import sys
 
-from .namedtuples import Idx
+from namedtuples import Idx
 
 
 def to_adj_list(adj_matrix):

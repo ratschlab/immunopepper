@@ -10,8 +10,8 @@ import shutil
 import sys
 import timeit
 
-from .namedtuples import Coord
-from .namedtuples import Filepointer
+from namedtuples import Coord
+from namedtuples import Filepointer
 
 ### intermediate fix to load pickle files stored under previous version
 import spladder.classes.gene as gene
