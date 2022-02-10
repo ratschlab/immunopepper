@@ -7,7 +7,6 @@ import multiprocessing as mp
 import numpy as np
 import pandas as pd
 import pickle
-import signal as sig
 
 from io_ import decode_utf8
 from namedtuples import CountInfo
@@ -18,6 +17,7 @@ from utils import encode_chromosome
 from utils import find_overlapping_cds_simple
 from utils import get_successor_list
 from utils import leq_strand
+from utils import pool_initializer
 
 def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frames=False):
 
@@ -109,7 +109,7 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
                 genes_modif[result[1][i]] = result[2][i]
             del result
 
-        pool = mp.Pool(processes=parallel)#, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
+        pool = mp.Pool(processes=parallel, initializer=pool_initializer)
         for i in range(0, genes.shape[0], 100):
             gene_idx = np.arange(i, min(i + 100, genes.shape[0]))
             _ = pool.apply_async(genes_preprocess_batch, args=(genes[gene_idx], gene_idx, gene_cds_begin_dict, all_read_frames,), callback=update_gene_info)
