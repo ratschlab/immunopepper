@@ -1,12 +1,7 @@
-import gzip
 import os
-import pickle
-
 import pytest
 import pysam
-import numpy as np
 
-from immunopepper.filter import junction_tuple_is_annotated
 from immunopepper.io_ import convert_namedtuple_to_str
 from immunopepper.io_ import gz_and_normal_open
 from immunopepper.io_ import load_pickled_graph
@@ -24,8 +19,8 @@ from immunopepper.utils import get_sub_mut_dna
 from immunopepper.utils import get_concat_peptide
 from immunopepper.translate import dna_to_peptide
 from immunopepper.translate import complementary_seq
-from immunopepper.immunopepper import parse_arguments
-from immunopepper.immunopepper import split_mode
+from immunopepper.ip import parse_arguments
+from immunopepper.ip import split_mode
 from immunopepper.traversal import create_output_kmer
 from immunopepper.namedtuples import Coord
 from immunopepper.namedtuples import Mutation
@@ -270,19 +265,6 @@ def test_convert_namedtuple_to_str():
     result = [convert_namedtuple_to_str(kmer_pep,other_pep_field_list)+'\n' for kmer_pep in kmer_pep_list]
     expected_result = ['\tGENE0_1_2\t.\tFalse\t.\n', 'AQEB\tGENE0_1_3\t20\tTrue\t25\n']
     assert result == expected_result
-
-def test_get_junction_ann_flag():
-    junction_flag = np.zeros((4,4))
-    junction_flag[1,2] = 1
-    junction_flag[2,3] = 1
-    vertex_id_tuple = (1, 2, 3)
-    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 1
-    vertex_id_tuple = (0, 2, 3)
-    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 1
-    vertex_id_tuple = (0, 1, 3)
-    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 0
-    vertex_id_tuple = (1, 2)
-    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 1
 
 def test_check_chr_consistence(load_gene_data, load_mutation_data):
     graph_data, _, gene_cds_begin_dict = load_gene_data
