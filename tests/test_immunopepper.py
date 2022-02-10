@@ -3,8 +3,8 @@ import pickle
 import pytest
 import pysam
 
-from immunopepper.io import namedtuple_to_str
-from immunopepper.io import open_gz_or_normal
+from immunopepper._io import namedtuple_to_str
+from immunopepper._io import open_gz_or_normal
 from immunopepper.mutations import apply_germline_mutation
 from immunopepper.mutations import construct_mut_seq_with_str_concat
 from immunopepper.mutations import get_mutation_mode_from_parser

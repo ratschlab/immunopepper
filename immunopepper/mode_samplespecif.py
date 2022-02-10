@@ -9,8 +9,8 @@ import logging
 import os
 import sys
 
-from .io import read_pq_with_dict
-from .io import save_pd_toparquet
+from ._io import read_pq_with_dict
+from ._io import save_pd_toparquet
 
 
 
