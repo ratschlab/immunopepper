@@ -8,7 +8,9 @@ import pandas as pd
 import pickle
 import psutil
 import pyarrow as pa
+import signal as sig
 import sys
+
 
 from namedtuples import Idx
 
@@ -443,8 +445,5 @@ def print_memory_diags(disable_print=False):
         logging.info('\tMemory usage: {:.3f} GB'.format(memory))
     return memory
 
-
-
-
-
-
+def pool_initializer():
+    return sig.signal(sig.SIGINT, sig.SIG_IGN)
