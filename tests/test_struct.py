@@ -1,4 +1,4 @@
-from immunopepper import immunopepper
+from immunopepper import ip
 import os
 import cProfile
 import pathlib
@@ -30,7 +30,7 @@ def test_end_to_end_build(test_id, case, mutation_mode, tmpdir):
 
     my_args = my_args_build
     sample_dir = sample_dir_build
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
 
 
 def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_cross_sample=False):
@@ -63,7 +63,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
     if graph_cross_sample:
         my_args_build.extend(['--cross-graph-exp' ])
     my_args = my_args_build
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
 
 def test_end_to_end_samplespecif(sample, tmpdir, kmer, mutation_mode):
     out_dir = os.path.join(tmpdir, sample)
@@ -83,7 +83,7 @@ def test_end_to_end_samplespecif(sample, tmpdir, kmer, mutation_mode):
         '--output-file-path', output_file_path,
         '--remove-bg']
 
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
 
 
 def test_end_to_end_filter(tmpdir, sample, kmer_length, mutation_mode):
@@ -110,7 +110,7 @@ def test_end_to_end_filter(tmpdir, sample, kmer_length, mutation_mode):
                '--has-stop-codon', '0',
                '--is-in-junction-list', '1',
                '--is-isolated', '0']
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
 
 def test_end_to_end_crosscohort(tmpdir):
     my_args =["crosscohort",
@@ -125,7 +125,7 @@ def test_end_to_end_crosscohort(tmpdir):
               "--compressed_inputs",
               "--skip-filegrouping"]
               #"--segment-count"]
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
 
 def mini_crosscohort():
 
@@ -142,7 +142,7 @@ def mini_crosscohort():
               "--compressed_inputs",
               "--remove-bg",
               "--skip-filegrouping"]
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
 
 def test_end_to_end_cancerspecif():
 
@@ -173,7 +173,7 @@ def test_end_to_end_cancerspecif():
               "--out-partitions", "2",
               "--mut-cancer-samples", "ref", "ref"]
               #"--statistical"]
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
 
 
 def test_end_to_end_cancerspecif_mx():
@@ -218,7 +218,7 @@ def test_end_to_end_cancerspecif_mx():
               "--out-partitions", "2",
               "--mut-cancer-samples", "ref", "ref"]
               #"--statistical"]
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'

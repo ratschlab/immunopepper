@@ -10,16 +10,19 @@ import shutil
 import sys
 import timeit
 
-from .namedtuples import Coord
-from .namedtuples import Filepointer
+from immunopepper.namedtuples import Coord
+from immunopepper.namedtuples import Filepointer
 
 ### intermediate fix to load pickle files stored under previous version
 import spladder.classes.gene as gene
 import spladder.classes.splicegraph as splicegraph
 import spladder.classes.segmentgraph as segmentgraph
+
 sys.modules['modules.classes.gene'] = gene
 sys.modules['modules.classes.splicegraph'] = splicegraph
 sys.modules['modules.classes.segmentgraph'] = segmentgraph
+
+
 ### end fix
 
 

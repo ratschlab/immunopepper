@@ -8,11 +8,11 @@ import sys
 
 from immunopepper.dna_to_peptide import dna_to_peptide
 
-from .namedtuples import Coord
-from .namedtuples import Flag
-from .namedtuples import Peptide
-from .namedtuples import ReadingFrameTuple
-from .utils import get_exon_expr,get_sub_mut_dna
+from namedtuples import Coord
+from namedtuples import Flag
+from namedtuples import Peptide
+from namedtuples import ReadingFrameTuple
+from utils import get_exon_expr,get_sub_mut_dna
 
 def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts, Idx, mode, all_read_frames):
     """

@@ -4,7 +4,7 @@ from collections import namedtuple
 """
 Coord namedtuple
 start and stop position of the junction pairs (two exons). If it only consists of one exon,
-start_v2 and stop_v2 is np.nan.
+start_v2 and stop_v2 are np.nan.
 """
 try:
     Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2', 'start_v3', 'stop_v3'], defaults=(None,) * 2)

@@ -7,10 +7,10 @@ import pysam
 
 from functools import reduce
 
-from .namedtuples import Mutation
-from .preprocess import parse_mutation_from_maf
-from .preprocess import parse_mutation_from_vcf
-from .utils import get_all_comb
+from namedtuples import Mutation
+from preprocess import parse_mutation_from_maf
+from preprocess import parse_mutation_from_vcf
+from utils import get_all_comb
 
 
 def apply_germline_mutation(ref_sequence_file, chrm, pos_start, pos_end, mutation_sub_dict):
@@ -26,7 +26,7 @@ def apply_germline_mutation(ref_sequence_file, chrm, pos_start, pos_end, mutatio
     Returns
     -------
     output_seq: dict. (sequence_type) -> list[char]. where
-        output['ref'] is the original reference sequence 
+        output['ref'] is the original reference sequence
         output['background'] is the reference seq with germline-mutation-applied
     """
     with pysam.FastaFile(ref_sequence_file) as fh:
