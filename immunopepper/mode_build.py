@@ -436,7 +436,7 @@ def mode_build(arg):
             if not arg.skip_annotation:
                 # Build the background
                 logging.info(">>>>>>>>> Start Background processing")
-                with mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN)) as pool:
+                with mp.Pool(processes=arg.parallel) as pool: #, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN)) as pool:
                     args = [(output_sample, arg.mutation_sample, graph_data[gene_idx], gene_idx, arg.all_read_frames,
                              mutation, countinfo, genetable, arg,
                              os.path.join(output_path,
@@ -446,14 +446,14 @@ def mode_build(arg):
 
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
-            with mp.Pool(processes=arg.parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN)) as pool:
+            with mp.Pool(processes=arg.parallel) as pool: #, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN)) as pool:
                 args = [(output_sample, arg.mutation_sample, output_samples_ids, graph_data[gene_idx],
                          graph_info[gene_idx], gene_idx, len(
                     gene_id_list), genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap,
                          mutation, junction_dict, countinfo, genetable, arg,
                          os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(arg.mutation_mode, i + arg.start_id)),
                          filepointer, None, verbose_save) for i, gene_idx in gene_batches]
-                pool.submit(mapper_funct, args, chunksize=1)
+                pool.imap(mapper_funct, args, chunksize=1)
 
             # Collects and pools the files of each batch
             logging.info("Start collecting results")

@@ -109,7 +109,7 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
                 genes_modif[result[1][i]] = result[2][i]
             del result
 
-        pool = mp.Pool(processes=parallel, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
+        pool = mp.Pool(processes=parallel)#, initializer=lambda: sig.signal(sig.SIGINT, sig.SIG_IGN))
         for i in range(0, genes.shape[0], 100):
             gene_idx = np.arange(i, min(i + 100, genes.shape[0]))
             _ = pool.apply_async(genes_preprocess_batch, args=(genes[gene_idx], gene_idx, gene_cds_begin_dict, all_read_frames,), callback=update_gene_info)
