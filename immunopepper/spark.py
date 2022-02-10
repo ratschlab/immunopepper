@@ -11,7 +11,7 @@ from rpy2.robjects.packages import importr
 import scipy
 from scipy import stats
 
-from .io_ import save_pd_toparquet
+from .io import save_pd_toparquet
 
 pandas2ri.activate()
 deseq = importr('DESeq2')
@@ -286,7 +286,7 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
     path_e = None
     path_s = None
     base_n_samples  = 1
-    base_expr = 0.0 
+    base_expr = 0.0
     if target_sample:
         suffix = 'Except{}'.format(target_sample)
     else:
@@ -314,7 +314,7 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
             logging.info(
             "Filter matrix with cohort expression support {} in {} sample(s) already performed. Loading results from {}".format(
                 expr_limit, base_n_samples, path_e))
-            
+
     if n_samples_lim is not None: # (a.k.a exclude >0  reads in >= H samples) --> H samples filtering done subsequently # n_samples_lim can be 0 -> 1 i used
         path_s = os.path.join(out_dir,'interm_{}_combiExprCohortLim{}Across{}{}{}'.format(tag, base_expr, base_n_samples, suffix, batch_tag) + '.tsv')
         if not os.path.isfile(os.path.join(path_s, '_SUCCESS')):

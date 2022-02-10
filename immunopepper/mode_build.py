@@ -13,14 +13,14 @@ import sys
 import timeit
 
 # immuno module
-from io_ import collect_results
-from io_ import initialize_fp
-from io_ import remove_folder_list
-from io_ import save_bg_kmer_set
-from io_ import save_bg_peptide_dict
-from io_ import save_gene_expr_distr
-from io_ import save_fg_kmer_dict
-from io_ import save_fg_peptide_dict
+from io import collect_results
+from io import initialize_fp
+from io import remove_folder_list
+from io import save_bg_kmer_set
+from io import save_bg_peptide_dict
+from io import save_gene_expr_distr
+from io import save_fg_kmer_dict
+from io import save_fg_peptide_dict
 from mutations import get_mutation_mode_from_parser
 from mutations import get_sub_mutation_tuple
 from preprocess import genes_preprocess_all

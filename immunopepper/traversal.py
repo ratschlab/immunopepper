@@ -10,7 +10,7 @@ from filter import filter_redundant_junctions
 from filter import junction_is_annotated
 from filter import is_intron_in_junction_list
 from filter import junction_tuple_is_annotated
-from io_ import save_kmer_matrix
+from io import save_kmer_matrix
 from mutations import apply_germline_mutation
 from mutations import get_exon_som_dict
 from mutations import get_mut_comb

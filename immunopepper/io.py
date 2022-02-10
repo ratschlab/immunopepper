@@ -15,7 +15,6 @@ import spladder.classes.gene as gene
 import spladder.classes.splicegraph as splicegraph
 import spladder.classes.segmentgraph as segmentgraph
 
-from immunopepper.namedtuples import Coord
 from immunopepper.namedtuples import Filepointer
 
 sys.modules['modules.classes.gene'] = gene
@@ -290,7 +289,7 @@ def save_pd_toparquet(path, pd_df, compression=None, verbose=False, pqwriter=Non
 
 def collect_results(filepointer_item, out_dir, compression, mutation_mode, kmer_list=None):
     """
-    'Collects' data
+    Merges results written by each parallel process into a single parquet file.
     """
     if filepointer_item is not None:
         s1 = timeit.default_timer()
@@ -301,7 +300,7 @@ def collect_results(filepointer_item, out_dir, compression, mutation_mode, kmer_
             file_to_collect = [filepointer_item['path']]
         for file_path in file_to_collect:
             file_name = os.path.basename(file_path)
-            tmp_file_list = glob.glob(os.path.join(out_dir, 'tmp_out_{}_batch_[0-9]*'.format(mutation_mode), file_name))
+            tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*', file_name))
             tot_shape = 0
             for tmp_file in tmp_file_list:
                 try:
@@ -311,16 +310,16 @@ def collect_results(filepointer_item, out_dir, compression, mutation_mode, kmer_
                     pqwriter.write_table(table)
                     tot_shape += table.shape[0]
                 except:
-                    logging.info("ERROR: file {} could not be read".format(tmp_file))
+                    logging.error(f'Unable to read: {tmp_file}')
                     sys.exit(1)
             if tmp_file_list:
                 pqwriter.close()
-                logging.info('Collecting {} with {} lines. Took {} seconds'.format(file_name, tot_shape,
-                                                                                   timeit.default_timer() - s1))
+                logging.info(f'Collected {file_name} with {tot_shape} lines in {timeit.default_timer() - s1}s');
 
 
-def remove_folder_list(commun_base):
-    folder_list = glob.glob(commun_base + '*')
+def remove_folder_list(base_path):
+    """ Removes folders starting with base_path. Used for cleaning up temporary files in multiprocessing mode. """
+    folder_list = glob.glob(base_path + '*')
     for dir_path in folder_list:
         shutil.rmtree(dir_path, ignore_errors=True)
 
