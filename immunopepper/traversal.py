@@ -142,7 +142,7 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
                 vertex_pair_list.append(vertex_pair)
                 output_id += 1
 
-    if True: # TODO: undo!! filter_redundant:
+    if filter_redundant:
         vertex_pair_list = filter_redundant_junctions(vertex_pair_list, gene.strand)
     concat_vertex_pair_list = defaultdict(list, {'2-exons': vertex_pair_list})
     if not disable_concat:
