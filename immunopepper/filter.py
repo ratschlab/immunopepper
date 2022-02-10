@@ -22,13 +22,13 @@ def _collect_remove_ids(exon_junction_dict):
     remove_id_list = []
     removed = set()
     for exon_pair_list in exon_junction_dict.values():
-        size = len(exon_pair_list)
-        if size < 2:
+        exon_count = len(exon_pair_list)
+        if exon_count < 2:
             continue
         for i, exon_pair in enumerate(exon_pair_list):
             if exon_pair[0] in removed:
                 continue
-            for j in range(i + 1, size):
+            for j in range(i + 1, exon_count):
                 if exon_pair_list[j][0] in removed:
                     continue
                 i_pos1 = exon_pair[1]
@@ -46,22 +46,24 @@ def _collect_remove_ids(exon_junction_dict):
     return remove_id_list
 
 
-def _get_exon_junction_dict(metadata_list: list[VertexPair], strand: str):
+def _get_exon_junction_dict(vertex_pairs: list[VertexPair], strand: str):
     """ Creates an auxiliary dictionary used for filtering. Assigns to each junction all overlapping exon pairs.
 
-    :param metadata_list: List(Output_metadata).
+    :param vertex_pairs: list of VertexPairs instances used to create the dictionary. From each VertexPair a key and a
+        value is generated. The key is reading frame and intron coordinates, the value is the vertex index and exon
+        coordinates
     :param strand: '+' or '-' denoting direct or reverse strand
     :return: a dictionary mapping tuples of (read_frame, junction_start, junction_stop) to the list of overlapping
         exons, i.e. list[tuple(output_idx, pos_start, pos_end)]
     :rtype dict:
     """
     exon_dict = {}
-    for metadata in metadata_list:
+    for metadata in vertex_pairs:
         # TODO: need to come up with a new way to index the exon dict
         coord = metadata.modified_exons_coord
         idx = metadata.output_id
         read_frame = metadata.read_frame.read_phase
-        # figure out intron vs other coordinates
+        # compute intron (i1, i2) and other (o1, o2) coordinates, then add them to the dictionary
         if strand == '+':
             i1, i2, o1, o2 = coord.stop_v1, coord.start_v2, coord.start_v1, coord.stop_v2
         else:
@@ -75,25 +77,25 @@ def _get_exon_junction_dict(metadata_list: list[VertexPair], strand: str):
     return exon_dict
 
 
-def filter_redundant_junctions(metadata_list: list[VertexPair], strand: str):
+def filter_redundant_junctions(vertex_pairs: list[VertexPair], strand: str):
     """ Given a list of exon junctions, remove the ones that redundantly cover a junction, keeping only the longest one
 
-    :param metadata_list: List(Output_metadata),
+    :param vertex_pairs: list of :class:`VertexPair`s with exon coordinates
     :param strand: strand of the gene, can be '+' or '-'
-    :return filtered_metadata_list: List of metadata objects remaining after filtering
+    :return filtered_vertex_pairs: list of non-redundant :class:`VertexPair`s from vertex_pairs
     :rtype list[VertexPair]:
     """
 
-    exon_dict = _get_exon_junction_dict(metadata_list, strand)
+    exon_dict = _get_exon_junction_dict(vertex_pairs, strand)
     remove_id_list = _collect_remove_ids(exon_dict)
-    return list(filter(lambda m: m.output_id not in remove_id_list, metadata_list))
+    return list(filter(lambda m: m.output_id not in remove_id_list, vertex_pairs))
 
 
 def junction_is_annotated(gene: Gene, gene_to_transcript_table: dict[str: list[str]],
                           transcript_to_cds_table: dict[str: list[tuple[int, int, int]]]):
     """ Indicates whether a junction also appears in any transcript given by .gtf file
 
-    :param gene: `class: Gene` instance created by Spladder
+    :param gene: :class:`Gene` instance created by Spladder
     :param gene_to_transcript_table: maps gene to its transcript, e.g.
         'ENSMUSG00000025902.13' -> ['ENSMUST00000027035.9', 'ENSMUST00000195555.1']
     :param transcript_to_cds_table: maps a transcript to a list of coding DNA sequencing (cds), e.g.
@@ -130,15 +132,15 @@ def junction_is_annotated(gene: Gene, gene_to_transcript_table: dict[str: list[s
     return junction_flag
 
 
-def junction_tuple_is_annotated(junction_flag: ndarray, vertex_ids: list[int]):
-    """Returns 1 if any junction in the given tuple of vertexes is flagged and 0 otherwise.
+def junction_tuple_is_annotated(junction_flag: np.ndarray, vertex_ids: list[int]):
+    """Check if any junction in the given list vertices is flagged.
 
     :param junction_flag: 2-d array with shape (number_of_vertices, number_of_vertices). junction_flag[i,j] == 1 iff
        vertices i and j are connected
-    :param vertex_ids: tuple of vertex ids defining junction pairs
+    :param vertex_ids: list of vertex ids defining junction pairs
     :return:
-       np.nan if vertex_id_tuple contains a np.nan
-       1 if any junction in param:`vertex_id_tuple` is connected in param:`junction_flag`, 0 otherwise
+       np.nan if vertex_ids contains a np.nan
+       1 if any junction in vertex_ids is connected in junction_flag, 0 otherwise
     """
     if np.nan in vertex_ids:
         return np.nan
@@ -167,8 +169,7 @@ def is_intron_in_junction_list(splicegraph: Splicegraph, vertex_ids: list[int], 
     if strand == '-':
         vertex_ids = vertex_ids[::-1]  # in negative strand case, the vertex id list is [5,3] instead of [3,5]
     for i in range(len(vertex_ids) - 1):
-        junction_comb = ':'.join(
-            [str(vertex_coord_list[1, vertex_ids[i]]), str(vertex_coord_list[0, vertex_ids[i + 1]]), strand])
+        junction_comb = f'{vertex_coord_list[1, vertex_ids[i]]}:{vertex_coord_list[0, vertex_ids[i + 1]]}:{strand}'
         if junction_comb in junction_list:
             return 1
     return 0
@@ -179,9 +180,10 @@ def add_kmer_properties(foreground_dict, output_kmers: list[OutputKmer]):
     """
     Update foreground_dict by collapsing the metadata in output_kmers.
 
-    :param foreground_dict: keys are peptides, values are lists of property sets, containing the collapsed metadata
-          for the given peptide; for example {'MSPHGYKLA' : [{'ENSMUSG00000025902.13'}, {51.43}, {True}, {1.0}]}
-    :param output_kmers: list of `class:OutputKmer` used to update the dictionary
+    :param foreground_dict: a dictionary where keys are peptides, values are lists of property sets containing the
+        collapsed metadata for the given peptide; for example::
+        {'MSPHGYKLA' : [{'ENSMUSG00000025902.13'}, {51.43}, {True}, {1.0}]}
+    :param output_kmers: list of :class:`OutputKmer` used to update the dictionary
     """
     for output_kmer in output_kmers:
         # Prepare metadata

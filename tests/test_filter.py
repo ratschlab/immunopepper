@@ -12,6 +12,7 @@ from immunopepper.namedtuples import Coord, OutputKmer, OutputMetadata, ReadingF
 
 
 class TestFilterRedundantJunctions:
+    """ Tests for :meth:`filter.filter_redundant_junctions` """
     def test_no_redundant(self):
         read_frame = ReadingFrameTuple(cds_left_modi=4495135, cds_right_modi=4495155, read_phase=2)
         # the second VertexPair is subsuming the first, because they both refer to the same read_phase (2), and the
@@ -70,6 +71,8 @@ class TestFilterRedundantJunctions:
 
 
 class TestJunctionIsAnnotated:
+    """ Tests for :meth:`filter.junction_is_annotated` """
+
     @pytest.fixture
     def gene(self):
         gene = Gene('ENSMUSG00000025902.13', 1000, 1200, 'chr1', '+')
@@ -133,6 +136,8 @@ def test_junction_tuple_is_annotated():
 
 
 class TestIsIntronInJunctionList:
+    """ Tests for :meth:`filter.is_intron_in_junction_list` """
+
     def test_empty(self):
         splice_graph = Splicegraph()
         splice_graph.vertices = sp.array([[100, 300, 500, 700], [105, 305, 505, 705]], dtype='int')
@@ -161,6 +166,8 @@ class TestIsIntronInJunctionList:
 
 
 class TestAddKmerProperties:
+    """ Tests for :meth:`filter.add_kmer_properties` """
+
     def test_add(self):
         output_kmers = [
             OutputKmer(kmer='MSPHGYKLA', id='ENSMUSG00000025902.13:32_14:0:4495155:2-exons', segment_expr=51.43,
@@ -201,6 +208,8 @@ class TestAddKmerProperties:
 
 
 class TestAddKmers:
+    """ Tests for :meth:`filter.add_kmers` """
+
     def test_empty(self):
         kmer_set = set()
         filter.add_kmers(kmer_set, [])
@@ -233,7 +242,9 @@ class TestAddKmers:
         assert kmer_set == set(['MSSPDAGYA', 'SSPDAGYAS', 'SPDAGYASD'])
 
 
-class TestAddPeptide:
+class TestAddPeptideProperties:
+    """ Tests for :meth:`filter.add_peptide_properties` """
+
     def test_empty(self):
         peptide_properties = {}
         output_metadata = []
