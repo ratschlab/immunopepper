@@ -11,7 +11,7 @@ from rpy2.robjects.packages import importr
 import scipy
 from scipy import stats
 
-from ._io import save_pd_toparquet
+from .io_ import save_pd_toparquet
 
 pandas2ri.activate()
 deseq = importr('DESeq2')

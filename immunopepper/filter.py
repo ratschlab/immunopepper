@@ -3,7 +3,7 @@ import numpy as np
 from spladder.classes.gene import Gene
 from spladder.classes.splicegraph import Splicegraph
 
-from immunopepper._io import list_to_tuple
+from immunopepper.io_ import list_to_tuple
 from immunopepper.namedtuples import Coord, OutputKmer, VertexPair
 
 

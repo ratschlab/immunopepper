@@ -8,7 +8,7 @@ import numpy as np
 import pickle
 import signal as sig
 
-from immunopepper._io import decode_utf8
+from immunopepper.io_ import decode_utf8
 from immunopepper.namedtuples import CountInfo
 from immunopepper.namedtuples import GeneInfo
 from immunopepper.namedtuples import GeneTable
