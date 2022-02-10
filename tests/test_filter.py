@@ -1,9 +1,8 @@
 """
-Unit test fro imunopepper/dna_to_peptide.pyx.
+Unit tests for imunopepper/filter.py
 """
 import numpy as np
 import pytest
-import scipy as sp
 from spladder.classes.gene import Gene
 from spladder.classes.splicegraph import Splicegraph
 
@@ -107,16 +106,16 @@ class TestJunctionIsAnnotated:
     def test_one_junction_present(self, gene, gene_to_transcript, transcript_to_cds):
         # the third transcript of our gene (ENSMUST00000192650.5) has two junctions:
         # ['4492668:4493771', '4493863:4495135']; let's create a graph that has one of these junctions
-        gene.splicegraph.vertices = sp.array([[4491718, 4493771, 4495135], [123456, 4493863, 4495155]], dtype='int')
-        gene.splicegraph.edges = sp.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]], dtype='int')
+        gene.splicegraph.vertices = np.array([[4491718, 4493771, 4495135], [123456, 4493863, 4495155]], dtype='int')
+        gene.splicegraph.edges = np.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]], dtype='int')
         expected = np.array([[False, False, False], [False, False, True], [False, True, False]])
         assert np.array_equal(expected, filter.junction_is_annotated(gene, gene_to_transcript, transcript_to_cds))
 
     def test_two_junctions_present(self, gene, gene_to_transcript, transcript_to_cds):
         # the third transcript of our gene (ENSMUST00000192650.5) has two junctions:
         # ['4492668:4493771', '4493863:4495135']; let's create a graph that has *both* of these junctions
-        gene.splicegraph.vertices = sp.array([[4491718, 4493771, 4495135], [4492668, 4493863, 4495155]], dtype='int')
-        gene.splicegraph.edges = sp.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]], dtype='int')
+        gene.splicegraph.vertices = np.array([[4491718, 4493771, 4495135], [4492668, 4493863, 4495155]], dtype='int')
+        gene.splicegraph.edges = np.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]], dtype='int')
         expected = np.array([[False, True, False], [True, False, True], [False, True, False]])
         assert np.array_equal(expected, filter.junction_is_annotated(gene, gene_to_transcript, transcript_to_cds))
 
@@ -140,13 +139,8 @@ class TestIsIntronInJunctionList:
 
     def test_empty(self):
         splice_graph = Splicegraph()
-        splice_graph.vertices = sp.array([[100, 300, 500, 700], [105, 305, 505, 705]], dtype='int')
+        splice_graph.vertices = np.array([[100, 300, 500, 700], [105, 305, 505, 705]], dtype='int')
         vertex_ids = [0, 1, 2, 3]
-        assert np.isnan(filter.is_intron_in_junction_list(splice_graph, vertex_ids, '+', None))
-
-    def test_has_nans(self):
-        splice_graph = Splicegraph()
-        vertex_ids = [np.nan, 1, 2, 3]
         assert np.isnan(filter.is_intron_in_junction_list(splice_graph, vertex_ids, '+', None))
 
     def test_has_nans(self):
@@ -156,7 +150,7 @@ class TestIsIntronInJunctionList:
 
     def test_presence_absence(self):
         splice_graph = Splicegraph()
-        splice_graph.vertices = sp.array([[100, 300, 500, 700], [105, 305, 505, 705]], dtype='int')
+        splice_graph.vertices = np.array([[100, 300, 500, 700], [105, 305, 505, 705]], dtype='int')
         vertex_ids = [1, 2]
         assert 0 == filter.is_intron_in_junction_list(splice_graph, vertex_ids, '+', [])
         assert 0 == filter.is_intron_in_junction_list(splice_graph, vertex_ids, '+', ['100:200:-', '300:400:+'])

@@ -12,7 +12,7 @@ from immunopepper.namedtuples import OutputKmer, VertexPair
 def _collect_remove_ids(exon_junction_dict):
     """ For all exon pairs around the same intron, keep the longest one.
 
-    :dict exon_junction_dict: dictionary mapping (read_frame, junction_start, junction_end) to to the list of
+    :dict exon_junction_dict: dictionary mapping (read_frame, junction_start, junction_end) to the list of
         overlapping exons, i.e. list[tuple(output_idx, pos_start, pos_end)], as created by
         :meth:`_get_exon_junction_dict`
     :return: a list of junction ids to remove
@@ -96,7 +96,7 @@ def junction_is_annotated(gene: Gene, gene_to_transcript_table: dict[str: list[s
     """ Indicates whether a junction also appears in any transcript given by .gtf file
 
     :param gene: :class:`Gene` instance created by Spladder
-    :param gene_to_transcript_table: maps gene to its transcript, e.g.
+    :param gene_to_transcript_table: maps gene to its transcripts, e.g.
         'ENSMUSG00000025902.13' -> ['ENSMUST00000027035.9', 'ENSMUST00000195555.1']
     :param transcript_to_cds_table: maps a transcript to a list of coding DNA sequencing (cds), e.g.
         'ENSMUST00000027035.9' -> [(4491718, 4492668, 2), (4493099, 4493406, 0)]
@@ -191,8 +191,8 @@ def add_kmer_properties(foreground_dict, output_kmers: list[OutputKmer]):
         del ord_dict_metadata['kmer']
 
         # aggregate metadata of unique kmers
-        add_novel_kmer = []
         if output_kmer.kmer not in foreground_dict:
+            add_novel_kmer = []
             for i, j in enumerate(ord_dict_metadata.values()):
                 if i == 0:
                     add_novel_kmer.append({j.split(':')[0]})
