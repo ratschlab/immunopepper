@@ -94,7 +94,7 @@ def junction_is_annotated(gene: Gene, gene_to_transcript_table: dict[str: list[s
     """ Indicates whether a junction also appears in any transcript given by .gtf file
 
     :param gene: :class:`Gene` instance created by Spladder
-    :param gene_to_transcript_table: maps gene to its transcript, e.g.
+    :param gene_to_transcript_table: maps gene to its transcripts, e.g.
         'ENSMUSG00000025902.13' -> ['ENSMUST00000027035.9', 'ENSMUST00000195555.1']
     :param transcript_to_cds_table: maps a transcript to a list of coding DNA sequencing (cds), e.g.
         'ENSMUST00000027035.9' -> [(4491718, 4492668, 2), (4493099, 4493406, 0)]
@@ -189,8 +189,8 @@ def add_kmer_properties(foreground_dict, output_kmers: list[OutputKmer]):
         del ord_dict_metadata['kmer']
 
         # aggregate metadata of unique kmers
-        add_novel_kmer = []
         if output_kmer.kmer not in foreground_dict:
+            add_novel_kmer = []
             for i, j in enumerate(ord_dict_metadata.values()):
                 if i == 0:
                     add_novel_kmer.append({j.split(':')[0]})
