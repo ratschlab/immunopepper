@@ -9,8 +9,8 @@ import logging
 import os
 import sys
 
-from ._io import read_pq_with_dict
-from ._io import save_pd_toparquet
+from .io_ import read_pq_with_dict
+from .io_ import save_pd_toparquet
 
 
 
@@ -21,10 +21,10 @@ def mode_samplespecif(arg):
     if not sum(bg):
         logging.error("None of the sample kmer files exists, consider changing --junction_kmer_files")
         sys.exit(1)
-    if not sum(fg):
+    if not sum(fg): 
         logging.error("None of the annotation kmer files exists, consider changing --annot_kmer_file")
         sys.exit(1)
-
+        
     bg_kmer_set = set()
     if not os.path.exists(arg.bg_file_path):
         for kmer_file in arg.annot_kmer_files:
@@ -32,7 +32,7 @@ def mode_samplespecif(arg):
                 logging.info("...consider annotation file:{}".format(kmer_file))
                 f = read_pq_with_dict(kmer_file, ['kmer'])
                 bg_kmer_set.update(f['kmer'])
-            else:
+            else: 
                 logging.info("WARNING annotation file: {} does not exist".format(kmer_file))
         save_pd_toparquet(arg.bg_file_path , pd.DataFrame(bg_kmer_set, columns = ['kmer'],  dtype='str'),
                   compression=compression, verbose=True)
@@ -52,14 +52,14 @@ def mode_samplespecif(arg):
                 kmer_df = kmer_df[bg_flag]
             else:
                 kmer_df['is_neo_flag'] = bg_flag
-
+            
             output_file_path = os.path.join(arg.output_dir, junction_kmer_file.split('/')[-1].replace('.pq', '') + '_' + arg.output_suffix + '.pq')
             save_pd_toparquet( output_file_path, kmer_df,
                   compression='SNAPPY', verbose=True)
             logging.info("output bg-removed kmer file : {} \n ".format(output_file_path))
         else:
             logging.info("WARNING foreground file: {} does not exist".format(junction_kmer_file))
-
+    
 
     logging.info(">>>>>>>>> Remove annotation: Finish\n")
 
