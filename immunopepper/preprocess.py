@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pickle
 
-from io import decode_utf8
+from io_ import decode_utf8
 from namedtuples import CountInfo
 from namedtuples import GeneInfo
 from namedtuples import GeneTable
