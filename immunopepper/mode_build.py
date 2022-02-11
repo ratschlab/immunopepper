@@ -16,11 +16,11 @@ import timeit
 from io_ import collect_results
 from io_ import initialize_fp
 from io_ import remove_folder_list
-from io_ import save_backgrd_kmer_set
-from io_ import save_backgrd_pep_dict
+from io_ import save_bg_kmer_set
+from io_ import save_bg_peptide_dict
 from io_ import save_gene_expr_distr
-from io_ import save_forgrd_kmer_dict
-from io_ import save_forgrd_pep_dict
+from io_ import save_fg_kmer_dict
+from io_ import save_fg_peptide_dict
 from mutations import get_mutation_mode_from_parser
 from mutations import get_sub_mutation_tuple
 from preprocess import genes_preprocess_all
@@ -112,10 +112,10 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
             time_per_gene.append(timeit.default_timer() - start_time)
             mem_per_gene.append(print_memory_diags(disable_print=True))
 
-        save_backgrd_pep_dict(dict_pept_backgrd, filepointer, compression, outbase, verbose)
+        save_bg_peptide_dict(dict_pept_backgrd, filepointer, compression, outbase, verbose)
         dict_pept_backgrd.clear()
         for kmer_length in set_kmer_back:
-            save_backgrd_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
+            save_bg_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
         set_kmer_back.clear()
 
         pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
@@ -249,7 +249,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                                             junction_list=junction_list,
                                             kmer=arg.kmer,
                                             output_silence=arg.output_silence,
-                                            outbase=outbase,
+                                            out_dir=outbase,
                                             edge_idxs=edge_idxs,
                                             edge_counts=edge_counts,
                                             seg_counts=seg_counts,
@@ -267,11 +267,11 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             all_gene_idxs.append(gene_idxs[i])
 
         save_gene_expr_distr(gene_expr, arg.output_samples, output_sample,  filepointer, outbase, compression, verbose)
-        save_forgrd_pep_dict(dict_pept_forgrd, filepointer, compression, outbase, arg.output_fasta, verbose)
+        save_fg_peptide_dict(dict_pept_forgrd, filepointer, compression, outbase, arg.output_fasta, verbose)
         dict_pept_forgrd.clear()
         if not arg.cross_graph_expr:
             for kmer_length in dict_kmer_foregr:
-                save_forgrd_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
+                save_fg_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
             dict_kmer_foregr.clear()
         if arg.cross_graph_expr and filepointer.kmer_segm_expr_fp['pqwriter'] is not None:
             filepointer.kmer_segm_expr_fp['pqwriter'].close()
@@ -408,7 +408,7 @@ def mode_build(arg):
             pq_compression = 'SNAPPY'
         else:
             pq_compression = None
-        filepointer = initialize_fp(output_path, mutation.mode, gzip_tag,
+        filepointer = initialize_fp(output_path, mutation.mode,
                   arg.kmer, arg.output_fasta, arg.cross_graph_expr)
 
         # go over each gene in splicegraph

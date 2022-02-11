@@ -1,18 +1,16 @@
 import numpy as np
 
-from numpy import ndarray
 from spladder.classes.gene import Gene
 from spladder.classes.splicegraph import Splicegraph
 
-from immunopepper.io_ import convert_to_str_Coord_namedtuple
-from immunopepper.io_ import list_to_tuple
-from immunopepper.namedtuples import OutputKmer, VertexPair
+from immunopepper.io_ import list_to_tuple, namedtuple_to_str
+from immunopepper.namedtuples import Coord, OutputKmer, VertexPair
 
 
 def _collect_remove_ids(exon_junction_dict):
     """ For all exon pairs around the same intron, keep the longest one.
 
-    :dict exon_junction_dict: dictionary mapping (read_frame, junction_start, junction_end) to the list of
+    :param exon_junction_dict: dictionary mapping (read_frame, junction_start, junction_end) to to the list of
         overlapping exons, i.e. list[tuple(output_idx, pos_start, pos_end)], as created by
         :meth:`_get_exon_junction_dict`
     :return: a list of junction ids to remove
@@ -227,9 +225,10 @@ def add_peptide_properties(peptide_properties: dict[str, list[set]], namedtuple_
     :param skip_expr: if True, the 'junction_expr' and 'segment_expr' keys are removed from the result
     """
     for namedtuple_peptide in namedtuple_list:
-        ord_dict_metadata = dict(namedtuple_peptide._asdict())
-        ord_dict_metadata = {k: list_to_tuple(v) for k, v in ord_dict_metadata.items()}
-        ord_dict_metadata = {k: (convert_to_str_Coord_namedtuple(v, ';')) for k, v in ord_dict_metadata.items()}
+        ord_dict_metadata = {}
+        for k, v in namedtuple_peptide._asdict().items():
+            ord_dict_metadata[k] = namedtuple_to_str(v, None, ';') if isinstance(v, Coord) else list_to_tuple(v);
+
         del ord_dict_metadata['peptide']
         if skip_expr:
             del ord_dict_metadata['junction_expr']

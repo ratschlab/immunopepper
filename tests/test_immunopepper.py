@@ -1,10 +1,10 @@
 import os
+import pickle
 import pytest
 import pysam
 
-from immunopepper.io_ import convert_namedtuple_to_str
-from immunopepper.io_ import gz_and_normal_open
-from immunopepper.io_ import load_pickled_graph
+from immunopepper.io_ import namedtuple_to_str
+from immunopepper.io_ import open_gz_or_normal
 from immunopepper.mutations import apply_germline_mutation
 from immunopepper.mutations import construct_mut_seq_with_str_concat
 from immunopepper.mutations import get_mutation_mode_from_parser
@@ -37,7 +37,7 @@ def load_gene_data():
     ann_path = os.path.join(data_dir, 'test1pos.gtf')
     ref_path = os.path.join(data_dir, 'test1pos.fa')
 
-    (graph_data, graph_meta) = load_pickled_graph(f)  # cPickle.load(f)
+    (graph_data, graph_meta) = pickle.load(f)
     genetable,chr_set = preprocess_ann(ann_path)
     interesting_chr = list(map(str, range(1, 23))) + ["X", "Y", "MT"]
 
@@ -248,13 +248,13 @@ def test_get_concat_peptide():
     concat_pep = get_concat_peptide(front_coord,back_coord,front_peptide,back_peptide,strand)
     assert concat_pep == 'EDMF'
 
-def test_convert_namedtuple_to_str():
+def test_namedtuple_to_str():
     other_pep_field_list = ['id', 'new_line', 'peptide']
     back_pep1 = OutputBackground(1,'EDMHG')
     back_pep2 = OutputBackground(2,'')
     back_pep3 = OutputBackground(3,'KKQ')
     back_pep_list = [back_pep1,back_pep2,back_pep3]
-    result = [convert_namedtuple_to_str(back_pep,other_pep_field_list)+'\n' for back_pep in back_pep_list]
+    result = [namedtuple_to_str(back_pep,other_pep_field_list)+'\n' for back_pep in back_pep_list]
     expected_result = ['1\nEDMHG\n', '2\n\n', '3\nKKQ\n']
     assert result == expected_result
 
@@ -262,7 +262,7 @@ def test_convert_namedtuple_to_str():
     kmer_pep1 = OutputKmer('','GENE0_1_2',NOT_EXIST,False,NOT_EXIST)
     kmer_pep2 = OutputKmer('AQEB','GENE0_1_3',20,True,25)
     kmer_pep_list = [kmer_pep1,kmer_pep2]
-    result = [convert_namedtuple_to_str(kmer_pep,other_pep_field_list)+'\n' for kmer_pep in kmer_pep_list]
+    result = [namedtuple_to_str(kmer_pep,other_pep_field_list)+'\n' for kmer_pep in kmer_pep_list]
     expected_result = ['\tGENE0_1_2\t.\tFalse\t.\n', 'AQEB\tGENE0_1_3\t20\tTrue\t25\n']
     assert result == expected_result
 
@@ -342,7 +342,7 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
             else:
                 seq_dict[ref] = fh.fetch(ref)
 
-    f = gz_and_normal_open(new_junction_file,'r')
+    f = open_gz_or_normal(new_junction_file,'r')
     headline = next(f)
     for line_id, line in enumerate(f):
         if line_id % 10000 == 0:

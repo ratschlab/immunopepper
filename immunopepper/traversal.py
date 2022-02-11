@@ -224,7 +224,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                          filepointer=None,
                          output_silence=False, kmer=None,
                          cross_graph_expr=None, all_read_frames=None, graph_output_samples_ids=None,
-                         graph_samples=None,outbase=None, verbose_save=None):
+                         graph_samples=None,out_dir=None, verbose_save=None):
     """
 
     Parameters
@@ -247,7 +247,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
     filepointer: namedtuple, contains the columns and paths of each file of interest
     output_silence: bool, flag indicating whether not to silence annotated peptides
     kmer: bool, flag indicating whether to output kmers for this parse
-    outbase: str, base direactory used for temporary files
+    out_dir: str, base direactory used for temporary files
     cross_graph_expr: bool, whether to generate the expression kmer matrix with all samples from graph
     graph_samples: list, samples contained in the splicing graph object
     """
@@ -344,7 +344,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
         if not gene.splicegraph.edges is None:
             gene.to_sparse()
     if cross_graph_expr:
-        save_kmer_matrix(kmer_matrix, graph_samples, filepointer, compression=None, outbase=outbase, verbose=verbose_save)
+        save_kmer_matrix(kmer_matrix, graph_samples, filepointer, compression=None, out_dir=out_dir, verbose=verbose_save)
 
 
 

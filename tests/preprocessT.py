@@ -8,7 +8,7 @@ import numpy as np
 import pickle
 import signal as sig
 
-from immunopepper.io_ import decodeUTF8
+from immunopepper.io_ import decode_utf8
 from immunopepper.namedtuples import CountInfo
 from immunopepper.namedtuples import GeneInfo
 from immunopepper.namedtuples import GeneTable
@@ -442,13 +442,13 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, sample_list, heter_code=0):
     a = h5py.File(h5_vcf_path, 'r')
     mut_dict = {}
     for sample in sample_list:
-        col_id = [i for (i, item) in enumerate(a['gtid']) if decodeUTF8(item).startswith(sample)][0]
+        col_id = [i for (i, item) in enumerate(a['gtid']) if decode_utf8(item).startswith(sample)][0]
         row_id = np.where(np.logical_or(a['gt'][:, col_id] == heter_code, a['gt'][:, col_id] == 1))[0]
         for irow in row_id:
             chromo = encode_chromosome(a['pos'][irow, 0])
             pos = a['pos'][irow, 1] - 1
-            mut_base = decodeUTF8(a['allele_alt'][irow])
-            ref_base = decodeUTF8(a['allele_ref'][irow])
+            mut_base = decode_utf8(a['allele_alt'][irow])
+            ref_base = decode_utf8(a['allele_ref'][irow])
             var_dict = {"mut_base": mut_base, "ref_base": ref_base}
             if (sample, chromo) in mut_dict:
                 mut_dict[(sample, chromo)][pos] = var_dict
@@ -533,9 +533,9 @@ def parse_junction_meta_info(h5f_path):
 
         for i, ichr in enumerate(chrms):
             try:
-                junction_dict[decodeUTF8(ichr)].add(':'.join([pos[i, 0], pos[i, 1], decodeUTF8(strand[i])]))
+                junction_dict[decode_utf8(ichr)].add(':'.join([pos[i, 0], pos[i, 1], decode_utf8(strand[i])]))
             except KeyError:
-                junction_dict[decodeUTF8(ichr)] = set([':'.join([pos[i, 0], pos[i, 1], decodeUTF8(strand[i])])])
+                junction_dict[decode_utf8(ichr)] = set([':'.join([pos[i, 0], pos[i, 1], decode_utf8(strand[i])])])
     return junction_dict
 
 
