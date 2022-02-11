@@ -69,7 +69,7 @@ def test_germline_mutation(load_gene_data, load_mutation_data):
     gene = graph_data[0]
     mutation_sub_dic_vcf = mutation_dic_vcf['test1pos', gene.chr]
     ref_mut_seq = apply_germline_mutation(ref_sequence_file=ref_path,
-                                          chrm=gene.chr,
+                                          chromosome=gene.chr,
                                           pos_start=gene.start,
                                           pos_end=gene.stop,
                                           mutation_sub_dict=mutation_sub_dic_vcf)
@@ -335,10 +335,10 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
             if mutation_mode in ['germline', 'somatic_and_germline']:
                 if (sample, ref) in mutation.germline_mutation_dict:
                     seq_dict[ref] = apply_germline_mutation(ref_sequence_file=genome_file,
-                                                      chrm=ref,
-                                                      pos_start=0,
-                                                      pos_end=lens[i],
-                                                      mutation_sub_dict=mutation.germline_mutation_dict[(sample, ref)])['background']
+                                                            chromosome=ref,
+                                                            pos_start=0,
+                                                            pos_end=lens[i],
+                                                            mutation_sub_dict=mutation.germline_mutation_dict[(sample, ref)])['background']
             else:
                 seq_dict[ref] = fh.fetch(ref)
 

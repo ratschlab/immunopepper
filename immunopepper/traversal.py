@@ -31,7 +31,7 @@ from utils import get_segment_expr
 
 
 def collect_background_transcripts(gene=None, ref_seq_file=None, chrm=None, mutation=None):
-    """Calculte the background peptide""
+    """Calculate the background peptide""
 
        Parameters
        ----------
@@ -52,7 +52,7 @@ def collect_background_transcripts(gene=None, ref_seq_file=None, chrm=None, muta
     # when germline mutation is applied, background_seq != ref_seq
     # otherwise, background_seq = ref_seq
     ref_mut_seq = apply_germline_mutation(ref_sequence_file=ref_seq_file,
-                                          chrm=chrm,
+                                          chromosome=chrm,
                                           pos_start=min_pos,
                                           pos_end=max_pos,
                                           mutation_sub_dict=mutation.germline_mutation_dict)
@@ -92,7 +92,7 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
     # when germline mutation is applied, background_seq != ref_seq
     # otherwise, background_seq = ref_seq
     ref_mut_seq = apply_germline_mutation(ref_sequence_file=ref_seq_file,
-                                          chrm=chrm,
+                                          chromosome=chrm,
                                           pos_start=min_pos,
                                           pos_end=max_pos,
                                           mutation_sub_dict=mutation.germline_mutation_dict)
