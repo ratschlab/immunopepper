@@ -37,7 +37,7 @@ def load_gene_data():
     ann_path = os.path.join(data_dir, 'test1pos.gtf')
     ref_path = os.path.join(data_dir, 'test1pos.fa')
 
-    (graph_data, graph_meta) = pickle.load(f)  # cPickle.load(f)
+    (graph_data, graph_meta) = pickle.load(f)
     genetable,chr_set = preprocess_ann(ann_path)
     interesting_chr = list(map(str, range(1, 23))) + ["X", "Y", "MT"]
 

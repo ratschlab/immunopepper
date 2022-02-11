@@ -264,7 +264,7 @@ def _output_info(path, file_columns, kmer_lengths=None, pq_writer=False):
 
 def save_pd_toparquet(path, pd_df, compression=None, verbose=False, pqwriter=None, writer_close=True):
     """
-    Saves a panda data frame in parquet format.
+    Saves a pandas data frame in parquet format.
     """
     s1 = timeit.default_timer()
     size_init = pd_df.shape[1]
