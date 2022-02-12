@@ -77,42 +77,16 @@ class TestLoadMutations:
                 '--ann-path', 'this_ann_path',
                 '--ref-path', 'this_ref_path']
 
-    def test_invalid_mutation_mode(self, basic_args):
-        my_args1 = basic_args + [
-            '--germline', os.path.join(test_data_dir, 'test1pos.vcf'),
-            '--somatic', os.path.join(test_data_dir, 'test1pos.maf'),
-            '--mutation-mode', 'bogus']  # bad mutation mode
-        args = ip.parse_arguments(my_args1)
-        try:
-            mutations.load_mutations(args, args.output_samples)
-            assert 0
-        except SystemExit:
-            assert 1  # expected, because 'bogus' is not a valid mutation mode
-
-    def test_missing_argument(self, basic_args):
-        """ Tests that an error is thrown when requesting somatic mutation mode, but --somatic is missing. """
-        my_args2 = basic_args + ['--germline', os.path.join(test_data_dir, 'test1pos.vcf'),
-                                 '--mutation-mode', 'somatic']  # mismatch mutation mode and input files
-        args = ip.parse_arguments(my_args2)
-        try:
-            mutations.load_mutations(args, args.output_samples)
-            assert 0
-        except SystemExit:
-            assert 1  # expected, because --somatic is missing
-
     def test_reference(self, basic_args):
         """ Tests that when using --build-mode ref, the mutation dicts are empty """
-        my_args2 = basic_args + ['--germline', os.path.join(test_data_dir, 'test1pos.vcf'),
-                                 '--mutation-mode', 'ref']
-        args = ip.parse_arguments(my_args2)
+        args = ip.parse_arguments(basic_args)
         mutation = mutations.load_mutations(args, args.output_samples)
         assert mutation.somatic_dict == {}
         assert mutation.germline_dict == {}
 
     def test_germline(self, basic_args):
         """ Tests that an error is thrown when requesting germline mutation mode, but --germline is missing. """
-        my_args2 = basic_args + ['--germline', os.path.join(test_data_dir, 'test1pos.vcf'),
-                                 '--mutation-mode', 'germline']
+        my_args2 = basic_args + ['--germline', os.path.join(test_data_dir, 'test1pos.vcf')]
         args = ip.parse_arguments(my_args2)
         mutation = mutations.load_mutations(args, args.output_samples)
         assert mutation.somatic_dict == {}
@@ -121,8 +95,7 @@ class TestLoadMutations:
 
     def test_somatic(self, basic_args):
         """ Tests that an error is thrown when requesting somatic mutation mode, but --somatic is missing. """
-        my_args2 = basic_args + ['--somatic', os.path.join(test_data_dir, 'test1pos.maf'),
-                                 '--mutation-mode', 'somatic']
+        my_args2 = basic_args + ['--somatic', os.path.join(test_data_dir, 'test1pos.maf')]
         args = ip.parse_arguments(my_args2)
         mutation = mutations.load_mutations(args, args.output_samples)
         assert mutation.germline_dict == {}
@@ -133,8 +106,7 @@ class TestLoadMutations:
     def test_germline_and_somatic(self, basic_args):
         """ Tests that an error is thrown when requesting somatic mutation mode, but --somatic is missing. """
         my_args2 = basic_args + ['--germline', os.path.join(test_data_dir, 'test1pos.vcf'),
-                                 '--somatic', os.path.join(test_data_dir, 'test1pos.maf'),
-                                 '--mutation-mode', 'somatic_and_germline']
+                                 '--somatic', os.path.join(test_data_dir, 'test1pos.maf')]
         args = ip.parse_arguments(my_args2)
         mutation = mutations.load_mutations(args, args.output_samples)
         assert mutation.somatic_dict == {('test1pos', 'X'): {

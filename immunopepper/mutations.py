@@ -115,28 +115,26 @@ def load_mutations(args, target_sample_list: list[str]):
             graph_to_somatic_names[sample] = sample
         graph_to_germline_names = graph_to_somatic_names
 
-    if args.mutation_mode not in ['ref', 'somatic', 'germline', 'somatic_and_germline']:
-        logging.error('Invalid value for --mutation_mode. Must be one of: somatic, germline, somatic_and_germline')
-        sys.exit(1)
+    mutation_mode = 'ref'
+    if args.germline and args.somatic:
+        mutation_mode = 'somatic_and_germline'
+    elif args.germline:
+        mutation_mode = 'germline'
+    elif args.somatic:
+        mutation_mode = 'somatic'
 
     somatic_dict = {}
     germline_dict = {}
-    if args.mutation_mode in ['germline', 'somatic_and_germline']:
-        if not args.germline:
-            logging.error(f'Please specify --germline for mutation mode: {args.mutation_mode}')
-            sys.exit(1)
+    if args.germline:
         germline_dict = _parse_mutation_file("germline", args.germline, args.output_dir, args.heter_code,
                                              args.use_mut_pickle, target_sample_list, args.mutation_sample,
                                              graph_to_germline_names)
-    if args.mutation_mode in ['somatic', 'somatic_and_germline']:
-        if not args.somatic:
-            logging.error(f'Please specify --somatic for mutation mode: {args.mutation_mode}')
-            sys.exit(1)
+    if args.somatic:
         somatic_dict = _parse_mutation_file("somatic", args.somatic, args.output_dir, args.heter_code,
                                             args.use_mut_pickle, target_sample_list, args.mutation_sample,
                                             graph_to_somatic_names)
 
-    return Mutation(args.mutation_mode, germline_dict=germline_dict, somatic_dict=somatic_dict)
+    return Mutation(mutation_mode, germline_dict=germline_dict, somatic_dict=somatic_dict)
 
 
 def exon_to_mutations(gene: Gene, mutation_pos: dict):
@@ -153,7 +151,8 @@ def exon_to_mutations(gene: Gene, mutation_pos: dict):
     return exon_som_dict
 
 
-def exon_to_expression(gene: Gene, mutation_pos: list[int], count_info: CountInfo, seg_counts: np.ndarray, mut_count_id):
+def exon_to_expression(gene: Gene, mutation_pos: list[int], count_info: CountInfo, seg_counts: np.ndarray,
+                       mut_count_id):
     """
     Builds a dictionary mapping exon ids to expression data.
     """
