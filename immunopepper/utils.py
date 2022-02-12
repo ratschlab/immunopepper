@@ -12,7 +12,7 @@ import signal as sig
 import sys
 
 
-from namedtuples import Idx
+from immunopepper.namedtuples import Idx
 
 
 def to_adj_list(adj_matrix):
@@ -158,18 +158,15 @@ def get_size_factor(samples, lib_file_path):
 
 
 def get_all_comb(array, r=None):
-    """ Get all combinations of items in the given array
-    Specifically used for generating variant combination
-
-    Parameters
-    ----------
-    array: 1D array. input array
-    r: int. The number of items in a combination
-
-    Returns
-    -------
-    result: List(Tuple). List of combination
-
+    """ Return all subsequences of the given array with length smaller than r.
+    For example, get_all_comb([1,2,3]) will return::
+       [(1,), (2,), (3,), (1, 2), (1, 3), (2, 3), (1, 2, 3)],
+    and get_all_comb([1,2,3], 2) will return:
+        [(1,), (2,), (3,), (1, 2), (1, 3), (2, 3)]
+    :param array: array to get subsequences from
+    :param r: the maximum length of returned subsequences, or None for no limit
+    :return: list of subsequences
+    :rtype: list[tuple]
     """
     if r is None:
         r = len(array)
@@ -409,10 +406,10 @@ def check_chr_consistence(ann_chr_set, mutation, graph_data):
     germline_chr_set = set()
     somatic_chr_set = set()
     mode = mutation.mode
-    if mutation.germline_mutation_dict:
-        germline_chr_set = set([item[1] for item in mutation.germline_mutation_dict.keys()])
-    if mutation.somatic_mutation_dict:
-        somatic_chr_set = set([item[1] for item in mutation.somatic_mutation_dict.keys()])
+    if mutation.germline_dict:
+        germline_chr_set = set([item[1] for item in mutation.germline_dict.keys()])
+    if mutation.somatic_dict:
+        somatic_chr_set = set([item[1] for item in mutation.somatic_dict.keys()])
     whole_mut_set = somatic_chr_set.union(germline_chr_set)
     common_chr = whole_mut_set.intersection(ann_chr_set)
 

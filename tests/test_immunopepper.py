@@ -5,10 +5,9 @@ import pysam
 
 from immunopepper.io_ import namedtuple_to_str
 from immunopepper.io_ import open_gz_or_normal
-from immunopepper.mutations import apply_germline_mutation
-from immunopepper.mutations import construct_mut_seq_with_str_concat
-from immunopepper.mutations import get_mutation_mode_from_parser
-from immunopepper.mutations import get_sub_mutation_tuple
+from immunopepper.mutations import get_mutated_sequence
+from immunopepper.mutations import load_mutations
+from immunopepper.mutations import get_sub_mutations
 from immunopepper.preprocess import genes_preprocess_all
 from immunopepper.preprocess import parse_mutation_from_vcf
 from immunopepper.preprocess import parse_mutation_from_maf
@@ -61,19 +60,6 @@ def test_preprocess(load_gene_data):
     graph_data, _, gene_cds_begin_dict = load_gene_data
     gene_info = genes_preprocess_all(graph_data, gene_cds_begin_dict)
     assert gene_info[0].nvertices == 8
-
-
-def test_germline_mutation(load_gene_data, load_mutation_data):
-    graph_data, ref_path, gene_cds_begin_dict = load_gene_data
-    mutation_dic_vcf, mutation_dic_maf = load_mutation_data
-    gene = graph_data[0]
-    mutation_sub_dic_vcf = mutation_dic_vcf['test1pos', gene.chr]
-    ref_mut_seq = apply_germline_mutation(ref_sequence_file=ref_path,
-                                          chromosome=gene.chr,
-                                          pos_start=gene.start,
-                                          pos_end=gene.stop,
-                                          mutation_sub_dict=mutation_sub_dic_vcf)
-    assert 'ref' in ref_mut_seq.keys()
 
 
 def test_get_sub_mut_dna(load_gene_data, load_mutation_data):
@@ -136,74 +122,6 @@ def test_reading_vcf_h5():
     assert vcf_dict_heter_code2['test1neg', 'X'][14] == {'mut_base': 'C', 'ref_base':'G'}
     assert vcf_dict_heter_code2['test1neg', 'X'][135] == {'mut_base': 'G', 'ref_base':'C'}
 
-
-def test_construct_mut_seq_with_str_concat():
-    ref_seq = 'GTAATGTGTAAGATGACGCACGCATGGTGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
-    gt_mut_seq2 = 'GTAATGTGTAAGATGACGCACGCATA'+'C'+'TGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
-    gt_mut_seq3 = 'GTAATGTGTAAGATGACGCACGCATA'+'G'+'TGGTATTGGAGATGGGTTGCGGAGTAAGTTCGAGTTC'
-    mut_dict = {}
-    mut_dict[10] = {'mut_base':'*','ref_base':'A'}
-    mut_dict[25] = {'mut_base':'A','ref_base':'G'}
-    mut_dict[26] = {'mut_base':'C','ref_base':'G'}
-    mut_seq1 = construct_mut_seq_with_str_concat(ref_seq[45:], 45, 46, mut_dict) # test unclear mut_base
-    assert mut_seq1 == ref_seq[45:]
-    mut_seq2 = construct_mut_seq_with_str_concat(ref_seq[25:], 25, 27, mut_dict) # [25,27) include 26
-    assert mut_seq2 == gt_mut_seq2[25:]
-    mut_seq3 = construct_mut_seq_with_str_concat(ref_seq[25:], 25, 26, mut_dict) # [25,26) not include 26
-    assert mut_seq3 == gt_mut_seq3[25:]
-
-
-
-def test_get_mutation_mode_from_parser():
-    basic_args = ['build',
-                  '--samples','this_sample',
-                  '--splice-path','this_splicegraph',
-                  '--output-dir','this_output_dir',
-                  '--ann-path','this_ann_path',
-                  '--ref-path','this_ref_path']
-    my_args1 = basic_args+[
-               '--germline', os.path.join(data_dir,'test1pos.vcf'),
-               '--somatic', os.path.join(data_dir,'test1pos.maf'),
-               '--mutation-mode', 'somantic']  # bad mutation mode
-    args = parse_arguments(my_args1)
-    try:
-        get_mutation_mode_from_parser(args)
-    except SystemExit:
-        assert 1
-    my_args2 = basic_args+['--germline', os.path.join(data_dir,'test1pos.vcf'),
-               '--mutation-mode', 'somatic']  # mismatch mutation mode and input files
-    args = parse_arguments(my_args2)
-    try:
-        get_mutation_mode_from_parser(args)
-    except SystemExit:
-        assert 1
-
-def test_get_sub_mutation_tuple():
-    germline_dict = {('test1pos','1'):{135:{'mut_base': 'G', 'ref_base': 'C'}},('test1neg','1'):{136:{'mut_base': 'G', 'ref_base': 'C'}}}
-    somatic_dict = {('test1pos','1'):{28:{'mut_base': 'G', 'ref_base': 'C'}},('test2neg','1'):{29:{'mut_base': 'G', 'ref_base': 'C'}}}
-    sample = 'test1pos'
-    chrm = '1'
-    mutation = Mutation(mode='somatic_and_germline',germline_mutation_dict=germline_dict,somatic_mutation_dict=somatic_dict)
-
-    sub_mutation = get_sub_mutation_tuple(mutation,sample,chrm)
-    assert sub_mutation.somatic_mutation_dict == mutation.somatic_mutation_dict[('test1pos','1')]
-    assert sub_mutation.germline_mutation_dict == mutation.germline_mutation_dict[('test1pos','1')]
-    assert sub_mutation.mode == mutation.mode
-
-    # (test1neg,'1') not in the keys of maf_dict
-    sample = 'test1neg'
-    try:
-        sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
-    except SystemExit:
-        assert 1
-
-    # (test1pos, 2) does exists neither in vcf nor maf
-    sample = 'test1pos'
-    chrm = '2'
-    try:
-        sub_mutation = get_sub_mutation_tuple(mutation, sample, chrm)
-    except SystemExit:
-        assert 1
 
 def test_create_output_kmer():
     k = 3
@@ -324,7 +242,7 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
                '--germline',germline_file_path,
                '--mutation-mode', mutation_mode]
     args = parse_arguments(my_args1)
-    mutation = get_mutation_mode_from_parser(args)
+    mutation = load_mutations(args)
 
     # read genome file
     seq_dict = {}
@@ -333,12 +251,12 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
         lens = fh.lengths
         for i,ref in enumerate(refs):
             if mutation_mode in ['germline', 'somatic_and_germline']:
-                if (sample, ref) in mutation.germline_mutation_dict:
-                    seq_dict[ref] = apply_germline_mutation(ref_sequence_file=genome_file,
+                if (sample, ref) in mutation.germline_dict:
+                    seq_dict[ref] = get_mutated_sequence(ref_sequence_file=genome_file,
                                                             chromosome=ref,
                                                             pos_start=0,
                                                             pos_end=lens[i],
-                                                            mutation_sub_dict=mutation.germline_mutation_dict[(sample, ref)])['background']
+                                                            mutation_dict=mutation.germline_dict[(sample, ref)])['background']
             else:
                 seq_dict[ref] = fh.fetch(ref)
 
@@ -352,7 +270,7 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
         exact_kmer_pos = items[5]
         gene_chr, gene_strand, somatic_comb,pos_str = exact_kmer_pos.split('_')
         pos_list = [int(pos) for pos in pos_str.split(';')]
-        sub_mutation = get_sub_mutation_tuple(mutation, sample, gene_chr)
+        sub_mutation = get_sub_mutations(mutation, sample, gene_chr)
         somatic_comb_list = somatic_comb.split(';')
         if somatic_comb_list[0] == NOT_EXIST:
             somatic_comb_list = []
@@ -366,8 +284,8 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
                     somatic_mut_pos = int(somatic_mut_pos)
                     if somatic_mut_pos in range(pos_list[i],pos_list[i+1]):
                         offset = somatic_mut_pos-pos_list[i]
-                        mut_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['mut_base']
-                        ref_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['ref_base']
+                        mut_base = sub_mutation.somatic_dict[somatic_mut_pos]['mut_base']
+                        ref_base = sub_mutation.somatic_dict[somatic_mut_pos]['ref_base']
                         # assert ref_base == orig_str[offset]
                         orig_str = orig_str[:offset] + mut_base+orig_str[offset+1:]
                         #somatic_comb_list.remove(str(somatic_mut_pos))
@@ -381,8 +299,8 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
                     somatic_mut_pos = int(somatic_mut_pos)
                     if somatic_mut_pos in range(pos_list[i+1], pos_list[i]):
                         offset = somatic_mut_pos - pos_list[i+1]
-                        mut_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['mut_base']
-                        ref_base = sub_mutation.somatic_mutation_dict[somatic_mut_pos]['ref_base']
+                        mut_base = sub_mutation.somatic_dict[somatic_mut_pos]['mut_base']
+                        ref_base = sub_mutation.somatic_dict[somatic_mut_pos]['ref_base']
                         # assert ref_base == orig_str[offset]
                         orig_str = orig_str[:offset] + mut_base + orig_str[offset+1:]
                         #somatic_comb_list.remove(somatic_mut_pos)

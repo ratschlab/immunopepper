@@ -1,5 +1,5 @@
 """
-Unit test fro imunopepper/dna_to_peptide.pyx.
+Unit test for imunopepper/dna_to_peptide.pyx.
 """
 import pytest
 
