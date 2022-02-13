@@ -371,8 +371,7 @@ def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
 
 # TODO(dd): move mutation parsing methods to mutations.py after review; left here to make code review easier
 def parse_mutation_from_vcf(vcf_path: str, mutation_tag: str, target_samples: list[str] = [],
-                            mutation_sample: str = None, sample_eq_dict={}, heter_code: int = 0, output_dir: str = '',
-                            cache_result: bool = False):
+                            mutation_sample: str = None, sample_eq_dict={}, heter_code: int = 0, output_dir: str = None):
     """Extract mutation information from the given vcf or vcf.h5 file
     :param maf_path: path to the VCF file to be read
     :param mutation_mode: what mutations to apply to the reference.
@@ -381,12 +380,10 @@ def parse_mutation_from_vcf(vcf_path: str, mutation_tag: str, target_samples: li
     :param mutation_sample: only load mutations for this sample id
     :param sample_eq_dict: dictionary mapping sample id names in the Spladder graph/count files to
         sample ids in the mutation files
-    :param heter_code: int (0 or 2). specify which number represents the heterozygous allele (HDF5 VCF only)
+    :param heter_code: Can be 0 or 2. specify which number represents the heterozygous allele (HDF5 VCF only)
         0: 0-> homozygous alternative(1|1), 1-> heterozygous(0|1,1|0) 2->homozygous reference(0|0)
         2: 0-> homozygous reference(0|0), 1-> heterozygous(0|1,1|0) 2->homozygous alternative(1|1)
-    :param output_dir: location where a pickle of the result can be cached if cache_result is true
-    :param cache_result: if True, attempt to load the data from a pre-created pickle file (to save time). If the pickle
-        file is not present, cache the result into a pickle file to be used the next run
+    :param output_dir: location where a pickle of the result can be cached if not None
     :return: a dictionary mapping (sample, chromosome) pairs to mutation data, where mutation data is
         a dictionary mapping mutation position, to mutation properties e.g.::
         {('sample1', 'X'): {111: {'ref_base': 'T', 'mut_base': 'C', 'strand': '-',
@@ -394,14 +391,15 @@ def parse_mutation_from_vcf(vcf_path: str, mutation_tag: str, target_samples: li
     :rtype: dict[(str,str):dict[int, dict[str:str]]]
     """
     sample_eq_dict_reverse = {file_sample: target_sample for target_sample, file_sample in sample_eq_dict.items()}
-    vcf_pkl_file = os.path.join(output_dir, f'{mutation_tag}_vcf.pickle')
-    if cache_result and os.path.exists(vcf_pkl_file):
-        f = open(vcf_pkl_file, 'rb')
-        mutation_dict = pickle.load(f)
-        pickled_sample_ids = {sample_id for sample_id, chr in mutation_dict}
-        _check_mutation_samples(mutation_sample, target_samples, sample_eq_dict, pickled_sample_ids)
-        logging.info(f'Using pickled VCF mutation dict in: {vcf_pkl_file} instead of loading data from: {vcf_path}')
-        return mutation_dict
+    if output_dir is not None:
+        vcf_pkl_file = os.path.join(output_dir, f'{mutation_tag}_vcf.pickle')
+        if os.path.exists(vcf_pkl_file):
+            f = open(vcf_pkl_file, 'rb')
+            mutation_dict = pickle.load(f)
+            pickled_sample_ids = {sample_id for sample_id, chr in mutation_dict}
+            _check_mutation_samples(mutation_sample, target_samples, sample_eq_dict, pickled_sample_ids)
+            logging.info(f'Using pickled VCF mutation dict in: {vcf_pkl_file} instead of loading data from: {vcf_path}')
+            return mutation_dict
 
     if not os.path.exists(vcf_path):
         logging.error(f'Could not find mutation file: {vcf_path}')
@@ -440,7 +438,7 @@ def parse_mutation_from_vcf(vcf_path: str, mutation_tag: str, target_samples: li
                         mutation_dict[(sample_eq_dict_reverse[file_sample], crhomosome)][int(pos)] = var_dict
                     else:
                         mutation_dict[(sample_eq_dict_reverse[file_sample], crhomosome)] = {int(pos): var_dict}
-    if cache_result:
+    if output_dir is not None:
         f_pkl = open(vcf_pkl_file, 'wb')
         pickle.dump(mutation_dict, f_pkl)
         logging.info(f'Cached contents of {vcf_path} to {vcf_pkl_file}')
@@ -497,7 +495,7 @@ def _check_mutation_samples_new(mutation_sample: str, loaded_samples: set[str]):
 
 
 def parse_mutation_from_maf(maf_path: str, mutation_mode: str, target_samples: list[str], mutation_sample: str,
-                            sample_eq_dict: dict[str, str] = {}, output_dir: str = '', cache_result: bool = False):
+                            sample_eq_dict: dict[str, str] = {}, output_dir: str = None):
     """
     Extract somatic mutation information from the given MAF file.
     :param mutation_mode: what mutations to apply to the reference.
@@ -505,7 +503,7 @@ def parse_mutation_from_maf(maf_path: str, mutation_mode: str, target_samples: l
     :param target_samples: list of tissue sample ids TODO(dd) - what are these used for?
     :param mutation_sample: only load mutations for this sample id
     :param maf_path: path to the MAF file to be read
-    :param output_dir: str, save a pickle for maf_dict to save preprocess time
+    :param output_dir: if not None, directory to cache a pickled version of the mutation dict
     :param cache_result: if True, attempt to load the data from a pre-created pickle file (to save time). If the pickle
         file is not present, cache the result into a pickle file to be used the next run
     :param sample_eq_dict: dictionary mapping sample id names in the Spladder graph/count files to
@@ -517,14 +515,16 @@ def parse_mutation_from_maf(maf_path: str, mutation_mode: str, target_samples: l
     :rtype: dict[(str,str):dict[int, dict[str:str]]]
     """
     sample_eq_dict_reverse = {file_sample: target_sample for target_sample, file_sample in sample_eq_dict.items()}
-    maf_pkl_file = os.path.join(output_dir, f'{mutation_mode}_maf.pickle')
-    if cache_result and os.path.exists(maf_pkl_file):  # load pickled mutation dictionary
-        f = open(maf_pkl_file, 'rb')
-        mutation_dict = pickle.load(f)
-        logging.info(f'Using pickled MAF mutation dict in: {maf_pkl_file} instead of loading data from: {maf_path}')
-        pickled_sample_ids = {sample_id for sample_id, chr in mutation_dict}
-        _check_mutation_samples(mutation_sample, target_samples, sample_eq_dict, pickled_sample_ids)
-        return mutation_dict
+
+    if output_dir:
+        maf_pkl_file = os.path.join(output_dir, f'{mutation_mode}_maf.pickle')
+        if os.path.exists(maf_pkl_file):  # load pickled mutation dictionary
+            f = open(maf_pkl_file, 'rb')
+            mutation_dict = pickle.load(f)
+            logging.info(f'Using pickled MAF mutation dict in: {maf_pkl_file} instead of loading data from: {maf_path}')
+            pickled_sample_ids = {sample_id for sample_id, chr in mutation_dict}
+            _check_mutation_samples(mutation_sample, target_samples, sample_eq_dict, pickled_sample_ids)
+            return mutation_dict
 
     if not os.path.exists(maf_path):
         logging.error(f'Could not find mutation file: {maf_path}')
@@ -553,7 +553,7 @@ def parse_mutation_from_maf(maf_path: str, mutation_mode: str, target_samples: l
             else:
                 mutation_dict[((sample_eq_dict_reverse[file_sample], chromosome))] = {int(pos): var_dict}
 
-    if cache_result:
+    if output_dir:
         f_pkl = open(maf_pkl_file, 'wb')
         pickle.dump(mutation_dict, f_pkl)
         logging.info(f'Cached contents of {maf_path} to {maf_pkl_file}')

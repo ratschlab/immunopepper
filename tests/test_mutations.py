@@ -10,7 +10,6 @@ from spladder.classes.gene import Gene
 
 import immunopepper.mutations as mutations
 from immunopepper.namedtuples import Mutation
-import immunopepper.ip as ip
 
 test_data_dir = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -77,27 +76,30 @@ class TestLoadMutations:
                 '--ann-path', 'this_ann_path',
                 '--ref-path', 'this_ref_path']
 
-    def test_reference(self, basic_args):
+    def test_reference(self):
         """ Tests that when using --build-mode ref, the mutation dicts are empty """
-        args = ip.parse_arguments(basic_args)
-        mutation = mutations.load_mutations(args, args.output_samples)
+        mutation = mutations.load_mutations(germline_file=None, somatic_file=None, mutation_sample='', heter_code=0,
+                                            target_samples=['sample1', 'sample2'], sample_name_map_file=None,
+                                            cache_dir=None)
         assert mutation.somatic_dict == {}
         assert mutation.germline_dict == {}
 
     def test_germline(self, basic_args):
         """ Tests that an error is thrown when requesting germline mutation mode, but --germline is missing. """
-        my_args2 = basic_args + ['--germline', os.path.join(test_data_dir, 'test1pos.vcf')]
-        args = ip.parse_arguments(my_args2)
-        mutation = mutations.load_mutations(args, args.output_samples)
+        mutation = mutations.load_mutations(germline_file=os.path.join(test_data_dir, 'test1pos.vcf'),
+                                            somatic_file=None, mutation_sample='', heter_code=0,
+                                            target_samples=['sample1', 'sample2'], sample_name_map_file=None,
+                                            cache_dir=None)
         assert mutation.somatic_dict == {}
         assert mutation.germline_dict == {
             ('test1pos', 'X'): {14: {'ref_base': 'G', 'mut_base': 'C', 'qual': '100', 'filter': 'PASS'}}}
 
     def test_somatic(self, basic_args):
         """ Tests that an error is thrown when requesting somatic mutation mode, but --somatic is missing. """
-        my_args2 = basic_args + ['--somatic', os.path.join(test_data_dir, 'test1pos.maf')]
-        args = ip.parse_arguments(my_args2)
-        mutation = mutations.load_mutations(args, args.output_samples)
+        mutation = mutations.load_mutations(germline_file=None,
+                                            somatic_file=os.path.join(test_data_dir, 'test1pos.maf'),
+                                            mutation_sample='', heter_code=0, target_samples=['sample1', 'sample2'],
+                                            sample_name_map_file=None, cache_dir=None)
         assert mutation.germline_dict == {}
         assert mutation.somatic_dict == {('test1pos', 'X'): {
             38: {'ref_base': 'A', 'mut_base': 'G', 'strand': '+', 'variant_Classification': 'Silent',
@@ -105,10 +107,10 @@ class TestLoadMutations:
 
     def test_germline_and_somatic(self, basic_args):
         """ Tests that an error is thrown when requesting somatic mutation mode, but --somatic is missing. """
-        my_args2 = basic_args + ['--germline', os.path.join(test_data_dir, 'test1pos.vcf'),
-                                 '--somatic', os.path.join(test_data_dir, 'test1pos.maf')]
-        args = ip.parse_arguments(my_args2)
-        mutation = mutations.load_mutations(args, args.output_samples)
+        mutation = mutations.load_mutations(germline_file=os.path.join(test_data_dir, 'test1pos.vcf'),
+                                            somatic_file=os.path.join(test_data_dir, 'test1pos.maf'),
+                                            mutation_sample='', heter_code=0, target_samples=['sample1', 'sample2'],
+                                            sample_name_map_file=None, cache_dir=None)
         assert mutation.somatic_dict == {('test1pos', 'X'): {
             38: {'ref_base': 'A', 'mut_base': 'G', 'strand': '+', 'variant_Classification': 'Silent',
                  'variant_Type': 'SNP'}}}
@@ -213,8 +215,7 @@ class TestReadMafVcf:
 
     def test_read_maf(self):
         maf_file = os.path.join(test_data_dir, 'test1pos.maf')
-        mutation_dict = mutations.parse_mutation_from_maf(maf_file, 'somatic', [], '', output_dir='/tmp/',
-                                                          cache_result=True)
+        mutation_dict = mutations.parse_mutation_from_maf(maf_file, 'somatic', [], '', output_dir='/tmp/')
         assert mutation_dict == {('test1pos', 'X'): {
             38: {'ref_base': 'A', 'mut_base': 'G', 'strand': '+', 'variant_Classification': 'Silent',
                  'variant_Type': 'SNP'}}}
@@ -223,17 +224,14 @@ class TestReadMafVcf:
         original_maf = os.path.join(test_data_dir, 'test1pos.maf')
         copy_maf = os.path.join(test_data_dir, 'temp.maf')
         shutil.copyfile(original_maf, copy_maf)
-        mutation_dict = mutations.parse_mutation_from_maf(copy_maf, 'somatic', [], '', output_dir='/tmp/',
-                                                          cache_result=True)
+        mutation_dict = mutations.parse_mutation_from_maf(copy_maf, 'somatic', [], '', output_dir='/tmp/')
         os.remove(copy_maf)
-        mutation_dict_cached = mutations.parse_mutation_from_maf(copy_maf, 'somatic', [], '', output_dir='/tmp/',
-                                                                 cache_result=True)
+        mutation_dict_cached = mutations.parse_mutation_from_maf(copy_maf, 'somatic', [], '', output_dir='/tmp/')
         assert mutation_dict == mutation_dict_cached
 
     def test_read_vcf(self):
         vcf_file = os.path.join(test_data_dir, 'test1pos.vcf')
-        mutation_dict = mutations.parse_mutation_from_vcf(vcf_file, 'somatic', [], '', output_dir='/tmp/',
-                                                          cache_result=True)
+        mutation_dict = mutations.parse_mutation_from_vcf(vcf_file, 'somatic', [], '', output_dir='/tmp/')
         assert mutation_dict == {
             ('test1pos', 'X'): {14: {'ref_base': 'G', 'mut_base': 'C', 'qual': '100', 'filter': 'PASS'}}}
 
@@ -241,8 +239,7 @@ class TestReadMafVcf:
         original_maf = os.path.join(test_data_dir, 'test1pos.vcf')
         copy_maf = os.path.join(test_data_dir, 'temp.vcf')
         shutil.copyfile(original_maf, copy_maf)
-        mutation_dict = mutations.parse_mutation_from_vcf(copy_maf, 'somatic', output_dir='/tmp/', cache_result=True)
+        mutation_dict = mutations.parse_mutation_from_vcf(copy_maf, 'somatic', output_dir='/tmp/')
         os.remove(copy_maf)
-        mutation_dict_cached = mutations.parse_mutation_from_vcf(copy_maf, 'somatic', output_dir='/tmp/',
-                                                                 cache_result=True)
+        mutation_dict_cached = mutations.parse_mutation_from_vcf(copy_maf, 'somatic', output_dir='/tmp/')
         assert mutation_dict == mutation_dict_cached
