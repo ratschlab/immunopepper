@@ -46,7 +46,7 @@ def parse_arguments(argv):
     additional_file.add_argument("--count-path",help="absolute path of count hdf5 file", required=False, default=None)
     additional_file.add_argument("--gtex-junction-path",help="absolute path of whitelist junction file, currently only support hdf5 format. Will suport tsv"
                                                              "format in the future", required=False, default=None)
-    additional_file.add_argument("--sample-name-map", help="provide an naming equivalence between the count/graphs files, the germline and the somatic mutation file Format:[ no header, 2 or 3 columns]. If 2 columns [ name in count/graphs files \t name in mutations files ] If 3 columns [name in count/graphs files \t name in germline file \t name in somatic file]", required=False, default=None)
+    additional_file.add_argument("--sample-name-map", help="provide a naming equivalence between the count/graphs files, the germline and the somatic mutation file Format:[ no header, 2 or 3 columns]. If 2 columns [ name in count/graphs files \t name in mutations files ] If 3 columns [name in count/graphs files \t name in germline file \t name in somatic file]", required=False, default=None)
     _add_general_args(parser_build)
 
     experimental = parser_build.add_argument_group('EXPERIMENTAL')

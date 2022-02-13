@@ -55,24 +55,23 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frame
                     cds_strand = line_elems[6]
                     assert (cds_strand == gene.strand)
                     cds_phase = int(line_elems[7])
-                    cds_left = int(line_elems[3]) - 1
+                    cds_left = int(line_elems[3])-1
                     cds_right = int(line_elems[4])
 
-                    # TODO: need to remove the redundance of (cds_start, cds_stop, item)
+                    #TODO: need to remove the redundance of (cds_start, cds_stop, item)
                     if gene.strand == "-":
-                        cds_right_modi = max(cds_right - cds_phase, v_start)
+                        cds_right_modi = max(cds_right - cds_phase,v_start)
                         cds_left_modi = v_start
                         n_trailing_bases = cds_right_modi - cds_left_modi
                     else:
-                        cds_left_modi = min(cds_left + cds_phase, v_stop)
+                        cds_left_modi = min(cds_left + cds_phase,v_stop)
                         cds_right_modi = v_stop
                         n_trailing_bases = cds_right_modi - cds_left_modi
 
                     read_phase = n_trailing_bases % 3
                     reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, read_phase))
         gene.to_sparse()
-        gene_info.append(GeneInfo(vertex_succ_list, vertex_order, reading_frames, vertex_len_dict,
-                                  gene.splicegraph.vertices.shape[1]))
+        gene_info.append(GeneInfo(vertex_succ_list, vertex_order, reading_frames, vertex_len_dict, gene.splicegraph.vertices.shape[1]))
 
     return gene_info, gene_idxs, genes
 
@@ -94,13 +93,12 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
         genes_info = np.zeros((genes.shape[0],), dtype=object)
         genes_modif = np.zeros((genes.shape[0],), dtype=object)
         cnt = 0
-
         def update_gene_info(result):
             global genes_info
             global cnt
             global genes_modif
-            assert (len(result[0]) == len(result[2]))
-            for i, tmp in enumerate(result[0]):
+            assert(len(result[0]) == len(result[2]))
+            for i,tmp in enumerate(result[0]):
                 if cnt > 0 and cnt % 1000 == 0:
                     sys.stdout.write('.')
                     if cnt % 10000 == 0:
@@ -114,9 +112,7 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
         pool = mp.Pool(processes=parallel, initializer=pool_initializer)
         for i in range(0, genes.shape[0], 100):
             gene_idx = np.arange(i, min(i + 100, genes.shape[0]))
-            _ = pool.apply_async(genes_preprocess_batch,
-                                 args=(genes[gene_idx], gene_idx, gene_cds_begin_dict, all_read_frames,),
-                                 callback=update_gene_info)
+            _ = pool.apply_async(genes_preprocess_batch, args=(genes[gene_idx], gene_idx, gene_cds_begin_dict, all_read_frames,), callback=update_gene_info)
         pool.close()
         pool.join()
     else:
@@ -138,11 +134,11 @@ def preprocess_ann(ann_path):
         from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
     chromosome_set: set. Store the chromosome naming.
     """
-    transcript_to_gene_dict = {}  # transcript -> gene id
-    gene_to_transcript_dict = {}  # gene_id -> list of transcripts
-    transcript_to_cds_dict = {}  # transcript -> list of CDS exons
+    transcript_to_gene_dict = {}    # transcript -> gene id
+    gene_to_transcript_dict = {}    # gene_id -> list of transcripts
+    transcript_to_cds_dict = {}     # transcript -> list of CDS exons
     transcript_cds_begin_dict = {}  # transcript -> first exon of the CDS
-    gene_cds_begin_dict = {}  # gene -> list of first CDS exons
+    gene_cds_begin_dict = {}        # gene -> list of first CDS exons
 
     file_type = ann_path.split('.')[-1]
     chromesome_set = set()
@@ -159,7 +155,7 @@ def preprocess_ann(ann_path):
         if feature_type in ['transcript', 'mRNA']:
             gene_id = attribute_dict['gene_id']
             transcript_id = attribute_dict['transcript_id']
-            if attribute_dict['gene_type'] != 'protein_coding' or attribute_dict['transcript_type'] != 'protein_coding':
+            if attribute_dict['gene_type'] != 'protein_coding' or attribute_dict['transcript_type']  != 'protein_coding':
                 continue
             assert (transcript_id not in transcript_to_gene_dict)
             transcript_to_gene_dict[transcript_id] = gene_id
@@ -172,21 +168,21 @@ def preprocess_ann(ann_path):
         elif feature_type == "CDS":
             parent_ts = attribute_dict['transcript_id']
             strand_mode = item[6]
-            cds_left = int(item[3]) - 1
+            cds_left = int(item[3])-1
             cds_right = int(item[4])
             frameshift = int(item[7])
             if parent_ts in transcript_to_cds_dict:
                 transcript_to_cds_dict[parent_ts].append((cds_left, cds_right, frameshift))
             else:
                 transcript_to_cds_dict[parent_ts] = [(cds_left, cds_right, frameshift)]
-            if strand_mode == "+":
+            if strand_mode == "+" :
                 cds_start, cds_stop = cds_left, cds_right
             else:
                 cds_start, cds_stop = cds_right, cds_left
 
             # we only consider the start of the whole CoDing Segment
             if parent_ts not in transcript_cds_begin_dict or \
-                leq_strand(cds_start, transcript_cds_begin_dict[parent_ts][0], strand_mode):
+               leq_strand(cds_start, transcript_cds_begin_dict[parent_ts][0], strand_mode):
                 transcript_cds_begin_dict[parent_ts] = (cds_start, cds_stop, item)
 
     # collect first CDS exons for all transcripts of a gene
@@ -202,7 +198,7 @@ def preprocess_ann(ann_path):
         transcript_to_cds_dict[ts_key] = sorted(transcript_to_cds_dict[ts_key], key=lambda coordpair: coordpair[0])
 
     genetable = GeneTable(gene_cds_begin_dict, transcript_to_cds_dict, gene_to_transcript_dict)
-    return genetable, chromesome_set
+    return genetable,chromesome_set
 
 
 def attribute_item_to_dict(a_item, file_type, feature_type):
@@ -264,7 +260,6 @@ def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=N
     -------
     count: tuple of float. Expression level for the given edges.
     """
-
     def get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts=None):
         a = np.searchsorted(segmentgraph.segments[1, :], sorted_pos[1])
         b = np.searchsorted(segmentgraph.segments[0, :], sorted_pos[2])
@@ -274,7 +269,7 @@ def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=N
             idx = np.ravel_multi_index([b, a], segmentgraph.seg_edges.shape)
         cidx = np.searchsorted(edge_idxs, idx)
         if len(edge_counts.shape) > 1:
-            counts = edge_counts[cidx, :]
+            counts = edge_counts[cidx,:]
         else:
             counts = np.array([edge_counts[cidx]])
         return counts
@@ -285,7 +280,7 @@ def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=N
     count = get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts)
 
     if coord.start_v3 is None:
-        edges_res = [(c_,) for c_ in count]  # (count,)
+        edges_res = [(c_,) for c_ in count] #(count,)
     else:
         sorted_pos = np.sort(np.array([coord.start_v2, coord.stop_v2, coord.start_v3, coord.stop_v3]))
         count2 = get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts)
@@ -295,7 +290,6 @@ def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=N
         edges_res = edges_res[0]
 
     return edges_res
-
 
 def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
     """ Parse the count file
@@ -322,7 +316,7 @@ def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
     #   h5f["edge_idx"] --> multi-row index encoding the edge in the splice graph (rows:
     h5f = h5py.File(h5fname, 'r')
     assert (h5f["strains"].shape[0] == h5f["segments"].shape[1])
-    assert (h5f["gene_ids_segs"].size == h5f["segments"].shape[0])
+    assert (h5f["gene_ids_segs"].size ==  h5f["segments"].shape[0])
     assert (h5f["gene_ids_edges"].size == h5f["edges"].shape[0])
 
     ### create a sample name dictionary mapping sample names to indices
@@ -357,9 +351,8 @@ def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
     h5f.close()
     if cross_graph_expr and sample_list:
         # Retrieve count id matching input samples
-        matching_count_ids = np.array(
-            [s_idx for input_sample in sample_list for s_idx, graph_sample in enumerate(count_names)
-             if graph_sample.decode() == input_sample])
+        matching_count_ids = np.array([s_idx for input_sample in sample_list for s_idx, graph_sample in enumerate(count_names)
+                                  if graph_sample.decode() == input_sample ])
         if countinfo is not None and len(matching_count_ids) == 0:
             logging.error("Output samples do not match count file samples")
             sys.exit(1)
@@ -562,7 +555,7 @@ def parse_mutation_from_maf(maf_path: str, mutation_mode: str, target_samples: l
     return mutation_dict
 
 
-# todo: support tsv file in the future
+#todo: support tsv file in the future
 def parse_junction_meta_info(h5f_path):
     """ Extract introns of interest from given h5py file
 
@@ -578,13 +571,13 @@ def parse_junction_meta_info(h5f_path):
     if h5f_path is None:
         return None
     else:
-        h5f = h5py.File(h5f_path, 'r')
+        h5f = h5py.File(h5f_path,'r')
         chrms = h5f['chrms'][:]
         pos = h5f['pos'][:].astype('str')
         strand = h5f['strand'][:]
         junction_dict = {}
 
-        for i, ichr in enumerate(chrms):
+        for i,ichr in enumerate(chrms):
             try:
                 junction_dict[decode_utf8(ichr)].add(':'.join([pos[i, 0], pos[i, 1], decode_utf8(strand[i])]))
             except KeyError:
@@ -593,6 +586,7 @@ def parse_junction_meta_info(h5f_path):
 
 
 def parse_gene_choices(genes_interest, process_chr, process_num, complexity_cap, disable_process_libsize, graph_data):
+
     if process_num == 0:  # Default process all genes
         num = len(graph_data)
     else:
@@ -627,7 +621,8 @@ def parse_gene_choices(genes_interest, process_chr, process_num, complexity_cap,
                 "Gene of interest and chromosome of interest do not match. Check argument --genes_interest, --process_chr")
             sys.exit(1)
 
-    if complexity_cap is None or complexity_cap == 0:  # Default no complexity cap
-        complexity_cap = np.inf
+
+    if complexity_cap is None or complexity_cap==0: #Default no complexity cap
+        complexity_cap=np.inf
 
     return graph_data, genes_interest, num, complexity_cap, disable_process_libsize
