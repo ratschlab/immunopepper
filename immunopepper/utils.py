@@ -74,9 +74,7 @@ def leq_strand(coord1, coord2, strand):
 
 
 def encode_chromosome(in_num):
-    """
-    Encodes chromosome to same cn
-    """
+    """  Encodes human chromosome numbers to strings (23==X, 24==Y, 25 ==MT, the rest remain unchanged. """
     convert_dict = {23: "X", 24: "Y", 25: "MT"}
     return convert_dict[in_num] if in_num in convert_dict else str(in_num)
 

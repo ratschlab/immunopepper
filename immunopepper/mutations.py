@@ -70,7 +70,7 @@ def _parse_mutation_file(mutation_tag, mutation_file_path, output_dir, heter_cod
                          target_sample_list=None, mutation_sample=None, name_eq_dict={}):
     """ Reads data from a MAF or VCF file """
     if mutation_file_path.lower().endswith('.maf'):
-        mutation_dict = parse_mutation_from_maf(mutation_tag=mutation_tag, target_sample_list=target_sample_list,
+        mutation_dict = parse_mutation_from_maf(mutation_mode=mutation_tag, target_samples=target_sample_list,
                                                 mutation_sample=mutation_sample, maf_path=mutation_file_path,
                                                 output_dir=output_dir, mut_pickle=mut_pickle,
                                                 sample_eq_dict=name_eq_dict)
@@ -78,7 +78,7 @@ def _parse_mutation_file(mutation_tag, mutation_file_path, output_dir, heter_cod
         '.h5'):  # we also accept hdf5 file format
         mutation_dict = parse_mutation_from_vcf(mutation_tag=mutation_tag, vcf_path=mutation_file_path,
                                                 output_dir=output_dir, mut_pickle=mut_pickle,
-                                                heter_code=heter_code, target_sample_list=target_sample_list,
+                                                heter_code=heter_code, target_samples=target_sample_list,
                                                 mutation_sample=mutation_sample, sample_eq_dict=name_eq_dict)
     else:
         logging.error('Unsupported mutation file format: only maf and vcf formats are supported.')
