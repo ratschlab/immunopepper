@@ -10,7 +10,9 @@ jobs:
           command: sudo apt-get install pkg-config libhdf5-103 libhdf5-dev
       - run:
           name: install R
-          command: sudo apt install r-base
+          command: |
+            sudo apt install r-base
+            sudo Rscript .circleci/deseq2.r
       - run:
           name: setup environment
           command: |
