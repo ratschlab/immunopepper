@@ -426,7 +426,7 @@ def parse_mutation_from_vcf(mutation_tag: str, vcf_path: str, output_dir: str = 
         var_dict = {'ref_base': items[3],
                     'mut_base': items[4],
                     'qual': items[5],
-                    'filter': items[6] }
+                    'filter': items[6]}
         if len(var_dict['ref_base']) == len(var_dict['mut_base']):  # only consider snp for now
             for i, file_sample in enumerate(file_sample_list):
                 if items[9 + i].split(':')[0] in {'1|1', '1|0', '0|1', '0/1', '1/0', '1/1'}:
@@ -450,7 +450,7 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, mutation_sample, heter_code=0):
 
     Parameters and return value: see :meth:`parse_mutation_from_vcf`
     """
-    #TODO(reviewers): is this method used? It's much simpler than the real VCF and MAF readers
+    # TODO(reviewers): is this method used? It's much simpler than the real VCF and MAF readers
     a = h5py.File(h5_vcf_path, 'r')
     mut_dict = {}
     file_sample_list = [decode_utf8(item) for item in a['gtid']]
@@ -483,10 +483,10 @@ def _check_mutation_samples(mutation_sample: str, target_samples: list[str], sam
                           f'please check samples above or consider using --sample-name-map')
             sys.exit(1)
 
-def _check_mutation_samples_new(mutation_sample: str, target_samples: list[str], sample_eq_dict: dict[str, str],
-                            loaded_samples: set[str]):
+
+def _check_mutation_samples_new(mutation_sample: str, loaded_samples: set[str]):
     """ Asserts that the mutation samples loaded from a VCF or MAF file contain mutation_sample. """
-    if mutation_sample and mutation_sample not in loaded_samples: # or should it be sample_eq_dict[mutation_sample]?
+    if mutation_sample and mutation_sample not in loaded_samples:  # or should it be sample_eq_dict[mutation_sample]?
         logging.error(f'{mutation_sample} not found in mutation file. Samples in mutations file are: {loaded_samples}')
         sys.exit(1)
 
