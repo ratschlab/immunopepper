@@ -2,9 +2,9 @@
 Unit test for imunopepper/mutations.py
 """
 import os
-
 import numpy as np
 import pytest
+import shutil
 
 from spladder.classes.gene import Gene
 
@@ -183,17 +183,66 @@ class TestReadMafVcf:
     """ Tests reading and caching MAF and VCF files """
 
     def test_reading_vcf_h5(self):
-        vcf_dict_default_heter_code0 = mutations.parse_mutation_from_vcf('somatic',
-                                                                         os.path.join(test_data_dir, 'test1vcf.h5'),
-                                                                         target_samples=['test1pos', 'test1neg'])
-        vcf_dict_heter_code2 = mutations.parse_mutation_from_vcf('somatic', os.path.join(test_data_dir, 'test1vcf.h5'),
-                                                                 target_samples=['test1pos', 'test1neg'], heter_code=2)
-        assert len(vcf_dict_default_heter_code0) == 2
-        assert vcf_dict_default_heter_code0['test1neg', 'X'][135] == {'mut_base': 'G', 'ref_base': 'C'}
-        assert vcf_dict_default_heter_code0['test1pos', 'X'][14] == {'mut_base': 'C', 'ref_base': 'G'}
-        assert vcf_dict_heter_code2['test1pos', 'X'][135] == {'mut_base': 'G', 'ref_base': 'C'}
-        assert vcf_dict_heter_code2['test1neg', 'X'][14] == {'mut_base': 'C', 'ref_base': 'G'}
-        assert vcf_dict_heter_code2['test1neg', 'X'][135] == {'mut_base': 'G', 'ref_base': 'C'}
+        mutation_dict = mutations.parse_mutation_from_vcf(os.path.join(test_data_dir, 'test1vcf.h5'), 'somatic',
+                                                          target_samples=['test1pos', 'test1neg'],
+                                                          mutation_sample='test1pos_with_suffix')
+        assert len(mutation_dict) == 1
+        assert mutation_dict[('test1pos_with_suffix', 'X')][14] == {'mut_base': 'C', 'ref_base': 'G'}
+
+        # now let's read the other sample (test1neg_with_suffix)
+        mutation_dict = mutations.parse_mutation_from_vcf(os.path.join(test_data_dir, 'test1vcf.h5'), 'somatic',
+                                                          target_samples=['test1pos', 'test1neg'],
+                                                          mutation_sample='test1neg_with_suffix')
+        assert len(mutation_dict) == 1
+        assert mutation_dict[('test1neg_with_suffix', 'X')][135] == {'mut_base': 'G', 'ref_base': 'C'}
+
+    def test_reading_vcf_h5_hetero(self):
+        mutation_dict = mutations.parse_mutation_from_vcf(os.path.join(test_data_dir, 'test1vcf.h5'), 'somatic',
+                                                          target_samples=['test1pos', 'test1neg'],
+                                                          mutation_sample='test1pos_with_suffix', heter_code=2)
+        assert len(mutation_dict) == 1
+        assert mutation_dict[('test1pos_with_suffix', 'X')][135] == {'mut_base': 'G', 'ref_base': 'C'}
+
+        # now let's read the other sample (test1neg_with_suffix)
+        mutation_dict = mutations.parse_mutation_from_vcf(os.path.join(test_data_dir, 'test1vcf.h5'), 'somatic',
+                                                          target_samples=['test1pos', 'test1neg'],
+                                                          mutation_sample='test1neg_with_suffix', heter_code=2)
+        assert len(mutation_dict) == 1
+        assert mutation_dict[('test1neg_with_suffix', 'X')][14] == {'mut_base': 'C', 'ref_base': 'G'}
+        assert mutation_dict[('test1neg_with_suffix', 'X')][135] == {'mut_base': 'G', 'ref_base': 'C'}
+
+    def test_read_maf(self):
+        maf_file = os.path.join(test_data_dir, 'test1pos.maf')
+        mutation_dict = mutations.parse_mutation_from_maf(maf_file, 'somatic', [], '', output_dir='/tmp/',
+                                                          cache_result=True)
+        assert mutation_dict == {('test1pos', 'X'): {
+            38: {'ref_base': 'A', 'mut_base': 'G', 'strand': '+', 'variant_Classification': 'Silent',
+                 'variant_Type': 'SNP'}}}
 
     def test_cache_maf(self):
-        pass
+        original_maf = os.path.join(test_data_dir, 'test1pos.maf')
+        copy_maf = os.path.join(test_data_dir, 'temp.maf')
+        shutil.copyfile(original_maf, copy_maf)
+        mutation_dict = mutations.parse_mutation_from_maf(copy_maf, 'somatic', [], '', output_dir='/tmp/',
+                                                          cache_result=True)
+        os.remove(copy_maf)
+        mutation_dict_cached = mutations.parse_mutation_from_maf(copy_maf, 'somatic', [], '', output_dir='/tmp/',
+                                                                 cache_result=True)
+        assert mutation_dict == mutation_dict_cached
+
+    def test_read_vcf(self):
+        vcf_file = os.path.join(test_data_dir, 'test1pos.vcf')
+        mutation_dict = mutations.parse_mutation_from_vcf(vcf_file, 'somatic', [], '', output_dir='/tmp/',
+                                                          cache_result=True)
+        assert mutation_dict == {
+            ('test1pos', 'X'): {14: {'ref_base': 'G', 'mut_base': 'C', 'qual': '100', 'filter': 'PASS'}}}
+
+    def test_cache_vcf(self):
+        original_maf = os.path.join(test_data_dir, 'test1pos.vcf')
+        copy_maf = os.path.join(test_data_dir, 'temp.vcf')
+        shutil.copyfile(original_maf, copy_maf)
+        mutation_dict = mutations.parse_mutation_from_vcf(copy_maf, 'somatic', output_dir='/tmp/', cache_result=True)
+        os.remove(copy_maf)
+        mutation_dict_cached = mutations.parse_mutation_from_vcf(copy_maf, 'somatic', output_dir='/tmp/',
+                                                                 cache_result=True)
+        assert mutation_dict == mutation_dict_cached

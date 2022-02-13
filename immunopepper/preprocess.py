@@ -369,24 +369,24 @@ def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
     matching_count_samples = [n.decode('utf8') for n in count_names]
     return countinfo, matching_count_samples, matching_count_ids
 
-
-def parse_mutation_from_vcf(mutation_tag: str, vcf_path: str, output_dir: str = '', heter_code: int = 0,
-                            cache_result: bool = False,
-                            target_samples: list[str] = None, mutation_sample: str = None, sample_eq_dict={}):
+# TODO(dd): move mutation parsing methods to mutations.py after review; left here to make code review easier
+def parse_mutation_from_vcf(vcf_path: str, mutation_tag: str, target_samples: list[str] = [],
+                            mutation_sample: str = None, sample_eq_dict={}, heter_code: int = 0, output_dir: str = '',
+                            cache_result: bool = False):
     """Extract mutation information from the given vcf or vcf.h5 file
+    :param maf_path: path to the VCF file to be read
     :param mutation_mode: what mutations to apply to the reference.
         One of 'ref', 'germline', 'somatic', 'somatic_and_germline'
-    :param maf_path: path to the VCF file to be read
-    :param output_dir: location where a pickle of the result can be cached if cache_result is true
-    :param heter_code: int (0 or 2). specify which number represents heter allele
-        0: 0-> homozygous alternative(1|1), 1-> heterozygous(0|1,1|0) 2->homozygous reference(0|0)
-        2: 0-> homozygous reference(0|0), 1-> heterozygous(0|1,1|0) 2->homozygous alternative(1|1)
-    ::param cache_result: if True, attempt to load the data from a pre-created pickle file (to save time). If the pickle
-        file is not present, cache the result into a pickle file to be used the next run
     :param target_samples: list of tissue sample ids TODO(dd) - what are these used for?
     :param mutation_sample: only load mutations for this sample id
     :param sample_eq_dict: dictionary mapping sample id names in the Spladder graph/count files to
         sample ids in the mutation files
+    :param heter_code: int (0 or 2). specify which number represents the heterozygous allele (HDF5 VCF only)
+        0: 0-> homozygous alternative(1|1), 1-> heterozygous(0|1,1|0) 2->homozygous reference(0|0)
+        2: 0-> homozygous reference(0|0), 1-> heterozygous(0|1,1|0) 2->homozygous alternative(1|1)
+    :param output_dir: location where a pickle of the result can be cached if cache_result is true
+    :param cache_result: if True, attempt to load the data from a pre-created pickle file (to save time). If the pickle
+        file is not present, cache the result into a pickle file to be used the next run
     :return: a dictionary mapping (sample, chromosome) pairs to mutation data, where mutation data is
         a dictionary mapping mutation position, to mutation properties e.g.::
         {('sample1', 'X'): {111: {'ref_base': 'T', 'mut_base': 'C', 'strand': '-',
@@ -462,7 +462,8 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, mutation_sample, heter_code=0):
     if mutation_sample and mutation_sample not in file_sample_list:
         logging.error(f'Sample {mutation_sample} not found in the h5 variant file')
         sys.exit(1)
-    col_id = [i for (i, item) in enumerate(file_sample_list) if item == mutation_sample][0]
+    col_id = file_sample_list.index(mutation_sample)  # TODO: what if the index is not found?
+    # the 'gt' column stores the most likely genotype for the sample
     row_id = np.where(np.logical_or(a['gt'][:, col_id] == heter_code, a['gt'][:, col_id] == 1))[0]
     for irow in row_id:
         chromosome = encode_chromosome(a['pos'][irow, 0])
@@ -473,8 +474,7 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, mutation_sample, heter_code=0):
         if (mutation_sample, chromosome) in mut_dict:
             mut_dict[(mutation_sample, chromosome)][pos] = var_dict
         else:
-            mut_dict[(mutation_sample, chromosome)] = {}
-            mut_dict[(mutation_sample, chromosome)][pos] = var_dict
+            mut_dict[(mutation_sample, chromosome)] = {pos: var_dict}
     return mut_dict
 
 
@@ -496,8 +496,8 @@ def _check_mutation_samples_new(mutation_sample: str, loaded_samples: set[str]):
         sys.exit(1)
 
 
-def parse_mutation_from_maf(mutation_mode: str, target_samples: list[str], mutation_sample: str, maf_path: str,
-                            output_dir: str = '', cache_result: bool = False, sample_eq_dict: dict[str, str] = {}):
+def parse_mutation_from_maf(maf_path: str, mutation_mode: str, target_samples: list[str], mutation_sample: str,
+                            sample_eq_dict: dict[str, str] = {}, output_dir: str = '', cache_result: bool = False):
     """
     Extract somatic mutation information from the given MAF file.
     :param mutation_mode: what mutations to apply to the reference.
