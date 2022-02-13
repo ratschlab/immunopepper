@@ -403,6 +403,10 @@ def parse_mutation_from_vcf(mutation_tag: str, vcf_path: str, output_dir: str = 
         logging.info(f'Using pickled VCF mutation dict in: {vcf_pkl_file} instead of loading data from: {vcf_path}')
         return mutation_dict
 
+    if not os.path.exists(vcf_path):
+        logging.error(f'Could not find mutation file: {vcf_path}')
+        sys.exit(1)
+
     file_type = vcf_path.split('.')[-1]
     if file_type == 'h5':  # hdf5 file
         mutation_dict = parse_mutation_from_vcf_h5(vcf_path, mutation_sample, heter_code)
@@ -452,9 +456,10 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, mutation_sample, heter_code=0):
     """
     # TODO(reviewers): is this method used? It's much simpler than the real VCF and MAF readers
     a = h5py.File(h5_vcf_path, 'r')
+
     mut_dict = {}
     file_sample_list = [decode_utf8(item) for item in a['gtid']]
-    if mutation_sample not in file_sample_list:
+    if mutation_sample and mutation_sample not in file_sample_list:
         logging.error(f'Sample {mutation_sample} not found in the h5 variant file')
         sys.exit(1)
     col_id = [i for (i, item) in enumerate(file_sample_list) if item == mutation_sample][0]
@@ -520,6 +525,10 @@ def parse_mutation_from_maf(mutation_mode: str, target_samples: list[str], mutat
         pickled_sample_ids = {sample_id for sample_id, chr in mutation_dict}
         _check_mutation_samples(mutation_sample, target_samples, sample_eq_dict, pickled_sample_ids)
         return mutation_dict
+
+    if not os.path.exists(maf_path):
+        logging.error(f'Could not find mutation file: {maf_path}')
+        sys.exit(1)
 
     lines = open(maf_path).readlines()
     mutation_dict = {}

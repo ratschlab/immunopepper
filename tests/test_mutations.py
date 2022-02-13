@@ -183,13 +183,17 @@ class TestReadMafVcf:
     """ Tests reading and caching MAF and VCF files """
 
     def test_reading_vcf_h5(self):
-        vcf_dict_default_heter_code0 = mutations.parse_mutation_from_vcf(os.path.join(test_data_dir, 'test1vcf.h5'),
-                                                                         h5_sample_list=['test1pos', 'test1neg'])
-        vcf_dict_heter_code2 = mutations.parse_mutation_from_vcf(os.path.join(test_data_dir, 'test1vcf.h5'),
-                                                                 h5_sample_list=['test1pos', 'test1neg'], heter_code=2)
+        vcf_dict_default_heter_code0 = mutations.parse_mutation_from_vcf('somatic',
+                                                                         os.path.join(test_data_dir, 'test1vcf.h5'),
+                                                                         target_samples=['test1pos', 'test1neg'])
+        vcf_dict_heter_code2 = mutations.parse_mutation_from_vcf('somatic', os.path.join(test_data_dir, 'test1vcf.h5'),
+                                                                 target_samples=['test1pos', 'test1neg'], heter_code=2)
         assert len(vcf_dict_default_heter_code0) == 2
         assert vcf_dict_default_heter_code0['test1neg', 'X'][135] == {'mut_base': 'G', 'ref_base': 'C'}
         assert vcf_dict_default_heter_code0['test1pos', 'X'][14] == {'mut_base': 'C', 'ref_base': 'G'}
         assert vcf_dict_heter_code2['test1pos', 'X'][135] == {'mut_base': 'G', 'ref_base': 'C'}
         assert vcf_dict_heter_code2['test1neg', 'X'][14] == {'mut_base': 'C', 'ref_base': 'G'}
         assert vcf_dict_heter_code2['test1neg', 'X'][135] == {'mut_base': 'G', 'ref_base': 'C'}
+
+    def test_cache_maf(self):
+        pass
