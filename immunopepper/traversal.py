@@ -51,7 +51,7 @@ def collect_background_transcripts(gene=None, ref_seq_file=None, chrm=None, muta
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
     # otherwise, background_seq = ref_seq
-    ref_mut_seq = get_mutated_sequence(ref_sequence_file=ref_seq_file,
+    ref_mut_seq = get_mutated_sequence(fasta_file=ref_seq_file,
                                           chromosome=chrm,
                                           pos_start=min_pos,
                                           pos_end=max_pos,
@@ -91,7 +91,7 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
     # otherwise, background_seq = ref_seq
-    ref_mut_seq = get_mutated_sequence(ref_sequence_file=ref_seq_file,
+    ref_mut_seq = get_mutated_sequence(fasta_file=ref_seq_file,
                                           chromosome=chrm,
                                           pos_start=min_pos,
                                           pos_end=max_pos,

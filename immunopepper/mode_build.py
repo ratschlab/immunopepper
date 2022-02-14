@@ -13,30 +13,31 @@ import sys
 import timeit
 
 # immuno module
-from io_ import collect_results
-from io_ import initialize_fp
-from io_ import remove_folder_list
-from io_ import save_bg_kmer_set
-from io_ import save_bg_peptide_dict
-from io_ import save_gene_expr_distr
-from io_ import save_fg_kmer_dict
-from io_ import save_fg_peptide_dict
-from mutations import get_sub_mutations
-from preprocess import genes_preprocess_all
-from preprocess import parse_junction_meta_info
-from preprocess import parse_gene_choices
-from preprocess import parse_gene_metadata_info
-from preprocess import preprocess_ann
-from traversal import collect_background_transcripts
-from traversal import collect_vertex_pairs
-from traversal import get_and_write_background_peptide_and_kmer
-from traversal import get_and_write_peptide_and_kmer
-from utils import check_chr_consistence
-from utils import create_libsize
-from utils import get_idx
-from utils import get_total_gene_expr
-from utils import print_memory_diags
-from utils import pool_initializer
+from immunopepper.io_ import collect_results
+from immunopepper.io_ import initialize_fp
+from immunopepper.io_ import remove_folder_list
+from immunopepper.io_ import save_bg_kmer_set
+from immunopepper.io_ import save_bg_peptide_dict
+from immunopepper.io_ import save_gene_expr_distr
+from immunopepper.io_ import save_fg_kmer_dict
+from immunopepper.io_ import save_fg_peptide_dict
+from immunopepper.mutations import get_sub_mutations
+from immunopepper.mutations import load_mutations
+from immunopepper.preprocess import genes_preprocess_all
+from immunopepper.preprocess import parse_junction_meta_info
+from immunopepper.preprocess import parse_gene_choices
+from immunopepper.preprocess import parse_gene_metadata_info
+from immunopepper.preprocess import preprocess_ann
+from immunopepper.traversal import collect_background_transcripts
+from immunopepper.traversal import collect_vertex_pairs
+from immunopepper.traversal import get_and_write_background_peptide_and_kmer
+from immunopepper.traversal import get_and_write_peptide_and_kmer
+from immunopepper.utils import check_chr_consistence
+from immunopepper.utils import create_libsize
+from immunopepper.utils import get_idx
+from immunopepper.utils import get_total_gene_expr
+from immunopepper.utils import print_memory_diags
+from immunopepper.utils import pool_initializer
 
 
 ### intermediate fix to load pickle files stored under previous version
@@ -211,7 +212,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                 continue
 
             chrm = gene.chr.strip()
-            sub_mutation = get_sub_mutation_tuple(mutation, mutation_sample, chrm)
+            sub_mutation = get_sub_mutations(mutation, mutation_sample, chrm)
             if (arg.mutation_sample is not None) and (arg.cross_graph_expr):
                 mut_count_id = [idx for idx, sample in enumerate(arg.output_samples) if arg.mutation_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') == sample][0]
             else:
@@ -324,7 +325,8 @@ def mode_build(arg):
         size_factor = None
 
     # read the variant file
-    mutation = get_mutation_mode_from_parser(arg, matching_count_samples)
+    mutation = load_mutations(arg.germline, arg.somatic, arg.mutation_sample, arg.heter_code, matching_count_samples,
+                              arg.sample_name_map, arg.output_dir if arg.use_mut_pickle else None)
 
     # load splicegraph
     logging.info('Loading splice graph ...')
