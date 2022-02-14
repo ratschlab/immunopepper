@@ -14,11 +14,11 @@ from immunopepper.preprocess import parse_mutation_from_vcf
 from immunopepper.utils import get_all_comb
 
 
-def get_mutated_sequence(ref_sequence_file: str, chromosome: str, pos_start: int, pos_end: int,
+def get_mutated_sequence(fasta_file: str, chromosome: str, pos_start: int, pos_end: int,
                          mutation_dict: dict[int:dict[str:str]]):
     """ Reads the specified subsequence from the given fasta file and applies the mutations in mutation_dict.
 
-    :param ref_sequence_file: fasta file containing the reference sequence to be updated
+    :param fasta_file: file containing the reference sequence to be mutated
     :param chrm: the chromosome to which the mutations should be applied
     :param pos_start: starting position for subsequence to be mutated
     :param pos_end: ending position for subsequence to be mutated
@@ -28,22 +28,14 @@ def get_mutated_sequence(ref_sequence_file: str, chromosome: str, pos_start: int
       the original sequence, and the 'background' key contains the mutated sequence.
     TODO(dd): using a dict here is not right; should be a tuple (or a class)
     """
-    with pysam.FastaFile(ref_sequence_file) as fh:
+    with pysam.FastaFile(fasta_file) as fh:
         ref_sequence = fh.fetch(chromosome, pos_start, pos_end)
     return {'ref': ref_sequence,
             'background': _apply_mutations(ref_sequence, pos_start, pos_end, mutation_dict)}
 
 
 def _apply_mutations(seq: str, pos_start: int, pos_end: int, mut_dict: dict[int:dict[str:str]]):
-    """ Apply the given mutations to a reference sequence.
-
-    :param seq: sequence to mutate
-    :param pos_start: starting position for subsequence to be mutated
-    :param pos_end: ending position for subsequence to be mutated
-    :param mutation_sub_dict: dictionary mapping a position to the mutation variants
-    :return: the mutated sequence
-    :rtype str:
-    """
+    """ Apply the given mutations to a reference sequence.  """
     if not mut_dict:
         return seq
 
@@ -70,34 +62,34 @@ def _parse_mutation_file(mutation_tag, mutation_file_path, output_dir, heter_cod
                          mutation_sample=None, name_eq_dict={}):
     """ Reads data from a MAF or VCF file """
     if mutation_file_path.lower().endswith('.maf'):
-        mutation_dict = parse_mutation_from_maf(maf_path=mutation_file_path, mutation_mode=mutation_tag,
-                                                target_samples=target_sample_list, mutation_sample=mutation_sample,
-                                                sample_eq_dict=name_eq_dict, output_dir=output_dir)
-    elif mutation_file_path.lower().endswith('.vcf') or mutation_file_path.lower().endswith(
-        '.h5'):  # we also accept hdf5 file format
-        mutation_dict = parse_mutation_from_vcf(vcf_path=mutation_file_path, mutation_tag=mutation_tag,
-                                                target_samples=target_sample_list, mutation_sample=mutation_sample,
-                                                sample_eq_dict=name_eq_dict, heter_code=heter_code,
-                                                output_dir=output_dir)
+        return parse_mutation_from_maf(maf_path=mutation_file_path, mutation_mode=mutation_tag,
+                                       target_samples=target_sample_list, mutation_sample=mutation_sample,
+                                       sample_eq_dict=name_eq_dict, output_dir=output_dir)
+    # for VCFs, we also accept hdf5 file format
+    elif mutation_file_path.lower().endswith('.vcf') or mutation_file_path.lower().endswith('.h5'):
+        return parse_mutation_from_vcf(vcf_path=mutation_file_path, mutation_tag=mutation_tag,
+                                       target_samples=target_sample_list, mutation_sample=mutation_sample,
+                                       sample_eq_dict=name_eq_dict, heter_code=heter_code,
+                                       output_dir=output_dir)
     else:
         logging.error('Unsupported mutation file format: only maf and vcf formats are supported.')
         sys.exit(1)
-    return mutation_dict
 
 
 def load_mutations(germline_file: str, somatic_file: str, mutation_sample: str, heter_code: int,
                    target_samples: list[str], sample_name_map_file: str, cache_dir: str):
     """
-    Read the germline/somatic mutation files if needed and return them as a :class:`Mutation` object.
+    Read the given germline/somatic mutation files and return their content as a :class:`Mutation` object.
     :param germline_file: file containing germline mutations, empty if no germline mutations should be applied
     :param somatic_file: file containing somatic mutations, empty if no somatic mutations should be applied
     :param heter_code: Can be 0 or 2. specify which number represents the heterozygous allele (HDF5 VCF only)
         0: 0-> homozygous alternative(1|1), 1-> heterozygous(0|1,1|0) 2->homozygous reference(0|0)
         2: 0-> homozygous reference(0|0), 1-> heterozygous(0|1,1|0) 2->homozygous alternative(1|1)
-    :param target_samples: ids of the target samples TODO(dd/reviewers): elaborate; what is this used for?
+    :param target_samples: ids of the samples for which to extract quantification of the peptide/kmers
+        generated by traversal of the splicing graph
     :param sample_name_map_file: file mapping sample id names in the Spladder graph/count files to
         sample ids in the mutation files
-    :cache_dir: if not None, pickle the mutation dictionary to disk for faster loading
+    :cache_dir: if not None, pickle result to disk for faster loading
     :return: a :class:`Mutation` instance containing the loaded somatic and germline mutations.
     :rtype Mutation:
     """
@@ -115,7 +107,7 @@ def load_mutations(germline_file: str, somatic_file: str, mutation_sample: str, 
                     graph_to_germline_names[equivalence[0]] = equivalence[1]
                     graph_to_somatic_names[equivalence[0]] = equivalence[2]
                 else:
-                    logging.error(f'Invalid sample map file: {sample_name_map_file}')
+                    logging.error(f'Invalid sample map file: {sample_name_map_file}.\n\tLine: {line}')
                     sys.exit(1)
     else:
         for sample in target_samples:
@@ -198,14 +190,7 @@ def get_mut_comb(exon_to_mutations: dict[int, list[int]], exon_ids: list[int]):
 
 def get_sub_mutations(mutation: Mutation, sample: str, chromosome: str):
     """ Get the mutations for the given sample and chromosome """
-    if (sample, chromosome) in list(mutation.germline_dict.keys()):
-        germline_mutation_sub_dict = mutation.germline_dict[(sample, chromosome)]
-    else:
-        germline_mutation_sub_dict = {}
-    if (sample, chromosome) in list(mutation.somatic_dict.keys()):
-        somatic_mutation_sub_dict = mutation.somatic_dict[(sample, chromosome)]
-    else:
-        somatic_mutation_sub_dict = {}
-    submutation = Mutation(mode=mutation.mode, somatic_dict=somatic_mutation_sub_dict,
-                           germline_dict=germline_mutation_sub_dict)
-    return submutation
+    germline_mutation_sub_dict = mutation.germline_dict.get((sample, chromosome))
+    somatic_mutation_sub_dict = mutation.somatic_dict.get((sample, chromosome))
+    return Mutation(mode=mutation.mode, somatic_dict=somatic_mutation_sub_dict,
+                    germline_dict=germline_mutation_sub_dict)
