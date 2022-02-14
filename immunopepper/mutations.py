@@ -67,7 +67,7 @@ def _parse_mutation_file(mutation_tag, mutation_file_path, output_dir, heter_cod
                                        sample_eq_dict=name_eq_dict, output_dir=output_dir)
     # for VCFs, we also accept hdf5 file format
     elif mutation_file_path.lower().endswith('.vcf') or mutation_file_path.lower().endswith('.h5'):
-        return parse_mutation_from_vcf(vcf_path=mutation_file_path, mutation_tag=mutation_tag,
+        return parse_mutation_from_vcf(vcf_path=mutation_file_path, mutation_mode=mutation_tag,
                                        target_samples=target_sample_list, mutation_sample=mutation_sample,
                                        sample_eq_dict=name_eq_dict, heter_code=heter_code,
                                        output_dir=output_dir)
@@ -190,7 +190,7 @@ def get_mut_comb(exon_to_mutations: dict[int, list[int]], exon_ids: list[int]):
 
 def get_sub_mutations(mutation: Mutation, sample: str, chromosome: str):
     """ Get the mutations for the given sample and chromosome """
-    germline_mutation_sub_dict = mutation.germline_dict.get((sample, chromosome))
-    somatic_mutation_sub_dict = mutation.somatic_dict.get((sample, chromosome))
+    germline_mutation_sub_dict = mutation.germline_dict.get((sample, chromosome), {})
+    somatic_mutation_sub_dict = mutation.somatic_dict.get((sample, chromosome), {})
     return Mutation(mode=mutation.mode, somatic_dict=somatic_mutation_sub_dict,
                     germline_dict=germline_mutation_sub_dict)
