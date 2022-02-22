@@ -436,12 +436,19 @@ def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fiel
     return cancer_kmers
 
 
-def filter_expr_kmer(matrix_kmers, filter_field, threshold):
+def filter_expr_kmer(matrix_kmers, filter_field, threshold, libsize_c=None):
 
     logging.info("...partitions: {}".format(matrix_kmers.rdd.getNumPartitions()))
     if threshold != 0:
         logging.info("Filter with {} >= {}".format(filter_field, threshold))
-        matrix_kmers = matrix_kmers.filter(sf.col(filter_field) >= threshold)
+        # Normalize by library size
+        if libsize_c is not None:
+            logging.info("Normalizing cancer counts")
+            matrix_kmers = matrix_kmers.filter(sf.round(sf.col(filter_field)/
+                                                        libsize_c.loc[filter_field, "libsize_75percent"], 2) >= threshold)
+        else:
+            matrix_kmers = matrix_kmers.filter(sf.col(filter_field) >= threshold)
+        
     else:
         logging.info("Filter with {} > {}".format(filter_field, threshold))
         matrix_kmers = matrix_kmers.filter(sf.col(filter_field) > threshold)

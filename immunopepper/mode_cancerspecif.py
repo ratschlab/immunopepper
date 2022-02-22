@@ -139,7 +139,7 @@ def mode_cancerspecif(arg):
                 if arg.output_count and (arg.sample_expr_support_cancer != 0):
                     cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample])
                     cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample,
-                                                            arg.sample_expr_support_cancer)
+                                                            arg.sample_expr_support_cancer, libsize_c)
                     output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
                 else:
