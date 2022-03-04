@@ -2,9 +2,15 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/python:3.6.8-jessie
+      - image: circleci/python
     steps:
       - checkout
+      - run:
+          name: install hdf5
+          command: sudo apt-get install pkg-config libhdf5-103 libhdf5-dev
+      - run:
+          name: install R
+          command: sudo apt install r-base
       - run:
           name: setup environment
           command: |
@@ -18,6 +24,7 @@ jobs:
           command: |
             mkdir ~/test_reports
             source ~/env/bin/activate
-            pytest --junitxml=~/test_reports/pytest-results.xml
+            python setup.py build_ext --inplace
+            pytest --junitxml=~/test_reports/pytest-results.xml tests/test_dna_to_peptide.py
       - store_test_results:
           path: ~/test_reports

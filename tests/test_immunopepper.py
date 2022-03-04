@@ -1,16 +1,10 @@
-import gzip
 import os
 import pickle
-
 import pytest
 import pysam
-import numpy as np
 
-from immunopepper.constant import NOT_EXIST
-from immunopepper.filter import junction_tuple_is_annotated
-from immunopepper.io import convert_namedtuple_to_str
-from immunopepper.io import gz_and_normal_open
-from immunopepper.io import load_pickled_graph
+from immunopepper.io_ import namedtuple_to_str
+from immunopepper.io_ import open_gz_or_normal
 from immunopepper.mutations import apply_germline_mutation
 from immunopepper.mutations import construct_mut_seq_with_str_concat
 from immunopepper.mutations import get_mutation_mode_from_parser
@@ -23,10 +17,10 @@ from immunopepper.utils import check_chr_consistence
 from immunopepper.utils import create_libsize
 from immunopepper.utils import get_sub_mut_dna
 from immunopepper.utils import get_concat_peptide
-from immunopepper.translate import translate_dna_to_peptide
+from immunopepper.translate import dna_to_peptide
 from immunopepper.translate import complementary_seq
-from immunopepper.immunopepper import parse_arguments
-from immunopepper.immunopepper import split_mode
+from immunopepper.ip import parse_arguments
+from immunopepper.ip import split_mode
 from immunopepper.traversal import create_output_kmer
 from immunopepper.namedtuples import Coord
 from immunopepper.namedtuples import Mutation
@@ -43,7 +37,7 @@ def load_gene_data():
     ann_path = os.path.join(data_dir, 'test1pos.gtf')
     ref_path = os.path.join(data_dir, 'test1pos.fa')
 
-    (graph_data, graph_meta) = load_pickled_graph(f)  # cPickle.load(f)
+    (graph_data, graph_meta) = pickle.load(f)
     genetable,chr_set = preprocess_ann(ann_path)
     interesting_chr = list(map(str, range(1, 23))) + ["X", "Y", "MT"]
 
@@ -254,13 +248,13 @@ def test_get_concat_peptide():
     concat_pep = get_concat_peptide(front_coord,back_coord,front_peptide,back_peptide,strand)
     assert concat_pep == 'EDMF'
 
-def test_convert_namedtuple_to_str():
+def test_namedtuple_to_str():
     other_pep_field_list = ['id', 'new_line', 'peptide']
     back_pep1 = OutputBackground(1,'EDMHG')
     back_pep2 = OutputBackground(2,'')
     back_pep3 = OutputBackground(3,'KKQ')
     back_pep_list = [back_pep1,back_pep2,back_pep3]
-    result = [convert_namedtuple_to_str(back_pep,other_pep_field_list)+'\n' for back_pep in back_pep_list]
+    result = [namedtuple_to_str(back_pep,other_pep_field_list)+'\n' for back_pep in back_pep_list]
     expected_result = ['1\nEDMHG\n', '2\n\n', '3\nKKQ\n']
     assert result == expected_result
 
@@ -268,22 +262,9 @@ def test_convert_namedtuple_to_str():
     kmer_pep1 = OutputKmer('','GENE0_1_2',NOT_EXIST,False,NOT_EXIST)
     kmer_pep2 = OutputKmer('AQEB','GENE0_1_3',20,True,25)
     kmer_pep_list = [kmer_pep1,kmer_pep2]
-    result = [convert_namedtuple_to_str(kmer_pep,other_pep_field_list)+'\n' for kmer_pep in kmer_pep_list]
+    result = [namedtuple_to_str(kmer_pep,other_pep_field_list)+'\n' for kmer_pep in kmer_pep_list]
     expected_result = ['\tGENE0_1_2\t.\tFalse\t.\n', 'AQEB\tGENE0_1_3\t20\tTrue\t25\n']
     assert result == expected_result
-
-def test_get_junction_ann_flag():
-    junction_flag = np.zeros((4,4))
-    junction_flag[1,2] = 1
-    junction_flag[2,3] = 1
-    vertex_id_tuple = (1, 2, 3)
-    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 1
-    vertex_id_tuple = (0, 2, 3)
-    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 1
-    vertex_id_tuple = (0, 1, 3)
-    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 0
-    vertex_id_tuple = (1, 2)
-    assert junction_tuple_is_annotated(junction_flag, vertex_id_tuple) == 1
 
 def test_check_chr_consistence(load_gene_data, load_mutation_data):
     graph_data, _, gene_cds_begin_dict = load_gene_data
@@ -358,10 +339,10 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
                                                       pos_start=0,
                                                       pos_end=lens[i],
                                                       mutation_sub_dict=mutation.germline_mutation_dict[(sample, ref)])['background']
-            else: 
+            else:
                 seq_dict[ref] = fh.fetch(ref)
 
-    f = gz_and_normal_open(new_junction_file,'r')
+    f = open_gz_or_normal(new_junction_file,'r')
     headline = next(f)
     for line_id, line in enumerate(f):
         if line_id % 10000 == 0:
@@ -409,7 +390,7 @@ def check_kmer_pos_valid(new_junction_file, genome_file, mutation_mode='somatic'
                 i += 2
             seq = ''.join(seq_list)
             seq = complementary_seq(seq)
-        aa,_ = translate_dna_to_peptide(seq)
+        aa,_ = dna_to_peptide(seq)
         assert aa == kmer
 
 

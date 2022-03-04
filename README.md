@@ -1,17 +1,17 @@
 # ImmunoPepper
-ImmunoPepper is a software tool that takes a splicing graph (possibly derived from an RNA-Seq
-samples) as input and generates the set of all theoretically peptide sequences (or kmers) through
+ImmunoPepper is a software tool that takes a splicing graph (possibly derived from RNA-Seq
+samples) as input and generates the set of all theoretically feasible peptide sequences (or kmers) through
 direct translation of all walks along the graph. This peptide set can be personalized with germline
-and somatic variants and takes all exon-exon junctions present in the splicing graph (even ones not
-part of the reference annotation but present in the given RNA-Seq sample) into account. The
-comprehensive set of peptides can be used subsequently for further downstream analyses such as
+and somatic variants and takes all exon-exon junctions present in the splicing graph (even the ones not
+part of the reference annotation, but present in the given RNA-Seq sample) into account. The
+comprehensive set of peptides can be used subsequently for further downstream analyses, such as
 domain annotation or computational immunology.
 
 ## Get Started
 
 ### Installation
 
-It is recommended to setup a separate virtual or conda environment.
+It is recommended to set up a separate virtual or conda environment.
 The basic ImmunoPepper package can be installed via `pip`:
 
 ```
@@ -41,7 +41,7 @@ The software has four basic working modes:
 peptides/kmers.
 2. `make_bg`: Integrates multiple kmer files (produced via `build`) and generates one background kmer file.
 3. `diff`: Takes as input the foreground kmer file and a background kmer file. The output is
-contrasting foreground and background, indicating all foreground kmers not present in the
+contrasting foreground against the background, indicating all foreground kmers not present in the
 background.
 4. `filter`: Apply different filter mechanisms to a given kmer file.
 
@@ -49,7 +49,7 @@ background.
 The following parameters are *mandatory*:
 - `--samples`: input sample names; can specify more than one sample. (Example: 'sample1 sample2')
 - `--output-dir`: output directory
-- `--ann-path`:annotation file, accepted file formats: *.gtf*, *.gff* and *.gff3*
+- `--ann-path`: annotation file, accepted file formats: *.gtf*, *.gff* and *.gff3*
 - `--splice-path`: path of the input SplAdder splice graph
 - `--ref-path`: reference genome file in FASTA format
 
@@ -83,13 +83,13 @@ immunopepper build \
 
 ### Mode `make_bg`
 The following parameters are *mandatory*:
-- `--kmer-files`: The list of kmer files output by build mode, e.g., 'ref_back_kmer.txt somatic_back_kmer.txt'.
-- `--output-file-path`: Output integrated background kmer file path.
-- `--output-dir`: Directory to store the log file.
+- `--kmer-files`: the list of kmer files output by build mode, e.g., 'ref_back_kmer.txt somatic_back_kmer.txt'.
+- `--output-file-path`: output integrated background kmer file path.
+- `--output-dir`: directory to store the log file.
 
 The following parameters are *optional*:
-- `--verbose`: Specify the level of output. 0 means zero debug information, 2 means the most detailed information.
-- `--compressed`: Compress the output files with gzip.
+- `--verbose`: specify the level of output. 0 means zero debug information, 2 means the most detailed information.
+- `--compressed`: compress the output files with gzip.
 
 Example command line:
 ```
@@ -136,9 +136,9 @@ The following parameters are *optional*:
 - `--junc-expr`: Only output kmers that have junction expression greater than threshold.
 - `--junc-expr-thresh`: Junction expression threshold. Default 0.
 
-When providing the `_metadata.tsv.gz` file output by `build` mode, we can have more filters.
+When providing the `_metadata.tsv.gz` file output at `build` mode, Imunopepper supports the following additional filters:
 
-- `--meta-file-path`: the meta data file output by `build` mode.
+- `--meta-file-path`: the metadata file output by `build` mode.
 - `--peptide-annotated`: 1 or 0. Filter the kmers based on whether their original kmers appear in background peptide, 0 means keeping the kmers whose original peptide does not show in background peptide. 1 means the opposite.
 - `--junction-annotated`: 1 or 0. Filter the kmers based on whether their corresponding junction appear in annotation file, 0 means keeping the kmers whose original junction does not show in annotation file. 1 means the opposite.
 - `--has-stop-codon`: 1 or 0. Filter the kmers based on whether their corresponding sequence contains stop codon, 0 means keeping the kmers whose corresponding dna does not contain stop codon. 1 means the opposite.
@@ -147,12 +147,12 @@ When providing the `_metadata.tsv.gz` file output by `build` mode, we can have m
 - `--verbose`: Specify the level of output. 0 means zero debug information, 2 means the most detailed information.
 - `--compressed`: Compress the output files with gzip.
 
-If we have rna-seq data, we can apply more detailed filter. In filter mode, we can also infer the
+If rna-seq data is available, we can apply a more detailed filter. In filter mode, we can also infer the
 exact dna positions that can output the kmers.
 
 - `--infer-dna-pos`: if turned on, we will infer the *exact_kmer_pos* for each kmer in the input
-junction file `junction-kmer-tsv-file` and write to the `--output-file-path`. Notice the meta data
-file `--meta-file-path` is required here.
+junction file `junction-kmer-tsv-file` and write it to the `--output-file-path`. Note that the metadata
+file `--meta-file-path` is required in this case.
 
 There will be an additional column in `--output-file-path` compared with the original `junction-kmer-tsv-file`,
 *exact_kmer_pos*. It is in the format \[chr\]\_\[strand\]\_\[somatic_var_comb\]\_\[dna_position\]

@@ -1,7 +1,7 @@
 import os
 import sys
-sys.path = ['..'] + sys.path
-from immunopepper import immunopepper as ip
+sys.path = sys.path.insert(0, '..')
+from immunopepper import ip as ip
 
 test_id = 1
 case_list = ['pos','neg']

@@ -1,17 +1,19 @@
 """Contain functions to help compute, to preprocess"""
 import bisect
-import h5py
 import itertools
 import logging
 import numpy as np
 import os
+import pandas as pd
 import pickle
 import psutil
+import pyarrow as pa
+import signal as sig
 import sys
 
-from .constant import NOT_EXIST
-from .namedtuples import Coord
-from .namedtuples import Idx
+
+from immunopepper.namedtuples import Idx
+
 
 def to_adj_list(adj_matrix):
     """
@@ -90,7 +92,7 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
     somatic_mutation_sub_dict: Dict. variant position -> variant details.
     strand: gene strand
 
-    Returns
+    Returnvariant_combs
     -------
     sub_dna: str. dna when applied somatic mutation.
 
@@ -109,9 +111,9 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
             else:
                 offset = p2 - p1
 
-        return offset if takes_effect else NOT_EXIST
+        return offset if takes_effect else np.nan
 
-    real_coord = list(filter(lambda x: x != NOT_EXIST and x != None, coord))
+    real_coord = list(filter(lambda x: x is not np.nan and x != None, coord))
     assert len(real_coord) % 2 == 0
     coord_pair_list = list(zip(real_coord[::2], real_coord[1::2]))
 
@@ -120,7 +122,7 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
     else:
         sub_dna = ''.join([background_seq[pair[0] - gene_start:pair[1] - gene_start][::-1] for pair in coord_pair_list])
 
-    if variant_comb == NOT_EXIST : # no mutation exist
+    if variant_comb is np.nan : # no mutation exist
         return sub_dna
 
     relative_variant_pos = [_get_variant_pos_offset(variant_ipos, coord_pair_list, strand) for variant_ipos in variant_comb]
@@ -128,7 +130,7 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
         mut_base = somatic_mutation_sub_dict[variant_ipos]['mut_base']
         ref_base = somatic_mutation_sub_dict[variant_ipos]['ref_base']
         pos = relative_variant_pos[i]
-        if pos != NOT_EXIST:
+        if pos is not np.nan:
             sub_dna = sub_dna[:pos] + mut_base + sub_dna[pos+1:]
     return sub_dna
 
@@ -198,7 +200,7 @@ def is_isolated_cds(gene, gene_info, idx):
     return np.sum(gene.splicegraph.edges[:, idx]) == 0
 
 
-def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts=None):
+def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
     """ Split the exon into segments and get the corresponding counts.
 
     Parameters
@@ -208,7 +210,7 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts=None):
     vstop: int. Stop position of given exon.
     countinfo: Namedtuple, containing spladder count information
     Idx: Namedtuple, has attribute idx.gene and idx.sample
-    seg_counts: np.array, array of spladder segment counts
+    seg_counts: np.array, array of spladder segment counts from gene and sample of interest
 
     Returns
     -------
@@ -216,35 +218,35 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts=None):
         and the expression count of that segment.
 
     """
-    # Todo: deal with absense of count file
-    if vstart == NOT_EXIST or vstop == NOT_EXIST:  # isolated exon case
-        return np.zeros((0, 2), dtype='float')
-    if countinfo is None or Idx.sample is None:
-        return np.zeros((0, 2), dtype='float') #[NOT_EXIST]
+    if countinfo is None:
+        return np.zeros((0, 1), dtype='float') #[np.nan]
 
-    seg_len = gene.segmentgraph.segments[1] - gene.segmentgraph.segments[0]
+    out_shape = (seg_counts.shape[1] + 1) if len(seg_counts.shape) > 1 else 2
+    if vstart is np.nan or vstop is np.nan:  # isolated exon case
+        return np.zeros((0, out_shape), dtype='float')
+
+
     segments = gene.segmentgraph.segments
-
-    if seg_counts is None:
-        gidx = countinfo.gene_idx_dict[gene.name]
-        count_segments = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
-        with h5py.File(countinfo.h5fname, 'r') as h5f:
-            seg_counts = h5f['segments'][count_segments, Idx.sample]
 
     sv1_id = bisect.bisect(segments[0], vstart) - 1
     sv2_id = bisect.bisect(segments[0], vstop) - 1
     if sv1_id == sv2_id:
-        expr_list = [(vstop - vstart, seg_counts[sv1_id])]
+        if len(seg_counts.shape) > 1:
+            expr_list = np.c_[np.array([vstop - vstart]), [seg_counts[sv1_id, :]]]
+        else:
+            expr_list = np.array([(vstop - vstart, seg_counts[sv1_id])])
     else:
-        expr_list = np.c_[segments[1, sv1_id:sv2_id + 1] - segments[0, sv1_id:sv2_id + 1], seg_counts[sv1_id:sv2_id + 1, np.newaxis]]
+        if len(seg_counts.shape) > 1:
+            expr_list = np.c_[segments[1, sv1_id:sv2_id + 1] - segments[0, sv1_id:sv2_id + 1], seg_counts[sv1_id:sv2_id + 1, :]]
+        else:
+            expr_list = np.c_[segments[1, sv1_id:sv2_id + 1] - segments[0, sv1_id:sv2_id + 1], seg_counts[sv1_id:sv2_id + 1, np.newaxis]]
         expr_list[0, 0] -= (vstart - segments[0, sv1_id])
         expr_list[-1, 0] -= (segments[1, sv2_id] - vstop)
         if gene.strand == '-': # need to reverse epression list to match the order of translation
             expr_list = expr_list[::-1]
     return expr_list
 
-
-def get_segment_expr(gene, coord, countinfo, Idx, seg_counts=None):
+def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr):
     """ Get the segment expression for one exon-pair.
     Apply 'get_exon_expr' for each exon and concatenate them.
 
@@ -257,7 +259,8 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts=None):
     countinfo: Namedtuple, contains count information generated by SplAdder
         has attributes [sample_idx_dict, gene_idx_dict, gene_id_to_segrange, gene_id_to_edgerange, h5fname]
     Idx: Namedtuple, has attribute idx.gene and idx.sample
-    seg_counts: np.array, array of SplAdder segment counts
+    seg_counts: np.array, array of spladder segment counts from gene and sample of interest
+
 
     Returns
     -------
@@ -267,33 +270,41 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts=None):
 
     """
     if coord.start_v3 is None:
-        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts),
-                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts)])
+        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts ),
+                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts )])
     else:
-        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts),
-                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts),
-                               get_exon_expr(gene, coord.start_v3, coord.stop_v3, countinfo, Idx, seg_counts)])
-    #expr_list = get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx)
-    #expr_list = np.append(expr_list, get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx), axis=0)
-    #if coord.start_v3 is not None:
-    #    expr_list = np.append(expr_list, get_exon_expr(gene, coord.start_v3, coord.stop_v3, countinfo, Idx), axis=0)
+        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts ),
+                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts ),
+                               get_exon_expr(gene, coord.start_v3, coord.stop_v3, countinfo, Idx, seg_counts )])
+
     seg_len = np.sum(expr_list[:, 0])
-    mean_expr = int(np.sum(expr_list[:, 0] * expr_list[:, 1]) / seg_len) if seg_len > 0 else 0 
+
+    n_samples = expr_list[:, 1:].shape[1]
+    len_factor = np.tile(expr_list[:, 0], n_samples).reshape(n_samples, expr_list.shape[0]).transpose()
+    mean_expr = (np.sum(expr_list[:, 1:]*len_factor, 0) / seg_len).astype(int) if seg_len > 0 else np.zeros(n_samples).astype(int)
+    if not cross_graph_expr:
+        mean_expr = mean_expr[0]
     return mean_expr,expr_list
 
 
-def get_total_gene_expr(gene, countinfo, Idx):
+def get_total_gene_expr(gene, countinfo, Idx, seg_expr, cross_graph_expr):
     """ get total reads count for the given sample and the given gene
     actually total_expr = reads_length*total_reads_counts
     """
-    if countinfo is None or Idx.sample is None:
-        return NOT_EXIST
-    gidx = countinfo.gene_idx_dict[gene.name]
-    count_segments = np.arange(countinfo.gene_id_to_segrange[gidx][0], countinfo.gene_id_to_segrange[gidx][1])
+    if len(seg_expr.shape) == 1:
+        n_samples = 1
+    else:
+        n_samples = seg_expr.shape[1]
+
+    if countinfo is None:
+        return [np.nan] * n_samples
     seg_len = gene.segmentgraph.segments[1] - gene.segmentgraph.segments[0]
-    with h5py.File(countinfo.h5fname, 'r') as h5f:
-        seg_expr = h5f['segments'][count_segments, Idx.sample]
-    total_expr = np.sum(seg_len*seg_expr)
+
+    if cross_graph_expr:
+        total_expr = np.sum(seg_len * seg_expr.T, axis=1)
+        total_expr = total_expr.tolist()
+    else:
+        total_expr = [np.sum(seg_len*seg_expr)]
     return total_expr
 
 
@@ -311,7 +322,8 @@ def get_idx(countinfo, sample, gene_idx):
     if not countinfo is None:
         if not sample in countinfo.sample_idx_dict:
             sample_idx = None
-            logging.warning("utils.py: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
+            if sample != 'cohort':
+                logging.warning("utils.py: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
         else:
             sample_idx = countinfo.sample_idx_dict[sample]
     else:
@@ -320,7 +332,7 @@ def get_idx(countinfo, sample, gene_idx):
     return Idx(gene_idx, sample_idx)
 
 
-def create_libsize(expr_distr_dict, output_fp, debug=False):
+def create_libsize(expr_distr_fp, output_fp, sample, debug=False):
     """ create library_size text file.
 
     Calculate the 75% expression and sum of expression for each sample
@@ -332,19 +344,18 @@ def create_libsize(expr_distr_dict, output_fp, debug=False):
     output_fp: file pointer. library_size text
     debug: Bool. In debug mode, return the libsize_count dictionary.
     """
-    # filter the dict
-    libsize_count = {}
-    for sample,expr_list in expr_distr_dict.items():
-        if np.array(expr_list).dtype in  [np.float,np.int]:
-            libsize_count[sample] = (np.percentile(expr_list,75),np.sum(expr_list))
-    #libsize_count = {sample:(np.percentile(expr_list,75),np.sum(expr_list)) for sample,expr_list in list(expr_distr_dict.items())}
-    if debug:
-        return libsize_count
-    with open(output_fp,'w') as f:
-        f.write('\t'.join(['sample','libsize_75percent','libsize_total_count'])+'\n')
-        for sample,count_tuple in list(libsize_count.items()):
-            line = '\t'.join([sample,str(round(count_tuple[0],1)),str(int(count_tuple[1]))])+'\n'
-            f.write(line)
+    sample_expr_distr = pa.parquet.read_table(expr_distr_fp['path']).to_pandas()
+
+    libsize_count= pd.DataFrame({'sample': sample_expr_distr.columns[1:],
+                                 'libsize_75percent': np.percentile(sample_expr_distr.iloc[:, 1:], 75, axis=0, interpolation='linear'),
+                                  'libsize_total_count': np.sum(sample_expr_distr.iloc[:, 1:], axis=0)}, index = None)
+
+    df_libsize = pd.DataFrame(libsize_count)
+
+    if os.path.isfile(output_fp):
+        previous_libsize =  pd.read_csv(output_fp, sep = '\t')
+        df_libsize = pd.concat([previous_libsize, df_libsize], axis=0).drop_duplicates(subset=['sample'], keep='last')
+    df_libsize.to_csv(output_fp, sep='\t', index=False)
 
 
 def get_concat_peptide(front_coord_pair, back_coord_pair, front_peptide, back_peptide, strand, k=None):
@@ -434,4 +445,5 @@ def print_memory_diags(disable_print=False):
         logging.info('\tMemory usage: {:.3f} GB'.format(memory))
     return memory
 
-
+def pool_initializer():
+    return sig.signal(sig.SIGINT, sig.SIG_IGN)

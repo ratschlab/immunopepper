@@ -4,7 +4,7 @@ from collections import namedtuple
 """
 Coord namedtuple
 start and stop position of the junction pairs (two exons). If it only consists of one exon,
-start_v2 and stop_v2 is NOT_EXIST.
+start_v2 and stop_v2 are np.nan.
 """
 try:
     Coord = namedtuple('Coord', ['start_v1', 'stop_v1', 'start_v2', 'stop_v2', 'start_v3', 'stop_v3'], defaults=(None,) * 2)
@@ -16,23 +16,21 @@ except:
 Output_junc_peptide namedtuple
 - output_id: (gene_id).(junction_id). gene_id is the index of given gene in the splicegraph array.
     junction_id is the index of given junction pair in all junction pair (in descending or ascending order)
-- id: (gene_name)_(first_vertex_id)_(second_vertex_id). Detail information of output_id. 
-    We can know clearly from which gene and which vertex pair the given peptide is translated.
 - peptide: (peptide_string). The peptide translated from junction pairs.
 - exons_coor: Coord namedtuple
 """
-OutputJuncPeptide = namedtuple('OutputJuncPeptide', ['output_id','id','peptide','exons_coor','junction_count'])
+OutputJuncPeptide = namedtuple('OutputJuncPeptide', ['output_id','peptide','exons_coor','junction_expr'])
 
 
 """
 Output_metadata namedtuple. 
-- output_id: the same with that in Output_junc_peptide
+- id:  the same with that in Output_junc_peptide
+- output_id: the same with that in Output_junc_peptide with '>'
 - read_frame: int (0,1,2). The number of base left to the next junction pair. 
 - gene_name: str. The name of Gene.
 - gene_chr: str. The Chromosome id where the gene is located.
 - gene_strand: str ('+', '_'). The strand of gene.
 - mutation_mode: str ('ref', 'somatic', 'germline', 'somatic_and_germline'). Mutation mode
-- peptide_annotated: Boolean. Indicate if the junction peptide also appears in the background peptide.
 - junction_peptided: Boolean. Indicate if the junction also appear in the input annotation file.
 - has_stop_codon. Boolean. Indicate if there is stop codon in the junction pair.
 - is_in_junction_list: Boolean. Indicate if the junction pair appear in the given junction whitelist
@@ -49,14 +47,16 @@ Output_metadata namedtuple.
 - junction_expr. float. The expression of the junction.
 - segment_expr. float. The weighted sum of segment expression. We split the junction into segments and compute the segment 
     expression with the length-weighted-sum expression.
+- kmer_type. str indicates whether the peptide is generated from vertice_pair, or 'vertice_triplet_xmer' ie. a triplet was necessary to generate the desired kmer length 
 """
-OutputMetadata = namedtuple('OutputMetadata', ['output_id', 'read_frame', 'gene_name', 'gene_chr',
-                                                 'gene_strand',	'mutation_mode', 'peptide_annotated',
+OutputMetadata = namedtuple('OutputMetadata', ['peptide', 'output_id', 'read_frame', 'gene_name', 'gene_chr',
+                                                 'gene_strand',	'mutation_mode',
                                                  'junction_annotated',	'has_stop_codon',
                                                  'is_in_junction_list',	'is_isolated',
                                                  'variant_comb',	'variant_seg_expr',
                                                  'modified_exons_coord','original_exons_coord',	'vertex_idx',	'junction_expr',
-                                                 'segment_expr'])
+                                                 'segment_expr', 'kmer_type'])
+
 
 VertexPair = namedtuple('VertexPair', ['output_id', 'read_frame','has_stop_codon','modified_exons_coord','original_exons_coord','vertex_idxs','peptide_weight'])
 
@@ -66,7 +66,7 @@ Output_backgrouond namedtuple.
 - id: transcript name
 - peptide: background peptide
 """
-OutputBackground = namedtuple('OutputBackground', ['id', 'peptide'])
+OutputBackground = namedtuple('OutputBackground', ['output_id', 'peptide'])
 
 
 """
@@ -76,7 +76,7 @@ Output_kmer namedtuple.
 - expr: float. length-weighted sum of expression of the kmer
 - is_cross_junction: boolen. indicate if the kmer spans over the cross junction
 """
-OutputKmer= namedtuple('OutputKmer', ['kmer','id','expr','is_cross_junction','junction_count'])
+OutputKmer= namedtuple('OutputKmer', ['kmer','id','segment_expr','is_cross_junction','junction_expr'])
 
 
 """
@@ -134,14 +134,19 @@ CountInfo = namedtuple('CountInfo', ['sample_idx_dict', 'gene_idx_dict', 'gene_i
 
 """
 filepointer namedtuple
-namedtuple that contain all the filepointers
+namedtuple that contain all the file paths objects 
 - junction_peptide_fp:
 - junction_meta_fp:
 - background_peptide_fp:
 - background_kmer_fp:
 - junction_kmer_fp:
+- gene_expr_file_fp:
+- kmer_segm_expr_fp:
+- kmer_edge_expr_fp:
 """
-Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp','background_peptide_fp','junction_kmer_fp','background_kmer_fp'])
+Filepointer = namedtuple('Filepointer',['junction_peptide_fp','junction_meta_fp','background_peptide_fp','junction_kmer_fp','background_kmer_fp', 'gene_expr_fp',
+                                        'kmer_segm_expr_fp', 'kmer_edge_expr_fp'])
+
 
 
 """
