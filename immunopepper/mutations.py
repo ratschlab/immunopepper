@@ -7,10 +7,10 @@ import pysam
 
 from functools import reduce
 
-from namedtuples import Mutation
-from preprocess import parse_mutation_from_maf
-from preprocess import parse_mutation_from_vcf
-from utils import get_all_comb
+from immunopepper.namedtuples import Mutation
+from immunopepper.preprocess import parse_mutation_from_maf
+from immunopepper.preprocess import parse_mutation_from_vcf
+from immunopepper.utils import get_all_comb
 
 
 def apply_germline_mutation(ref_sequence_file, chrm, pos_start, pos_end, mutation_sub_dict):

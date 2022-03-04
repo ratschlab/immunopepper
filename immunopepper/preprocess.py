@@ -8,16 +8,16 @@ import numpy as np
 import pandas as pd
 import pickle
 
-from io_ import decode_utf8
-from namedtuples import CountInfo
-from namedtuples import GeneInfo
-from namedtuples import GeneTable
-from namedtuples import ReadingFrameTuple
-from utils import encode_chromosome
-from utils import find_overlapping_cds_simple
-from utils import get_successor_list
-from utils import leq_strand
-from utils import pool_initializer
+from immunopepper.io_ import decode_utf8
+from immunopepper.namedtuples import CountInfo
+from immunopepper.namedtuples import GeneInfo
+from immunopepper.namedtuples import GeneTable
+from immunopepper.namedtuples import ReadingFrameTuple
+from immunopepper.utils import encode_chromosome
+from immunopepper.utils import find_overlapping_cds_simple
+from immunopepper.utils import get_successor_list
+from immunopepper.utils import leq_strand
+from immunopepper.utils import pool_initializer
 
 def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frames=False):
 

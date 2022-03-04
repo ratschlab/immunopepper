@@ -9,8 +9,8 @@ import logging
 import os
 import sys
 
-from .io_ import read_pq_with_dict
-from .io_ import save_pd_toparquet
+from immunopepper.io_ import read_pq_with_dict
+from immunopepper.io_ import save_pd_toparquet
 
 
 

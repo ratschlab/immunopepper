@@ -12,7 +12,7 @@ import signal as sig
 import sys
 
 
-from namedtuples import Idx
+from immunopepper.namedtuples import Idx
 
 
 def to_adj_list(adj_matrix):
