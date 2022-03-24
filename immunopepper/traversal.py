@@ -2,6 +2,8 @@
 
 from collections import defaultdict
 import numpy as np
+import logging
+import sys
 
 from immunopepper.filter import add_peptide_properties
 from immunopepper.filter import add_kmer_properties
@@ -479,6 +481,10 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
     -------
     updates the kmer_matrix
     """
+    if segm_expr_list is None:
+        logging.error("Count file must be specified in --cross-graph-exp mode")
+        sys.exit(1)
+
     peptide = output_peptide.peptide
     positions = np.cumsum(segm_expr_list[:, 0])
 

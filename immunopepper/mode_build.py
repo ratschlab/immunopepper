@@ -323,6 +323,7 @@ def mode_build(arg):
     else:
         countinfo = None
         size_factor = None
+        matching_count_samples = None
 
     # read the variant file
     mutation = get_mutation_mode_from_parser(arg, matching_count_samples)
