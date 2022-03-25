@@ -616,3 +616,33 @@ def parse_gene_choices(genes_interest, process_chr, process_num, complexity_cap,
         complexity_cap=np.inf
 
     return graph_data, genes_interest, num, complexity_cap, disable_process_libsize
+
+
+def parse_output_samples_choices(arg, countinfo, matching_count_ids, matching_count_samples):
+    '''handle output_sample relatively to output mode '''
+
+    if arg.cross_graph_expr:
+        if countinfo:
+            process_output_samples = ['cohort']
+            # If output samples requested, look for sample ids in count file
+            if arg.output_samples:
+                arg.output_samples = np.array(arg.output_samples)[np.argsort(matching_count_ids)]
+                arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '')
+                                      for output_sample in  arg.output_samples]
+                output_samples_ids = matching_count_ids[np.argsort(matching_count_ids)]
+            # If no output samples requested, take all samples in countfile
+            else:
+                arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '')
+                                      for output_sample in  matching_count_samples]
+                output_samples_ids = None
+        else:
+            logging.error("Count file must be specified in --cross-graph-exp mode")
+            sys.exit(1)
+    else:
+        if arg.output_samples:
+            process_output_samples = arg.output_samples
+            output_samples_ids = None
+        else:
+            logging.error("--arg.output_samples must be specified in single sample mode")
+            sys.exit(1)
+    return process_output_samples, output_samples_ids

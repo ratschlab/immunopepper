@@ -27,6 +27,7 @@ from immunopepper.preprocess import genes_preprocess_all
 from immunopepper.preprocess import parse_junction_meta_info
 from immunopepper.preprocess import parse_gene_choices
 from immunopepper.preprocess import parse_gene_metadata_info
+from immunopepper.preprocess import parse_output_samples_choices
 from immunopepper.preprocess import preprocess_ann
 from immunopepper.traversal import collect_background_transcripts
 from immunopepper.traversal import collect_vertex_pairs
@@ -319,11 +320,10 @@ def mode_build(arg):
         logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
         print_memory_diags()
         #size_factor = get_size_factor(strains, arg.libsize_path)
-        #size_factor = None
     else:
         countinfo = None
-        size_factor = None
         matching_count_samples = None
+        matching_count_ids = None
 
     # read the variant file
     mutation = get_mutation_mode_from_parser(arg)
@@ -362,34 +362,19 @@ def mode_build(arg):
     logging.info(">>>>>>>>> Finish Preprocessing")
     expr_distr_dict = {}
 
-    # Parse user choice for genes
+    # parse user choice for genes
     graph_data, genes_interest, n_genes, complexity_cap, disable_process_libsize = parse_gene_choices(arg.genes_interest, arg.process_chr, arg.process_num, arg.complexity_cap, arg.disable_process_libsize, graph_data)
 
     # process graph for each input output_sample
     output_libsize_fp = os.path.join(arg.output_dir,'expression_counts.libsize.tsv')
-    logging.info(">>>>>>>>> Start traversing splicegraph")
 
+
+    # parse output_sample relatively to output mode
+    process_output_samples, output_samples_ids = parse_output_samples_choices(arg, countinfo, matching_count_ids, matching_count_samples)
+
+    logging.info(">>>>>>>>> Start traversing splicegraph")
     global output_sample
     global filepointer
-
-    # handle output_sample relatively to output mode
-    if arg.cross_graph_expr and countinfo:
-        process_output_samples = ['cohort']
-        # If samples requested, look for sample ids in count file
-        if arg.output_samples:
-            arg.output_samples = np.array(arg.output_samples)[np.argsort(matching_count_ids)]
-            arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '')
-                                  for output_sample in  arg.output_samples]
-            output_samples_ids = matching_count_ids[np.argsort(matching_count_ids)]
-        # If no samples requested, take all samples in countfile
-        else:
-            arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '')
-                                  for output_sample in  matching_count_samples]
-            output_samples_ids = None
-    else:
-        process_output_samples = arg.output_samples
-        output_samples_ids = None
-
 
     for output_sample in process_output_samples:
         logging.info(">>>> Processing output_sample {}, there are {} graphs in total".format(output_sample, n_genes))

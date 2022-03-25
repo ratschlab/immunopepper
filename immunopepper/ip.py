@@ -33,7 +33,7 @@ def parse_arguments(argv):
     required.add_argument("--output-fasta", help="if True outputs both the sample peptide metadata and the fasta", action="store_true", required=False, default=False)
 
     outputs = parser_build.add_argument_group('OUTPUT OPTIONS')
-    outputs.add_argument("--output-samples", nargs='+', help="list of sample names to output, names must match the graph samples", required=False, default=[])
+    outputs.add_argument("--output-samples", nargs='+', help="list of sample names to output, names must match the graph samples. If not provided, all count samples will be outputted (runs faster)", required=False, default=[])
     outputs.add_argument("--kmer", nargs='+', type=int, help="list which specifys the different k for kmer output", required=False, default=[])
     outputs.add_argument("--disable-concat",help="switch off concatenation of short exons to increase speed",action="store_true",default=False)
     outputs.add_argument("--use-mut-pickle", help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
