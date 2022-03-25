@@ -326,7 +326,7 @@ def mode_build(arg):
         matching_count_samples = None
 
     # read the variant file
-    mutation = get_mutation_mode_from_parser(arg, matching_count_samples)
+    mutation = get_mutation_mode_from_parser(arg)
 
     # load splicegraph
     logging.info('Loading splice graph ...')
