@@ -362,16 +362,17 @@ def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
     matching_count_samples = [n.decode('utf8') for n in count_names]
     return countinfo, matching_count_samples, matching_count_ids
 
+
 # TODO(dd): move mutation parsing methods to mutations.py after review; left here to make code review easier
-def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, target_samples: list[str] = [],
-                            mutation_sample: str = None, sample_eq_dict={}, heter_code: int = 0, output_dir: str = None):
+def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, mutation_sample: str = None, 
+                            graph_to_mutation_samples=dict[str, str] = {}, heter_code: int = 0, output_dir: str = None):
     """Extract mutation information from the given vcf or vcf.h5 file
     :param vcf_path: path to the VCF file to be read
     :param mutation_mode: what mutations to apply to the reference. One of 'ref', 'germline', 'somatic',
         'somatic_and_germline'
     :param target_samples: list of tissue sample ids TODO(dd) - what are these used for?
     :param mutation_sample: TODO(dd) - clarify inconsistency with VCF/HD5 method
-    :param sample_eq_dict: dictionary mapping sample id names in the Spladder graph/count files to
+    :param graph_to_mutation_samples: dictionary mapping sample id names in the Spladder graph/count files to
         sample ids in the mutation files
     :param heter_code: Can be 0 or 2. specify which number represents the heterozygous allele (HDF5 VCF only)
         0: 0-> homozygous alternative(1|1), 1-> heterozygous(0|1,1|0) 2->homozygous reference(0|0)
@@ -383,7 +384,9 @@ def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, target_samples: l
             'variant_Classification': 'Silent', 'variant_Type': 'SNP'}}}
     :rtype: dict[(str,str):dict[int, dict[str:str]]]
     """
-    sample_eq_dict_reverse = {file_sample: target_sample for target_sample, file_sample in sample_eq_dict.items()}
+
+    mutation_to_graph_samples = { file_sample: target_sample for target_sample, file_sample 
+                                 in graph_to_mutation_samples.items()}
     if output_dir is not None:
         vcf_pkl_file = os.path.join(output_dir, f'{mutation_mode}_vcf.pickle')
         if os.path.exists(vcf_pkl_file):
@@ -399,11 +402,14 @@ def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, target_samples: l
         sys.exit(1)
 
     file_type = vcf_path.split('.')[-1]
+
     if file_type == 'h5':  # hdf5 file
-        mutation_dict = parse_mutation_from_vcf_h5(vcf_path, mutation_sample, heter_code)
+        mutation_dict = parse_mutation_from_vcf_h5(vcf_path, mutation_sample, heter_code, 
+                                                   graph_to_mutation_samples, mutation_to_graph_samples)
         # TODO(reviewers): why no pickle created?
         logging.info(f'Read germline mutation dict from h5 file in {vcf_path}. No pickle file created')
         return mutation_dict
+    
     # vcf text file
     lines = open(vcf_path, 'r').readlines()
     mutation_dict = {}
@@ -412,50 +418,50 @@ def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, target_samples: l
             continue
         if line.strip()[0] == '#':  # head line
             fields = line.strip().split('\t')
-            file_sample_list = fields[9:]
-            _check_mutation_samples(mutation_sample, target_samples, sample_eq_dict, file_sample_list)
+            vcf_sample_set = fields[9:]
+            check_mutation_sample_presence(mutation_sample, vcf_sample_set, mutation_to_graph_samples)
             continue
         items = line.strip().split('\t')
-        crhomosome = items[0]
+        chromosome = items[0]
         pos = int(items[1]) - 1
         var_dict = {'ref_base': items[3],
                     'mut_base': items[4],
                     'qual': items[5],
                     'filter': items[6]}
         if len(var_dict['ref_base']) == len(var_dict['mut_base']):  # only consider snp for now
-            for i, file_sample in enumerate(file_sample_list):
+            for i, file_sample in enumerate(vcf_sample_set):
                 if items[9 + i].split(':')[0] in {'1|1', '1|0', '0|1', '0/1', '1/0', '1/1'}:
-                    if file_sample not in sample_eq_dict_reverse.keys():
-                        sample_eq_dict_reverse[file_sample] = file_sample
-                    if (sample_eq_dict_reverse[file_sample], crhomosome) in mutation_dict.keys():
-                        mutation_dict[(sample_eq_dict_reverse[file_sample], crhomosome)][int(pos)] = var_dict
+                    if file_sample not in mutation_to_graph_samples.keys():
+                        mutation_to_graph_samples[file_sample] = file_sample
+                    if (mutation_to_graph_samples[file_sample], chromosome) in mutation_dict.keys():
+                        mutation_dict[(mutation_to_graph_samples[file_sample], chromosome)][int(pos)] = var_dict
                     else:
-                        mutation_dict[(sample_eq_dict_reverse[file_sample], crhomosome)] = {int(pos): var_dict}
+                        mutation_dict[(mutation_to_graph_samples[file_sample], chromosome)] = {int(pos): var_dict}
     if output_dir is not None:
         f_pkl = open(vcf_pkl_file, 'wb')
         pickle.dump(mutation_dict, f_pkl)
         logging.info(f'Cached contents of {vcf_path} to {vcf_pkl_file}')
-
+        
     return mutation_dict
 
 
-def parse_mutation_from_vcf_h5(h5_vcf_path, mutation_sample, heter_code=0):
+def parse_mutation_from_vcf_h5(h5_vcf_path:str, mutation_sample:str, heter_code:int = 0, 
+                                graph_to_mutation_samples=dict[str, str] = {}, mutation_to_graph_samples=dict[str, str] = {}): 
     """
     Extract germline mutation information from given vcf h5py file.
 
     Parameters and return value: see :meth:`parse_mutation_from_vcf`
     """
-    # TODO(reviewers): is this method used? It's much simpler than the real VCF and MAF readers
     a = h5py.File(h5_vcf_path, 'r')
 
     mut_dict = {}
-    file_sample_list = [decode_utf8(item) for item in a['gtid']]
-    if mutation_sample and mutation_sample not in file_sample_list:
-        logging.error(f'Sample {mutation_sample} not found in the h5 variant file')
-        sys.exit(1)
-    col_id = file_sample_list.index(mutation_sample)  # TODO: what if the index is not found?
+
+    vcf_sample_set = [decode_utf8(item) for item in a['gtid']]
+    check_mutation_sample_presence(mutation_sample, vcf_sample_set, mutation_to_graph_samples)
+    col_id = vcf_sample_set.index(mutation_sample) 
     # the 'gt' column stores the most likely genotype for the sample
     row_id = np.where(np.logical_or(a['gt'][:, col_id] == heter_code, a['gt'][:, col_id] == 1))[0]
+
     for irow in row_id:
         chromosome = encode_chromosome(a['pos'][irow, 0])
         pos = a['pos'][irow, 1] - 1
@@ -469,26 +475,9 @@ def parse_mutation_from_vcf_h5(h5_vcf_path, mutation_sample, heter_code=0):
     return mut_dict
 
 
-def _check_mutation_samples(mutation_sample: str, target_samples: list[str], sample_eq_dict: dict[str, str],
-                            loaded_samples: set[str]):
-    """ Asserts that the mutation samples loaded from a VCF or MAF file contain mutation_sample. """
-    for target_sample in target_samples:
-        if mutation_sample == target_sample and sample_eq_dict[target_sample] not in loaded_samples:
-            logging.error(f'Samples in mutation file are {loaded_samples}')
-            logging.error(f'No mutations for sample "{sample_eq_dict[target_sample]}" found, '
-                          f'please check samples above or consider using --sample-name-map')
-            sys.exit(1)
 
-
-def _check_mutation_samples_new(mutation_sample: str, loaded_samples: set[str]):
-    """ Asserts that the mutation samples loaded from a VCF or MAF file contain mutation_sample. """
-    if mutation_sample and mutation_sample not in loaded_samples:  # or should it be sample_eq_dict[mutation_sample]?
-        logging.error(f'{mutation_sample} not found in mutation file. Samples in mutations file are: {loaded_samples}')
-        sys.exit(1)
-
-
-def parse_mutation_from_maf(maf_path: str, mutation_mode: str, target_samples: list[str], mutation_sample: str,
-                            sample_eq_dict: dict[str, str] = {}, output_dir: str = None):
+def parse_mutation_from_maf(maf_path: str, mutation_mode: str, mutation_sample: str,
+                            graph_to_mutation_samples: dict[str, str] = {}, output_dir: str = None):
     """
     Extract somatic mutation information from the given MAF file.
     :param mutation_mode: what mutations to apply to the reference.
@@ -507,7 +496,8 @@ def parse_mutation_from_maf(maf_path: str, mutation_mode: str, target_samples: l
             'variant_Classification': 'Silent', 'variant_Type': 'SNP'}}}
     :rtype: dict[(str,str):dict[int, dict[str:str]]]
     """
-    sample_eq_dict_reverse = {file_sample: target_sample for target_sample, file_sample in sample_eq_dict.items()}
+
+    mutation_to_graph_samples = { file_sample: target_sample for target_sample, file_sample in graph_to_mutation_samples.items()}
 
     if output_dir:
         maf_pkl_file = os.path.join(output_dir, f'{mutation_mode}_maf.pickle')
@@ -515,8 +505,9 @@ def parse_mutation_from_maf(maf_path: str, mutation_mode: str, target_samples: l
             f = open(maf_pkl_file, 'rb')
             mutation_dict = pickle.load(f)
             logging.info(f'Using pickled MAF mutation dict in: {maf_pkl_file} instead of loading data from: {maf_path}')
-            pickled_sample_ids = {sample_id for sample_id, chr in mutation_dict}
-            _check_mutation_samples(mutation_sample, target_samples, sample_eq_dict, pickled_sample_ids)
+            maf_sample_set = {sample_id for sample_id, chr in mutation_dict}
+            #_check_mutation_samples(mutation_sample, target_samples, sample_eq_dict, maf_sample_set)
+            check_mutation_sample_presence(mutation_sample, maf_sample_set, mutation_to_graph_samples) #TODO check usage
             return mutation_dict
 
     if not os.path.exists(maf_path):
@@ -525,12 +516,12 @@ def parse_mutation_from_maf(maf_path: str, mutation_mode: str, target_samples: l
 
     lines = open(maf_path).readlines()
     mutation_dict = {}
-    file_sample_set = set()
+    maf_sample_set = set()
     for i, line in enumerate(lines[1:]):
         items = line.strip().split('\t')
         if items[9] == 'SNP':  # only consider snp
             file_sample = items[15]
-            file_sample_set.add(file_sample)
+            maf_sample_set.add(file_sample)
             chromosome = items[4]
             pos = int(items[5]) - 1
             var_dict = {
@@ -539,21 +530,41 @@ def parse_mutation_from_maf(maf_path: str, mutation_mode: str, target_samples: l
                 'strand': items[7],
                 'variant_Classification': items[8],
                 'variant_Type': items[9]}
-            if file_sample not in sample_eq_dict_reverse.keys():
-                sample_eq_dict_reverse[file_sample] = file_sample
-            if (sample_eq_dict_reverse[file_sample], chromosome) in mutation_dict:
-                mutation_dict[((sample_eq_dict_reverse[file_sample], chromosome))][int(pos)] = var_dict
+            if file_sample not in mutation_to_graph_samples.keys():
+                mutation_to_graph_samples[file_sample] = file_sample
+            if (mutation_to_graph_samples[file_sample], chromosome) in mutation_dict:
+                mutation_dict[((mutation_to_graph_samples[file_sample], chromosome))][int(pos)] = var_dict
             else:
-                mutation_dict[((sample_eq_dict_reverse[file_sample], chromosome))] = {int(pos): var_dict}
+                mutation_dict[((mutation_to_graph_samples[file_sample], chromosome))] = {int(pos): var_dict}
 
     if output_dir:
         f_pkl = open(maf_pkl_file, 'wb')
         pickle.dump(mutation_dict, f_pkl)
         logging.info(f'Cached contents of {maf_path} to {maf_pkl_file}')
 
-    _check_mutation_samples(mutation_sample, target_samples, sample_eq_dict, file_sample_set)
+    #_check_mutation_samples(mutation_sample, target_samples, mutation_to_graph_samples, maf_sample_set)
+    check_mutation_sample_presence(mutation_sample, maf_sample_set, mutation_to_graph_samples) #TODO check usage
     return mutation_dict
 
+#TODO remove this function 
+# def _check_mutation_samples_new(mutation_sample: str, loaded_samples: set[str]):
+#     """ Asserts that the mutation samples loaded from a VCF or MAF file contain mutation_sample. """
+#     if mutation_sample and mutation_sample not in loaded_samples:  # or should it be sample_eq_dict[mutation_sample]?
+#         logging.error(f'{mutation_sample} not found in mutation file. Samples in mutations file are: {loaded_samples}')
+#         sys.exit(1)
+
+def check_mutation_sample_presence(mutation_sample, maf_or_vcf_sample_set, mutation_to_graph_samples):
+    if mutation_sample not in maf_or_vcf_sample_set:
+        logging.error("Target mutation sample {} is not found in mutation/variant file."
+                        " Please check --mutation-sample or consider using --sample-name-map.".format(mutation_sample))
+        logging.error("Samples in mutation/variant file are: {}".format(maf_or_vcf_sample_set))
+        sys.exit(1)
+    for target_sample in mutation_to_graph_samples:
+        if target_sample not in maf_or_vcf_sample_set:
+            logging.error("Sample {} to extract and pickle not found in mutation/variant file. "
+                          " Please check --pickle-samples or consider using --sample-name-map.".format(target_sample))
+            logging.error("Samples in mutation/variant file are: {}".format(maf_or_vcf_sample_set))
+            sys.exit(1)
 
 #todo: support tsv file in the future
 def parse_junction_meta_info(h5f_path):
@@ -626,3 +637,33 @@ def parse_gene_choices(genes_interest, process_chr, process_num, complexity_cap,
         complexity_cap=np.inf
 
     return graph_data, genes_interest, num, complexity_cap, disable_process_libsize
+
+
+def parse_output_samples_choices(arg, countinfo, matching_count_ids, matching_count_samples):
+    '''handle output_sample relatively to output mode '''
+
+    if arg.cross_graph_expr:
+        if countinfo:
+            process_output_samples = ['cohort']
+            # If output samples requested, look for sample ids in count file
+            if arg.output_samples:
+                arg.output_samples = np.array(arg.output_samples)[np.argsort(matching_count_ids)]
+                arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '')
+                                      for output_sample in  arg.output_samples]
+                output_samples_ids = matching_count_ids[np.argsort(matching_count_ids)]
+            # If no output samples requested, take all samples in countfile
+            else:
+                arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '')
+                                      for output_sample in  matching_count_samples]
+                output_samples_ids = None
+        else:
+            logging.error("Count file must be specified in --cross-graph-exp mode")
+            sys.exit(1)
+    else:
+        if arg.output_samples:
+            process_output_samples = arg.output_samples
+            output_samples_ids = None
+        else:
+            logging.error("--arg.output_samples must be specified in single sample mode")
+            sys.exit(1)
+    return process_output_samples, output_samples_ids
