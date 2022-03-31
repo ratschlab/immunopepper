@@ -431,7 +431,7 @@ def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, mutation_sample: 
         if len(var_dict['ref_base']) == len(var_dict['mut_base']):  # only consider snp for now
             for i, file_sample in enumerate(vcf_sample_set):
                 if items[9 + i].split(':')[0] in {'1|1', '1|0', '0|1', '0/1', '1/0', '1/1'}:
-                    if file_sample not in mutation_to_graph_samples.keys():
+                    if file_sample not in mutation_to_graph_samples:
                         mutation_to_graph_samples[file_sample] = file_sample
                     if (mutation_to_graph_samples[file_sample], chromosome) in mutation_dict.keys():
                         mutation_dict[(mutation_to_graph_samples[file_sample], chromosome)][int(pos)] = var_dict
@@ -528,7 +528,7 @@ def parse_mutation_from_maf(maf_path: str, mutation_mode: str, mutation_sample: 
                 'strand': items[7],
                 'variant_Classification': items[8],
                 'variant_Type': items[9]}
-            if file_sample not in mutation_to_graph_samples.keys():
+            if file_sample not in mutation_to_graph_samples:
                 mutation_to_graph_samples[file_sample] = file_sample
             if (mutation_to_graph_samples[file_sample], chromosome) in mutation_dict:
                 mutation_dict[((mutation_to_graph_samples[file_sample], chromosome))][int(pos)] = var_dict
@@ -552,17 +552,18 @@ def parse_mutation_from_maf(maf_path: str, mutation_mode: str, mutation_sample: 
 #         sys.exit(1)
 
 def check_mutation_sample_presence(mutation_sample, maf_or_vcf_sample_set, mutation_to_graph_samples):
-    if mutation_sample not in maf_or_vcf_sample_set:
+    if mutation_sample and mutation_sample not in maf_or_vcf_sample_set:
         logging.error("Target mutation sample {} is not found in mutation/variant file."
                         " Please check --mutation-sample or consider using --sample-name-map.".format(mutation_sample))
         logging.error("Samples in mutation/variant file are: {}".format(maf_or_vcf_sample_set))
         sys.exit(1)
-    for target_sample in mutation_to_graph_samples:
-        if target_sample not in maf_or_vcf_sample_set:
-            logging.error("Sample {} to extract and pickle not found in mutation/variant file. "
-                          " Please check --pickle-samples or consider using --sample-name-map.".format(target_sample))
-            logging.error("Samples in mutation/variant file are: {}".format(maf_or_vcf_sample_set))
-            sys.exit(1)
+    if mutation_to_graph_samples:
+        for target_sample in mutation_to_graph_samples:
+            if target_sample not in maf_or_vcf_sample_set:
+                logging.error("Sample {} to extract and pickle not found in mutation/variant file. "
+                              " Please check --pickle-samples or consider using --sample-name-map.".format(target_sample))
+                logging.error("Samples in mutation/variant file are: {}".format(maf_or_vcf_sample_set))
+                sys.exit(1)
 
 #todo: support tsv file in the future
 def parse_junction_meta_info(h5f_path):
