@@ -21,7 +21,6 @@ def get_mutated_sequence(fasta_file: str, chromosome: str, pos_start: int, pos_e
     """ Reads the specified subsequence from the given fasta file and applies the mutations in mutation_dict.
 
     :param fasta_file: file containing the reference sequence to be mutated
-    :param chrm: the chromosome to which the mutations should be applied
     :param pos_start: starting position for subsequence to be mutated
     :param pos_end: ending position for subsequence to be mutated
     :param mutation_dict: dictionary mapping a position to the mutation variants, e.g.::
@@ -62,19 +61,18 @@ def _apply_mutations(seq: str, pos_start: int, pos_end: int, mut_dict: dict[int:
 
 
 
-def _parse_mutation_file(mutation_tag, mutation_file_path, output_dir, heter_code, target_sample_list=None,
+def _parse_mutation_file(mutation_tag, mutation_file_path, output_dir, heter_code,
                          mutation_sample=None, name_eq_dict={}):
     """ Reads data from a MAF or VCF file """
     if mutation_file_path.lower().endswith('.maf'):
         return parse_mutation_from_maf(maf_path=mutation_file_path, mutation_mode=mutation_tag,
-                                       target_samples=target_sample_list, mutation_sample=mutation_sample,
-                                       sample_eq_dict=name_eq_dict, output_dir=output_dir)
+                                       mutation_sample=mutation_sample, graph_to_mutation_samples=name_eq_dict,
+                                       output_dir=output_dir)
     # for VCFs, we also accept hdf5 file format
     elif mutation_file_path.lower().endswith('.vcf') or mutation_file_path.lower().endswith('.h5'):
         return parse_mutation_from_vcf(vcf_path=mutation_file_path, mutation_mode=mutation_tag,
-                                       target_samples=target_sample_list, mutation_sample=mutation_sample,
-                                       sample_eq_dict=name_eq_dict, heter_code=heter_code,
-                                       output_dir=output_dir)
+                                       mutation_sample=mutation_sample, graph_to_mutation_samples=name_eq_dict,
+                                       heter_code=heter_code, output_dir=output_dir)
 
     else:
         logging.error('Unsupported mutation file format: only maf and vcf formats are supported.')
@@ -95,6 +93,7 @@ def load_mutations(germline_file: str, somatic_file: str, mutation_sample: str, 
         sample ids in the mutation files. with column 1: graph sample name, 
         column 2: germline sample name, 
         column 3: somatic sample name
+    :param mutation_sample: sample for which we want to extract the mutation
     :cache_dir: if not None, pickle result to disk for faster loading
     :return: a :class:`Mutation` instance containing the loaded somatic and germline mutations.
     :rtype Mutation:
@@ -141,12 +140,10 @@ def load_mutations(germline_file: str, somatic_file: str, mutation_sample: str, 
     germline_dict = {}
     if germline_file:
         germline_dict = _parse_mutation_file("germline", germline_file, cache_dir, heter_code,
-                                             target_samples, mutation_sample,
-                                             graph_to_germline_names)
+                                             mutation_sample, graph_to_germline_names)
     if somatic_file:
         somatic_dict = _parse_mutation_file("somatic", somatic_file, cache_dir, heter_code,
-                                            target_samples, mutation_sample,
-                                            graph_to_somatic_names)
+                                            mutation_sample, graph_to_somatic_names)
 
     return Mutation(mutation_mode, germline_dict=germline_dict, somatic_dict=somatic_dict)
 

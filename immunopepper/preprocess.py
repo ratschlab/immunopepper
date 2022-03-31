@@ -365,12 +365,11 @@ def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
 
 # TODO(dd): move mutation parsing methods to mutations.py after review; left here to make code review easier
 def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, mutation_sample: str = None, 
-                            graph_to_mutation_samples=dict[str, str] = {}, heter_code: int = 0, output_dir: str = None):
+                            graph_to_mutation_samples=dict[str, str], heter_code: int = 0, output_dir: str = None):
     """Extract mutation information from the given vcf or vcf.h5 file
     :param vcf_path: path to the VCF file to be read
     :param mutation_mode: what mutations to apply to the reference. One of 'ref', 'germline', 'somatic',
         'somatic_and_germline'
-    :param target_samples: list of tissue sample ids TODO(dd) - what are these used for?
     :param mutation_sample: TODO(dd) - clarify inconsistency with VCF/HD5 method
     :param graph_to_mutation_samples: dictionary mapping sample id names in the Spladder graph/count files to
         sample ids in the mutation files
@@ -393,7 +392,8 @@ def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, mutation_sample: 
             f = open(vcf_pkl_file, 'rb')
             mutation_dict = pickle.load(f)
             pickled_sample_ids = {sample_id for sample_id, chr in mutation_dict}
-            _check_mutation_samples(mutation_sample, target_samples, sample_eq_dict, pickled_sample_ids)
+            #_check_mutation_samples(mutation_sample, target_samples, graph_to_mutation_samples, pickled_sample_ids)
+            check_mutation_sample_presence(mutation_sample, pickled_sample_ids, mutation_to_graph_samples)
             logging.info(f'Using pickled VCF mutation dict in: {vcf_pkl_file} instead of loading data from: {vcf_path}')
             return mutation_dict
 
@@ -405,7 +405,7 @@ def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, mutation_sample: 
 
     if file_type == 'h5':  # hdf5 file
         mutation_dict = parse_mutation_from_vcf_h5(vcf_path, mutation_sample, heter_code, 
-                                                   graph_to_mutation_samples, mutation_to_graph_samples)
+                                                   mutation_to_graph_samples)
         # TODO(reviewers): why no pickle created?
         logging.info(f'Read germline mutation dict from h5 file in {vcf_path}. No pickle file created')
         return mutation_dict
@@ -445,8 +445,8 @@ def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, mutation_sample: 
     return mutation_dict
 
 
-def parse_mutation_from_vcf_h5(h5_vcf_path:str, mutation_sample:str, heter_code:int = 0, 
-                                graph_to_mutation_samples=dict[str, str] = {}, mutation_to_graph_samples=dict[str, str] = {}): 
+def parse_mutation_from_vcf_h5(h5_vcf_path: str, mutation_sample: str, heter_code: int = 0,
+                               mutation_to_graph_samples=dict[str, str]):
     """
     Extract germline mutation information from given vcf h5py file.
 
@@ -477,18 +477,15 @@ def parse_mutation_from_vcf_h5(h5_vcf_path:str, mutation_sample:str, heter_code:
 
 
 def parse_mutation_from_maf(maf_path: str, mutation_mode: str, mutation_sample: str,
-                            graph_to_mutation_samples: dict[str, str] = {}, output_dir: str = None):
+                            graph_to_mutation_samples: dict[str, str], output_dir: str = None):
     """
     Extract somatic mutation information from the given MAF file.
     :param mutation_mode: what mutations to apply to the reference.
         One of 'ref', 'germline', 'somatic', 'somatic_and_germline'
-    :param target_samples: list of tissue sample ids TODO(dd) - what are these used for?
-    :param mutation_sample: TODO(dd): clarify intended role
+    :param mutation_sample:
     :param maf_path: path to the MAF file to be read
     :param output_dir: if not None, directory to cache a pickled version of the mutation dict
-    :param cache_result: if True, attempt to load the data from a pre-created pickle file (to save time). If the pickle
-        file is not present, cache the result into a pickle file to be used the next run
-    :param sample_eq_dict: dictionary mapping sample id names in the Spladder graph/count files to
+    :param graph_to_mutation_samples: dictionary mapping sample id names in the Spladder graph/count files to
         sample ids in the mutation files
     :return: a dictionary mapping (sample, chromosome) pairs to mutation data, where mutation data is
         a dictionary mapping mutation position, to mutation properties e.g.::
@@ -497,7 +494,8 @@ def parse_mutation_from_maf(maf_path: str, mutation_mode: str, mutation_sample: 
     :rtype: dict[(str,str):dict[int, dict[str:str]]]
     """
 
-    mutation_to_graph_samples = { file_sample: target_sample for target_sample, file_sample in graph_to_mutation_samples.items()}
+    mutation_to_graph_samples = { file_sample: target_sample for target_sample, file_sample
+                                  in graph_to_mutation_samples.items()}
 
     if output_dir:
         maf_pkl_file = os.path.join(output_dir, f'{mutation_mode}_maf.pickle')
@@ -588,7 +586,7 @@ def parse_junction_meta_info(h5f_path):
         strand = h5f['strand'][:]
         junction_dict = {}
 
-        for i,ichr in enumerate(chrms):
+        for i, ichr in enumerate(chrms):
             try:
                 junction_dict[decode_utf8(ichr)].add(':'.join([pos[i, 0], pos[i, 1], decode_utf8(strand[i])]))
             except KeyError:
