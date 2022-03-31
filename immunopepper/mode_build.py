@@ -416,7 +416,7 @@ def mode_build(arg):
                 logging.info(">>>>>>>>> Start Background processing")
                 with mp.Pool(processes=arg.parallel, initializer=pool_initializer) as pool:
                     args = [(output_sample, arg.mutation_sample,  graph_data[gene_idx], gene_idx, n_genes, mutation, countinfo, genetable, arg,
-                          os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+                          os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(mutation.mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
                     result = pool.imap(mapper_funct_back, args, chunksize=1)
                     exits_if_exception = [res for res in result]
 
@@ -425,7 +425,7 @@ def mode_build(arg):
             with mp.Pool(processes=arg.parallel, initializer=pool_initializer) as pool:
                 args = [(output_sample, arg.mutation_sample, output_samples_ids, graph_data[gene_idx], graph_info[gene_idx], gene_idx, n_genes,
                          genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg,
-                      os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+                      os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(mutation.mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
                 result = pool.imap(mapper_funct, args, chunksize=1)
                 exits_if_exception = [res for res in result]
 
@@ -433,18 +433,18 @@ def mode_build(arg):
             # Collects and pools the files of each batch
             logging.info("Start collecting results")
             if countinfo:
-                collect_results(filepointer.gene_expr_fp, output_path, pq_compression, arg.mutation_mode)
+                collect_results(filepointer.gene_expr_fp, output_path, pq_compression, mutation.mode)
             if arg.output_fasta:
-                collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, arg.mutation_mode)
-            collect_results(filepointer.background_peptide_fp, output_path, pq_compression, arg.mutation_mode)
-            collect_results(filepointer.junction_meta_fp, output_path, pq_compression, arg.mutation_mode)
-            collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
-            collect_results(filepointer.background_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
-            collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, arg.mutation_mode)
-            collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, arg.mutation_mode)
+                collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, mutation.mode)
+            collect_results(filepointer.background_peptide_fp, output_path, pq_compression, mutation.mode)
+            collect_results(filepointer.junction_meta_fp, output_path, pq_compression, mutation.mode)
+            collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
+            collect_results(filepointer.background_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
+            collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, mutation.mode)
+            collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, mutation.mode)
             if not arg.skip_tmpfiles_rm:
                 logging.info("Cleaning temporary files")
-                remove_folder_list(os.path.join(output_path, 'tmp_out_{}_batch'.format(arg.mutation_mode)))
+                remove_folder_list(os.path.join(output_path, 'tmp_out_{}_batch'.format(mutation.mode)))
 
         else:
             logging.info('Not Parallel')
