@@ -36,7 +36,7 @@ def parse_arguments(argv):
     outputs.add_argument("--kmer", nargs='+', type=int, help="list which specifys the different k for kmer output", required=False, default=[])
     outputs.add_argument("--disable-concat",help="switch off concatenation of short exons to increase speed",action="store_true",default=False)
     outputs.add_argument("--use-mut-pickle", help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
-    outputs.add_argument("--pickle-samples", nargs='+', help="list of sample names to pickle, names must match the graph samples", required=False, default=[])
+    outputs.add_argument("--pickle-samples", nargs='+', help="list of sample names to pickle, ids should match the count/graphs but equivalence with the mutation files can be specified (see --sample-name-map)", required=False, default=[])
     #outputs.add_argument("--peptides_tsv", help="save the peptides outputs as tsv files instead of fasta files", action="store_true", default=False)
     outputs.add_argument("--disable_process_libsize",help="sample library size generation to increase speed",action="store_true",default=False)
 
