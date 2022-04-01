@@ -196,8 +196,8 @@ class TestReadMafVcf:
 
         # now let's read the other sample (test1neg_with_suffix)
         mutation_dict = mutations.parse_mutation_from_vcf(os.path.join(test_data_dir, 'test1vcf.h5'), 'somatic',
-                                                          graph_to_mutation_samples={'test1pos_with_suffix': 'test1pos',
-                                                                                     'test1neg_with_suffix': 'test1neg'},
+                                                          graph_to_mutation_samples={'test1pos_with_suffix': 'test1pos_with_suffix',
+                                                                                     'test1neg_with_suffix': 'test1neg_with_suffix'},
                                                           mutation_sample='test1neg_with_suffix')
         assert len(mutation_dict) == 1
         assert mutation_dict[('test1neg_with_suffix', 'X')][135] == {'mut_base': 'G', 'ref_base': 'C'}
@@ -212,8 +212,8 @@ class TestReadMafVcf:
 
         # now let's read the other sample (test1neg_with_suffix)
         mutation_dict = mutations.parse_mutation_from_vcf(os.path.join(test_data_dir, 'test1vcf.h5'), 'somatic',
-                                                          graph_to_mutation_samples={'test1pos_with_suffix': 'test1pos',
-                                                                                     'test1neg_with_suffix': 'test1neg'},
+                                                          graph_to_mutation_samples={'test1pos_with_suffix': 'test1pos_with_suffix',
+                                                                                     'test1neg_with_suffix': 'test1neg_with_suffix'},
                                                           mutation_sample='test1neg_with_suffix', heter_code=2)
         assert len(mutation_dict) == 1
         assert mutation_dict[('test1neg_with_suffix', 'X')][14] == {'mut_base': 'C', 'ref_base': 'G'}
