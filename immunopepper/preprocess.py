@@ -544,16 +544,18 @@ def parse_mutation_from_maf(maf_path: str, mutation_mode: str, mutation_sample: 
 
 def _check_mutation_sample_presence(mutation_sample, maf_or_vcf_sample_set, graph_to_mutation_samples):
     if mutation_sample and graph_to_mutation_samples[mutation_sample] not in maf_or_vcf_sample_set:
-        logging.error("Target mutation sample {} is not found in mutation/variant file."
-                        " Please check --mutation-sample or consider using --sample-name-map.".format(mutation_sample))
-        logging.error("Samples in mutation/variant file are: {}".format(maf_or_vcf_sample_set))
+        logging.error(f"Target mutation sample {graph_to_mutation_samples[mutation_sample]} "
+                      f"({mutation_sample} in graph/count) is not found in mutation/variant file."
+                      f" Please check --mutation-sample or consider using --sample-name-map.")
+        logging.error(f"Samples in mutation/variant file are: {maf_or_vcf_sample_set}")
         sys.exit(1)
     if graph_to_mutation_samples:
-        for target_sample in graph_to_mutation_samples.values():
-            if target_sample not in maf_or_vcf_sample_set:
-                logging.error("Sample {} to extract and pickle not found in mutation/variant file. "
-                              " Please check --pickle-samples or consider using --sample-name-map.".format(target_sample))
-                logging.error("Samples in mutation/variant file are: {}".format(maf_or_vcf_sample_set))
+        for graph_name, mutation_name in graph_to_mutation_samples.items():
+            if mutation_name not in maf_or_vcf_sample_set:
+                logging.error(f"Sample {mutation_name} ({graph_name} in graph/count) to extract"
+                              f" and pickle is not found in mutation/variant file. "
+                              f" Please check --pickle-samples or consider using --sample-name-map.")
+                logging.error(f"Samples in mutation/variant file are: {maf_or_vcf_sample_set}")
                 sys.exit(1)
 
 #todo: support tsv file in the future
