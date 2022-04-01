@@ -81,19 +81,19 @@ def construct_mut_seq_with_str_concat(ref_seq, pos_start, pos_end, mut_dict):
     return mut_seq
 
 
-def parse_mutation_file(mutation_tag, mutation_file_path, output_dir, heter_code, mut_pickle=False, target_sample_list=None, mutation_sample=None, name_eq_dict={}):
+def parse_mutation_file(mutation_tag, mutation_file_path, output_dir, heter_code, mut_pickle=False, mutation_sample=None, name_eq_dict={}):
     if mutation_file_path.lower().endswith('.maf'):
-        mutation_dict = parse_mutation_from_maf(mutation_tag=mutation_tag, target_sample_list=target_sample_list, mutation_sample=mutation_sample, maf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle,sample_eq_dict=name_eq_dict)
+        mutation_dict = parse_mutation_from_maf(mutation_tag=mutation_tag, mutation_sample=mutation_sample, maf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle,graph_to_mutation_samples=name_eq_dict)
     elif mutation_file_path.lower().endswith('.vcf') or mutation_file_path.lower().endswith('.h5'): # we also accept hdf5 file format
         mutation_dict = parse_mutation_from_vcf(mutation_tag=mutation_tag, vcf_path=mutation_file_path,output_dir=output_dir,mut_pickle=mut_pickle,
-                                                heter_code=heter_code,target_sample_list=target_sample_list, mutation_sample=mutation_sample, sample_eq_dict=name_eq_dict)
+                                                heter_code=heter_code, mutation_sample=mutation_sample, graph_to_mutation_samples=name_eq_dict)
     else:
         logging.error("Invalid mutation files. Please ensure it is in maf or vcf format.")
         sys.exit(1)
     return mutation_dict
 
 
-def get_mutation_mode_from_parser(args, target_sample_list):
+def get_mutation_mode_from_parser(args):
     "Check if the input files match the mutation mode"
     mutation_mode = args.mutation_mode
     germline_file_path = args.germline
@@ -101,14 +101,19 @@ def get_mutation_mode_from_parser(args, target_sample_list):
     output_dir = args.output_dir
     heter_code = args.heter_code
     mut_pickle = args.use_mut_pickle
+    samples_to_pickle = args.pickle_samples
     is_error = True
     graph_to_somatic_names = {}
     graph_to_germline_names = {}
-    sample_name_map_tbl = args.sample_name_map
-    if sample_name_map_tbl is not None:
-        with open(sample_name_map_tbl, "r") as f:
+    sample_name_map = args.sample_name_map
+    # Name equivalence file with column 1: graph sample name, column 2: germline sample name, column 3: somatic sample name
+    if sample_name_map is not None:
+        with open(sample_name_map, "r") as f:
             for line in f.readlines():
                 equivalence = line.split("\n")[0].split('\t')
+                # Restrict to the samples which should be extracted and saved as pickle
+                if samples_to_pickle and (equivalence[0] not in samples_to_pickle):
+                    continue
                 if len(equivalence) == 2:
                     graph_to_somatic_names[equivalence[0]] = equivalence[1]
                     graph_to_germline_names[equivalence[0]] = equivalence[1]
@@ -118,23 +123,31 @@ def get_mutation_mode_from_parser(args, target_sample_list):
                 else:
                     logging.error("--args.sample_name_map provided with wrong input format, please check documentation")
                     sys.exit(1)
+    # If no name equivalence file is provided
     else:
-        for sample in target_sample_list:
-            graph_to_somatic_names[sample] = sample
+        # Take the names of the samples to extract and pickle
+        if samples_to_pickle:
+            for sample in samples_to_pickle:
+                graph_to_somatic_names[sample] = sample
+        # Take the names of the mutation sample
+        else:
+            graph_to_somatic_names[args.mutation_sample] = args.mutation_sample
         graph_to_germline_names = graph_to_somatic_names
+
+
     if mutation_mode == 'somatic_and_germline':
         if somatic_file_path != '' and germline_file_path != '':
-            somatic_mutation_dict = parse_mutation_file("somatic", somatic_file_path, output_dir, heter_code, mut_pickle, target_sample_list, args.mutation_sample, graph_to_somatic_names)
-            germline_mutation_dict = parse_mutation_file("germline", germline_file_path, output_dir, heter_code, mut_pickle, target_sample_list, args.mutation_sample, graph_to_germline_names)
+            somatic_mutation_dict = parse_mutation_file("somatic", somatic_file_path, output_dir, heter_code, mut_pickle, args.mutation_sample, graph_to_somatic_names)
+            germline_mutation_dict = parse_mutation_file("germline", germline_file_path, output_dir, heter_code, mut_pickle , args.mutation_sample, graph_to_germline_names)
             is_error = False
     elif mutation_mode == 'germline':
         if germline_file_path != '':
             somatic_mutation_dict = {}  # empty dic
-            germline_mutation_dict = parse_mutation_file("germline", germline_file_path, output_dir, heter_code, mut_pickle, target_sample_list, args.mutation_sample, graph_to_germline_names)
+            germline_mutation_dict = parse_mutation_file("germline", germline_file_path, output_dir, heter_code, mut_pickle, args.mutation_sample, graph_to_germline_names)
             is_error = False
     elif mutation_mode == 'somatic':
         if somatic_file_path != '':
-            somatic_mutation_dict = parse_mutation_file("somatic", somatic_file_path, output_dir, heter_code, mut_pickle, target_sample_list, args.mutation_sample, graph_to_somatic_names)
+            somatic_mutation_dict = parse_mutation_file("somatic", somatic_file_path, output_dir, heter_code, mut_pickle, args.mutation_sample, graph_to_somatic_names)
             germline_mutation_dict = {}
             is_error = False
     elif mutation_mode == 'ref':
