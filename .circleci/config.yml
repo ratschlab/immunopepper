@@ -10,7 +10,9 @@ jobs:
           command: sudo apt-get install pkg-config libhdf5-103 libhdf5-dev
       - run:
           name: install R
-          command: sudo apt install r-base
+          command: |
+            sudo apt install r-base
+            sudo Rscript .circleci/deseq2.r
       - run:
           name: setup environment
           command: |
@@ -25,6 +27,6 @@ jobs:
             mkdir ~/test_reports
             source ~/env/bin/activate
             python setup.py build_ext --inplace
-            pytest --junitxml=~/test_reports/pytest-results.xml tests/test_dna_to_peptide.py
+            pytest --junitxml=~/test_reports/pytest-results.xml tests/test_dna_to_peptide.py tests/test_filter.py tests/test_utils.py tests/test_mutations.py
       - store_test_results:
           path: ~/test_reports

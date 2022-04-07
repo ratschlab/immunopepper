@@ -29,7 +29,6 @@ def parse_arguments(argv):
     required.add_argument("--ann-path", help="absolute path of reference gene annotation file", required=True)
     required.add_argument("--splice-path", help="absolute path of splicegraph file", required=True)
     required.add_argument("--ref-path", help="absolute path of reference genome file", required=True)
-    required.add_argument("--mutation-mode", help="mutation mode (options: ref, somatic, germline, somatic_germline) [ref]", required=True, default='ref')
     required.add_argument("--output-fasta", help="if True outputs both the sample peptide metadata and the fasta", action="store_true", required=False, default=False)
 
     outputs = parser_build.add_argument_group('OUTPUT OPTIONS')
@@ -37,18 +36,18 @@ def parse_arguments(argv):
     outputs.add_argument("--kmer", nargs='+', type=int, help="list which specifys the different k for kmer output", required=False, default=[])
     outputs.add_argument("--disable-concat",help="switch off concatenation of short exons to increase speed",action="store_true",default=False)
     outputs.add_argument("--use-mut-pickle", help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
-    outputs.add_argument("--pickle-samples", nargs='+', help="list of sample names to pickle, names must match the graph samples", required=False, default=[])
+    outputs.add_argument("--pickle-samples", nargs='+', help="list of sample names to pickle, ids should match the count/graphs but equivalence with the mutation files can be specified (see --sample-name-map)", required=False, default=[])
     #outputs.add_argument("--peptides_tsv", help="save the peptides outputs as tsv files instead of fasta files", action="store_true", default=False)
     outputs.add_argument("--disable_process_libsize",help="sample library size generation to increase speed",action="store_true",default=False)
 
     additional_file = parser_build.add_argument_group('ADDITIONAL FILES')
     additional_file.add_argument("--mutation-sample", help="sample id for the somatic and germline application, ids should match the count/graphs but equivalence with the mutation files can be specified (see --sample-name-map)", required=False, default=None)
-    additional_file.add_argument("--germline", help="absolute path of germline mutation file", required=False, default='')
-    additional_file.add_argument("--somatic", help="absolute path of somatic mutation file", required=False, default='')
+    additional_file.add_argument("--germline", help="Absolute path to an optional germline VCF or MAF mutation file", required=False, default='')
+    additional_file.add_argument("--somatic", help="Absolute path to an optional somatic VCF or MAF mutation file", required=False, default='')
     additional_file.add_argument("--count-path",help="absolute path of count hdf5 file", required=False, default=None)
     additional_file.add_argument("--gtex-junction-path",help="absolute path of whitelist junction file, currently only support hdf5 format. Will suport tsv"
                                                              "format in the future", required=False, default=None)
-    additional_file.add_argument("--sample-name-map", help="provide an naming equivalence between the count/graphs files, the germline and the somatic mutation file Format:[ no header, 2 or 3 columns]. If 2 columns [ name in count/graphs files \t name in mutations files ] If 3 columns [name in count/graphs files \t name in germline file \t name in somatic file]", required=False, default=None) 
+    additional_file.add_argument("--sample-name-map", help="provide a naming equivalence between the count/graphs files, the germline and the somatic mutation file Format:[ no header, 2 or 3 columns]. If 2 columns [ name in count/graphs files \t name in mutations files ] If 3 columns [name in count/graphs files \t name in germline file \t name in somatic file]", required=False, default=None)
     _add_general_args(parser_build)
 
     experimental = parser_build.add_argument_group('EXPERIMENTAL')
@@ -149,7 +148,7 @@ def parse_arguments(argv):
     dv.add_argument("--tot-batches", type=int, help="Filter foreground and in background kmers based on hash function. Set number of batches",required=False, default=None)
     dv.add_argument("--batch-id", type=int, help="Filter foreground and in background kmers based on hash function. Set 0<= batch_id <tot_batches",required=False, default=None)
     _add_general_args(parser_cancerspecif)
- 
+
     ### mode_mhcbind
     parser_mhcbind = subparsers.add_parser('mhcbind',help='Perform MHC binding prediction with a wrapper for MHCtools')
     parser_mhcbind.add_argument("--mhc-software-path", help="path for MHC prediction software. e.g. netmhc3, netmhc4, netmhcpan, mhcflurry", required=True, default=None)
@@ -157,10 +156,10 @@ def parse_arguments(argv):
     parser_mhcbind.add_argument("--output-dir", help="Specify the output directory for the MHC binding prediction", required=True, default='')
     parser_mhcbind.add_argument("--partitioned-tsv", help="Take directly the output from cancerspecif mode, need to provide the folder containing a partitionned tsv, input-peptides-file for MHC tools will be generated on the fly and saved following the path given for input-peptides-file", required=False, default=None)
     parser_mhcbind.add_argument("--bind-score-method", help="Scoring method for post binding prediction filtering e.g. score,affinity,percentile_rank for netmhc", required=False, default=None)
-    parser_mhcbind.add_argument("--bind-score-threshold", type=float, help="Scoring threshold (>= threshold) for post binding prediction filtering", required=False, default=None)        
+    parser_mhcbind.add_argument("--bind-score-threshold", type=float, help="Scoring threshold (>= threshold) for post binding prediction filtering", required=False, default=None)
     parser_mhcbind.add_argument("--less-than", help="Scoring threshold operation becomes <= threshold", action="store_true", required=False, default=False)
     _add_general_args(parser_mhcbind)
-    
+
     if len(argv) < 1:
         parser.print_help()
         sys.exit(1)
@@ -174,7 +173,7 @@ def parse_arguments(argv):
             parser_cancerspecif.print_help()
         elif argv[0] == "mhcbind":
             sys.stdout.write("------------------------------ MHCBIND IMMUNOPEPPER USAGE ------------------------------ \n \n ")
-            parser_mhcbind.print_help() 
+            parser_mhcbind.print_help()
             sys.stdout.write("\n------------------------------ MHCTOOLS AVAILABLE COMMAND LINE OPTIONS ------------------------------ \n \n ")
             parser_mhc = make_mhc_arg_parser(prog="mhctools",description=("Predict MHC ligands from protein sequences"))
             parser_mhc.print_help()
@@ -202,7 +201,7 @@ def split_mode(options):
         log_level = logging.INFO
     else:
         log_level = logging.DEBUG
-        
+
     logging.basicConfig(
                         level=log_level,
                         handlers=handlers,

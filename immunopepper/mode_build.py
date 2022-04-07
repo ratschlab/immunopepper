@@ -21,8 +21,9 @@ from immunopepper.io_ import save_bg_peptide_dict
 from immunopepper.io_ import save_gene_expr_distr
 from immunopepper.io_ import save_fg_kmer_dict
 from immunopepper.io_ import save_fg_peptide_dict
-from immunopepper.mutations import get_mutation_mode_from_parser
-from immunopepper.mutations import get_sub_mutation_tuple
+
+from immunopepper.mutations import get_sub_mutations
+from immunopepper.mutations import load_mutations
 from immunopepper.preprocess import genes_preprocess_all
 from immunopepper.preprocess import parse_junction_meta_info
 from immunopepper.preprocess import parse_gene_choices
@@ -85,7 +86,7 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
             all_gene_idxs.append(gene_idxs[i])
 
             chrm = gene.chr.strip()
-            sub_mutation = get_sub_mutation_tuple(mutation, mutation_sample, chrm)
+            sub_mutation = get_sub_mutations(mutation, mutation_sample, chrm)
             ref_mut_seq = collect_background_transcripts(gene=gene, ref_seq_file=arg.ref_path, chrm=chrm, mutation=sub_mutation)
 
             # Gene counts information
@@ -213,7 +214,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                 continue
 
             chrm = gene.chr.strip()
-            sub_mutation = get_sub_mutation_tuple(mutation, mutation_sample, chrm)
+            sub_mutation = get_sub_mutations(mutation, mutation_sample, chrm)
             if (arg.mutation_sample is not None) and (arg.cross_graph_expr):
                 mut_count_id = [idx for idx, sample in enumerate(arg.output_samples) if arg.mutation_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') == sample][0]
             else:
@@ -326,7 +327,10 @@ def mode_build(arg):
         matching_count_ids = None
 
     # read the variant file
-    mutation = get_mutation_mode_from_parser(arg)
+
+    mutation = load_mutations(arg.germline, arg.somatic, arg.mutation_sample, arg.heter_code, 
+                              arg.pickle_samples if arg.use_mut_pickle else None,
+                              arg.sample_name_map, arg.output_dir if arg.use_mut_pickle else None)
 
     # load splicegraph
     logging.info('Loading splice graph ...')
@@ -412,7 +416,7 @@ def mode_build(arg):
                 logging.info(">>>>>>>>> Start Background processing")
                 with mp.Pool(processes=arg.parallel, initializer=pool_initializer) as pool:
                     args = [(output_sample, arg.mutation_sample,  graph_data[gene_idx], gene_idx, n_genes, mutation, countinfo, genetable, arg,
-                          os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+                          os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(mutation.mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
                     result = pool.imap(mapper_funct_back, args, chunksize=1)
                     exits_if_exception = [res for res in result]
 
@@ -421,7 +425,7 @@ def mode_build(arg):
             with mp.Pool(processes=arg.parallel, initializer=pool_initializer) as pool:
                 args = [(output_sample, arg.mutation_sample, output_samples_ids, graph_data[gene_idx], graph_info[gene_idx], gene_idx, n_genes,
                          genes_interest, disable_process_libsize, arg.all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg,
-                      os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(arg.mutation_mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+                      os.path.join(output_path, 'tmp_out_{}_batch_{}'.format(mutation.mode, i + arg.start_id)), filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
                 result = pool.imap(mapper_funct, args, chunksize=1)
                 exits_if_exception = [res for res in result]
 
@@ -429,18 +433,18 @@ def mode_build(arg):
             # Collects and pools the files of each batch
             logging.info("Start collecting results")
             if countinfo:
-                collect_results(filepointer.gene_expr_fp, output_path, pq_compression, arg.mutation_mode)
+                collect_results(filepointer.gene_expr_fp, output_path, pq_compression, mutation.mode)
             if arg.output_fasta:
-                collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, arg.mutation_mode)
-            collect_results(filepointer.background_peptide_fp, output_path, pq_compression, arg.mutation_mode)
-            collect_results(filepointer.junction_meta_fp, output_path, pq_compression, arg.mutation_mode)
-            collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
-            collect_results(filepointer.background_kmer_fp, output_path, pq_compression, arg.mutation_mode, arg.kmer)
-            collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, arg.mutation_mode)
-            collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, arg.mutation_mode)
+                collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, mutation.mode)
+            collect_results(filepointer.background_peptide_fp, output_path, pq_compression, mutation.mode)
+            collect_results(filepointer.junction_meta_fp, output_path, pq_compression, mutation.mode)
+            collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
+            collect_results(filepointer.background_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
+            collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, mutation.mode)
+            collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, mutation.mode)
             if not arg.skip_tmpfiles_rm:
                 logging.info("Cleaning temporary files")
-                remove_folder_list(os.path.join(output_path, 'tmp_out_{}_batch'.format(arg.mutation_mode)))
+                remove_folder_list(os.path.join(output_path, 'tmp_out_{}_batch'.format(mutation.mode)))
 
         else:
             logging.info('Not Parallel')

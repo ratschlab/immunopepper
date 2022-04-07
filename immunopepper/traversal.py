@@ -2,8 +2,6 @@
 
 from collections import defaultdict
 import numpy as np
-import logging
-import sys
 
 from immunopepper.filter import add_peptide_properties
 from immunopepper.filter import add_kmer_properties
@@ -13,10 +11,10 @@ from immunopepper.filter import junction_is_annotated
 from immunopepper.filter import is_intron_in_junction_list
 from immunopepper.filter import junction_tuple_is_annotated
 from immunopepper.io_ import save_kmer_matrix
-from immunopepper.mutations import apply_germline_mutation
-from immunopepper.mutations import get_exon_som_dict
+from immunopepper.mutations import get_mutated_sequence
+from immunopepper.mutations import exon_to_mutations
 from immunopepper.mutations import get_mut_comb
-from immunopepper.mutations import get_som_expr_dict
+from immunopepper.mutations import exon_to_expression
 from immunopepper.namedtuples import Coord
 from immunopepper.namedtuples import OutputBackground
 from immunopepper.namedtuples import OutputJuncPeptide
@@ -33,7 +31,7 @@ from immunopepper.utils import get_segment_expr
 
 
 def collect_background_transcripts(gene=None, ref_seq_file=None, chrm=None, mutation=None):
-    """Calculte the background peptide""
+    """Calculate the background peptide""
 
        Parameters
        ----------
@@ -53,11 +51,11 @@ def collect_background_transcripts(gene=None, ref_seq_file=None, chrm=None, muta
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
     # otherwise, background_seq = ref_seq
-    ref_mut_seq = apply_germline_mutation(ref_sequence_file=ref_seq_file,
-                                          chrm=chrm,
+    ref_mut_seq = get_mutated_sequence(fasta_file=ref_seq_file,
+                                          chromosome=chrm,
                                           pos_start=min_pos,
                                           pos_end=max_pos,
-                                          mutation_sub_dict=mutation.germline_mutation_dict)
+                                          mutation_dict=mutation.germline_dict)
     return ref_mut_seq
 
 
@@ -93,17 +91,17 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
     # apply germline mutation
     # when germline mutation is applied, background_seq != ref_seq
     # otherwise, background_seq = ref_seq
-    ref_mut_seq = apply_germline_mutation(ref_sequence_file=ref_seq_file,
-                                          chrm=chrm,
+    ref_mut_seq = get_mutated_sequence(fasta_file=ref_seq_file,
+                                          chromosome=chrm,
                                           pos_start=min_pos,
                                           pos_end=max_pos,
-                                          mutation_sub_dict=mutation.germline_mutation_dict)
+                                          mutation_dict=mutation.germline_dict)
 
     # apply somatic mutation
     # exon_som_dict: (exon_id) |-> (mutation_postion)
     exon_som_dict = None
-    if mutation.somatic_mutation_dict is not None:
-        exon_som_dict = get_exon_som_dict(gene, mutation.somatic_mutation_dict)
+    if mutation.somatic_dict is not None:
+        exon_som_dict = exon_to_mutations(gene, mutation.somatic_dict)
 
     vertex_pair_list = []
     if all_read_frames:
@@ -125,12 +123,12 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
                 has_stop_flag = True
                 for variant_comb in mut_seq_comb:  # go through each variant combination
                     if prop_vertex is not np.nan:
-                        peptide, modi_coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq, sg.vertices[:, prop_vertex], min_pos, all_read_frames)
+                        peptide, modi_coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_dict, ref_mut_seq, sg.vertices[:, prop_vertex], min_pos, all_read_frames)
                         orig_coord = Coord(sg.vertices[0, v_id], sg.vertices[1, v_id], sg.vertices[0, prop_vertex], sg.vertices[1, prop_vertex])
                         if (not flag.has_stop) and (not all_read_frames): #no propagation needed in all reading frame mode
                             reading_frame_dict[prop_vertex].add(next_reading_frame)
                     else:
-                        peptide, modi_coord, flag = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq, min_pos, all_read_frames)
+                        peptide, modi_coord, flag = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_dict, ref_mut_seq, min_pos, all_read_frames)
                         orig_coord = Coord(sg.vertices[0, v_id],sg.vertices[1, v_id], np.nan, np.nan)
                     has_stop_flag = has_stop_flag and flag.has_stop
                 gene_outputid = str(idx.gene) + ':' + str(output_id)
@@ -256,7 +254,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
-    som_exp_dict = get_som_expr_dict(gene, list(mutation.somatic_mutation_dict.keys()), countinfo, seg_counts, mut_count_id)
+    som_exp_dict = exon_to_expression(gene, list(mutation.somatic_dict.keys()), countinfo, seg_counts, mut_count_id)
     kmer_matrix = [{}, {},{}]  # in cross sample mode, will contain unique kmers per gene (1), is_junction (2), segments expr per sample (3), junction expr per sample (4)
 
 
@@ -270,7 +268,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
 
             variant_id = 0
             for variant_comb in mut_seq_comb:  # go through each variant combination
-                peptide,flag = get_peptide_result(vertex_pair, gene.strand, variant_comb, mutation.somatic_mutation_dict, ref_mut_seq, np.min(gene.splicegraph.vertices), all_read_frames)
+                peptide,flag = get_peptide_result(vertex_pair, gene.strand, variant_comb, mutation.somatic_dict, ref_mut_seq, np.min(gene.splicegraph.vertices), all_read_frames)
 
                 # If cross junction peptide has a stop-codon in it, the frame
                 # will not be propagated because the read is truncated before it reaches the end of the exon.
