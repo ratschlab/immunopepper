@@ -351,7 +351,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
 def get_spanning_index(coord, k):
     L1 = coord.stop_v1-coord.start_v1
     if coord.start_v2 is np.nan:
-        return [np.nan],[np.nan]
+        return [np.nan], [np.nan], [np.nan]
     else:
         L2 = coord.stop_v2 - coord.start_v2
 
@@ -365,14 +365,18 @@ def get_spanning_index(coord, k):
     # consider the second junction
     if coord.start_v3 is None:
         spanning_id_range2 = [np.nan]
+        spanning_id_range1_2 = [np.nan]
     else:
         m2 = int((L1 + L2) / 3)
         if (L1 + L2) % 3 == 0:
             spanning_id_range2 = range(max(m2 - k + 1, 0), m2)
         else:
             spanning_id_range2 = range(max(m2 - k + 1, 0), m2 + 1)
+        spanning_id_range1_2 = [shared for shared in range(spanning_id_range2[0], spanning_id_range1[-1] + 1)
+                                if (shared + k - 1 >= m2 + 1)]
 
-    return spanning_id_range1, spanning_id_range2
+
+    return spanning_id_range1, spanning_id_range2, spanning_id_range1_2
 
 def get_and_write_background_peptide_and_kmer(peptide_dict, kmer_dict, gene, ref_mut_seq, gene_table, countinfo, seg_counts, Idx, kmer, all_read_frames):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
@@ -430,9 +434,9 @@ def create_output_kmer(output_peptide, k, expr_list):
     peptide_head = output_peptide.output_id
     if hasattr(output_peptide,'exons_coor'):
         coord = output_peptide.exons_coor
-        spanning_index1, spanning_index2 = get_spanning_index(coord, k)
+        spanning_index1, spanning_index2, spanning_index1_2 = get_spanning_index(coord, k)
     else:
-        spanning_index1, spanning_index2 = [np.nan], [np.nan]
+        spanning_index1, spanning_index2, spanning_index1_2 = [np.nan], [np.nan], [np.nan]
     if hasattr(output_peptide, 'junction_expr'):
         junction_count = output_peptide.junction_expr
     else:
@@ -449,7 +453,10 @@ def create_output_kmer(output_peptide, k, expr_list):
                 kmer_peptide_expr = np.nan
             else:
                 kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]), 2)
-            if j in spanning_index1:
+            if j in spanning_index1_2:
+                is_in_junction = True
+                kmer_junction_count = np.nanmin(junction_count)
+            elif j in spanning_index1:
                 is_in_junction = True
                 kmer_junction_count = junction_count[0] if junction_count is not np.nan else np.nan
             elif j in spanning_index2 :
@@ -485,9 +492,9 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
 
     if hasattr(output_peptide,'exons_coor'):
         coord = output_peptide.exons_coor
-        spanning_index1, spanning_index2 = get_spanning_index(coord, k)
+        spanning_index1, spanning_index2, spanning_index1_2 = get_spanning_index(coord, k)
     else:
-        spanning_index1, spanning_index2 = [np.nan], [np.nan]
+        spanning_index1, spanning_index2, spanning_index1_2 = [np.nan], [np.nan], [np.nan]
     if hasattr(output_peptide, 'junction_expr'):
         junction_count = output_peptide.junction_expr
     else:
@@ -499,8 +506,14 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
             kmer_peptide = peptide[j:j+k]
 
             # junction expression
-            if j in spanning_index1:
+            if j in spanning_index1_2:
                 is_in_junction = True
+                if junction_count is not np.nan:
+                    sublist_jun = np.nanmin(np.array(junction_count), axis=0)
+                else:
+                    sublist_jun = [np.nan] * len(graph_output_samples_ids) #TODO check if needed?
+            elif j in spanning_index1:
+                is_in_junction = True #TODO transform this to numpy array, check nan array to group
                 sublist_jun = [junction_count[sample_id][0] if junction_count is not np.nan else np.nan for sample_id in graph_output_samples_ids]
             elif j in spanning_index2:
                 is_in_junction = True
