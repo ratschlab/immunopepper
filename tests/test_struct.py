@@ -38,7 +38,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
     out_dir = str(tmpdir)
     #sample_dir_build = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'diff','{}'.format(case),'test{}{}'.format(test_id,case))
     my_args_build = ['build',
-               #'--output-samples', 'ENCSR000BZG',  #'ERR2130621','ENCSR000BZG'
+               '--output-samples', 'ERR2130621',  #'ENCSR000BZG'
                '--mutation-sample', 'ERR2130621',
                '--pickle-samples', 'ERR2130621',
                '--output-dir', out_dir,
@@ -228,7 +228,7 @@ mutation_mode ='germline'
 #pr = cProfile.Profile()
 #pr.enable()
 #for mutation_mode in ['ref', 'somatic', 'germline', 'somatic_and_germline']:
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=True) #TODO add back
+test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=False) #TODO add back
 
 #test_end_to_end_samplespecif('ERR2130621', tmpdir, "9", mutation_mode) # TEST DEPRECATED
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
