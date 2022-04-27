@@ -372,9 +372,11 @@ def get_spanning_index(coord, k):
             spanning_id_range2 = range(max(m2 - k + 1, 0), m2)
         else:
             spanning_id_range2 = range(max(m2 - k + 1, 0), m2 + 1)
-        spanning_id_range1_2 = [shared for shared in range(spanning_id_range2[0], spanning_id_range1[-1] + 1)
-                                if (shared + k - 1 >= m2 + 1)]
-
+        if (spanning_id_range1 and spanning_id_range2):
+            spanning_id_range1_2 = [shared for shared in range(spanning_id_range2[0], spanning_id_range1[-1] + 1)
+                                    if (shared + k - 1 >= m2 + 1)]
+        else:
+            spanning_id_range1_2 = []
 
     return spanning_id_range1, spanning_id_range2, spanning_id_range1_2
 
