@@ -213,7 +213,7 @@ def initialize_fp(output_path: str, mutation_mode: str,
     fields_backgrd_pep_dict = ['fasta']
     fields_backgrd_kmer_dict = ['kmer']
     fields_gene_expr_file = ['gene']
-    fields_meta_peptide_dict = ['peptide', 'id', 'readFrame', 'geneName', 'geneChr', 'geneStrand',
+    fields_meta_peptide_dict = ['peptide', 'id', 'readFrame', 'readFrameAnnotated', 'geneName', 'geneChr', 'geneStrand',
                                 'mutationMode',
                                 'junctionAnnotated', 'hasStopCodon', 'isInJunctionList',
                                 'isIsolated', 'variantComb', 'variantSegExpr', 'modifiedExonsCoord',

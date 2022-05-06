@@ -27,6 +27,7 @@ Output_metadata namedtuple.
 - id:  the same with that in Output_junc_peptide
 - output_id: the same with that in Output_junc_peptide with '>'
 - read_frame: int (0,1,2). The number of base left to the next junction pair.
+- read_frame_annotated: int (0, 1, nan). Whether the reading frame is present in the annotation or created by propagation
 - gene_name: str. The name of Gene.
 - gene_chr: str. The Chromosome id where the gene is located.
 - gene_strand: str ('+', '_'). The strand of gene.
@@ -49,7 +50,8 @@ Output_metadata namedtuple.
     expression with the length-weighted-sum expression.
 - kmer_type. str indicates whether the peptide is generated from vertice_pair, or 'vertice_triplet_xmer' ie. a triplet was necessary to generate the desired kmer length
 """
-OutputMetadata = namedtuple('OutputMetadata', ['peptide', 'output_id', 'read_frame', 'gene_name', 'gene_chr',
+OutputMetadata = namedtuple('OutputMetadata', ['peptide', 'output_id', 'read_frame', 'read_frame_annotated',
+                                               'gene_name', 'gene_chr',
                                                  'gene_strand',	'mutation_mode',
                                                  'junction_annotated',	'has_stop_codon',
                                                  'is_in_junction_list',	'is_isolated',
