@@ -174,8 +174,10 @@ def save_kmer_matrix(data, graph_samples, filepointer: Filepointer, compression:
         data[2] = pd.DataFrame.from_dict(data[2], orient='index', columns=graph_samples).reset_index().rename(
             {'index': filepointer.kmer_segm_expr_fp['columns'][0]}, axis=1)
 
-        data[1][filepointer.kmer_segm_expr_fp['columns'][1]] = data[0].values()
-        data[2][filepointer.kmer_segm_expr_fp['columns'][1]] = data[0].values()
+        for (name_idx, data_idx) in zip([1,2,3], [0,3,4]):
+            data[1][filepointer.kmer_segm_expr_fp['columns'][name_idx]] = data[data_idx].values()
+            data[2][filepointer.kmer_segm_expr_fp['columns'][name_idx]] = data[data_idx].values()
+
         filepointer.kmer_segm_expr_fp['pqwriter'] = save_pd_toparquet(segm_path, data[1],
                                                                       compression=compression, verbose=verbose,
                                                                       pqwriter=filepointer.kmer_segm_expr_fp[
@@ -220,8 +222,9 @@ def initialize_fp(output_path: str, mutation_mode: str,
                                 'originalExonsCoord', 'vertexIdx',
                                 'kmerType']
     fields_forgrd_pep_dict = ['fasta']
-    fields_forgrd_kmer_dict = ['kmer', 'id', 'segmentExpr', 'isCrossJunction', 'junctionExpr']
-    fields_kmer_expr = ['kmer', 'isCrossJunction']
+    fields_forgrd_kmer_dict = ['kmer', 'id', 'segmentExpr', 'isCrossJunction', 'junctionExpr',
+                               'junctionAnnotated', 'readFrameAnnotated']
+    fields_kmer_expr = ['kmer', 'isCrossJunction', 'junctionAnnotated', 'readFrameAnnotated']
 
     # --- Grouping dict
     if output_fasta:  # Foreground peptide fasta - optional
