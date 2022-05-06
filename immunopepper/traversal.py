@@ -20,6 +20,7 @@ from immunopepper.namedtuples import OutputBackground
 from immunopepper.namedtuples import OutputJuncPeptide
 from immunopepper.namedtuples import OutputKmer
 from immunopepper.namedtuples import OutputMetadata
+from immunopepper.namedtuples import ReadingFrameTuple
 from immunopepper.namedtuples import VertexPair
 from immunopepper.preprocess import search_edge_metadata_segmentgraph
 from immunopepper.translate import get_exhaustive_reading_frames
@@ -123,10 +124,14 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
                 has_stop_flag = True
                 for variant_comb in mut_seq_comb:  # go through each variant combination
                     if prop_vertex is not np.nan:
-                        peptide, modi_coord, flag, next_reading_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_dict, ref_mut_seq, sg.vertices[:, prop_vertex], min_pos, all_read_frames)
+                        peptide, modi_coord, flag, next_start_v1, next_stop_v1, next_emitting_frame = cross_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_dict, ref_mut_seq, sg.vertices[:, prop_vertex], min_pos, all_read_frames)
                         orig_coord = Coord(sg.vertices[0, v_id], sg.vertices[1, v_id], sg.vertices[0, prop_vertex], sg.vertices[1, prop_vertex])
-                        if (not flag.has_stop) and (not all_read_frames): #no propagation needed in all reading frame mode
-                            reading_frame_dict[prop_vertex].add(next_reading_frame)
+                        # no propagation needed in all reading frame mode,  RF not labelled as annotated
+                        if (not flag.has_stop) and (not all_read_frames) \
+                            and (not ReadingFrameTuple(next_start_v1, next_stop_v1,
+                                                       next_emitting_frame, 1) in reading_frame_dict[prop_vertex] ):
+                            reading_frame_dict[prop_vertex].add(ReadingFrameTuple(next_start_v1,
+                                                                                  next_stop_v1, next_emitting_frame, 0))
                     else:
                         peptide, modi_coord, flag = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_dict, ref_mut_seq, min_pos, all_read_frames)
                         orig_coord = Coord(sg.vertices[0, v_id],sg.vertices[1, v_id], np.nan, np.nan)

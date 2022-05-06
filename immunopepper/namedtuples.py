@@ -105,11 +105,12 @@ Idx = namedtuple('Idx', ['gene', 'sample'])
 
 """
 Reading_frame_tuple namedtuple
-- cds_left_modi: modified left cds coordinate. (modifies means read frame shift has already been considered)
-- cds_right_modi: modified right cds coordinate
+- cds_left_modi: int, modified left cds coordinate. (modifies means read frame shift has already been considered)
+- cds_right_modi: int, modified right cds coordinate
 - read_phase: (0,1,2). the number of bases left for the next cds
+- annotated_RF : Bool, whether the reading frame was part of the annotation or created through propagation
 """
-ReadingFrameTuple = namedtuple('ReadingFrameTuple',['cds_left_modi','cds_right_modi','read_phase'])
+ReadingFrameTuple = namedtuple('ReadingFrameTuple', ['cds_left_modi', 'cds_right_modi', 'read_phase', 'annotated_RF'])
 
 
 """

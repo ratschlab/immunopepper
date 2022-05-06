@@ -101,7 +101,9 @@ def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_
         contains the true four position of exon pairs (after considering read framee)
         that outputs the peptide.
     flag: NamedTuple Flag. has attribute ['has_stop', 'is_isolated']
-    next_reading_frame: Tuple. The reading frame to be propogated to the next vertex.
+    next_start_v1: int. start vertex in new reading frame
+    next_stop_v1: int. stop vertex in new reading frame
+    next_emitting_frame: int. Shift induced
 
     """
     cds_left_modi, cds_right_modi, emitting_frame = read_frame[0], read_frame[1], read_frame[2]
@@ -139,7 +141,6 @@ def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_
         next_start_v1 = peptide_accept_coord[0]
         next_stop_v1 = max(stop_v2 - accepting_frame, peptide_accept_coord[0])
 
-    next_reading_frame = ReadingFrameTuple(next_start_v1, next_stop_v1, next_emitting_frame)
     assert (len(peptide_dna_str_mut) == len(peptide_dna_str_ref))
     # if len(peptide_dna_str_mut) % 3 != 0:
     #     print("Applied mutations have changed the length of the DNA fragment - no longer divisible by 3")
@@ -156,7 +157,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_
     peptide = Peptide(peptide_mut, peptide_ref)
     coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
     flag = Flag(mut_has_stop_codon, is_isolated)
-    return peptide, coord, flag, next_reading_frame
+    return peptide, coord, flag, next_start_v1, next_stop_v1, next_emitting_frame
 
 
 def isolated_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_dict, ref_mut_seq, gene_start, all_read_frames):
