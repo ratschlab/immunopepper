@@ -18,8 +18,11 @@ Output_junc_peptide namedtuple
     junction_id is the index of given junction pair in all junction pair (in descending or ascending order)
 - peptide: (peptide_string). The peptide translated from junction pairs.
 - exons_coor: Coord namedtuple
+- junction_annotated: Boolean. Indicate if the junction also appear in the input annotation file.
+- read_frame_annotated: int (0, 1, nan). Whether the reading frame is present in the annotation or created by propagation
 """
-OutputJuncPeptide = namedtuple('OutputJuncPeptide', ['output_id','peptide','exons_coor','junction_expr'])
+OutputJuncPeptide = namedtuple('OutputJuncPeptide', ['output_id', 'peptide', 'exons_coor', 'junction_expr',
+                                                     'junction_annotated', 'read_frame_annotated'])
 
 
 """
@@ -32,7 +35,7 @@ Output_metadata namedtuple.
 - gene_chr: str. The Chromosome id where the gene is located.
 - gene_strand: str ('+', '_'). The strand of gene.
 - mutation_mode: str ('ref', 'somatic', 'germline', 'somatic_and_germline'). Mutation mode
-- junction_peptided: Boolean. Indicate if the junction also appear in the input annotation file.
+- junction_annotated: Boolean. Indicate if the junction also appear in the input annotation file.
 - has_stop_codon. Boolean. Indicate if there is stop codon in the junction pair.
 - is_in_junction_list: Boolean. Indicate if the junction pair appear in the given junction whitelist
 - is_isolated: Boolean. Indicate if the output peptide is actually translated from a single exon instead of two.
@@ -77,8 +80,12 @@ Output_kmer namedtuple.
 - id: transcript id(generated from background peptide) or gene_vertex_id (generated from concat peptide)
 - expr: float. length-weighted sum of expression of the kmer
 - is_cross_junction: boolen. indicate if the kmer spans over the cross junction
+- junction_annotated: boolen. indicates if kmer comes from an annotated junction
+- reading_frame_annotated: boolen. indicates if kmer comes from an annotated reading frame 
+(and not created by propagation) 
 """
-OutputKmer= namedtuple('OutputKmer', ['kmer','id','segment_expr','is_cross_junction','junction_expr'])
+OutputKmer= namedtuple('OutputKmer', ['kmer','id','segment_expr','is_cross_junction','junction_expr',
+                                      'junction_annotated', 'reading_frame_annotated'])
 
 
 """

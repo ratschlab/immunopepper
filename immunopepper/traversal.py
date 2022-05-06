@@ -329,7 +329,9 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                     output_peptide = OutputJuncPeptide(output_id= new_output_id,
                                                     peptide=peptide.mut[pep_idx],
                                                     exons_coor=modi_coord,
-                                                    junction_expr=edge_expr)
+                                                    junction_expr=edge_expr,
+                                                    junction_annotated=vertex_tuple_anno_flag,
+                                                    read_frame_annotated=vertex_pair.read_frame.annotated_RF)
 
                     ### kmers
                     if cross_graph_expr: #generate kmer x sample expression matrix for all samples in graph
@@ -434,20 +436,33 @@ def create_output_kmer(output_peptide, k, expr_list):
     output_kmer_list = []
     peptide = output_peptide.peptide
     peptide_head = output_peptide.output_id
+
     if hasattr(output_peptide,'exons_coor'):
         coord = output_peptide.exons_coor
         spanning_index1, spanning_index2 = get_spanning_index(coord, k)
     else:
         spanning_index1, spanning_index2 = [np.nan], [np.nan]
+
     if hasattr(output_peptide, 'junction_expr'):
         junction_count = output_peptide.junction_expr
     else:
         junction_count = np.nan
-    # decide the kmer that spans over the cross junction
+
+    if hasattr(output_peptide, 'junction_annotated'):
+        junction_annotated = output_peptide.junction_annotated
+    else:
+        junction_annotated = np.nan
+
+    if hasattr(output_peptide, 'reading_frame_annotated'):
+        reading_frame_annotated = output_peptide.reading_frame_annotated
+    else:
+        reading_frame_annotated = np.nan
+
     if expr_list is None:
         expr_array = None
     else:
         expr_array = np.array([x[1] for x in expr_list for _ in range(int(x[0]))])
+
     if len(peptide) >= k:
         for j in range(len(peptide) - k + 1):
             kmer_peptide = peptide[j:j+k]
@@ -464,7 +479,9 @@ def create_output_kmer(output_peptide, k, expr_list):
             else:
                 is_in_junction = False
                 kmer_junction_count = np.nan
-            kmer = OutputKmer(kmer_peptide, peptide_head, kmer_peptide_expr, is_in_junction, kmer_junction_count)
+
+            kmer = OutputKmer(kmer_peptide, peptide_head, kmer_peptide_expr, is_in_junction, kmer_junction_count, \
+                              junction_annotated, reading_frame_annotated)
             output_kmer_list.append(kmer)
     return output_kmer_list
 
