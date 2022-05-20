@@ -40,6 +40,8 @@ def mode_cancerspecif(arg):
 
         index_name = 'kmer'
         jct_col = "iscrossjunction"
+        jct_annot_col = "junctionAnnotated"
+        rf_annot_col = "readFrameAnnotated"
         extension = '.tsv'
         if arg.batch_id is not None:
             batch_tag = '_batch{}_{}'.format(arg.batch_id, arg.tot_batches)
@@ -79,10 +81,20 @@ def mode_cancerspecif(arg):
         if (arg.path_normal_matrix_segm is not None) or (arg.path_normal_matrix_edge is not None):
             logging.info("\n \n >>>>>>>> Preprocessing Normal samples")
 
-            normal_segm = process_matrix_file(spark, index_name, jct_col, arg.path_normal_matrix_segm, arg.output_dir, arg.whitelist_normal,
-                            arg.parallelism, cross_junction=0, tot_batches=arg.tot_batches, batch_id=arg.batch_id)
-            normal_junc = process_matrix_file(spark, index_name, jct_col, arg.path_normal_matrix_edge, arg.output_dir, arg.whitelist_normal,
-                            arg.parallelism, cross_junction=1, tot_batches=arg.tot_batches, batch_id=arg.batch_id)
+            normal_segm = process_matrix_file(spark, index_name, jct_col,
+                                              jct_annot_col, rf_annot_col,
+                                              arg.path_normal_matrix_segm,
+                                              arg.output_dir, arg.whitelist_normal,
+                                              arg.parallelism, cross_junction=0,
+                                              annot_flag = [int(j[1]) for j in arg.annotated_flags if 'N' in j],
+                                              tot_batches=arg.tot_batches, batch_id=arg.batch_id)
+            normal_junc = process_matrix_file(spark, index_name, jct_col,
+                                              jct_annot_col, rf_annot_col,
+                                              arg.path_normal_matrix_edge,
+                                              arg.output_dir, arg.whitelist_normal,
+                                              arg.parallelism, cross_junction=1,
+                                              annot_flag=[int(j[1]) for j in arg.annotated_flags  if 'N' in j],
+                                              tot_batches=arg.tot_batches, batch_id=arg.batch_id)
             normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
 
             # NORMALS: Statistical Filtering # Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
@@ -98,8 +110,14 @@ def mode_cancerspecif(arg):
             else:
                 logging.info("\n \n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.cohort_expr_support_normal))
                 logging.info("expression filter")
-                path_normal_kmers_e, path_normal_kmers_s = filter_hard_threshold(normal_matrix, index_name, libsize_n, normal_out, arg.cohort_expr_support_normal, arg.n_samples_lim_normal, batch_tag=batch_tag)
-                normal_matrix = combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers_s, arg.n_samples_lim_normal, index_name)
+                path_normal_kmers_e, path_normal_kmers_s = filter_hard_threshold(normal_matrix, index_name,
+                                                                                 jct_annot_col, rf_annot_col,
+                                                                                 libsize_n, normal_out,
+                                                                                 arg.cohort_expr_support_normal,
+                                                                                 arg.n_samples_lim_normal,
+                                                                                 batch_tag=batch_tag)
+                normal_matrix = combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers_s,
+                                                               arg.n_samples_lim_normal, index_name)
 
         if arg.path_normal_kmer_list is not None:
             logging.info("Load {}".format(arg.path_normal_kmer_list))
@@ -122,12 +140,20 @@ def mode_cancerspecif(arg):
             if arg.path_cancer_matrix_segm or arg.path_cancer_matrix_edge:
                 mutation_mode = arg.mut_cancer_samples[0]
                 # Preprocess cancer samples
-                cancer_segm = process_matrix_file(spark, index_name, jct_col, arg.path_cancer_matrix_segm,
+                cancer_segm = process_matrix_file(spark, index_name, jct_col,
+                                                  jct_annot_col, rf_annot_col,
+                                                  arg.path_cancer_matrix_segm,
                                                   arg.output_dir, arg.whitelist_cancer,
-                                                  arg.parallelism, cross_junction=0, tot_batches=arg.tot_batches, batch_id=arg.batch_id)
-                cancer_junc = process_matrix_file(spark, index_name, jct_col, arg.path_cancer_matrix_edge,
+                                                  arg.parallelism, cross_junction=0,
+                                                  annot_flag=[int(j[1]) for j in arg.annotated_flags if 'C' in j],
+                                                  tot_batches=arg.tot_batches, batch_id=arg.batch_id)
+                cancer_junc = process_matrix_file(spark, index_name, jct_col,
+                                                  jct_annot_col, rf_annot_col,
+                                                  arg.path_cancer_matrix_edge,
                                                   arg.output_dir, arg.whitelist_cancer,
-                                                  arg.parallelism, cross_junction=1, tot_batches=arg.tot_batches, batch_id=arg.batch_id)
+                                                  arg.parallelism, cross_junction=1,
+                                                  annot_flag=[int(j[1]) for j in arg.annotated_flags if 'C' in j],
+                                                  tot_batches=arg.tot_batches, batch_id=arg.batch_id)
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
 
 
@@ -148,12 +174,19 @@ def mode_cancerspecif(arg):
 
                 #cross sample filter
                 if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
-                    path_cancer_kmers_e, path_cancer_kmers_s  = filter_hard_threshold(cancer_matrix, index_name, libsize_c, cancer_out,
-                                                              arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
-                                                              target_sample=cancer_sample,
-                                                              tag='cancer_{}'.format(mutation_mode),
-                                                              batch_tag=batch_tag)
-                    cancer_cross_filter = combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, path_cancer_kmers_s, arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer, index_name, cancer_sample)
+                    path_cancer_kmers_e, path_cancer_kmers_s  = filter_hard_threshold(cancer_matrix, index_name,
+                                                                                      jct_annot_col, rf_annot_col,
+                                                                                      libsize_c, cancer_out,
+                                                                                      arg.cohort_expr_support_cancer,
+                                                                                      arg.n_samples_lim_cancer,
+                                                                                      target_sample=cancer_sample,
+                                                                                      tag='cancer_{}'.format(mutation_mode),
+                                                                                      batch_tag=batch_tag)
+                    cancer_cross_filter = combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e,
+                                                                         path_cancer_kmers_s,
+                                                                         arg.cohort_expr_support_cancer,
+                                                                         arg.n_samples_lim_cancer,
+                                                                         index_name, cancer_sample)
 
 
                     if arg.cancer_support_union:

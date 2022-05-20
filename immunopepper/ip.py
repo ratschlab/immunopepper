@@ -104,7 +104,19 @@ def parse_arguments(argv):
     so.add_argument("--tag-prefix", help="prefix to use for the output files, use when several conditions", required=False, default='')
     so.add_argument("--whitelist-normal", help="file containg whitelist for normal samples", required=False, default=None)
     so.add_argument("--whitelist-cancer", help="file containg whitelist for cancer samples", required=False, default=None)
-
+    so.add_argument("--annotated-flags", nargs='+', required=False, default=None,
+                    help="list with the annotation modes requested."
+                    "Mode C0: No filter based on junction or read frame annotation status in cancer samples"
+                    "Mode C1: In cancer samples filter for (junctionAnnotated == 1) & (readFrameAnnotated==1)"
+                    "Mode C2: In cancer samples filter for (junctionAnnotated == 1) & (readFrameAnnotated==0)"
+                    "Mode C3: In cancer samples filter for (junctionAnnotated == 0) & (readFrameAnnotated==1)"
+                    "Mode C4: In cancer samples filter for (junctionAnnotated == 0) & (readFrameAnnotated==0)"
+                    "Mode N0: No filter based on junction or read frame annotation status in normal samples"
+                    "Mode N1: In normal samples filter for (junctionAnnotated == 1) & (readFrameAnnotated==1)"
+                    "Mode N2: In normal samples filter for (junctionAnnotated == 1) & (readFrameAnnotated==0)"
+                    "Mode N3: In normal samples filter for (junctionAnnotated == 0) & (readFrameAnnotated==1)"
+                    "Mode N4: In normal samples filter for (junctionAnnotated == 0) & (readFrameAnnotated==0)"
+                    "e.g. [C1, C2, N2, N4] or [C1, C2, N0]. Default: ignores all flags")
     libsizes = parser_cancerspecif.add_argument_group('Libsizes')
     libsizes.add_argument("--path-cancer-libsize", help="libsize file path for cancer samples", required=False, default=None)
     libsizes.add_argument("--path-normal-libsize", help="libsize file path for normal samples", required=False, default=None)

@@ -35,7 +35,8 @@ def DESeq2(count_matrix, design_matrix, normalize, cores=1):
     order_size_factor = list(dds0.do_slot('colData').do_slot('rownames'))
     if normalize is not None:
         logging.info("Enforcing custom normalisation in DESeq2")
-        dds0.do_slot('colData').do_slot('listData')[1] = ro.vectors.FloatVector(list(normalize.loc[order_size_factor, 'libsize_75percent'])) # Enforce size factors
+        dds0.do_slot('colData').do_slot('listData')[1] = ro.vectors.FloatVector(list(normalize.loc[order_size_factor,
+                                                                                                   'libsize_75percent'])) # Enforce size factors
     else:
         logging.info("WARNING: default size factor of DESeq2 are used")
     dds = deseq.DESeq(dds0, parallel=True, BPPARAM=BiocParallel.MulticoreParam(cores),
@@ -109,7 +110,9 @@ def pq_WithRenamedCols(spark, list_paths, outdir):
     return df
 
 
-def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, whitelist, parallelism, cross_junction, tot_batches=None, batch_id=None):
+def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
+                        path_normal_matrix, outdir, whitelist, parallelism,
+                        cross_junction, annot_flag, tot_batches=None, batch_id=None):
     ''' Preprocess normal samples
     - corrects names
     - corrects types
@@ -119,8 +122,13 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
     spark: spark context
     index_name: kmer column name
     jct_col: junction column name
+    jct_annot_col: junction annotated flag column name
+    rf_annot_col: reading frame annotated flag column name
     path_normal_matrix_segm: path for normal matrix
     whitelist: whitelist for normal samples
+    annot_flag: flag list for the filtering of the annotation status
+    tot batches: number of batches requested
+    batch id: id of the batch
     Returns :
     ----------
     spark: spark session
@@ -144,7 +152,8 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
 
         # Dev remove kmers for the matrix based on the hash function
         if tot_batches:
-            logging.info("Filter foreground and background based on Hash ; making {} batches, select batch number {}".format(tot_batches, batch_id))
+            logging.info("Filter foreground and background based on Hash ; making {} batches, select batch number {}".format(
+                tot_batches, batch_id))
 
             normal_matrix = normal_matrix.filter(sf.abs(sf.hash('kmer') % tot_batches) == batch_id)
 
@@ -155,6 +164,17 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
         else:
             normal_matrix = normal_matrix.filter("{} == False".format(jct_col))
         normal_matrix = normal_matrix.drop(jct_col)
+
+        # Keep k-mers according to annotation flag
+        if (1 in annot_flag) or (2 in annot_flag):
+            normal_matrix = normal_matrix.filter("{} == 1.0".format(jct_annot_col))
+        elif (3 in annot_flag) or (4 in annot_flag):
+            normal_matrix = normal_matrix.filter("{} == 0.0".format(jct_annot_col))
+        # Keep k-mers according to annotation flag
+        if (1 in annot_flag) or (3 in annot_flag):
+            normal_matrix = normal_matrix.filter("{} == 1.0".format(rf_annot_col))
+        elif (2 in annot_flag) or (4 in annot_flag):
+            normal_matrix = normal_matrix.filter("{} == 0.0".format(rf_annot_col))
 
         # Cast type and fill nans + Reduce samples (columns) to whitelist
         logging.info("Cast types")
@@ -170,19 +190,20 @@ def process_matrix_file(spark, index_name, jct_col, path_normal_matrix, outdir, 
         logging.info("Remove Nans")
         normal_matrix = normal_matrix.na.fill(0)
 
-        # Remove kmers abscent from all samples
+        # Remove kmers absents from all samples
         logging.info("Remove non expressed kmers SQL-")
         logging.info("...partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
         not_null = ' OR '.join(
             ['({} != 0.0)'.format(col_name)
-             for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # All zeros
+             for col_name in normal_matrix.schema.names
+             if col_name not in [index_name, jct_annot_col, rf_annot_col]])  # SQL style  # All zeros
         normal_matrix = normal_matrix.filter(not_null)
 
         # Make unique
         logging.info("Make unique")
         logging.info("...partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
         exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
-        normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
+        normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs) #Max operation also performed on the annot flags
         logging.info("...partitions: {}".format(normal_matrix.rdd.getNumPartitions()))
         return normal_matrix
     else:
@@ -265,15 +286,17 @@ def filter_statistical(spark, tissue_grp_files, normal_matrix, index_name, path_
 
         # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
 
-def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limit, n_samples_lim, target_sample='', tag='normals', batch_tag=''):
+def filter_hard_threshold(normal_matrix, index_name, jct_annot_col, rf_annot_col, libsize,
+                          out_dir, expr_limit, n_samples_lim, target_sample='', tag='normals', batch_tag=''):
     ''' Filter samples based on j reads in at least n samples. The expressions are normalized for library size
     The filtering is either performed on the full cohort in the matrix or in the cohort excluding a target sample
 
     Parameters:
     ----------
-    spark session
     normal matrix
     index column name
+    jct_annot_col: junction annotated flag column name
+    rf_annot_col: reading frame annotated flag column name
     libsize matrix
     expr_limit (j reads)
     n_samples_lim (n samples)
@@ -298,16 +321,21 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
     if libsize is not None:
         normal_matrix = normal_matrix.select(index_name, *[
             sf.round(sf.col(name_) / libsize.loc[name_, "libsize_75percent"], 2).alias(name_)
-            for name_ in normal_matrix.schema.names if name_ != index_name])
+            for name_ in normal_matrix.schema.names if name_ not in [index_name, jct_annot_col, rf_annot_col]])
 
     if expr_limit:  #a.k.a exclude >= X reads in >= 1 sample)
-        path_e = os.path.join(out_dir,'interm_{}_combiExprCohortLim{}Across{}{}{}'.format(tag, expr_limit, base_n_samples, suffix, batch_tag) + '.tsv')
+        path_e = os.path.join(out_dir,'interm_{}_combiExprCohortLim{}Across{}{}{}'.format(tag, expr_limit,
+                                                                                          base_n_samples, suffix,
+                                                                                          batch_tag) + '.tsv')
         if not os.path.isfile(os.path.join(path_e, '_SUCCESS')):
-            logging.info("Filter matrix with cohort expression support >= {} in {} sample".format(expr_limit, base_n_samples))
+            logging.info("Filter matrix with cohort expression support >= {} in {} sample".format(expr_limit,
+                                                                                                  base_n_samples))
             normal_matrix_e = normal_matrix.select(index_name, *[
                 sf.when(sf.col(name_) >= expr_limit, 1).otherwise(0).alias(name_)
-                for name_ in normal_matrix.schema.names if (name_ != index_name) and (name_ != target_sample ) ])
-            normal_matrix_e = normal_matrix_e.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= base_n_samples)
+                for name_ in normal_matrix.schema.names if name_
+                not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
+            normal_matrix_e = normal_matrix_e.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))
+                                                                 ).filter(lambda x: x[1] >= base_n_samples)
             logging.info("Save to {}".format(path_e))
             normal_matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e)
         else:
@@ -315,14 +343,20 @@ def filter_hard_threshold(normal_matrix, index_name, libsize, out_dir, expr_limi
             "Filter matrix with cohort expression support {} in {} sample(s) already performed. Loading results from {}".format(
                 expr_limit, base_n_samples, path_e))
             
-    if n_samples_lim is not None: # (a.k.a exclude >0  reads in >= H samples) --> H samples filtering done subsequently # n_samples_lim can be 0 -> 1 i used
-        path_s = os.path.join(out_dir,'interm_{}_combiExprCohortLim{}Across{}{}{}'.format(tag, base_expr, base_n_samples, suffix, batch_tag) + '.tsv')
+    if n_samples_lim is not None:
+        # (a.k.a exclude >0  reads in >= H samples) --> H samples filtering done subsequently # n_samples_lim can be 0 -> 1 i used
+        path_s = os.path.join(out_dir,'interm_{}_combiExprCohortLim{}Across{}{}{}'.format(tag, base_expr,
+                                                                                          base_n_samples, suffix,
+                                                                                          batch_tag) + '.tsv')
         if not os.path.isfile(os.path.join(path_s, '_SUCCESS')):
-            logging.info("Filter matrix with cohort expression support > {} in {} sample".format(base_expr, base_n_samples))
+            logging.info("Filter matrix with cohort expression support > {} in {} sample".format(base_expr,
+                                                                                                 base_n_samples))
             normal_matrix_s = normal_matrix.select(index_name, *[
                 sf.when(sf.col(name_) > base_expr, 1).otherwise(0).alias(name_)
-                for name_ in normal_matrix.schema.names if (name_ != index_name) and (name_ != target_sample ) ])
-            normal_matrix_s = normal_matrix_s.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).filter(lambda x: x[1] >= base_n_samples)
+                for name_ in normal_matrix.schema.names if name_
+                not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
+            normal_matrix_s = normal_matrix_s.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))
+                                                                 ).filter(lambda x: x[1] >= base_n_samples)
             logging.info("Save to {}".format(path_s))
             normal_matrix_s.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_s)
         else:
@@ -357,7 +391,8 @@ def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers
         return None
 
 
-def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, path_cancer_kmers_s, cohort_expr_support_cancer, n_samples_lim_cancer, index_name, cancer_sample):
+def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, path_cancer_kmers_s,
+                                   cohort_expr_support_cancer, n_samples_lim_cancer, index_name, cancer_sample):
     if cohort_expr_support_cancer != 0.0:
         valid_foreground = spark.read.csv(path_cancer_kmers_e, sep=r'\t', header=False)
     else:
@@ -365,14 +400,16 @@ def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, pa
     valid_foreground = valid_foreground.withColumnRenamed('_c0', index_name)
     valid_foreground = valid_foreground.withColumnRenamed('_c1', "n_samples")
     if n_samples_lim_cancer > 1:
-        logging.info( "Filter matrix with cohort expression support >= {} in {} sample(s)".format(cohort_expr_support_cancer, n_samples_lim_cancer))
+        logging.info( "Filter matrix with cohort expression support >= {} in {} sample(s)".format(
+            cohort_expr_support_cancer, n_samples_lim_cancer))
         valid_foreground = valid_foreground.filter(sf.col('n_samples') >= n_samples_lim_cancer)
     valid_foreground = valid_foreground.select(sf.col(index_name))
-    cancer_cross_filter = cancer_matrix.join(valid_foreground, ["kmer"],  # Probably do union differently
-                                             how='right').select([index_name, cancer_sample]) # Intersect with preprocessed cancer matrix
+    cancer_cross_filter = cancer_matrix.join(valid_foreground, ["kmer"],  # Intersect with preprocessed cancer matrix
+                                             how='right').select([index_name, cancer_sample])
     return cancer_cross_filter
 
-def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields, jct_col, index_name, libsize_c, cross_junction):
+def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields,
+                         jct_col, index_name, libsize_c, cross_junction):
     ''' Preprocess cancer samples
     - Make kmers unique
     - Filter kmers on junction status
@@ -460,7 +497,8 @@ def combine_cancer(cancer_kmers_segm, cancer_kmers_edge, index_name):
         logging.info("Combine segment and edges")
         cancer_kmers_segm = cancer_kmers_segm.join(cancer_kmers_edge,
                                                    cancer_kmers_segm[index_name] == cancer_kmers_edge[index_name],
-                                                   how='left_anti')   # if  max( edge expression 1 and 2)<threshold and  max( segment expression 1 and 2)>= threshold: keep
+                                                   how='left_anti')
+        # if  max( edge expression 1 and 2)<threshold and  max( segment expression 1 and 2)>= threshold: keep
         cancer_kmers = cancer_kmers_edge.union(cancer_kmers_segm)
         logging.info("...partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
         return cancer_kmers
@@ -501,7 +539,8 @@ def save_spark(cancer_kmers, output_dir, path_final_fil, outpartitions=None):
 def loader(spark, path_normal_kmer_list):
     #TODO allow multiple tsv
     if 'tsv' in path_normal_kmer_list[0]:
-        logging.warning("Only the first file of {} will be read. Use list of parquets to process multiple paths".format(path_normal_kmer_list))
+        logging.warning("Only the first file of {} will be read. Use list of parquets to process multiple paths".format(
+            path_normal_kmer_list))
         normal_matrix = spark.read.csv(path_normal_kmer_list[0], sep=r'\t', header=False)
     else:
         normal_matrix = spark.read.parquet(*path_normal_kmer_list)
