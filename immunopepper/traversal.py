@@ -565,14 +565,14 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
                     kmer_matrix[0][kmer_peptide] = is_in_junction
                     kmer_matrix[1][kmer_peptide] = np.round(sublist_seg, 2)
                     kmer_matrix[2][kmer_peptide] = np.array(sublist_jun)
-                    kmer_matrix[3][kmer_peptide] = output_peptide.junction_annotated
-                    kmer_matrix[4][kmer_peptide] = output_peptide.read_frame_annotated
+                    kmer_matrix[3][kmer_peptide] = float(output_peptide.junction_annotated)
+                    kmer_matrix[4][kmer_peptide] = float(output_peptide.read_frame_annotated)
                 else:
                     kmer_matrix[0][kmer_peptide] = max(kmer_matrix[0][kmer_peptide], is_in_junction )
                     kmer_matrix[1][kmer_peptide] = np.nanmax(np.array( [kmer_matrix[1][kmer_peptide], np.round(sublist_seg, 2)]), axis = 0)# make unique per gene with maximum
                     kmer_matrix[2][kmer_peptide] = np.nanmax(np.array( [kmer_matrix[2][kmer_peptide], sublist_jun]), axis = 0)
-                    kmer_matrix[3][kmer_peptide] = np.nanmax([kmer_matrix[3][kmer_peptide], output_peptide.junction_annotated])
-                    kmer_matrix[4][kmer_peptide] = np.nanmax([kmer_matrix[4][kmer_peptide], output_peptide.read_frame_annotated])
+                    kmer_matrix[3][kmer_peptide] = float(np.nanmax([kmer_matrix[3][kmer_peptide], output_peptide.junction_annotated]))
+                    kmer_matrix[4][kmer_peptide] = float(np.nanmax([kmer_matrix[4][kmer_peptide], output_peptide.read_frame_annotated]))
 
 
     return kmer_matrix
