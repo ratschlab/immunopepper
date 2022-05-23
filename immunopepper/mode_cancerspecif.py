@@ -158,19 +158,18 @@ def mode_cancerspecif(arg):
 
 
                 # sample specific filter
-                cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample])
+                cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample, jct_annot_col, rf_annot_col])
                 cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0) #Retrieve initial number of kmers in sample
                 output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Init_cancer')
 
                 if arg.output_count and (arg.sample_expr_support_cancer != 0):
-                    cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample])
+                    cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample, jct_annot_col, rf_annot_col])
                     cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample,
                                                             arg.sample_expr_support_cancer, libsize_c)
                     output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
                 else:
                     output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
-
 
                 #cross sample filter
                 if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
@@ -188,13 +187,13 @@ def mode_cancerspecif(arg):
                                                                          arg.n_samples_lim_cancer,
                                                                          index_name, cancer_sample)
 
-
+                    cancer_cross_filter = cancer_cross_filter.select([index_name, cancer_sample, jct_annot_col, rf_annot_col])
                     if arg.cancer_support_union:
                         logging.info("support union")
                         cancer_kmers = cancer_cross_filter.union(cancer_sample_filter).distinct()
                     else:
                         logging.info("support intersect")
-                        cancer_kmers = cancer_cross_filter.join(cancer_sample_filter.drop(cancer_sample), ["kmer"], how='inner')
+                        cancer_kmers = cancer_cross_filter.join(cancer_sample_filter.select([index_name]), ["kmer"], how='inner')
                 else:
                     cancer_kmers = cancer_sample_filter
 

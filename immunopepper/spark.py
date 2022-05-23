@@ -405,7 +405,7 @@ def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, pa
         valid_foreground = valid_foreground.filter(sf.col('n_samples') >= n_samples_lim_cancer)
     valid_foreground = valid_foreground.select(sf.col(index_name))
     cancer_cross_filter = cancer_matrix.join(valid_foreground, ["kmer"],  # Intersect with preprocessed cancer matrix
-                                             how='right').select([index_name, cancer_sample])
+                                             how='right')
     return cancer_cross_filter
 
 def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields,
