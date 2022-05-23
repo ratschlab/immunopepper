@@ -155,8 +155,9 @@ def test_end_to_end_cancerspecif():
               "--kmer", "9",
               "--path-cancer-libsize",os.path.join(basedir,'cancer_no_ct_var', 'libsize_cancer.tsv'),
               "--path-normal-libsize", os.path.join(basedir, 'normal', 'libsize_normals_top20'),
-              "--paths-cancer-samples",
-              "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/cancer_no_ct_var/TCGA-13-1497-01A-01/tmp_out_somatic_10000/somatic_junction_9mer_n20.pq.gz", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/cancer_no_ct_var/TCGA-24-1103-01A-01/tmp_out_somatic_1000/somatic_junction_9mer_n20.pq.gz",
+              #"--paths-cancer-samples",
+              #"/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/cancer_no_ct_var/TCGA-13-1497-01A-01/tmp_out_somatic_10000/somatic_junction_9mer_n20.pq.gz", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/cancer_no_ct_var/TCGA-24-1103-01A-01/tmp_out_somatic_1000/somatic_junction_9mer_n20.pq.gz",
+              "--paths-cancer-samples", '/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/cancer_no_ct_var/TCGA-13-1497-01A-01/tmp_out_somatic_10000/somatic_junction_9mer_n20_annotFlag.pq',
               "--path-normal-matrix-segm", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
               "--path-normal-matrix-edge", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
               '--ids-cancer-samples', "TCGA-13-1497-01A-01", "TCGA-24-1103-01A-01",
@@ -170,7 +171,7 @@ def test_end_to_end_cancerspecif():
               "--whitelist-normal", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt" ,
               "--uniprot", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/uniprot" ,
               "--sample-expr-support-cancer", "1",
-              "--path-normal-kmer-list", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/filter_out/normals_merge-segm-edge_max_uniq_expr-in-3-samples-with-0.1-normalized-cts.tsv",
+              #"--path-normal-kmer-list", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/filter_out/normals_merge-segm-edge_max_uniq_expr-in-3-samples-with-0.1-normalized-cts.tsv",
               "--parallelism", "3",
               "--out-partitions", "2",
               "--mut-cancer-samples", "ref", "ref"]
@@ -192,7 +193,6 @@ def test_end_to_end_cancerspecif_mx():
               "--path-normal-matrix-segm", os.path.join(basedir, 'normal',  'simple_background_flag.pq'),  os.path.join(basedir, 'normal', 'nested' ,'simple_background_flag_tmp_copy.pq'),
               #"--path-normal-matrix-segm", os.path.join(basedir, 'normal', 'nested', 'simple_background_overlay2.pq'), os.path.join(basedir, 'normal', 'nested', 'simple_background_overlay1.pq'),
               # "--path-normal-matrix-edge", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
-              #"--path-normal-matrix-edge", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
               #"--path-normal-kmer-list", os.path.join(basedir, 'normal', 'simple_annotation.pq'),
               # "--path-normal-kmer-list", os.path.join(basedir, 'normal', 'simple_background_precompute.pq'),os.path.join(basedir, 'normal', 'simple_annotation.pq'),
               #"--path-normal-kmer-list", os.path.join(basedir, 'normal', 'simple_background_precompute.tsv'),os.path.join(basedir, 'normal', 'simple_background_precompute_bis.tsv'),
@@ -241,8 +241,8 @@ mutation_mode ='ref'
 #    test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
 #test_end_to_end_crosscohort(tmpdir) #TODO add back
 #mini_crosscohort()
-#test_end_to_end_cancerspecif()
-test_end_to_end_cancerspecif_mx()
+test_end_to_end_cancerspecif()
+#test_end_to_end_cancerspecif_mx()
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 

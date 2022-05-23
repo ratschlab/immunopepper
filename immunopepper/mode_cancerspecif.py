@@ -202,7 +202,7 @@ def mode_cancerspecif(arg):
 
             ## Cancer file is kmer file
             if arg.paths_cancer_samples:
-                cancer_path = arg.paths_cancer_samples[cix]
+                cancer_path = [arg.paths_cancer_samples[cix]]
                 rename = True # development
                 if rename:
                     cancer_kmers = pq_WithRenamedCols(spark, cancer_path, arg.output_dir)
