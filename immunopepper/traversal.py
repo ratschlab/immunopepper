@@ -450,7 +450,7 @@ def create_output_kmer(output_peptide, k, expr_list):
         junction_count = np.nan
 
     if hasattr(output_peptide, 'junction_annotated'):
-        junction_annotated = output_peptide.junction_annotated
+        junction_annotated_ = output_peptide.junction_annotated
     else:
         junction_annotated = np.nan
 
@@ -474,12 +474,16 @@ def create_output_kmer(output_peptide, k, expr_list):
             if j in spanning_index1:
                 is_in_junction = True
                 kmer_junction_count = junction_count[0] if junction_count is not np.nan else np.nan
+                junction_annotated = junction_annotated_[0]
             elif j in spanning_index2 :
                 is_in_junction = True
                 kmer_junction_count = junction_count[1] if junction_count is not np.nan else np.nan
+                junction_annotated = junction_annotated_[1]
             else:
                 is_in_junction = False
                 kmer_junction_count = np.nan
+                junction_annotated = np.nan
+                # TODO consider two junctions when merging junction_annotated = max(junction_annotated)
 
             kmer = OutputKmer(kmer_peptide, peptide_head, kmer_peptide_expr, is_in_junction, kmer_junction_count, \
                               junction_annotated, reading_frame_annotated)
@@ -526,12 +530,16 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
             if j in spanning_index1:
                 is_in_junction = True
                 sublist_jun = [junction_count[sample_id][0] if junction_count is not np.nan else np.nan for sample_id in graph_output_samples_ids]
+                junction_annotated = output_peptide.junction_annotated[0]
             elif j in spanning_index2:
                 is_in_junction = True
                 sublist_jun = [junction_count[sample_id][1] if junction_count is not np.nan else np.nan for sample_id in graph_output_samples_ids]
+                junction_annotated = output_peptide.junction_annotated[1]
             else:
                 is_in_junction = False
                 sublist_jun = [np.nan] * len(graph_output_samples_ids)
+                junction_annotated = np.nan
+                # TODO consider two junctions when merging junction_annotated = max(output_peptide.junction_annotated)
 
 
             # segment expression
@@ -565,13 +573,13 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
                     kmer_matrix[0][kmer_peptide] = is_in_junction
                     kmer_matrix[1][kmer_peptide] = np.round(sublist_seg, 2)
                     kmer_matrix[2][kmer_peptide] = np.array(sublist_jun)
-                    kmer_matrix[3][kmer_peptide] = float(output_peptide.junction_annotated)
+                    kmer_matrix[3][kmer_peptide] = float(junction_annotated)
                     kmer_matrix[4][kmer_peptide] = float(output_peptide.read_frame_annotated)
                 else:
                     kmer_matrix[0][kmer_peptide] = max(kmer_matrix[0][kmer_peptide], is_in_junction )
                     kmer_matrix[1][kmer_peptide] = np.nanmax(np.array( [kmer_matrix[1][kmer_peptide], np.round(sublist_seg, 2)]), axis = 0)# make unique per gene with maximum
                     kmer_matrix[2][kmer_peptide] = np.nanmax(np.array( [kmer_matrix[2][kmer_peptide], sublist_jun]), axis = 0)
-                    kmer_matrix[3][kmer_peptide] = float(np.nanmax([kmer_matrix[3][kmer_peptide], output_peptide.junction_annotated]))
+                    kmer_matrix[3][kmer_peptide] = float(np.nanmax([kmer_matrix[3][kmer_peptide], junction_annotated]))
                     kmer_matrix[4][kmer_peptide] = float(np.nanmax([kmer_matrix[4][kmer_peptide], output_peptide.read_frame_annotated]))
 
 

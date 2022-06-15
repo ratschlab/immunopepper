@@ -137,15 +137,15 @@ def junction_tuple_is_annotated(junction_flag: np.ndarray, vertex_ids: list[int]
        vertices i and j are connected
     :param vertex_ids: list of vertex ids defining junction pairs
     :return:
-       np.nan if vertex_ids contains a np.nan
-       1 if any junction in vertex_ids is connected in junction_flag, 0 otherwise
+       np.nan if vertex_ids contains a np.nan,
+       otherwise returns a tuple containing 0 or 1 flag for each of the junctions. Example (1,) or (1,0) or (1,1)
     """
     if np.nan in vertex_ids:
-        return np.nan
-    for i in range(len(vertex_ids) - 1):
-        if junction_flag[vertex_ids[i], vertex_ids[i + 1]]:
-            return 1
-    return 0
+        return (np.nan)
+
+    junction_annotated = [1 if junction_flag[vertex_ids[i], vertex_ids[i + 1]] else 0
+                          for i in range(len(vertex_ids) - 1)]
+    return tuple(junction_annotated)
 
 
 def is_intron_in_junction_list(splicegraph: Splicegraph, vertex_ids: list[int], strand: str,
