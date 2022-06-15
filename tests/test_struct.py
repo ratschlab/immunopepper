@@ -205,7 +205,7 @@ def test_end_to_end_cancerspecif_mx():
               '--sample-expr-support-cancer', "4",
               '--cohort-expr-support-cancer', "20",
               "--n-samples-lim-cancer", "1",
-              "--annotated-flags", "C3", "N0",
+              "--annotated-flags", "C3", "N0", "N4"
               # "--tot-batches", "4",
               # "--batch-id", "0",
               "--tag-prefix", 'G_',
@@ -241,8 +241,8 @@ mutation_mode ='ref'
 #    test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
 #test_end_to_end_crosscohort(tmpdir) #TODO add back
 #mini_crosscohort()
-test_end_to_end_cancerspecif()
-#test_end_to_end_cancerspecif_mx()
+#test_end_to_end_cancerspecif()
+test_end_to_end_cancerspecif_mx()
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 
