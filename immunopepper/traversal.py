@@ -349,6 +349,14 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
 
 
 def get_spanning_index(coord, k):
+    """
+    Generate the indexes at which a given k-mer crosses the first, second or both junctions
+    :param coord: coordinate namedtuple
+    :param k: length of the k-mer
+    :return: spanning_id_range1, spanning_id_range2, spanning_id_range1_2: set containing all
+    the start positions of the k-mer inside the peptide, such that the k-mer crosses the first junction,
+    the second junction or both respectively
+    """
     L1 = coord.stop_v1-coord.start_v1
     if coord.start_v2 is np.nan:
         return [np.nan], [np.nan], [np.nan]

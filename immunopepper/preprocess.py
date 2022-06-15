@@ -287,7 +287,7 @@ def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=N
         edges_res = np.stack([count, count2])
 
     if not cross_graph_expr:
-        edges_res = tuple(i for i in edges_res.flatten()) # Back to tuple for unicity. Needs re-write of "add_peptide_properties"
+        edges_res = tuple(i for i in edges_res.flatten()) # TODO Back to tuple for unicity. Needs re-write of "add_peptide_properties"
 
     return edges_res
 
