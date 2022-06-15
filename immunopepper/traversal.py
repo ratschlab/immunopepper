@@ -358,9 +358,9 @@ def get_spanning_index(coord, k):
     # consider the first junction
     m1 = int(L1 / 3)
     if L1 % 3 == 0:
-        spanning_id_range1 = range(max(m1 - k + 1, 0), m1)
+        spanning_id_range1 = set(range(max(m1 - k + 1, 0), m1))
     else:
-        spanning_id_range1 = range(max(m1 - k + 1, 0), m1 + 1)
+        spanning_id_range1 = set(range(max(m1 - k + 1, 0), m1 + 1))
 
     # consider the second junction
     if coord.start_v3 is None:
@@ -369,12 +369,11 @@ def get_spanning_index(coord, k):
     else:
         m2 = int((L1 + L2) / 3)
         if (L1 + L2) % 3 == 0:
-            spanning_id_range2 = range(max(m2 - k + 1, 0), m2)
+            spanning_id_range2 = set(range(max(m2 - k + 1, 0), m2))
         else:
-            spanning_id_range2 = range(max(m2 - k + 1, 0), m2 + 1)
+            spanning_id_range2 = set(range(max(m2 - k + 1, 0), m2 + 1))
         if (spanning_id_range1 and spanning_id_range2):
-            spanning_id_range1_2 = [shared for shared in range(spanning_id_range2[0], spanning_id_range1[-1] + 1)
-                                    if (shared + k - 1 >= m2 + 1)]
+            spanning_id_range1_2 = spanning_id_range1.intersection(spanning_id_range2)
         else:
             spanning_id_range1_2 = []
 

@@ -233,7 +233,7 @@ test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cros
 #test_end_to_end_samplespecif('ERR2130621', tmpdir, "9", mutation_mode) # TEST DEPRECATED
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
 #for mutation_mode in ['ref', 'germline', 'somatic', 'somatic_and_germline']:
-#    test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True) #TODO add back
+#    test_end_to_end_build_mouse(tmpdir, mutspanning_id_range2ation_mode, is_parallel=True) #TODO add back
 #     test_end_to_end_makebg('ERR2130621', tmpdir, "9")
 #     test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
 #    test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
