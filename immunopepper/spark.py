@@ -172,15 +172,6 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
                         for code in annot_flag])
         normal_matrix = normal_matrix.filter(flag_condition)
 
-        if (1 in annot_flag) or (2 in annot_flag):
-            normal_matrix = normal_matrix.filter("{} == 1.0".format(jct_annot_col))
-        elif (3 in annot_flag) or (4 in annot_flag):
-            normal_matrix = normal_matrix.filter("{} == 0.0".format(jct_annot_col))
-        # Keep k-mers according to annotation flag
-        if (1 in annot_flag) or (3 in annot_flag):
-            normal_matrix = normal_matrix.filter("{} == 1.0".format(rf_annot_col))
-        elif (2 in annot_flag) or (4 in annot_flag):
-            normal_matrix = normal_matrix.filter("{} == 0.0".format(rf_annot_col))
 
         # Cast type and fill nans + Reduce samples (columns) to whitelist
         logging.info("Cast types")
