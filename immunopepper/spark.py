@@ -303,7 +303,8 @@ def filter_statistical(spark, tissue_grp_files, normal_matrix, index_name, path_
         # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
 
 def filter_hard_threshold(normal_matrix, index_name, jct_annot_col, rf_annot_col, libsize,
-                          out_dir, expr_limit, n_samples_lim, target_sample='', tag='normals', batch_tag=''):
+                          out_dir, expr_limit, n_samples_lim, target_sample='', annot_flag=[],
+                          tag='normals', batch_tag=''):
     ''' Filter samples based on j reads in at least n samples. The expressions are normalized for library size
     The filtering is either performed on the full cohort in the matrix or in the cohort excluding a target sample
 
@@ -358,6 +359,7 @@ def filter_hard_threshold(normal_matrix, index_name, jct_annot_col, rf_annot_col
             logging.info(
             "Filter matrix with cohort expression support {} in {} sample(s) already performed. Loading results from {}".format(
                 expr_limit, base_n_samples, path_e))
+            logging.info("Using intermediate files means ignoring --annotated-flags {} parameter.".format(annot_flag))
             
     if n_samples_lim is not None:
         # (a.k.a exclude >0  reads in >= H samples) --> H samples filtering done subsequently # n_samples_lim can be 0 -> 1 i used
@@ -379,7 +381,7 @@ def filter_hard_threshold(normal_matrix, index_name, jct_annot_col, rf_annot_col
             logging.info(
             "Filter matrix with cohort expression support {} in {} sample(s) already performed. Loading results from {}".format(
                 base_expr, base_n_samples, path_s))
-
+            logging.info("Using intermediate files means ignoring --annotated-flags {} parameter.".format(annot_flag))
     return path_e, path_s
 
 

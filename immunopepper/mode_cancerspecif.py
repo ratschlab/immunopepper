@@ -115,6 +115,7 @@ def mode_cancerspecif(arg):
                                                                                  libsize_n, normal_out,
                                                                                  arg.cohort_expr_support_normal,
                                                                                  arg.n_samples_lim_normal,
+                                                                                 annot_flag=arg.annotated_flags,
                                                                                  batch_tag=batch_tag)
                 normal_matrix = combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers_s,
                                                                arg.n_samples_lim_normal, index_name)
@@ -179,6 +180,7 @@ def mode_cancerspecif(arg):
                                                                                       arg.cohort_expr_support_cancer,
                                                                                       arg.n_samples_lim_cancer,
                                                                                       target_sample=cancer_sample,
+                                                                                      annot_flag=arg.annotated_flags,
                                                                                       tag='cancer_{}'.format(mutation_mode),
                                                                                       batch_tag=batch_tag)
                     cancer_cross_filter = combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e,

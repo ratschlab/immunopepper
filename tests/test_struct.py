@@ -162,7 +162,7 @@ def test_end_to_end_cancerspecif():
               # "--path-normal-matrix-edge", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
               "--path-cancer-matrix-edge", os.path.join(basedir, 'cancer', 'simple_foreground_flag.pq'),
               "--path-normal-matrix-segm", os.path.join(basedir, 'normal',  'simple_background_flag.pq'),  os.path.join(basedir, 'normal', 'nested' ,'simple_background_flag_tmp_copy.pq'),
-              "--annotated-flags", "C3", "N0",
+              "--annotated-flags", "C1", "C4" "N0",
               '--ids-cancer-samples', "TCGA-13-1497-01A-01", "TCGA-24-1103-01A-01",
               "--output-dir", os.path.join(basedir, 'filter_out'),
               '--expr-high-limit-normal', "2.0",
@@ -248,8 +248,8 @@ mutation_mode ='ref'
 #    test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
 #test_end_to_end_crosscohort(tmpdir) #TODO add back
 #mini_crosscohort()
-#test_end_to_end_cancerspecif()
-test_end_to_end_cancerspecif_mx()
+test_end_to_end_cancerspecif()
+#test_end_to_end_cancerspecif_mx()
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 
