@@ -166,11 +166,11 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
         normal_matrix = normal_matrix.drop(jct_col)
 
         # Keep k-mers according to annotation flag
-        code_to_flag = {0: (1, 1), 2: (1, 0), 3: (0, 1), 4: (0, 0)} # junction and reading frame annotated respectively
-        flag_condition = ' OR '.join( \
-                       [ f'({jct_annot_col} == {code_to_flag[code][0]} AND {rf_annot_col} == {code_to_flag[code][1]})' \
-                        for code in annot_flag])
-        normal_matrix = normal_matrix.filter(flag_condition)
+        code_to_flag = {1: (1, 1), 2: (1, 0), 3: (0, 1), 4: (0, 0)} # junction and reading frame annotated respectively
+        flag_condition = [ f'({jct_annot_col} == {code_to_flag[code][0]} AND {rf_annot_col} == {code_to_flag[code][1]})'
+                        for code in annot_flag if code]
+        if flag_condition:
+            normal_matrix = normal_matrix.filter(' OR '.join(flag_condition))
 
 
         # Cast type and fill nans + Reduce samples (columns) to whitelist
