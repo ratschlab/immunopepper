@@ -166,11 +166,7 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
         normal_matrix = normal_matrix.drop(jct_col)
 
         # Keep k-mers according to annotation flag
-        code_to_flag = {1: (1, 1), 2: (1, 0), 3: (0, 1), 4: (0, 0)} # junction and reading frame annotated respectively
-        flag_condition = [ f'({jct_annot_col} == {code_to_flag[code][0]} AND {rf_annot_col} == {code_to_flag[code][1]})'
-                        for code in annot_flag if code]
-        if flag_condition:
-            normal_matrix = normal_matrix.filter(' OR '.join(flag_condition))
+        normal_matrix = filter_on_junction_kmer_annotated_flag(normal_matrix, jct_annot_col, rf_annot_col, annot_flag)
 
 
         # Cast type and fill nans + Reduce samples (columns) to whitelist
@@ -207,6 +203,28 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
         return None
 
 
+def filter_on_junction_kmer_annotated_flag(normal_matrix, jct_annot_col, rf_annot_col, annot_flag):
+    '''
+    Filters according to the junction and kmer annotated flag
+    :param normal_matrix: spark dataframe matrix to filter
+    :param jct_annot_col: string junction is annotated column
+    :param rf_annot_col: string reading frame is annotated column
+    :param annot_flag: list of codes for filtering 0: do nothing,
+    1: keep junction annotated AND reading frame annotated,
+    2: keep junction annotated AND reading frame not annotated,
+    3: keep junction not annotated AND reading frame annotated,
+    4: keep junction not annotated AND reading frame not annotated.
+    Several codes can be provided as input  and will be combined with OR operation.
+    :return: expression matrix filtered on junction annotated and reading frame annotated flag.
+    '''
+    # Keep k-mers according to annotation flag
+    code_to_flag = {1: (1, 1), 2: (1, 0), 3: (0, 1), 4: (0, 0)}  # junction and reading frame annotated respectively
+    flag_condition = [f'({jct_annot_col} == {code_to_flag[code][0]} AND {rf_annot_col} == {code_to_flag[code][1]})'
+                      for code in annot_flag if code]
+    if flag_condition:
+        normal_matrix = normal_matrix.filter(' OR '.join(flag_condition))
+    return normal_matrix
+
 
 def combine_normals(normal_segm, normal_junc, index_name):
     if (normal_segm is not None) and (normal_junc is not None):
@@ -220,6 +238,7 @@ def combine_normals(normal_segm, normal_junc, index_name):
         return normal_junc
     elif normal_junc is None:
         return normal_segm
+
 
 def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_normal):
     ''' Remove very highly expressed kmers / expression outliers before fitting DESeq2. These kmers do not follow a NB,
@@ -406,7 +425,7 @@ def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, pa
     return cancer_cross_filter
 
 def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields,
-                         jct_col, index_name, libsize_c, cross_junction):
+                         jct_col, jct_annot_col, rf_annot_col, index_name, libsize_c, annot_flag, cross_junction):
     ''' Preprocess cancer samples
     - Make kmers unique
     - Filter kmers on junction status
@@ -440,8 +459,11 @@ def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fiel
     # Drop junction column
     for drop_col in drop_cols:
         cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
-    logging.info("Collapse kmer horizontal")
 
+    # Keep k-mers according to annotation flag
+    cancer_kmers = filter_on_junction_kmer_annotated_flag(cancer_kmers, jct_annot_col, rf_annot_col, annot_flag)
+
+    logging.info("Collapse kmer horizontal")
     # Remove the '/' in the expression data (kmers duplicate within a gene have 'expression1/expression2' format
     local_max = sf.udf(collapse_values, st.FloatType())
     for name_ in expression_fields:

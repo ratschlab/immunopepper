@@ -171,7 +171,7 @@ def test_end_to_end_cancerspecif():
               "--expression-fields-c", 'segment_expr', 'junction_expr',
               "--tissue-grp-files", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt",
               '/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_OV.txt',
-              "--whitelist-normal", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt" ,
+              #"--whitelist-normal", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt" ,
               "--uniprot", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/uniprot" ,
               "--sample-expr-support-cancer", "1",
               #"--path-normal-kmer-list", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/filter_out/normals_merge-segm-edge_max_uniq_expr-in-3-samples-with-0.1-normalized-cts.tsv",
@@ -248,8 +248,8 @@ mutation_mode ='ref'
 #    test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
 #test_end_to_end_crosscohort(tmpdir) #TODO add back
 #mini_crosscohort()
-test_end_to_end_cancerspecif()
-#test_end_to_end_cancerspecif_mx()
+#test_end_to_end_cancerspecif()
+test_end_to_end_cancerspecif_mx()
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 

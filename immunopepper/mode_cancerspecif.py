@@ -211,9 +211,13 @@ def mode_cancerspecif(arg):
 
                 # Preprocess cancer samples
                 cancer_junc = preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols,expression_fields, jct_col,
-                                                                                        index_name, libsize_c, 1)
+                                                   jct_annot_col, rf_annot_col, index_name, libsize_c,
+                                                   annot_flag=[int(j[1]) for j in arg.annotated_flags if 'C' in j],
+                                                   cross_junction=1)
                 cancer_segm = preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields, jct_col,
-                                                                                        index_name, libsize_c, 0)
+                                                   jct_annot_col, rf_annot_col, index_name, libsize_c,
+                                                   annot_flag=[int(j[1]) for j in arg.annotated_flags if 'C' in j],
+                                                   cross_junction=0)
                 # Apply expression filter to foreground
                 cancer_junc = filter_expr_kmer(cancer_junc, expression_fields[1], arg.sample_expr_support_cancer)
                 cancer_segm = filter_expr_kmer(cancer_segm, expression_fields[0], arg.sample_expr_support_cancer)
