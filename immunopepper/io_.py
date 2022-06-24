@@ -48,7 +48,7 @@ def namedtuple_to_str(named_tuple: namedtuple, field_list: list[str] = None, sep
             continue
         item = getattr(named_tuple, field)
         if isinstance(item, (list, tuple)):
-            line += _convert_list_to_str(item) + sep
+            line += _convert_list_to_str(item, sep = ';') + sep
         else:
             line += str(item) + sep
     return line[:-1]  # remove the last separator
@@ -115,25 +115,23 @@ def save_bg_peptide_dict(data, filepointer: Filepointer, compression: str = None
         save_pd_toparquet(path, data, compression, verbose)
 
 
-def save_fg_peptide_dict(data: dict, filepointer: Filepointer, compression: str = None, out_dir: str = None,
+def save_fg_peptide_set(data: dict, filepointer: Filepointer, compression: str = None, out_dir: str = None,
                          save_fasta: bool = False, verbose: bool = False):
     """
     Save foreground peptide data in a parquet file
-    :param data: dictionary mapping peptides to a list of feature sets
+    :param data: set containing the lines to be written sep is '\t'
     """
     if data:
-        data = pd.DataFrame(data.values(), index=data.keys()).reset_index()
+        data = pd.DataFrame([line.split('\t') for line in data])
         data.columns = filepointer.junction_meta_fp['columns']
         if save_fasta:
             path_fa = get_save_path(filepointer.junction_peptide_fp, out_dir)
-            fasta = pd.concat([data['id'].apply(lambda x: '>' + '/'.join(x)), data['peptide']]).sort_index(
+            fasta = pd.concat(['>' + data['id'], data['peptide']]).sort_index(
                 kind="mergesort").reset_index(drop=True)
             fasta = pd.DataFrame(fasta, columns=filepointer.junction_peptide_fp['columns'])
             save_pd_toparquet(path_fa, fasta, compression, verbose)
             del fasta
-        data = data.set_index('peptide')
-        data = data.applymap(_convert_list_to_str)
-        data = data.reset_index(drop=False)
+
         path = get_save_path(filepointer.junction_meta_fp, out_dir)
         save_pd_toparquet(path, data, compression, verbose)  # Test keep peptide name in the metadata file
 

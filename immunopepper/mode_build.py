@@ -20,7 +20,7 @@ from immunopepper.io_ import save_bg_kmer_set
 from immunopepper.io_ import save_bg_peptide_dict
 from immunopepper.io_ import save_gene_expr_distr
 from immunopepper.io_ import save_fg_kmer_dict
-from immunopepper.io_ import save_fg_peptide_dict
+from immunopepper.io_ import save_fg_peptide_set
 
 from immunopepper.mutations import get_sub_mutations
 from immunopepper.mutations import load_mutations
@@ -149,7 +149,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
     if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "output_sample_IS_SUCCESS"))):
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
         dict_kmer_foregr = defaultdict(dict, {})
-        dict_pept_forgrd = {}
+        set_pept_forgrd = set()
         time_per_gene = [np.nan]
         mem_per_gene = [np.nan]
         all_gene_idxs = []
@@ -236,7 +236,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                                                  kmer=arg.kmer,
                                                  filter_redundant=arg.filter_redundant)
 
-            get_and_write_peptide_and_kmer(peptide_dict = dict_pept_forgrd,
+            get_and_write_peptide_and_kmer(peptide_set=set_pept_forgrd,
                                             kmer_dict = dict_kmer_foregr,
                                             gene=gene,
                                             all_vertex_pairs=vertex_pairs,
@@ -269,8 +269,8 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             all_gene_idxs.append(gene_idxs[i])
 
         save_gene_expr_distr(gene_expr, arg.output_samples, output_sample,  filepointer, outbase, compression, verbose)
-        save_fg_peptide_dict(dict_pept_forgrd, filepointer, compression, outbase, arg.output_fasta, verbose)
-        dict_pept_forgrd.clear()
+        save_fg_peptide_set(set_pept_forgrd, filepointer, compression, outbase, arg.output_fasta, verbose)
+        set_pept_forgrd.clear()
         if not arg.cross_graph_expr:
             for kmer_length in dict_kmer_foregr:
                 save_fg_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)

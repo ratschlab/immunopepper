@@ -10,6 +10,7 @@ from immunopepper.filter import filter_redundant_junctions
 from immunopepper.filter import junction_is_annotated
 from immunopepper.filter import is_intron_in_junction_list
 from immunopepper.filter import junction_tuple_is_annotated
+from immunopepper.io_ import namedtuple_to_str
 from immunopepper.io_ import save_kmer_matrix
 from immunopepper.mutations import get_mutated_sequence
 from immunopepper.mutations import exon_to_mutations
@@ -220,7 +221,7 @@ def collect_vertex_triples(gene, vertex_pairs, k):
     return concat_vertex_pair_list
 
 
-def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
+def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                          gene=None, all_vertex_pairs=None, ref_mut_seq=None, idx=None,
                          exon_som_dict=None, countinfo=None,
                          edge_idxs=None, edge_counts=None, seg_counts=None,
@@ -234,7 +235,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
 
     Parameters
     ----------
-    peptide_dict: Dict. (peptide sequence)|-> metadata
+    peptide_set: Set. of metadata tuples
     kmer_dict: Dict. (kmer sequence)|-> metadata
     gene: Object, returned by SplAdder.
     all_vertex_pairs: List of VertexPair
@@ -305,7 +306,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                         edge_expr = np.nan
 
                     ### Peptides
-                    add_peptide_properties(peptide_dict, [OutputMetadata(peptide=peptide.mut[pep_idx],
+                    peptide_set.add(namedtuple_to_str(OutputMetadata(peptide=peptide.mut[pep_idx],
                                        output_id=new_output_id,
                                        read_frame=vertex_pair.read_frame.read_phase,
                                        read_frame_annotated=vertex_pair.read_frame.annotated_RF,
@@ -325,7 +326,7 @@ def get_and_write_peptide_and_kmer(peptide_dict=None, kmer_dict=None,
                                        junction_expr=edge_expr,
                                        segment_expr=segment_expr,
                                        kmer_type=kmer_type
-                                       )], skip_expr=cross_graph_expr)
+                                       ), sep = '\t'))
                     variant_id += 1
                     output_peptide = OutputJuncPeptide(output_id= new_output_id,
                                                     peptide=peptide.mut[pep_idx],
@@ -412,7 +413,7 @@ def get_and_write_background_peptide_and_kmer(peptide_dict, kmer_dict, gene, ref
 
         for cds_peptide in cds_peptide_list: #all_read_frames modes outputs several peptides when encountering a stop codon
             peptide = OutputBackground(output_id=ts, peptide=cds_peptide)
-            add_peptide_properties(peptide_dict, [peptide])
+            add_peptide_properties(peptide_dict, [peptide]) #TODO replace to get rid of add_peptide_properties
             if kmer:
                 for kmer_length in kmer:
                     add_kmers(kmer_dict[kmer_length],
