@@ -162,19 +162,39 @@ def save_gene_expr_distr(data: list[list], input_samples: list[str], process_sam
 
 def save_kmer_matrix(data, graph_samples, filepointer: Filepointer, compression: str = None, out_dir: str = None,
                      verbose: bool = False):
-    """
-    Saves the kmer segment and junction matrices per gene.
-    The filepointer is kept open until all genes from the batch are written
-    """
+    '''
+    Saves matrices of [kmers] x [samples, metadata] containing either segment expression or junction expression
+    :param data: list which contains in position
+            # 0: metadata cross junction status (dict),
+            # 1: segment expression (dict),
+            # 2: junction expression (dict),
+            # 3: metadata junction annotated status (dict)
+            # 4: metadata reading frame annotated status (dict)
+    :param graph_samples: list sample names
+    :param filepointer: class object which contains the saving path,
+                        columns names and writer object for each of the files to save
+    :param compression: str parquet compression format
+    :param out_dir: str output directory path
+    :param verbose: int verbose parameter
+    '''
+
+
     if data[0]:
         segm_path = get_save_path(filepointer.kmer_segm_expr_fp, out_dir)
         edge_path = get_save_path(filepointer.kmer_edge_expr_fp, out_dir)
+        # data is a list which contains in position 1: the segment expression dict -> converted to dataframe
         data[1] = pd.DataFrame.from_dict(data[1], orient='index', columns=graph_samples).reset_index().rename(
             {'index': filepointer.kmer_segm_expr_fp['columns'][0]}, axis=1)
+        # data is a list which contains in position 2: the junction expression dict ->  converted to dataframe
         data[2] = pd.DataFrame.from_dict(data[2], orient='index', columns=graph_samples).reset_index().rename(
             {'index': filepointer.kmer_segm_expr_fp['columns'][0]}, axis=1)
 
         for (name_idx, data_idx) in zip([1,2,3], [0,3,4]):
+            # data is a list which contains in position
+            # 0: metadata cross junction status (dict)
+            # 3: metadata junction annotated status (dict)
+            # 4: metadata reading frame annotated status (dict)
+            # Here we update the expression dataframes with the metadata and corresponding column names
             data[1][filepointer.kmer_segm_expr_fp['columns'][name_idx]] = data[data_idx].values()
             data[2][filepointer.kmer_segm_expr_fp['columns'][name_idx]] = data[data_idx].values()
 
@@ -202,8 +222,8 @@ def initialize_fp(output_path: str, mutation_mode: str,
     """
 
     # --- Paths
-    background_peptide_file_path = os.path.join(output_path, mutation_mode + '_annot_peptides.fa.pq')
-    background_kmer_file_path = os.path.join(output_path, mutation_mode + '_annot_kmer.pq')
+    annot_peptide_file_path = os.path.join(output_path, mutation_mode + '_annot_peptides.fa.pq')
+    annot_kmer_file_path = os.path.join(output_path, mutation_mode + '_annot_kmer.pq')
     gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.pq')
     junction_meta_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides_meta.pq')
     junction_peptide_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides.fa.pq')
@@ -212,42 +232,42 @@ def initialize_fp(output_path: str, mutation_mode: str,
     graph_kmer_junction_expr_path = os.path.join(output_path, mutation_mode + '_graph_kmer_JuncExpr.pq')
 
     # --- Fields
-    fields_backgrd_pep_dict = ['fasta']
-    fields_backgrd_kmer_dict = ['kmer']
-    fields_gene_expr_file = ['gene']
-    fields_meta_peptide_dict = ['peptide', 'id', 'readFrame', 'readFrameAnnotated', 'geneName', 'geneChr', 'geneStrand',
+    cols_annot_pep_file = ['fasta']
+    cols_annot_kmer_file = ['kmer']
+    cols_gene_expr_file = ['gene']
+    cols_metadata_file = ['peptide', 'id', 'readFrame', 'readFrameAnnotated', 'geneName', 'geneChr', 'geneStrand',
                                 'mutationMode',
                                 'junctionAnnotated', 'hasStopCodon', 'isInJunctionList',
                                 'isIsolated', 'variantComb', 'variantSegExpr', 'modifiedExonsCoord',
                                 'originalExonsCoord', 'vertexIdx',
                                 'kmerType']
-    fields_forgrd_pep_dict = ['fasta']
-    fields_forgrd_kmer_dict = ['kmer', 'id', 'segmentExpr', 'isCrossJunction', 'junctionExpr',
+    cols_pep_file = ['fasta']
+    cols_kmer_single_sample_file = ['kmer', 'id', 'segmentExpr', 'isCrossJunction', 'junctionExpr',
                                'junctionAnnotated', 'readFrameAnnotated']
-    fields_kmer_expr = ['kmer', 'isCrossJunction', 'junctionAnnotated', 'readFrameAnnotated']
+    cols_metaOnly_kmer_cross_sample_file = ['kmer', 'isCrossJunction', 'junctionAnnotated', 'readFrameAnnotated']
 
     # --- Grouping dict
     if output_fasta:  # Foreground peptide fasta - optional
-        peptide_fp = _output_info(junction_peptide_file_path, fields_forgrd_pep_dict)
+        peptide_fp = _output_info(junction_peptide_file_path, cols_pep_file)
     else:
         peptide_fp = None
     if cross_graph_expr:  # Expression matrices with counts from full graph - optional
         junction_kmer_fp = None
-        kmer_segm_expr_fp = _output_info(graph_kmer_segment_expr_path, fields_kmer_expr, pq_writer=True)
-        kmer_edge_expr_fp = _output_info(graph_kmer_junction_expr_path, fields_kmer_expr, pq_writer=True)
+        kmer_segm_expr_fp = _output_info(graph_kmer_segment_expr_path, cols_metaOnly_kmer_cross_sample_file, pq_writer=True)
+        kmer_edge_expr_fp = _output_info(graph_kmer_junction_expr_path, cols_metaOnly_kmer_cross_sample_file, pq_writer=True)
     else:  # Expression kmer information from single sample
-        fields_meta_peptide_dict.insert(-1, 'junctionExpr')
-        fields_meta_peptide_dict.insert(-1, 'segmentExpr')
-        junction_kmer_fp = _output_info(junction_kmer_file_path, fields_forgrd_kmer_dict, kmer_list)
+        cols_metadata_file.insert(-1, 'junctionExpr')
+        cols_metadata_file.insert(-1, 'segmentExpr')
+        junction_kmer_fp = _output_info(junction_kmer_file_path, cols_kmer_single_sample_file, kmer_list)
         kmer_segm_expr_fp = None
         kmer_edge_expr_fp = None
-    meta_peptide_fp = _output_info(junction_meta_file_path, fields_meta_peptide_dict)
-    background_fp = _output_info(background_peptide_file_path, fields_backgrd_pep_dict)
-    background_kmer_fp = _output_info(background_kmer_file_path, fields_backgrd_kmer_dict, kmer_list)
-    gene_expr_fp = _output_info(gene_expr_file_path, fields_gene_expr_file)
+    metadata_fp = _output_info(junction_meta_file_path, cols_metadata_file)
+    annot_fp = _output_info(annot_peptide_file_path, cols_annot_pep_file)
+    annot_kmer_fp = _output_info(annot_kmer_file_path, cols_annot_kmer_file, kmer_list)
+    gene_expr_fp = _output_info(gene_expr_file_path, cols_gene_expr_file)
 
     # --- Filepointer object
-    filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp, junction_kmer_fp, background_kmer_fp,
+    filepointer = Filepointer(peptide_fp, metadata_fp, annot_fp, junction_kmer_fp, annot_kmer_fp,
                               gene_expr_fp, kmer_segm_expr_fp, kmer_edge_expr_fp)
     return filepointer
 

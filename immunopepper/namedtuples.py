@@ -15,11 +15,13 @@ except:
 """
 Output_junc_peptide namedtuple
 - output_id: (gene_id).(junction_id). gene_id is the index of given gene in the splicegraph array.
-    junction_id is the index of given junction pair in all junction pair (in descending or ascending order)
+- junction_id is the index of given junction pair in all junction pair (in descending or ascending order)
 - peptide: (peptide_string). The peptide translated from junction pairs.
 - exons_coor: Coord namedtuple
-- junction_annotated: Boolean. Indicate if the junction also appear in the input annotation file.
-- read_frame_annotated: int (0, 1, nan). Whether the reading frame is present in the annotation or created by propagation
+- junction_annotated: int. 1 if the junction also appear in the input annotation file, 0 otherwise. 
+  nan if the peptide stops before the junction  
+- read_frame_annotated: int 1 if a transcript in the given reading frame is present in the annotation, 
+  0 if it is created by propagation
 """
 OutputJuncPeptide = namedtuple('OutputJuncPeptide', ['output_id', 'peptide', 'exons_coor', 'junction_expr',
                                                      'junction_annotated', 'read_frame_annotated'])
@@ -30,12 +32,14 @@ Output_metadata namedtuple.
 - id:  the same with that in Output_junc_peptide
 - output_id: the same with that in Output_junc_peptide with '>'
 - read_frame: int (0,1,2). The number of base left to the next junction pair.
-- read_frame_annotated: int (0, 1, nan). Whether the reading frame is present in the annotation or created by propagation
+- read_frame_annotated: int 1 if a transcript in the given reading frame is present in the annotation, 
+  0 if it is created by propagation
 - gene_name: str. The name of Gene.
 - gene_chr: str. The Chromosome id where the gene is located.
 - gene_strand: str ('+', '_'). The strand of gene.
 - mutation_mode: str ('ref', 'somatic', 'germline', 'somatic_and_germline'). Mutation mode
-- junction_annotated: Boolean. Indicate if the junction also appear in the input annotation file.
+- junction_annotated: int. 1 if the junction also appear in the input annotation file, 0 otherwise. 
+  nan if the peptide stops before the junction  
 - has_stop_codon. Boolean. Indicate if there is stop codon in the junction pair.
 - is_in_junction_list: Boolean. Indicate if the junction pair appear in the given junction whitelist
 - is_isolated: Boolean. Indicate if the output peptide is actually translated from a single exon instead of two.
@@ -80,8 +84,10 @@ Output_kmer namedtuple.
 - id: transcript id(generated from background peptide) or gene_vertex_id (generated from concat peptide)
 - expr: float. length-weighted sum of expression of the kmer
 - is_cross_junction: boolen. indicate if the kmer spans over the cross junction
-- junction_annotated: boolen. indicates if kmer comes from an annotated junction
-- reading_frame_annotated: boolen. indicates if kmer comes from an annotated reading frame 
+- junction_annotated: int. 1 if the junction also appear in the input annotation file, 0 otherwise. 
+  nan if the peptide stops before the junction  
+- read_frame_annotated: int 1 if a transcript in the given reading frame is present in the annotation, 
+  0 if it is created by propagation
 (and not created by propagation) 
 """
 OutputKmer= namedtuple('OutputKmer', ['kmer','id','segment_expr','is_cross_junction','junction_expr',
@@ -117,7 +123,8 @@ Reading_frame_tuple namedtuple
 - cds_left_modi: int, modified left cds coordinate. (modifies means read frame shift has already been considered)
 - cds_right_modi: int, modified right cds coordinate
 - read_phase: (0,1,2). the number of bases left for the next cds
-- annotated_RF : Bool, whether the reading frame was part of the annotation or created through propagation
+- annotated_RF : read_frame_annotated: int 1 if a transcript in the given reading frame is present in the annotation, 
+  0 if it is created by propagation
 """
 ReadingFrameTuple = namedtuple('ReadingFrameTuple', ['cds_left_modi', 'cds_right_modi', 'read_phase', 'annotated_RF'])
 

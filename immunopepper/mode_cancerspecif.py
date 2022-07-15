@@ -181,7 +181,7 @@ def mode_cancerspecif(arg):
                                                                                       arg.n_samples_lim_cancer,
                                                                                       target_sample=cancer_sample,
                                                                                       annot_flag=arg.annotated_flags,
-                                                                                      tag='cancer_{}'.format(mutation_mode),
+                                                                                      tag=f'cancer_{mutation_mode}',
                                                                                       batch_tag=batch_tag)
                     cancer_cross_filter = combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e,
                                                                          path_cancer_kmers_s,

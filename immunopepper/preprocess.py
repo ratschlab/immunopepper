@@ -69,8 +69,11 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frame
                         n_trailing_bases = cds_right_modi - cds_left_modi
 
                     read_phase = n_trailing_bases % 3
-                    # Add the annotated RF
-                    reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, read_phase, 1))
+                    # add all reading frames from the annotation
+                    reading_frames[idx].add(ReadingFrameTuple(cds_left_modi=cds_left_modi,
+                                                              cds_right_modi=cds_right_modi,
+                                                              read_phase=read_phase,
+                                                              annotated_RF=1))
         gene.to_sparse()
         gene_info.append(GeneInfo(vertex_succ_list, vertex_order, reading_frames, vertex_len_dict, gene.splicegraph.vertices.shape[1]))
 
