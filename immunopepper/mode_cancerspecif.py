@@ -84,15 +84,15 @@ def mode_cancerspecif(arg):
             normal_segm = process_matrix_file(spark, index_name, jct_col,
                                               jct_annot_col, rf_annot_col,
                                               arg.path_normal_matrix_segm,
-                                              arg.output_dir, arg.whitelist_normal,
-                                              arg.parallelism, cross_junction=0,
+                                              arg.whitelist_normal,
+                                              cross_junction=0,
                                               annot_flag = [int(j[1]) for j in arg.annotated_flags if 'N' in j],
                                               tot_batches=arg.tot_batches, batch_id=arg.batch_id)
             normal_junc = process_matrix_file(spark, index_name, jct_col,
                                               jct_annot_col, rf_annot_col,
                                               arg.path_normal_matrix_edge,
-                                              arg.output_dir, arg.whitelist_normal,
-                                              arg.parallelism, cross_junction=1,
+                                              arg.whitelist_normal,
+                                              cross_junction=1,
                                               annot_flag=[int(j[1]) for j in arg.annotated_flags  if 'N' in j],
                                               tot_batches=arg.tot_batches, batch_id=arg.batch_id)
             normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
@@ -144,15 +144,15 @@ def mode_cancerspecif(arg):
                 cancer_segm = process_matrix_file(spark, index_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
                                                   arg.path_cancer_matrix_segm,
-                                                  arg.output_dir, arg.whitelist_cancer,
-                                                  arg.parallelism, cross_junction=0,
+                                                  arg.whitelist_cancer,
+                                                  cross_junction=0,
                                                   annot_flag=[int(j[1]) for j in arg.annotated_flags if 'C' in j],
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
                 cancer_junc = process_matrix_file(spark, index_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
                                                   arg.path_cancer_matrix_edge,
-                                                  arg.output_dir, arg.whitelist_cancer,
-                                                  arg.parallelism, cross_junction=1,
+                                                  arg.whitelist_cancer,
+                                                  cross_junction=1,
                                                   annot_flag=[int(j[1]) for j in arg.annotated_flags if 'C' in j],
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
@@ -187,7 +187,7 @@ def mode_cancerspecif(arg):
                                                                          path_cancer_kmers_s,
                                                                          arg.cohort_expr_support_cancer,
                                                                          arg.n_samples_lim_cancer,
-                                                                         index_name, cancer_sample)
+                                                                         index_name)
 
                     cancer_cross_filter = cancer_cross_filter.select([index_name, cancer_sample, jct_annot_col, rf_annot_col])
                     if arg.cancer_support_union:
