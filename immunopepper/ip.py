@@ -101,7 +101,7 @@ def parse_arguments(argv):
     so.add_argument("--output-count", help="request to write the intermediate number of kmer at each each step to the given path (risk of slow down)" , required=False, default='')
     so.add_argument("--expression-fields-c", nargs='+', help="name of segment and junction expression field in cancer file, default ['segment_expr', 'junction_expr']",required=False, default=None)
     so.add_argument("--tag-normals", help="name for the normal cohort output files, use when various normal cohorts", required=False, default='')
-    so.add_argument("--tag-prefix", help="prefix to use for the output files, use when several conditions", required=False, default=None)
+    so.add_argument("--tag-prefix", help="prefix to use for the output files, use when several conditions", required=False, default='')
     so.add_argument("--whitelist-normal", help="file containg whitelist for normal samples", required=False, default=None)
     so.add_argument("--whitelist-cancer", help="file containg whitelist for cancer samples", required=False, default=None)
     so.add_argument("--annotated-flags", nargs='+', required=False, default=[],
