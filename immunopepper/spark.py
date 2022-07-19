@@ -20,8 +20,9 @@ BiocGenerics = importr("BiocGenerics")
 
 
 
-def DESeq2(count_matrix, design_matrix, normalize, cores=1):
+def DESeq2(count_matrix, design_matrix, normalize, cores=1): #TODO decide on statistical mode future
     '''
+    Runs DEseq2
     :param count_matrix: dataframe matrix with counts
     :param design_matrix: dataframe  matrix with experiment design
     :param normalize: dataframe with library sizes
@@ -59,7 +60,7 @@ def DESeq2(count_matrix, design_matrix, normalize, cores=1):
     return fit_res
 
 
-def fit_NB(spark, normal_matrix, index_name, output_dir, path_normal_matrix_segm, libsize_n, cores):
+def fit_NB(spark, normal_matrix, index_name, output_dir, path_normal_matrix_segm, libsize_n, cores):  #TODO decide on statistical mode future
     ''' Fits negative binomial on kmers expression with DESeq2
     :param spark: spark context
     :param normal_matrix: dataframe normal matrix
@@ -296,7 +297,7 @@ def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_norm
     return high_expr_normals, normal_matrix
 
 
-def filter_statistical(spark, tissue_grp_files, normal_matrix, index_name, path_normal_matrix_segm, libsize_n,
+def filter_statistical(spark, tissue_grp_files, normal_matrix, index_name, path_normal_matrix_segm, libsize_n,  #TODO decide on statistical mode future
                        threshold_noise, output_dir, cores):
     '''
     :param spark: spark context
@@ -729,6 +730,7 @@ def save_output_count(output_count, report_count, report_steps, prefix, cancer_s
         with open(output_count, "a") as f:
             f.write(line)
         logging.info("Save intermediate info to {}".format(output_count))
+
 
 def redirect_scratch(scratch_dir, interm_dir_norm, interm_dir_canc, output_dir):
     '''
