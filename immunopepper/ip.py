@@ -91,7 +91,7 @@ def parse_arguments(argv):
     rp.add_argument("--mem-per-core",type=int, help="memory per core", required=True)
     rp.add_argument("--parallelism", type=int, help="parallelism parameter for spark JVM", required=True, default='3')
     rp.add_argument("--out-partitions", type=int, help="number of partitions to save the final tsv file, correspond to a coalesce operation", required=False, default=None)
-    rp.add_argument("--scratch-dir", help="os environement variable name containing the cluster scratch directory path ", required=False, default='')
+    rp.add_argument("--scratch-dir", help="os environement variable name containing the cluster scratch directory path", required=False, default='')
     rp.add_argument("--interm-dir-norm", help="custom scatch dir path to save intermediate cancer files", required=False, default='')
     rp.add_argument("--interm-dir-canc", help="custom scatch dir path to save intermediate normal files", required=False, default='')
 
@@ -135,13 +135,13 @@ def parse_arguments(argv):
     nrf.add_argument("--cancer-support-union", help="Choose how to combine sample-support and cohort-support in cancer. Request union, default intersection", action="store_true", required=False, default=False)
     nrf.add_argument("--path-normal-matrix-segm", nargs='+', help="segment expression integrated matrix of kmers * samples for background", required=False, default=None)
     nrf.add_argument("--path-normal-matrix-edge", nargs='+', help="edge expression integrated matrix of kmers * samples for background", required=False, default=None)
-    nrf.add_argument("--n-samples-lim-normal", type=int, help="Number of normal samples in which the expression threshold should be met", required=False, default=None)
-    nrf.add_argument("--cohort-expr-support-normal", type=float, help="Expression threshold on the normal cohort applied on normalized counts of (see --expr-n-limit-normal )", required=False, default=None)
+    nrf.add_argument("--n-samples-lim-normal", type=int, help="Number of normal samples in which any number of reads is required (>0)", required=False, default=None)
+    nrf.add_argument("--cohort-expr-support-normal", type=float, help="Normalized expression threshold for the normal cohort required in any sample (>=1)", required=False, default=None)
     nrf.add_argument("--path-normal-kmer-list",  nargs='+', help="Provide a list of kmer as background. Format tsv: 1 file/folder allowed,'.tsv' in filenames, format parquet: one or multiple parquets with kmer in first column", required=False, default=None)
 
     cbp = parser_cancerspecif.add_argument_group('Cancer_Base_Param')
-    cbp.add_argument("--sample-expr-support-cancer", type=float, help="Expression threshold for the cancer target applied on normalized counts")
-    cbp.add_argument("--cohort-expr-support-cancer", type=float, help="Expression threshold for the cancer cohort excluding the target sample applied on normalized counts (if --expr-n-limit-cancer and path-cancer-matrix-segm resp. edge are provided)", required=False, default=None)
+    cbp.add_argument("--sample-expr-support-cancer", type=float, help="Normalized expression threshold for the cancer target sample")
+    cbp.add_argument("--cohort-expr-support-cancer", type=float, help="Normalized expression threshold for the cancer cohort excluding the target sample which should be met in n samples (if --expr-n-limit-cancer and path-cancer-matrix-segm resp. edge are provided)", required=False, default=None)
     cbp.add_argument("--ids-cancer-samples", nargs='+', help=" list of all cancer samples on which to apply the filtering. If --paths-cancer-samples provided they should be given in same order", required=True, default='')
     cbp.add_argument("--mut-cancer-samples", nargs='+', help=" list of mutation modes corresponding to cancer samples. If --paths-cancer-samples provided they should be given in same order", required=True, default='')
 
@@ -151,7 +151,7 @@ def parse_arguments(argv):
     crf = parser_cancerspecif.add_argument_group('Cancer_Recurrence_Filter')
     crf.add_argument("--path-cancer-matrix-segm", nargs='+', help="segment expression integrated matrix of kmers * samples for foreground", required=False, default=None)
     crf.add_argument("--path-cancer-matrix-edge", nargs='+', help="edge expression integrated matrix of kmers * samples for foreground", required=False, default=None)
-    crf.add_argument("--n-samples-lim-cancer", type=int, help="Number of normal samples in which the cohort expression threshold should be met (if --cohort-expr-support-cancer and path-cancer-matrix-segm resp. edge are provided)", required=False, default=None)
+    crf.add_argument("--n-samples-lim-cancer", type=int, help="Number of cancer samples in which the cancer cohort expression threshold should be met(if --cohort-expr-support-cancer and path-cancer-matrix-segm resp. edge are provided)", required=False, default=None)
 
     uf = parser_cancerspecif.add_argument_group('Uniprot_Filter')
     uf.add_argument("--uniprot", help="file containg uniprot k-mers. k-mers length should match the one of the cancer and normal files", required=False, default=None)

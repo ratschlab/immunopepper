@@ -360,7 +360,7 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
     path_e = None
     path_s = None
     base_n_samples = 1
-    base_expr = 0.0 
+    base_expr = 0.0
     if target_sample:
         suffix = 'Except{}'.format(target_sample)
     else:
@@ -577,7 +577,7 @@ def filter_expr_kmer(matrix_kmers, filter_field, threshold, libsize=None):
                                                         libsize.loc[filter_field, "libsize_75percent"], 2) >= threshold)
         else:
             matrix_kmers = matrix_kmers.filter(sf.col(filter_field) >= threshold)
-        
+
     else:
         logging.info("Filter with {} > {}".format(filter_field, threshold))
         matrix_kmers = matrix_kmers.filter(sf.col(filter_field) > threshold)
@@ -611,6 +611,15 @@ def combine_cancer(cancer_kmers_segm, cancer_kmers_edge, index_name):
 
 
 def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
+    '''
+    Filters a spark dataframe against uniprot or any peptide database.
+    Equivalence between leucine and isoleucine assumed.
+    :param spark: spark context
+    :param cancer_kmers: spark dataframe matrix with expression counts for cancer
+    :param uniprot: str path for uniprot file
+    :param index_name: str name of the kmer column
+    :return: spark dataframe matrix for cancer after uniprot filtering
+    '''
     def I_L_replace(value):
         return value.replace('I', 'L')
     if uniprot is not None:
@@ -628,17 +637,31 @@ def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
 
 
 def save_spark(cancer_kmers, output_dir, path_final_fil, outpartitions=None):
+    '''
+    Saves a spark datadrame as a single or partitionned csv file
+    :param cancer_kmers: spark dataframe matrix with expression counts for cancer
+    :param output_dir: str path for output directory
+    :param path_final_fil: str path to save the spark dataframe
+    :param outpartitions: int number of partitions for saving
+    '''
     # save
     logging.info("Save to {}".format(path_final_fil))
     pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
     if outpartitions is not None:
-        cancer_kmers.repartition(outpartitions).write.mode('overwrite').options(header="true",sep="\t").csv(path_final_fil)
+        cancer_kmers.repartition(outpartitions).write.mode('overwrite').options(header="true", sep="\t").csv(path_final_fil)
     else:
-        cancer_kmers.write.mode('overwrite').options(header="true",sep="\t").csv(path_final_fil)
-
+        cancer_kmers.write.mode('overwrite').options(header="true", sep="\t").csv(path_final_fil)
 
 
 def loader(spark, path_kmer_list):
+    '''
+    Loads path parquet or csv to spark dataframe
+    If user provides a list of parquet files with the same schema -> They will be loaded as a single file
+    elif user provides a list with a single csv -> Only the first entry of the list will be loaded as a single file
+    :param spark: spark context
+    :param path_kmer_list: list of paths to read
+    :return: loaded spark dataframe
+    '''
     #TODO allow multiple tsv
     if 'tsv' in path_kmer_list[0]:
         logging.warning("Only the first file of {} will be read. Use list of parquets to process multiple paths".format(
@@ -651,15 +674,44 @@ def loader(spark, path_kmer_list):
 
 
 def output_count(perform_count, matrix, report_count, report_step, step_string):
+    '''
+    Performs a count operation on the number of kmers present in spark dataframe after a given filtering step
+    Note: This operation is expensive but useful if the user is interested in intermediate filtering steps
+    :param perform_count: bool whether to perform a count operation
+    :param matrix: spark dataframe with kmer expression counts
+    :param report_count: list to store result of successive counting operations
+    :param report_step: list to store name of successive counting operations
+    :param step_string: str name of the counting operation
+    '''
     if perform_count:
         mycount = matrix.count()
         report_count.append(mycount)
         report_step.append(step_string)
         logging.info('# {} n = {} kmers'.format(step_string, mycount))
 
+
 def save_output_count(output_count, report_count, report_steps, prefix, cancer_sample_ori, mutation_mode,
                       sample_expr_support_cancer, cohort_expr_support_cancer, n_samples_lim_cancer,
                           cohort_expr_support_normal, n_samples_lim_normal, id_normals):
+    '''
+    Saves the number of kmers present in spark dataframe after each filtering step in a tabular file
+    :param output_count: str path for count file of intermediate filtering steps
+    :param report_count: list to store result of successive counting operations
+    :param report_step: list to store name of successive counting operations
+    :param prefix: str information to be added to the result line in an info column
+    :param cancer_sample_ori: str id of target cancer sample which was filtered
+    :param mutation_mode: str information about whether mutations where applied or not
+    :param sample_expr_support_cancer: float normalized expression threshold for the cancer target sample
+    :param cohort_expr_support_cancer: float normalized expression threshold for the cancer cohort
+    excluding the target sample
+    hich should be met in n samples
+    :param n_samples_lim_cancer: int number of cancer samples in which the cancer cohort expression threshold
+    should be met
+    :param cohort_expr_support_normal: float normalized expression threshold for the normal cohort
+    required in any sample (>=1)
+    :param n_samples_lim_normal: int number of normal samples in which any number of reads is required (>0)
+    :param id_normals: str id of the normal cohort (example gtex)
+    '''
     if output_count:
         header = '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format("sample", "mutation_mode", "min_sample_reads", "#_of_cohort_samples", "reads_per_cohort_sample", "#_normal_samples_allowed", "normal_cohort_id", "reads_per_normal_sample")
         line =   '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(cancer_sample_ori, mutation_mode, sample_expr_support_cancer, n_samples_lim_cancer, cohort_expr_support_cancer, n_samples_lim_normal, id_normals, cohort_expr_support_normal)
@@ -679,6 +731,18 @@ def save_output_count(output_count, report_count, report_steps, prefix, cancer_s
         logging.info("Save intermediate info to {}".format(output_count))
 
 def redirect_scratch(scratch_dir, interm_dir_norm, interm_dir_canc, output_dir):
+    '''
+    Set the directory to save intermediary file
+    - Uses either the scratch directory variable from the cluster
+    - The output directory
+    - Any other specified normal or cancer scratch directory
+    Default. Uses output directory
+    :param scratch_dir: str os environement variable name containing the cluster scratch directory path
+    :param interm_dir_norm: str custom scatch dir path to save intermediate normal files
+    :param interm_dir_canc: str custom scatch dir path to save intermediate cancer files
+    :param output_dir: str output directory for the filtered matrix
+    :return:
+    '''
     if scratch_dir:
         cancer_out = os.environ[scratch_dir]
         normal_out = os.environ[scratch_dir]
