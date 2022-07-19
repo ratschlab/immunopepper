@@ -98,18 +98,23 @@ def mode_cancerspecif(arg):
                                               tot_batches=arg.tot_batches, batch_id=arg.batch_id)
             normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
 
-            # NORMALS: Statistical Filtering # Remove outlier kmers before statistical modelling (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
+            # NORMALS: Statistical Filtering # Remove outlier kmers before statistical modelling
+            # (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
             if arg.statistical:
                 logging.info("\n \n >>>>>>>> Normals: Perform statistical filtering")
                 if arg.expr_high_limit_normal is not None:
-                    logging.info( f'... Normal kmers with expression >= {arg.expr_high_limit_normal} in >= 1 sample are truly expressed. \n Will be substracted from cancer set')
-                    high_expr_normals, normal_matrix = outlier_filtering(spark, normal_matrix, index_name, libsize_n, arg.expr_high_limit_normal)
+                    logging.info( (f'... Normal kmers with expression >= {arg.expr_high_limit_normal} in >= 1 sample(s) '
+                                   f'are truly expressed. \n Will be substracted from cancer set'))
+                    high_expr_normals, normal_matrix = outlier_filtering(spark, normal_matrix, index_name, libsize_n,
+                                                                         arg.expr_high_limit_normal)
 
                 filter_statistical(spark, arg.tissue_grp_files, normal_matrix, index_name, arg.path_normal_matrix_segm,
                                        libsize_n, arg.threshold_noise, arg.output_dir, arg.cores)
             # NORMALS: Hard Filtering
             else:
-                logging.info(f'\n \n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {arg.n_samples_lim_normal} samples with {arg.cohort_expr_support_normal} normalized counts')
+                logging.info((f'\n \n >>>>>>>> Normals: Perform Hard Filtering \n '
+                              f'(expressed in {arg.n_samples_lim_normal} samples'
+                              f' with {arg.cohort_expr_support_normal} normalized counts'))
                 logging.info("expression filter")
                 path_normal_kmers_e, path_normal_kmers_s = filter_hard_threshold(normal_matrix, index_name,
                                                                                  jct_annot_col, rf_annot_col,
@@ -161,7 +166,8 @@ def mode_cancerspecif(arg):
 
                 # sample specific filter
                 cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample, jct_annot_col, rf_annot_col])
-                cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0) #Retrieve initial number of kmers in sample
+                # Retrieve initial number of kmers in sample
+                cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0)
                 output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Init_cancer')
 
                 if arg.output_count and (arg.sample_expr_support_cancer != 0):
@@ -235,7 +241,14 @@ def mode_cancerspecif(arg):
             logging.info(f'partitions: {partitions_}')
 
             # outpaths
-            base_path_final = os.path.join(arg.output_dir, f'{arg.tag_prefix}{cancer_sample_ori}_{mutation_mode}_SampleLim{arg.sample_expr_support_cancer}CohortLim{arg.cohort_expr_support_cancer}Across{arg.n_samples_lim_cancer}_FiltNormals{arg.tag_normals}Cohortlim{arg.cohort_expr_support_normal}Across{arg.n_samples_lim_normal}')
+            base_path_final = os.path.join(arg.output_dir,
+                                           (f'{arg.tag_prefix}{cancer_sample_ori}_{mutation_mode}_'
+                                            f'SampleLim{arg.sample_expr_support_cancer}'
+                                            f'CohortLim{arg.cohort_expr_support_cancer}'
+                                            f'Across{arg.n_samples_lim_cancer}_'
+                                            f'FiltNormals{arg.tag_normals}'
+                                            f'Cohortlim{arg.cohort_expr_support_normal}'
+                                            f'Across{arg.n_samples_lim_normal}'))
 
             path_filter_final = base_path_final + batch_tag + extension
             path_filter_final_uniprot  = base_path_final + '_FiltUniprot'+ batch_tag + extension

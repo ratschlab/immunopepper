@@ -83,8 +83,10 @@ def fit_NB(spark, normal_matrix, index_name, output_dir, path_normal_matrix_segm
     # Run DESEq2
     design_matrix = design_matrix.set_index('sample')
     logging.info("Run DESeq2")
-    normal_matrix = DESeq2(normal_matrix.toPandas().set_index(index_name), design_matrix, normalize=libsize_n, cores=cores)
-    save_pd_toparquet(os.path.join(output_dir, os.path.basename(path_normal_matrix_segm).split('.')[0] + 'deseq_fit' + '.pq.gz'),
+    normal_matrix = DESeq2(normal_matrix.toPandas().set_index(index_name), design_matrix,
+                           normalize=libsize_n, cores=cores)
+    save_pd_toparquet(os.path.join(output_dir, os.path.basename(path_normal_matrix_segm).split('.')[0]
+                                   + 'deseq_fit' + '.pq.gz'),
                       normal_matrix, compression = 'gzip', verbose = False)
     # Test on probability of noise
     logging.info("Test if noise")
@@ -167,7 +169,8 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
 
         # In batch mode: Dev remove kmers for the matrix based on the hash function
         if tot_batches:
-            logging.info(f'Filter foreground and background based on Hash ; making {tot_batches} batches, select batch number {batch_id}')
+            logging.info((f'Filter foreground and background based on Hash ; '
+                          f'making {tot_batches} batches, select batch number {batch_id}'))
 
             matrix = matrix.filter(sf.abs(sf.hash('kmer') % tot_batches) == batch_id)
 
@@ -379,7 +382,9 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
 
     # Expression filtering, take k-mers with >= X reads in >= 1 sample
     if expr_limit:
-        path_e = os.path.join(out_dir,f'interm_{tag}_combiExprCohortLim{expr_limit}Across{base_n_samples}{suffix}{batch_tag}' + '.tsv')
+        path_e = os.path.join(out_dir,
+                              f'interm_{tag}_combiExprCohortLim{expr_limit}Across{base_n_samples}{suffix}{batch_tag}'
+                              + '.tsv')
         if not os.path.isfile(os.path.join(path_e, '_SUCCESS')):
             logging.info(f'Filter matrix with cohort expression support >= {expr_limit} in {base_n_samples} sample')
             matrix_e = matrix.select(index_name, *[
@@ -391,13 +396,15 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
             logging.info(f'Save to {path_e}')
             matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e)
         else:
-            logging.info(
-            f'Filter matrix with cohort expression support {expr_limit} in {base_n_samples} sample(s) already performed. Loading results from {path_e}')
+            logging.info((f'Filter matrix with cohort expression support {expr_limit} '
+                          f'in {base_n_samples} sample(s) already performed. Loading results from {path_e}'))
             logging.info(f'Using intermediate files means ignoring --annotated-flags {annot_flag} parameter.')
 
     # Sample filtering, take k-mers with exclude >0 reads in >= 1 sample
     if n_samples_lim is not None:
-        path_s = os.path.join(out_dir, f'interm_{tag}_combiExprCohortLim{base_expr}Across{base_n_samples}{suffix}{batch_tag}' + '.tsv')
+        path_s = os.path.join(out_dir,
+                              f'interm_{tag}_combiExprCohortLim{base_expr}Across{base_n_samples}{suffix}{batch_tag}'
+                              + '.tsv')
         if not os.path.isfile(os.path.join(path_s, '_SUCCESS')):
             logging.info(f'Filter matrix with cohort expression support > {base_expr} in {base_n_samples} sample')
             matrix_s = matrix.select(index_name, *[
@@ -409,8 +416,8 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
             logging.info(f'Save to {path_s}')
             matrix_s.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_s)
         else:
-            logging.info(
-            f'Filter matrix with cohort expression support {base_expr} in {base_n_samples} sample(s) already performed. Loading results from {path_s}')
+            logging.info((f'Filter matrix with cohort expression support {base_expr} '
+                          f'in {base_n_samples} sample(s) already performed. Loading results from {path_s}'))
             logging.info(f'Using intermediate files means ignoring --annotated-flags {annot_flag} parameter.')
     return path_e, path_s
 
@@ -476,7 +483,8 @@ def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, pa
     valid_foreground = valid_foreground.withColumnRenamed('_c1', "n_samples")
     # kmer need to be expressed with >= X reads and this in >= H samples
     if n_samples_lim_cancer > 1:
-        logging.info( f'Filter matrix with cohort expression support >= {cohort_expr_support_cancer} in {n_samples_lim_cancer} sample(s)')
+        logging.info( (f'Filter matrix with cohort expression support >= {cohort_expr_support_cancer} '
+                       f'in {n_samples_lim_cancer} sample(s)'))
         valid_foreground = valid_foreground.filter(sf.col('n_samples') >= n_samples_lim_cancer)
     valid_foreground = valid_foreground.select(sf.col(index_name))
     # Apply to preprocessed matrix
@@ -659,7 +667,8 @@ def loader(spark, path_kmer_list):
     '''
     #TODO allow multiple tsv
     if 'tsv' in path_kmer_list[0]:
-        logging.warning(f'Only the first file of {path_kmer_list} will be read. Use list of parquets to process multiple paths')
+        logging.warning((f'Only the first file of {path_kmer_list} will be read. '
+                         f'Use list of parquets to process multiple paths'))
         matrix = spark.read.csv(path_kmer_list[0], sep=r'\t', header=False)
     else:
         matrix = spark.read.parquet(*path_kmer_list)
@@ -707,8 +716,13 @@ def save_output_count(output_count, report_count, report_steps, prefix, cancer_s
     :param id_normals: str id of the normal cohort (example gtex)
     '''
     if output_count:
-        header = f'{"sample"}\t{"mutation_mode"}\t{"min_sample_reads"}\t{"#_of_cohort_samples"}\t{"reads_per_cohort_sample"}\t{"#_normal_samples_allowed"}\t{"normal_cohort_id"}\t{"reads_per_normal_sample"}'
-        line =   f'{cancer_sample_ori}\t{mutation_mode}\t{sample_expr_support_cancer}\t{n_samples_lim_cancer}\t{cohort_expr_support_cancer}\t{n_samples_lim_normal}\t{id_normals}\t{cohort_expr_support_normal}'
+        header = (f'{"sample"}\t{"mutation_mode"}\t{"min_sample_reads"}\t{"#_of_cohort_samples"}\t'
+                  f'{"reads_per_cohort_sample"}\t{"#_normal_samples_allowed"}\t{"normal_cohort_id"}'
+                  f'\t{"reads_per_normal_sample"}')
+        line =   (f'{cancer_sample_ori}\t{mutation_mode}\t{sample_expr_support_cancer}\t{n_samples_lim_cancer}'
+                  f'\t{cohort_expr_support_cancer}\t{n_samples_lim_normal}\t{id_normals}'
+                  f'\t{cohort_expr_support_normal}')
+
         for idx in np.arange(len(report_count)):
             header += f'\t{report_steps[idx]}'
             line += f'\t{report_count[idx]}'
