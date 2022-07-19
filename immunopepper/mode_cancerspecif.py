@@ -47,7 +47,7 @@ def mode_cancerspecif(arg):
             batch_tag = '_batch{}_{}'.format(arg.batch_id, arg.tot_batches)
         else:
             batch_tag = ''
-        if (arg.tag_prefix is not None) and arg.tag_prefix[-1] != '_':
+        if (arg.tag_prefix) and arg.tag_prefix[-1] != '_':
             arg.tag_prefix = arg.tag_prefix + '_'
         report_count = []
         report_steps = []
