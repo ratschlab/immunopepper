@@ -52,7 +52,8 @@ def mode_cancerspecif(arg):
         report_count = []
         report_steps = []
 
-        normal_out, cancer_out = redirect_scratch(arg.scratch_dir, arg.interm_dir_norm, arg.interm_dir_canc, arg.output_dir)
+        normal_out, cancer_out = redirect_scratch(arg.scratch_dir, arg.interm_dir_norm,
+                                                  arg.interm_dir_canc, arg.output_dir)
 
 
         if arg.paths_cancer_samples:
@@ -101,14 +102,14 @@ def mode_cancerspecif(arg):
             if arg.statistical:
                 logging.info("\n \n >>>>>>>> Normals: Perform statistical filtering")
                 if arg.expr_high_limit_normal is not None:
-                    logging.info( "... Normal kmers with expression >= {} in >= 1 sample are truly expressed. \n Will be substracted from cancer set".format(arg.expr_high_limit_normal))
+                    logging.info( f'... Normal kmers with expression >= {arg.expr_high_limit_normal} in >= 1 sample are truly expressed. \n Will be substracted from cancer set')
                     high_expr_normals, normal_matrix = outlier_filtering(spark, normal_matrix, index_name, libsize_n, arg.expr_high_limit_normal)
 
                 filter_statistical(spark, arg.tissue_grp_files, normal_matrix, index_name, arg.path_normal_matrix_segm,
                                        libsize_n, arg.threshold_noise, arg.output_dir, arg.cores)
             # NORMALS: Hard Filtering
             else:
-                logging.info("\n \n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {} samples with {} normalized counts)".format(arg.n_samples_lim_normal, arg.cohort_expr_support_normal))
+                logging.info(f'\n \n >>>>>>>> Normals: Perform Hard Filtering \n (expressed in {arg.n_samples_lim_normal} samples with {arg.cohort_expr_support_normal} normalized counts')
                 logging.info("expression filter")
                 path_normal_kmers_e, path_normal_kmers_s = filter_hard_threshold(normal_matrix, index_name,
                                                                                  jct_annot_col, rf_annot_col,
@@ -189,13 +190,15 @@ def mode_cancerspecif(arg):
                                                                          arg.n_samples_lim_cancer,
                                                                          index_name)
 
-                    cancer_cross_filter = cancer_cross_filter.select([index_name, cancer_sample, jct_annot_col, rf_annot_col])
+                    cancer_cross_filter = cancer_cross_filter.select([index_name, cancer_sample,
+                                                                      jct_annot_col, rf_annot_col])
                     if arg.cancer_support_union:
                         logging.info("support union")
                         cancer_kmers = cancer_cross_filter.union(cancer_sample_filter).distinct()
                     else:
                         logging.info("support intersect")
-                        cancer_kmers = cancer_cross_filter.join(cancer_sample_filter.select([index_name]), ["kmer"], how='inner')
+                        cancer_kmers = cancer_cross_filter.join(cancer_sample_filter.select([index_name]), ["kmer"],
+                                                                how='inner')
                 else:
                     cancer_kmers = cancer_sample_filter
 
@@ -228,21 +231,21 @@ def mode_cancerspecif(arg):
 
         ## Cancer \ normals
             logging.info("\n \n >>>>>>>> Cancers: Perform differential filtering")
-            logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
+            partitions_ = cancer_kmers.rdd.getNumPartitions()
+            logging.info(f'partitions: {partitions_}')
 
             # outpaths
-            base_path_final= os.path.join(arg.output_dir, '{}{}_{}_SampleLim{}CohortLim{}Across{}_FiltNormals{}Cohortlim{}Across{}'.format(
-                                                            arg.tag_prefix, cancer_sample_ori, mutation_mode, arg.sample_expr_support_cancer,
-                                                            arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
-                                                            arg.tag_normals, arg.cohort_expr_support_normal, arg.n_samples_lim_normal))
+            base_path_final = os.path.join(arg.output_dir, f'{arg.tag_prefix}{cancer_sample_ori}_{mutation_mode}_SampleLim{arg.sample_expr_support_cancer}CohortLim{arg.cohort_expr_support_cancer}Across{arg.n_samples_lim_cancer}_FiltNormals{arg.tag_normals}Cohortlim{arg.cohort_expr_support_normal}Across{arg.n_samples_lim_normal}')
 
             path_filter_final = base_path_final + batch_tag + extension
             path_filter_final_uniprot  = base_path_final + '_FiltUniprot'+ batch_tag + extension
 
             # Remove background from foreground
             logging.info("Filtering normal background")
-            cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"], how='left_anti')
-            logging.info("partitions: {}".format(cancer_kmers.rdd.getNumPartitions()))
+            cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"],
+                                             how='left_anti')
+            partitions_ = cancer_kmers.rdd.getNumPartitions()
+            logging.info(f'partitions: {cancer_kmers}')
             save_spark(cancer_kmers, arg.output_dir, path_filter_final, outpartitions=arg.out_partitions)
             output_count(arg.output_count, cancer_kmers, report_count, report_steps,
                          'Filter_Sample_Cohort_CohortNormal')

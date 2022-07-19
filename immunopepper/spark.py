@@ -158,7 +158,7 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
     if path_matrix is not None:
         # Rename columns for better spark processing (spark does not support '_')
         rename = True # For development
-        logging.info("Load {}".format(path_matrix))
+        logging.info(f'Load {path_matrix}')
         if rename:
             logging.info("Rename")
             matrix = pq_WithRenamedCols(spark, path_matrix)
@@ -167,17 +167,16 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
 
         # In batch mode: Dev remove kmers for the matrix based on the hash function
         if tot_batches:
-            logging.info("Filter foreground and background based on Hash ; making {} batches, select batch number {}".format(
-                tot_batches, batch_id))
+            logging.info(f'Filter foreground and background based on Hash ; making {tot_batches} batches, select batch number {batch_id}')
 
             matrix = matrix.filter(sf.abs(sf.hash('kmer') % tot_batches) == batch_id)
 
 
         # Filter on junction status depending on the content on the matrix
         if cross_junction:
-            matrix = matrix.filter("{} == True".format(jct_col))
+            matrix = matrix.filter(f'{jct_col} == True')
         else:
-            matrix = matrix.filter("{} == False".format(jct_col))
+            matrix = matrix.filter(f'{jct_col} == False')
         matrix = matrix.drop(jct_col)
 
         # Filter according to annotation flag
@@ -200,19 +199,22 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
 
         # Remove kmers present in the table but absents from all samples
         logging.info("Remove non expressed kmers SQL-")
-        logging.info("...partitions: {}".format(matrix.rdd.getNumPartitions()))
+        partitions_ = matrix.rdd.getNumPartitions()
+        logging.info(f'...partitions: {partitions_}')
         not_null = ' OR '.join(
-            ['({} != 0.0)'.format(col_name)
+            [f'({col_name} != 0.0)'
              for col_name in matrix.schema.names
              if col_name not in [index_name, jct_annot_col, rf_annot_col]])  # SQL style  # All zeros
         matrix = matrix.filter(not_null)
 
         # Make unique on kmers
         logging.info("Make unique")
-        logging.info("...partitions: {}".format(matrix.rdd.getNumPartitions()))
+        partitions_ = matrix.rdd.getNumPartitions()
+        logging.info(f'...partitions: {partitions_}')
         exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in matrix.schema.names if name_ != index_name]
         matrix = matrix.groupBy(index_name).agg(*exprs) #Max operation also performed on the annot flags
-        logging.info("...partitions: {}".format(matrix.rdd.getNumPartitions()))
+        partitions_ = matrix.rdd.getNumPartitions()
+        logging.info(f'...partitions: {partitions_}')
         return matrix
     else:
         return None
@@ -276,19 +278,19 @@ def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_norm
     # With libsize
     if libsize_n is not None:
         highly_expressed_normals = ' AND '.join(
-            ['({} > {})'.format(col_name, expr_high_limit_normal * libsize_n.loc[col_name, "libsize_75percent"])
+            [f'({col_name} > { expr_high_limit_normal * libsize_n.loc[col_name, "libsize_75percent"]})'
              for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # Expressed kmers
 
         ambigous_expression_normals = ' OR '.join(
-            ['({} <= {})'.format(col_name, expr_high_limit_normal * libsize_n.loc[col_name, "libsize_75percent"])
+            [f'({col_name} <= { expr_high_limit_normal * libsize_n.loc[col_name, "libsize_75percent"]})'
              for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style
     # Without libsize
     else:
-        highly_expressed_normals = ' AND '.join(['({} >= {})'.format(col_name, expr_high_limit_normal)
+        highly_expressed_normals = ' AND '.join([f'({col_name} >= {expr_high_limit_normal})'
                                                  for col_name in normal_matrix.schema.names if
                                                  col_name != index_name])  # SQL style  # Expressed kmers
 
-        ambigous_expression_normals = ' OR '.join(['({} < {})'.format(col_name, expr_high_limit_normal)
+        ambigous_expression_normals = ' OR '.join([f'({col_name} < {expr_high_limit_normal})'
                                                    for col_name in normal_matrix.schema.names if
                                                    col_name != index_name])  # SQL style
 
@@ -363,13 +365,13 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
     base_n_samples = 1
     base_expr = 0.0
     if target_sample:
-        suffix = 'Except{}'.format(target_sample)
+        suffix = f'Except{target_sample}'
     else:
         suffix = ''
 
 
     if target_sample:
-        logging.info("Target sample {} not included in the cohort filtering".format(target_sample))
+        logging.info(f'Target sample {target_sample} not included in the cohort filtering')
     if libsize is not None:
         matrix = matrix.select(index_name, *[
             sf.round(sf.col(name_) / libsize.loc[name_, "libsize_75percent"], 2).alias(name_)
@@ -377,47 +379,39 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
 
     # Expression filtering, take k-mers with >= X reads in >= 1 sample
     if expr_limit:
-        path_e = os.path.join(out_dir,'interm_{}_combiExprCohortLim{}Across{}{}{}'.format(tag, expr_limit,
-                                                                                          base_n_samples, suffix,
-                                                                                          batch_tag) + '.tsv')
+        path_e = os.path.join(out_dir,f'interm_{tag}_combiExprCohortLim{expr_limit}Across{base_n_samples}{suffix}{batch_tag}' + '.tsv')
         if not os.path.isfile(os.path.join(path_e, '_SUCCESS')):
-            logging.info("Filter matrix with cohort expression support >= {} in {} sample".format(expr_limit,
-                                                                                                  base_n_samples))
+            logging.info(f'Filter matrix with cohort expression support >= {expr_limit} in {base_n_samples} sample')
             matrix_e = matrix.select(index_name, *[
                 sf.when(sf.col(name_) >= expr_limit, 1).otherwise(0).alias(name_)
                 for name_ in matrix.schema.names if name_
                 not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
             matrix_e = matrix_e.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))
                                                                  ).filter(lambda x: x[1] >= base_n_samples)
-            logging.info("Save to {}".format(path_e))
+            logging.info(f'Save to {path_e}')
             matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e)
         else:
             logging.info(
-            "Filter matrix with cohort expression support {} in {} sample(s) already performed. Loading results from {}".format(
-                expr_limit, base_n_samples, path_e))
-            logging.info("Using intermediate files means ignoring --annotated-flags {} parameter.".format(annot_flag))
+            f'Filter matrix with cohort expression support {expr_limit} in {base_n_samples} sample(s) already performed. Loading results from {path_e}')
+            logging.info(f'Using intermediate files means ignoring --annotated-flags {annot_flag} parameter.')
 
     # Sample filtering, take k-mers with exclude >0 reads in >= 1 sample
     if n_samples_lim is not None:
-        path_s = os.path.join(out_dir,'interm_{}_combiExprCohortLim{}Across{}{}{}'.format(tag, base_expr,
-                                                                                          base_n_samples, suffix,
-                                                                                          batch_tag) + '.tsv')
+        path_s = os.path.join(out_dir, f'interm_{tag}_combiExprCohortLim{base_expr}Across{base_n_samples}{suffix}{batch_tag}' + '.tsv')
         if not os.path.isfile(os.path.join(path_s, '_SUCCESS')):
-            logging.info("Filter matrix with cohort expression support > {} in {} sample".format(base_expr,
-                                                                                                 base_n_samples))
+            logging.info(f'Filter matrix with cohort expression support > {base_expr} in {base_n_samples} sample')
             matrix_s = matrix.select(index_name, *[
                 sf.when(sf.col(name_) > base_expr, 1).otherwise(0).alias(name_)
                 for name_ in matrix.schema.names if name_
                 not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
             matrix_s = matrix_s.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))
                                                                  ).filter(lambda x: x[1] >= base_n_samples)
-            logging.info("Save to {}".format(path_s))
+            logging.info(f'Save to {path_s}')
             matrix_s.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_s)
         else:
             logging.info(
-            "Filter matrix with cohort expression support {} in {} sample(s) already performed. Loading results from {}".format(
-                base_expr, base_n_samples, path_s))
-            logging.info("Using intermediate files means ignoring --annotated-flags {} parameter.".format(annot_flag))
+            f'Filter matrix with cohort expression support {base_expr} in {base_n_samples} sample(s) already performed. Loading results from {path_s}')
+            logging.info(f'Using intermediate files means ignoring --annotated-flags {annot_flag} parameter.')
     return path_e, path_s
 
 
@@ -445,7 +439,7 @@ def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers
         normal_matrix_s = normal_matrix_s.withColumnRenamed('_c0', index_name)
         normal_matrix_s = normal_matrix_s.withColumnRenamed('_c1', "n_samples")
         if n_samples_lim_normal > 1:
-            logging.info( "Filter matrix with cohort expression support > {} in {} sample(s)".format(0, n_samples_lim_normal))
+            logging.info( f'Filter matrix with cohort expression support > {0} in {n_samples_lim_normal} sample(s)')
             normal_matrix_s = normal_matrix_s.filter(sf.col('n_samples') >= n_samples_lim_normal)
         normal_matrix_s = normal_matrix_s.select(sf.col(index_name))
         if not path_normal_kmers_e:
@@ -482,8 +476,7 @@ def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, pa
     valid_foreground = valid_foreground.withColumnRenamed('_c1', "n_samples")
     # kmer need to be expressed with >= X reads and this in >= H samples
     if n_samples_lim_cancer > 1:
-        logging.info( "Filter matrix with cohort expression support >= {} in {} sample(s)".format(
-            cohort_expr_support_cancer, n_samples_lim_cancer))
+        logging.info( f'Filter matrix with cohort expression support >= {cohort_expr_support_cancer} in {n_samples_lim_cancer} sample(s)')
         valid_foreground = valid_foreground.filter(sf.col('n_samples') >= n_samples_lim_cancer)
     valid_foreground = valid_foreground.select(sf.col(index_name))
     # Apply to preprocessed matrix
@@ -518,9 +511,9 @@ def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fiel
 
     # Filter on juction status
     if cross_junction == 1:
-        cancer_kmers = cancer_kmers.filter("{} == True".format(jct_col))
+        cancer_kmers = cancer_kmers.filter(f'{jct_col} == True')
     elif cross_junction == 0:
-        cancer_kmers = cancer_kmers.filter("{} == False".format(jct_col))
+        cancer_kmers = cancer_kmers.filter(f'{jct_col} == False')
 
     # Drop junction column
     for drop_col in drop_cols:
@@ -567,10 +560,10 @@ def filter_expr_kmer(matrix_kmers, filter_field, threshold, libsize=None):
     :param libsize_c: dataframe with library size
     :return: filtered spark dataframe with expression counts
     '''
-
-    logging.info("...partitions: {}".format(matrix_kmers.rdd.getNumPartitions()))
+    partitions_ = matrix_kmers.rdd.getNumPartitions()
+    logging.info(f'...partitions: {partitions_}')
     if threshold != 0:
-        logging.info("Filter with {} >= {}".format(filter_field, threshold))
+        logging.info(f'Filter with {filter_field} >= {threshold}')
         # Normalize by library size
         if libsize is not None:
             logging.info("Normalizing cancer counts")
@@ -580,7 +573,7 @@ def filter_expr_kmer(matrix_kmers, filter_field, threshold, libsize=None):
             matrix_kmers = matrix_kmers.filter(sf.col(filter_field) >= threshold)
 
     else:
-        logging.info("Filter with {} > {}".format(filter_field, threshold))
+        logging.info(f'Filter with {filter_field} > {threshold}')
         matrix_kmers = matrix_kmers.filter(sf.col(filter_field) > threshold)
     return matrix_kmers
 
@@ -603,7 +596,8 @@ def combine_cancer(cancer_kmers_segm, cancer_kmers_edge, index_name):
                                                    how='left_anti')
         # if  max( edge expression 1 and 2)<threshold and  max( segment expression 1 and 2)>= threshold: keep
         cancer_kmers = cancer_kmers_edge.union(cancer_kmers_segm)
-        logging.info("...partitions cancer filtered: {}".format(cancer_kmers.rdd.getNumPartitions()))
+        partitions_ = cancer_kmers.rdd.getNumPartitions()
+        logging.info(f'...partitions cancer filtered: {partitions_}')
         return cancer_kmers
     elif (cancer_kmers_segm is None):
         return cancer_kmers_edge
@@ -646,7 +640,7 @@ def save_spark(cancer_kmers, output_dir, path_final_fil, outpartitions=None):
     :param outpartitions: int number of partitions for saving
     '''
     # save
-    logging.info("Save to {}".format(path_final_fil))
+    logging.info(f'Save to {path_final_fil}')
     pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
     if outpartitions is not None:
         cancer_kmers.repartition(outpartitions).write.mode('overwrite').options(header="true", sep="\t").csv(path_final_fil)
@@ -665,8 +659,7 @@ def loader(spark, path_kmer_list):
     '''
     #TODO allow multiple tsv
     if 'tsv' in path_kmer_list[0]:
-        logging.warning("Only the first file of {} will be read. Use list of parquets to process multiple paths".format(
-            path_kmer_list))
+        logging.warning(f'Only the first file of {path_kmer_list} will be read. Use list of parquets to process multiple paths')
         matrix = spark.read.csv(path_kmer_list[0], sep=r'\t', header=False)
     else:
         matrix = spark.read.parquet(*path_kmer_list)
@@ -688,7 +681,7 @@ def output_count(perform_count, matrix, report_count, report_step, step_string):
         mycount = matrix.count()
         report_count.append(mycount)
         report_step.append(step_string)
-        logging.info('# {} n = {} kmers'.format(step_string, mycount))
+        logging.info(f'# {step_string} n = {mycount} kmers')
 
 
 def save_output_count(output_count, report_count, report_steps, prefix, cancer_sample_ori, mutation_mode,
@@ -714,14 +707,14 @@ def save_output_count(output_count, report_count, report_steps, prefix, cancer_s
     :param id_normals: str id of the normal cohort (example gtex)
     '''
     if output_count:
-        header = '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format("sample", "mutation_mode", "min_sample_reads", "#_of_cohort_samples", "reads_per_cohort_sample", "#_normal_samples_allowed", "normal_cohort_id", "reads_per_normal_sample")
-        line =   '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(cancer_sample_ori, mutation_mode, sample_expr_support_cancer, n_samples_lim_cancer, cohort_expr_support_cancer, n_samples_lim_normal, id_normals, cohort_expr_support_normal)
+        header = f'{"sample"}\t{"mutation_mode"}\t{"min_sample_reads"}\t{"#_of_cohort_samples"}\t{"reads_per_cohort_sample"}\t{"#_normal_samples_allowed"}\t{"normal_cohort_id"}\t{"reads_per_normal_sample"}'
+        line =   f'{cancer_sample_ori}\t{mutation_mode}\t{sample_expr_support_cancer}\t{n_samples_lim_cancer}\t{cohort_expr_support_cancer}\t{n_samples_lim_normal}\t{id_normals}\t{cohort_expr_support_normal}'
         for idx in np.arange(len(report_count)):
-            header += "\t{}".format(report_steps[idx])
-            line += "\t{}".format(report_count[idx])
+            header += f'\t{report_steps[idx]}'
+            line += f'\t{report_count[idx]}'
         if prefix:
-            header += "\t{}".format("info")
-            line += "\t{}".format(prefix)
+            header += f'\t{"info"}'
+            line += f'\t{prefix}'
         header += "\n"
         line += "\n"
         if not os.path.exists(output_count):
@@ -729,7 +722,7 @@ def save_output_count(output_count, report_count, report_steps, prefix, cancer_s
                 f.write(header)
         with open(output_count, "a") as f:
             f.write(line)
-        logging.info("Save intermediate info to {}".format(output_count))
+        logging.info(f'Save intermediate info to {output_count}')
 
 
 def redirect_scratch(scratch_dir, interm_dir_norm, interm_dir_canc, output_dir):
