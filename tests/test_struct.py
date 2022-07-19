@@ -208,7 +208,7 @@ def test_end_to_end_cancerspecif_mx():
               '--sample-expr-support-cancer', "4",
               '--cohort-expr-support-cancer', "20",
               "--n-samples-lim-cancer", "1",
-              "--annotated-flags", "C3", "N1", "N4"
+              #"--annotated-flags", "C3", "N1", "N4"
               # "--tot-batches", "4",
               # "--batch-id", "0",
               "--tag-prefix", 'G_',

@@ -387,12 +387,18 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
                               + '.tsv')
         if not os.path.isfile(os.path.join(path_e, '_SUCCESS')):
             logging.info(f'Filter matrix with cohort expression support >= {expr_limit} in {base_n_samples} sample')
+            # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
+            # Skip target sample and metadata
             matrix_e = matrix.select(index_name, *[
                 sf.when(sf.col(name_) >= expr_limit, 1).otherwise(0).alias(name_)
                 for name_ in matrix.schema.names if name_
                 not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
-            matrix_e = matrix_e.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))
-                                                                 ).filter(lambda x: x[1] >= base_n_samples)
+            # Map each kmer: x[0] to the number of samples where the expression threshold is met: sum(x[1:])
+            # Get a tuple (kmer, number of samples where expression >= threshold)
+            # Then filter kmers based on the number of samples
+            # This uses rdds syntax because spark dataframe operations are slower
+            matrix_e = matrix_e.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
+                filter(lambda x: x[1] >= base_n_samples)
             logging.info(f'Save to {path_e}')
             matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e)
         else:
@@ -407,12 +413,18 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
                               + '.tsv')
         if not os.path.isfile(os.path.join(path_s, '_SUCCESS')):
             logging.info(f'Filter matrix with cohort expression support > {base_expr} in {base_n_samples} sample')
+            # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
+            # Skip target sample and metadata
             matrix_s = matrix.select(index_name, *[
                 sf.when(sf.col(name_) > base_expr, 1).otherwise(0).alias(name_)
                 for name_ in matrix.schema.names if name_
                 not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
-            matrix_s = matrix_s.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))
-                                                                 ).filter(lambda x: x[1] >= base_n_samples)
+            # Map each kmer: x[0] to the number of samples where the expression threshold is met: sum(x[1:])
+            # Get a tuple (kmer, number of samples where expression >= threshold)
+            # Then filter kmers based on the number of samples
+            # This uses rdds syntax because spark dataframe operations are slower
+            matrix_s = matrix_s.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
+                filter(lambda x: x[1] >= base_n_samples)
             logging.info(f'Save to {path_s}')
             matrix_s.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_s)
         else:
