@@ -237,7 +237,7 @@ def initialize_fp(output_path: str, mutation_mode: str,
                                 'mutationMode',
                                 'junctionAnnotated', 'hasStopCodon', 'isInJunctionList',
                                 'isIsolated', 'variantComb', 'variantSegExpr', 'modifiedExonsCoord',
-                                'originalExonsCoord', 'vertexIdx',
+                                'originalExonsCoord', 'vertexIdx', 'junctionExpr', 'segmentExpr',
                                 'kmerType']
     cols_pep_file = ['fasta']
     cols_kmer_single_sample_file = ['kmer', 'id', 'segmentExpr', 'isCrossJunction', 'junctionExpr',
@@ -254,8 +254,6 @@ def initialize_fp(output_path: str, mutation_mode: str,
         kmer_segm_expr_fp = _output_info(graph_kmer_segment_expr_path, cols_metaOnly_kmer_cross_sample_file, pq_writer=True)
         kmer_edge_expr_fp = _output_info(graph_kmer_junction_expr_path, cols_metaOnly_kmer_cross_sample_file, pq_writer=True)
     else:  # Expression kmer information from single sample
-        cols_metadata_file.insert(-1, 'junctionExpr')
-        cols_metadata_file.insert(-1, 'segmentExpr')
         junction_kmer_fp = _output_info(junction_kmer_file_path, cols_kmer_single_sample_file, kmer_list)
         kmer_segm_expr_fp = None
         kmer_edge_expr_fp = None

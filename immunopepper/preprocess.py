@@ -262,7 +262,9 @@ def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=N
 
     Returns
     -------
-    count: tuple of float. Expression level for the given edges.
+    edges_res: tuple of floats. Expression level for the given edges.
+    edges_res_metafile: adapted value for the peptide metafile.
+    Is nan if matrix mode, because we do not report peptide expressions per sample in this mode
     """
     def get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts=None):
         a = np.searchsorted(segmentgraph.segments[1, :], sorted_pos[1])
@@ -278,6 +280,7 @@ def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=N
             counts = np.array([edge_counts[cidx]])
         return counts
 
+    edges_res_metafile = np.nan
     segmentgraph = gene.segmentgraph
     sorted_pos = np.sort(np.array([coord.start_v1, coord.stop_v1, coord.start_v2, coord.stop_v2]))
 
@@ -292,8 +295,9 @@ def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=N
 
     if not cross_graph_expr:
         edges_res = edges_res[0]
+        edges_res_metafile = edges_res
 
-    return edges_res
+    return edges_res_metafile, edges_res
 
 def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
     """ Parse the count file

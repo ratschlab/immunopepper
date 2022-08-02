@@ -259,11 +259,13 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr):
 
     Returns
     -------
-    mean_expr: float. The average expression counts for the given exon-pair
+    expr_meta_file: float. The average expression counts for the given exon-pair.
+        Is nan if matrix mode, because we do not report peptide expressions per sample in this mode
     expr1: List[Tuple(int,float)] (int, float) represents the length of segment
         and the expression count of that segment.
 
     """
+    expr_meta_file = np.nan
     if coord.start_v3 is None:
         expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts ),
                                get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts )])
@@ -278,8 +280,8 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr):
     len_factor = np.tile(expr_list[:, 0], n_samples).reshape(n_samples, expr_list.shape[0]).transpose()
     mean_expr = (np.sum(expr_list[:, 1:]*len_factor, 0) / seg_len).astype(int) if seg_len > 0 else np.zeros(n_samples).astype(int)
     if not cross_graph_expr:
-        mean_expr = mean_expr[0]
-    return mean_expr,expr_list
+        expr_meta_file = mean_expr[0]
+    return expr_meta_file, expr_list
 
 
 def get_total_gene_expr(gene, countinfo, Idx, seg_expr, cross_graph_expr):

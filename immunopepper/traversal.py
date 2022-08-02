@@ -297,13 +297,13 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
 
                     # collect expression data
                     if  countinfo:
-                        segment_expr, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts, cross_graph_expr=cross_graph_expr)
+                        segment_expr_meta, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts, cross_graph_expr=cross_graph_expr)
                     else:
-                        segment_expr, expr_list = np.nan, None
+                        segment_expr_meta, expr_list = np.nan, None
                     if countinfo and not flag.is_isolated and edge_counts is not None: ## Will flag is isolated overlap with edge_counts is None?
-                        edge_expr = search_edge_metadata_segmentgraph(gene, modi_coord, edge_idxs, edge_counts, cross_graph_expr=cross_graph_expr)
+                        edge_expr_meta, edge_expr = search_edge_metadata_segmentgraph(gene, modi_coord, edge_idxs, edge_counts, cross_graph_expr=cross_graph_expr)
                     else:
-                        edge_expr = np.nan
+                        edge_expr_meta, edge_expr = np.nan, np.nan
 
                     ### Peptides
                     peptide_set.add(namedtuple_to_str(OutputMetadata(peptide=peptide.mut[pep_idx],
@@ -324,7 +324,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                                        original_exons_coord=vertex_pair.original_exons_coord,
                                        vertex_idx=vertex_list,
                                        junction_expr=edge_expr,
-                                       segment_expr=segment_expr,
+                                       segment_expr=segment_expr_meta,
                                        kmer_type=kmer_type
                                        ), sep = '\t'))
                     variant_id += 1
