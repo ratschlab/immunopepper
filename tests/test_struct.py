@@ -38,6 +38,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
     out_dir = str(tmpdir)
     #sample_dir_build = os.path.join(os.path.dirname(__file__), 'test{}'.format(test_id),'diff','{}'.format(case),'test{}{}'.format(test_id,case))
     my_args_build = ['build',
+               #'--disable-process-libsize',
                '--output-samples', 'ENCSR000BZG',  #'ERR2130621','ENCSR000BZG'
                #'--mutation-sample', 'ERR2130621',
                #'--pickle-samples', 'ERR2130621',
@@ -50,7 +51,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
                '--batch-size', '1',
                '--output-fasta',
                #'--all-read-frames',
-               '--process-num', '1',
+               #'--process-num', '1',
                '--verbose', '1',
                #'--min-pep-len', '2',
                #'--process-chr', 'chr2',
@@ -237,7 +238,7 @@ mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
 #for mutation_mode in ['ref', 'somatic', 'germline', 'somatic_and_germline']:
-#test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=True) #TODO add back
+test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=True) #TODO add back
 
 #test_end_to_end_samplespecif('ERR2130621', tmpdir, "9", mutation_mode) # TEST DEPRECATED
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
@@ -249,7 +250,7 @@ mutation_mode ='ref'
 #test_end_to_end_crosscohort(tmpdir) #TODO add back
 #mini_crosscohort()
 #test_end_to_end_cancerspecif()
-test_end_to_end_cancerspecif_mx()
+#test_end_to_end_cancerspecif_mx()
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 

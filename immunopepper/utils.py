@@ -341,17 +341,20 @@ def create_libsize(expr_distr_fp, output_fp, sample, debug=False):
     output_fp: file pointer. library_size text
     debug: Bool. In debug mode, return the libsize_count dictionary.
     """
+    libsize_exists = ''
     sample_expr_distr = pa.parquet.read_table(expr_distr_fp['path']).to_pandas()
 
-    libsize_count= pd.DataFrame({'sample': sample_expr_distr.columns[1:],
+    libsize_count = pd.DataFrame({'sample': sample_expr_distr.columns[1:],
                                  'libsize_75percent': np.percentile(sample_expr_distr.iloc[:, 1:], 75, axis=0, interpolation='linear'),
                                   'libsize_total_count': np.sum(sample_expr_distr.iloc[:, 1:], axis=0)}, index = None)
 
     df_libsize = pd.DataFrame(libsize_count)
 
     if os.path.isfile(output_fp):
-        previous_libsize =  pd.read_csv(output_fp, sep = '\t')
+        previous_libsize = pd.read_csv(output_fp, sep = '\t')
         df_libsize = pd.concat([previous_libsize, df_libsize], axis=0).drop_duplicates(subset=['sample'], keep='last')
+        libsize_exists = ': append to existing file.'
+    logging.info(f'Saved library size results to {output_fp}{libsize_exists}')
     df_libsize.to_csv(output_fp, sep='\t', index=False)
 
 

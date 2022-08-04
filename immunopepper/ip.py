@@ -58,8 +58,8 @@ def parse_arguments(argv):
     outputs.add_argument("--output-silence", help=argparse.SUPPRESS, action="store_true", default=False)     # output mutated peptide even it is the same as reference peptide
     outputs.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
     outputs.add_argument("--gtex-junction-path", help="absolute path of whitelist junction file, currently only support hdf5 format. Will suport tsv format in the future", required=False, default=None)
-    parameters.add_argument("--disable-concat", help="switch off concatenation of short exons to increase speed", action="store_true",default=False)
-    parameters.add_argument("--disable_process_libsize", help="sample library size generation to increase speed", action="store_true",default=False)
+    parameters.add_argument("--disable-concat", help="switch off concatenation of short exons to increase speed", action="store_true", default=False)
+    parameters.add_argument("--disable-process-libsize", help="sample library size generation to increase speed", action="store_true", default=False)
 
     mutation = parser_build.add_argument_group('MUTATION FILES: Arguments needed for integration of the germline varinats or somatic mutations')
     mutation.add_argument("--mutation-sample", help="sample id for the somatic and germline application, ids should match the count/graphs but equivalence with the mutation files can be specified (see --sample-name-map)", required=False, default=None)

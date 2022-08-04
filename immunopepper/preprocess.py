@@ -609,7 +609,7 @@ def parse_gene_choices(genes_interest, process_chr, process_num, complexity_cap,
         graph_data = graph_data[:num]
         disable_process_libsize = True
         logging.warning(
-            "Developer mode, processing the first {} genes. Library size will not be outputted".format(process_num))
+            "Developer mode, processing the first {} genes. Library size will not be outputted.".format(process_num))
 
     if genes_interest is not None:
         genes_interest = pd.read_csv(genes_interest, header=None)[0].tolist()
@@ -634,7 +634,7 @@ def parse_gene_choices(genes_interest, process_chr, process_num, complexity_cap,
 
 
     if complexity_cap is None or complexity_cap==0: #Default no complexity cap
-        complexity_cap=np.inf
+        complexity_cap = np.inf
 
     return graph_data, genes_interest, num, complexity_cap, disable_process_libsize
 

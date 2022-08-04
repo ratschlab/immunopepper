@@ -151,6 +151,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
         batch_name = int(outbase.split('/')[-1].split('_')[-1])
     else:
         batch_name = 'all'
+
     if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "output_sample_IS_SUCCESS"))):
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
         dict_kmer_foregr = defaultdict(dict, {})
@@ -211,10 +212,11 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             if (gene.name in genetable.gene_to_cds_begin) and (gene.name in genetable.gene_to_ts) and countinfo:
                 gene_expr.append([gene.name] + get_total_gene_expr(gene, countinfo, idx,
                                                                    seg_counts, arg.cross_graph_expr))
-            # Gene of interest
+            # Process only gene of interest
             if (gene.name not in genes_interest):
                 continue
-            # Genes with highly complex splicegraphs
+
+            # Do not process genes with highly complex splicegraphs
             if (len(gene.splicegraph.vertices[1]) > complexity_cap):
                 logging.warning(f'> Gene {gene.name} has a edge complexity > {complexity_cap}, not processed')
                 continue
@@ -278,11 +280,12 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
         save_gene_expr_distr(gene_expr, arg.output_samples, output_sample,  filepointer, outbase, compression, verbose)
         save_fg_peptide_set(set_pept_forgrd, filepointer, compression, outbase, arg.output_fasta, verbose)
         set_pept_forgrd.clear()
-        if not arg.cross_graph_expr:
+        if not arg.cross_graph_expr: # Write kmer file for single sample (multiple kmer lengths supported)
             for kmer_length in dict_kmer_foregr:
                 save_fg_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
             dict_kmer_foregr.clear()
-        if arg.cross_graph_expr and filepointer.kmer_segm_expr_fp['pqwriter'] is not None:
+        if arg.cross_graph_expr \
+                and filepointer.kmer_segm_expr_fp['pqwriter'] is not None: # Write kmer files for multiple samples
             filepointer.kmer_segm_expr_fp['pqwriter'].close()
             filepointer.kmer_edge_expr_fp['pqwriter'].close()
 
@@ -295,7 +298,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
         if (batch_name != 'all') and (batch_name % 10000 == 0):
             logging.info(logging_string)
 
-    else:
+    else: # Batch has already been saved to disk
         logging_string = f'> {output_sample}: Batch {batch_name} exists, skip processing'
         logging.debug(logging_string)
         if (batch_name != 'all') and (batch_name % 10000 == 0):
