@@ -266,7 +266,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                                             size_factor=None,
                                             junction_list=junction_list,
                                             kmer=arg.kmer,
-                                            output_silence=arg.output_silence,
+                                            force_ref_peptides=arg.force_ref_peptides,
                                             out_dir=outbase,
                                             edge_idxs=edge_idxs,
                                             edge_counts=edge_counts,

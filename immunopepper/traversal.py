@@ -228,7 +228,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                          mutation=None, mut_count_id=None, table=None,
                          size_factor=None, junction_list=None,
                          filepointer=None,
-                         output_silence=False, kmer=None,
+                         force_ref_peptides=False, kmer=None,
                          cross_graph_expr=None, all_read_frames=None, graph_output_samples_ids=None,
                          graph_samples=None,out_dir=None, verbose_save=None):
     """
@@ -251,7 +251,8 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
     junction_list: List. Work as a filter to indicate some exon pair has certain
        ordinary intron which can be ignored further.
     filepointer: namedtuple, contains the columns and paths of each file of interest
-    output_silence: bool, flag indicating whether not to silence annotated peptides
+    force_ref_peptides: bool, flag indicating whether to force output of
+        mutated peptides which are the same as reference peptides
     kmer: list containing the length of the kmers requested
     out_dir: str, base direactory used for temporary files
     cross_graph_expr: bool, whether to generate the expression kmer matrix with all samples from graph
@@ -287,7 +288,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                     # (1) peptide is empty peptide
                     # (2) In mutation mode the peptide is the same as the reference, unless the user forced redundancy
                     if not peptide.mut[pep_idx] \
-                            or ((mutation.mode != 'ref') and (peptide.mut[pep_idx] in peptide.ref) and (not output_silence)):
+                            or ((mutation.mode != 'ref') and (peptide.mut[pep_idx] in peptide.ref) and (not force_ref_peptides)):
                         continue
 
                     new_output_id = ':'.join([gene.name, '_'.join([str(v) for v in vertex_list]), str(variant_id), str(tran_start_pos), kmer_type])

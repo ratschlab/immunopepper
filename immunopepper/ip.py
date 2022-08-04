@@ -56,7 +56,7 @@ def parse_arguments(argv):
     outputs.add_argument("--skip-tmpfiles-rm", help='skip the removal of the intermediate directories in parallel mode', action="store_true", default=False)
     outputs.add_argument("--libsize-path", nargs='?', help=argparse.SUPPRESS, required=False, default=None)     #specify the absolute path to expression library sizes if we want to append to a file
     outputs.add_argument("--output-fasta", help="if True outputs both the sample peptide metadata and the fasta, else outputs only metadata", action="store_true", required=False, default=False)
-    outputs.add_argument("--output-silence", help=argparse.SUPPRESS, action="store_true", default=False)     # output mutated peptide even it is the same as reference peptide
+    outputs.add_argument("--force-ref-peptides", help="output mutated peptide even it is the same as reference peptide", action="store_true", default=False)
     outputs.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
     outputs.add_argument("--gtex-junction-path", help="absolute path of whitelist junction file, currently only support hdf5 format. Will suport tsv format in the future", required=False, default=None)
     parameters.add_argument("--disable-concat", help="switch off concatenation of short exons to increase speed", action="store_true", default=False)
