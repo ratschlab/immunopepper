@@ -405,6 +405,9 @@ def get_concat_peptide(front_coord_pair, back_coord_pair, front_peptide, back_pe
     else:
         return ''
 
+def replace_I_with_L(kmer):
+    return kmer.replace('I', 'L')
+
 def check_chr_consistence(ann_chr_set, mutation, graph_data):
     germline_chr_set = set()
     somatic_chr_set = set()

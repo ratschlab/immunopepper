@@ -29,6 +29,7 @@ from immunopepper.preprocess import parse_junction_meta_info
 from immunopepper.preprocess import parse_gene_choices
 from immunopepper.preprocess import parse_gene_metadata_info
 from immunopepper.preprocess import parse_output_samples_choices
+from immunopepper.preprocess import parse_uniprot
 from immunopepper.preprocess import preprocess_ann
 from immunopepper.traversal import collect_background_transcripts
 from immunopepper.traversal import collect_vertex_pairs
@@ -145,8 +146,8 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
 
 def process_gene_batch_foreground(output_sample, mutation_sample, output_samples_ids, genes,
                                   genes_info, gene_idxs, n_genes, genes_interest, disable_process_libsize,
-                                  all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable,
-                                  arg, outbase, filepointer, compression, verbose):
+                                  all_read_frames, complexity_cap, mutation, junction_dict, kmer_database,
+                                  countinfo, genetable, arg, outbase, filepointer, compression, verbose):
     if arg.parallel > 1:
         batch_name = int(outbase.split('/')[-1].split('_')[-1])
     else:
@@ -265,6 +266,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                                             table=genetable,
                                             size_factor=None,
                                             junction_list=junction_list,
+                                            kmer_database=kmer_database,
                                             kmer=arg.kmer,
                                             force_ref_peptides=arg.force_ref_peptides,
                                             out_dir=outbase,
@@ -371,6 +373,9 @@ def mode_build(arg):
     # read the intron of interest file gtex_junctions.hdf5
     junction_dict = parse_junction_meta_info(arg.gtex_junction_path)
 
+    # read and process uniprot file
+    kmer_database = parse_uniprot(arg.kmer_database)
+
     # process the genes according to the annotation file
     # add CDS starts and reading frames to the respective nodes
     logging.info('Add reading frame to splicegraph ...')
@@ -448,7 +453,8 @@ def mode_build(arg):
             with mp.Pool(processes=arg.parallel, initializer=pool_initializer) as pool:
                 args = [(output_sample, arg.mutation_sample, output_samples_ids, graph_data[gene_idx],
                          graph_info[gene_idx], gene_idx, n_genes, genes_interest, disable_process_libsize,
-                         arg.all_read_frames, complexity_cap, mutation, junction_dict, countinfo, genetable, arg,
+                         arg.all_read_frames, complexity_cap, mutation, junction_dict, kmer_database,
+                         countinfo, genetable, arg,
                          os.path.join(output_path, f'tmp_out_{mutation.mode}_batch_{i + arg.start_id}'),
                          filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
                 result = pool.imap(mapper_funct, args, chunksize=1)
@@ -483,7 +489,7 @@ def mode_build(arg):
             logging.info(">>>>>>>>> Start Foreground processing")
             process_gene_batch_foreground( output_sample, arg.mutation_sample, output_samples_ids, graph_data,
                                            graph_info, genes_range, n_genes, genes_interest, disable_process_libsize,
-                                           arg.all_read_frames, complexity_cap, mutation, junction_dict,
+                                           arg.all_read_frames, complexity_cap, mutation, junction_dict, kmer_database,
                                            countinfo, genetable, arg, output_path, filepointer, pq_compression,
                                            verbose=True)
 

@@ -58,6 +58,7 @@ def parse_arguments(argv):
     outputs.add_argument("--output-fasta", help="if True outputs both the sample peptide metadata and the fasta, else outputs only metadata", action="store_true", required=False, default=False)
     outputs.add_argument("--force-ref-peptides", help="output mutated peptide even it is the same as reference peptide", action="store_true", default=False)
     outputs.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
+    outputs.add_argument("--kmer-database", help="absolute path of database file with kmers on one column (no header). If provided, the kmers matching the given database with I and L equivalence will not be outputted.", required=False, default=None)
     outputs.add_argument("--gtex-junction-path", help="absolute path of whitelist junction file, currently only support hdf5 format. Will suport tsv format in the future", required=False, default=None)
     parameters.add_argument("--disable-concat", help="switch off concatenation of short exons to increase speed", action="store_true", default=False)
     parameters.add_argument("--disable-process-libsize", help="sample library size generation to increase speed", action="store_true", default=False)

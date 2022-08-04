@@ -30,6 +30,7 @@ from immunopepper.translate import isolated_peptide_result
 from immunopepper.translate import get_peptide_result
 from immunopepper.translate import cross_peptide_result
 from immunopepper.utils import get_segment_expr
+from immunopepper.utils import replace_I_with_L
 
 
 def collect_background_transcripts(gene=None, ref_seq_file=None, chrm=None, mutation=None):
@@ -226,7 +227,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                          exon_som_dict=None, countinfo=None,
                          edge_idxs=None, edge_counts=None, seg_counts=None,
                          mutation=None, mut_count_id=None, table=None,
-                         size_factor=None, junction_list=None,
+                         size_factor=None, junction_list=None, kmer_database=None,
                          filepointer=None,
                          force_ref_peptides=False, kmer=None,
                          cross_graph_expr=None, all_read_frames=None, graph_output_samples_ids=None,
@@ -250,6 +251,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
     size_factor: Scalar. To adjust the expression counts based on the external file `libsize.tsv`
     junction_list: List. Work as a filter to indicate some exon pair has certain
        ordinary intron which can be ignored further.
+    kmer_database: Set. kmers to be removed on the fly from the kmer sample or matrix files
     filepointer: namedtuple, contains the columns and paths of each file of interest
     force_ref_peptides: bool, flag indicating whether to force output of
         mutated peptides which are the same as reference peptides
@@ -342,19 +344,19 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
 
                     ### kmers
                     if cross_graph_expr: #generate kmer x sample expression matrix for all samples in graph
-                        kmer_matrix = create_output_kmer_cross_samples(output_peptide, kmer[0], expr_list, graph_output_samples_ids, kmer_matrix) # Only one kmer lengthsupported for this mode
+                        kmer_matrix = create_output_kmer_cross_samples(output_peptide, kmer[0], expr_list, graph_output_samples_ids, kmer_matrix, kmer_database) # Only one kmer lengthsupported for this mode
 
                     else:
                         if kmer:
                             if '2-exons' in kmer_type: #generate sample kmers for each vertex pair and each kmer_length
                                 for kmer_length in kmer:
                                     add_kmer_properties(kmer_dict[kmer_length],
-                                                             create_output_kmer(output_peptide, kmer_length, expr_list)) #TODO create other type of kmer dictionnary, + other saving function for batch // OR SAVE STRAIGHT away # adapt kmer to list of expressins -- keep cros junction info
+                                                             create_output_kmer(output_peptide, kmer_length, expr_list, kmer_database)) #TODO create other type of kmer dictionnary, + other saving function for batch // OR SAVE STRAIGHT away # adapt kmer to list of expressins -- keep cros junction info
 
                             else: #generate sample kmers for each vertex triplets, only for the kmer_lengths that require it
                                 kmer_length = int(kmer_type.split('_')[-1].split('-')[0])
                                 add_kmer_properties(kmer_dict[kmer_length],
-                                                         create_output_kmer(output_peptide, kmer_length, expr_list))
+                                                         create_output_kmer(output_peptide, kmer_length, expr_list, kmer_database))
 
         if not gene.splicegraph.edges is None:
             gene.to_sparse()
@@ -426,7 +428,7 @@ def get_and_write_background_peptide_and_kmer(peptide_dict, kmer_dict, gene, ref
 
 
 
-def create_output_kmer(output_peptide, k, expr_list):
+def create_output_kmer(output_peptide, k, expr_list, kmer_database=None):
     """Calculate the output kmer and the corresponding expression based on output peptide
 
     Parameters
@@ -434,6 +436,8 @@ def create_output_kmer(output_peptide, k, expr_list):
     output_peptide: OutputJuncPeptide. Filtered output_peptide_list.
     k: int. Specify k-mer length
     expr_lists: List(Tuple). Filtered expr_list.
+    kmer_database: Set of kmers to be removed on the fly,
+    usually from a public database as uniprot. I and L equivalence is applied
 
     Returns
     -------
@@ -473,6 +477,8 @@ def create_output_kmer(output_peptide, k, expr_list):
     if len(peptide) >= k:
         for j in range(len(peptide) - k + 1):
             kmer_peptide = peptide[j:j+k]
+            if kmer_database and (replace_I_with_L(kmer_peptide) in kmer_database): # remove on the fly peptides from a database
+                continue
             if expr_array is None:
                 kmer_peptide_expr = np.nan
             else:
@@ -497,7 +503,7 @@ def create_output_kmer(output_peptide, k, expr_list):
     return output_kmer_list
 
 
-def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_output_samples_ids, kmer_matrix):
+def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_output_samples_ids, kmer_matrix, kmer_database):
     """Calculate the output kmer and the corresponding expression based on output peptide
 
     Parameters
@@ -506,8 +512,10 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
     k: int. Specify k-mer length
     segm_expr_list: List(Tuple). Filtered expr_list.
     graph_samples: samples list found in graph
-    kmer_matrix: [will contain unique kmers per gene (1), is_junction (2), segments expr per sample (3), junction expr per sample (4)]
-
+    kmer_matrix: [will contain unique kmers per gene
+    (1), is_junction (2), segments expr per sample (3), junction expr per sample (4)]
+    kmer_database: Set of kmers to be removed on the fly,
+    usually from a public database as uniprot. I and L equivalence is applied
 
     Returns
     -------
@@ -574,7 +582,8 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
                 W_past = W
 
             # update the cross samples matrix
-            if sum(np.isnan(sublist_seg)) != len(sublist_seg) or sum(np.isnan(sublist_jun)) != len(sublist_jun):
+            if (sum(np.isnan(sublist_seg)) != len(sublist_seg) or sum(np.isnan(sublist_jun)) != len(sublist_jun)) and \
+                    ((not kmer_database) or (replace_I_with_L(kmer_peptide) not in kmer_database)): # remove on the fly peptides from a database
                 if kmer_peptide not in kmer_matrix[0]:
                     kmer_matrix[0][kmer_peptide] = is_in_junction
                     kmer_matrix[1][kmer_peptide] = np.round(sublist_seg, 2)

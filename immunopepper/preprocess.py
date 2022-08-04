@@ -18,6 +18,7 @@ from immunopepper.utils import find_overlapping_cds_simple
 from immunopepper.utils import get_successor_list
 from immunopepper.utils import leq_strand
 from immunopepper.utils import pool_initializer
+from immunopepper.utils import replace_I_with_L
 
 
 def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frames=False):
@@ -595,6 +596,14 @@ def parse_junction_meta_info(h5f_path):
                 junction_dict[decode_utf8(ichr)] = set([':'.join([pos[i, 0], pos[i, 1], decode_utf8(strand[i])])])
     return junction_dict
 
+
+def parse_uniprot(uniprot_path):
+
+    if uniprot_path:
+        uniprot = set(pd.read_csv(uniprot_path, header=None)[0])
+        return set(map(replace_I_with_L, uniprot))
+    else:
+        return None
 
 def parse_gene_choices(genes_interest, process_chr, process_num, complexity_cap, disable_process_libsize, graph_data):
 
