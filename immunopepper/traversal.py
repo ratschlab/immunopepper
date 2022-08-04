@@ -252,7 +252,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
        ordinary intron which can be ignored further.
     filepointer: namedtuple, contains the columns and paths of each file of interest
     output_silence: bool, flag indicating whether not to silence annotated peptides
-    kmer: bool, flag indicating whether to output kmers for this parse
+    kmer: list containing the length of the kmers requested
     out_dir: str, base direactory used for temporary files
     cross_graph_expr: bool, whether to generate the expression kmer matrix with all samples from graph
     graph_samples: list, samples contained in the splicing graph object

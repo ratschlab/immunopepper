@@ -134,7 +134,7 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
         if (batch_name != 'all') and (batch_name % 10000 == 0):
             logging.info(logging_string)
 
-    else:
+    else:  # Batch has already been saved to disk
         logging_string = f'> {output_sample} : Batch {batch_name} exists, skip processing'
         logging.debug(logging_string)
         if (batch_name != 'all') and (batch_name % 10000 == 0):
@@ -212,6 +212,13 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             if (gene.name in genetable.gene_to_cds_begin) and (gene.name in genetable.gene_to_ts) and countinfo:
                 gene_expr.append([gene.name] + get_total_gene_expr(gene, countinfo, idx,
                                                                    seg_counts, arg.cross_graph_expr))
+
+            # Process only gene quantifications and libsizes
+            if arg.libsize_extract:
+                time_per_gene.append(timeit.default_timer() - start_time)
+                mem_per_gene.append(print_memory_diags(disable_print=True))
+                continue
+
             # Process only gene of interest
             if (gene.name not in genes_interest):
                 continue
@@ -281,7 +288,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
         save_fg_peptide_set(set_pept_forgrd, filepointer, compression, outbase, arg.output_fasta, verbose)
         set_pept_forgrd.clear()
         if not arg.cross_graph_expr: # Write kmer file for single sample (multiple kmer lengths supported)
-            for kmer_length in dict_kmer_foregr:
+            for kmer_length in arg.kmer:
                 save_fg_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
             dict_kmer_foregr.clear()
         if arg.cross_graph_expr \
@@ -425,7 +432,7 @@ def mode_build(arg):
             gene_batches = [(i, genes_range[i:min(i + batch_size, n_genes)]) for i in
                             range(0, n_genes, batch_size)]
 
-            if not arg.skip_annotation:
+            if (not arg.skip_annotation) and not (arg.libsize_extract):
                 # Build the background
                 logging.info(">>>>>>>>> Start Background processing")
                 with mp.Pool(processes=arg.parallel, initializer=pool_initializer) as pool:
@@ -468,7 +475,7 @@ def mode_build(arg):
             logging.info('Not Parallel')
             # Build the background
             logging.info(">>>>>>>>> Start Background processing")
-            if not arg.skip_annotation:
+            if (not arg.skip_annotation) and not (arg.libsize_extract):
                 process_gene_batch_background(output_sample, arg.mutation_sample, graph_data, genes_range, n_genes,
                                               mutation, countinfo, genetable, arg, output_path, filepointer,
                                               pq_compression, verbose=True)

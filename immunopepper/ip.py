@@ -31,6 +31,7 @@ def parse_arguments(argv):
     required.add_argument("--kmer", nargs='+', type=int, help="list which specifys the different k for kmer output", required=True, default=[])
 
     submodes = parser_build.add_argument_group('SUBMODES PROCESS: Conceptual choices about the processing required')
+    submodes.add_argument("--libsize-extract", help="goes through the graph only to output gene quantifications and library sizes. Skips neoepitope generation", action="store_true", required=False, default=False)
     submodes.add_argument("--all-read-frames", help="switch from annotated freading frames to exhaustive translation", action="store_true", required=False, default=False)
     submodes.add_argument("--count-path", help="absolute path of count hdf5 file. If not provided candidates are outputted without expression quantification", required=False, default=None)
     submodes.add_argument("--output-samples", nargs='+', help="list of sample names to output, names must match the graph samples. If not provided, all count samples will be outputted (runs faster)", required=False, default=[])
