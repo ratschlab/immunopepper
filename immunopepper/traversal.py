@@ -554,25 +554,28 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
     if len(peptide) >= k:
         for j in range(len(peptide) - k + 1):
             kmer_peptide = peptide[j:j+k]
-
-            # junction expression
-            is_in_junction = True
-            if j in spanning_index1_2:
-                sublist_jun = np.nanmin(np.array(junction_count), axis=0)[graph_output_samples_ids] if junction_count is not np.nan \
-                    else np.empty((len(graph_output_samples_ids),)) * np.nan
-                junction_annotated = np.nanmax(output_peptide.junction_annotated)
-            elif j in spanning_index1:
-                sublist_jun = junction_count[0][graph_output_samples_ids] if junction_count is not np.nan \
-                    else np.empty((len(graph_output_samples_ids),)) * np.nan
-                junction_annotated = output_peptide.junction_annotated[0]
-            elif j in spanning_index2:
-                sublist_jun = junction_count[1][graph_output_samples_ids] if junction_count is not np.nan \
-                    else np.empty((len(graph_output_samples_ids),)) * np.nan
-                junction_annotated = output_peptide.junction_annotated[1]
-            else:
-                is_in_junction = False
-                sublist_jun = np.empty((len(graph_output_samples_ids),)) * np.nan
-                junction_annotated = np.nan
+            
+            check_database = ((not kmer_database) or (replace_I_with_L(kmer_peptide) not in kmer_database)) # remove on the fly peptides from a database
+            
+            if check_database:
+                # junction expression
+                is_in_junction = True
+                if j in spanning_index1_2:
+                    sublist_jun = np.nanmin(np.array(junction_count), axis=0)[graph_output_samples_ids] if junction_count is not np.nan \
+                        else np.empty((len(graph_output_samples_ids),)) * np.nan
+                    junction_annotated = np.nanmax(output_peptide.junction_annotated)
+                elif j in spanning_index1:
+                    sublist_jun = junction_count[0][graph_output_samples_ids] if junction_count is not np.nan \
+                        else np.empty((len(graph_output_samples_ids),)) * np.nan
+                    junction_annotated = output_peptide.junction_annotated[0]
+                elif j in spanning_index2:
+                    sublist_jun = junction_count[1][graph_output_samples_ids] if junction_count is not np.nan \
+                        else np.empty((len(graph_output_samples_ids),)) * np.nan
+                    junction_annotated = output_peptide.junction_annotated[1]
+                else:
+                    is_in_junction = False
+                    sublist_jun = np.empty((len(graph_output_samples_ids),)) * np.nan
+                    junction_annotated = np.nan
 
             # segment expression
             if segm_expr_list is None:
@@ -601,7 +604,7 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
 
             # update the cross samples matrix
             if (sum(np.isnan(sublist_seg)) != len(sublist_seg) or sum(np.isnan(sublist_jun)) != len(sublist_jun)) and \
-                    ((not kmer_database) or (replace_I_with_L(kmer_peptide) not in kmer_database)): # remove on the fly peptides from a database
+                    (check_database):
                 if kmer_peptide not in kmer_matrix[0]:
                     kmer_matrix[0][kmer_peptide] = is_in_junction
                     kmer_matrix[1][kmer_peptide] = np.round(sublist_seg, 2)
