@@ -200,7 +200,7 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
         logging.info("Remove Nans")
         matrix = matrix.na.fill(0)
 
-        # Remove kmers present in the table but absents from all samples
+        # Remove kmers present in the table but absent mapping from all samples
         logging.info("Remove non expressed kmers SQL-")
         partitions_ = matrix.rdd.getNumPartitions()
         logging.info(f'...partitions: {partitions_}')
@@ -340,7 +340,7 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
                           out_dir, expr_limit, n_samples_lim, target_sample='', annot_flag=[],
                           tag='normals', batch_tag=''):
     '''
-    Filter samples based on >0 and >=X reads expressed (expansive operations) and save intermediate files.
+    Filter samples based on >0 and >=X reads expressed (expensive operations) and save intermediate files.
     Additional thresholds will be applied specifically for cancer or normals matrices in subsequent combine functions
     a. kmer need to be if >= X reads in >= 1 sample -> saved as intermediate file as path_e (expression)
     b. kmer needs to be >0 reads in >= 1 sample -> saved as intermediate file as path_s (sample)
@@ -356,9 +356,9 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
     :param n_samples_lim: int number of samples that need to pass the expression limit
     :param target_sample: str name of the sample of interest.
     To be excluded in the number of samples that pass the expression limit
-    :param annot_flag: list with the intruction codes on how to treat the reading frame and junction annotated flags
+    :param annot_flag: list with the instruction codes on how to treat the reading frame and junction annotated flags
     :param tag: str tag related to the type of samples. Example cancer or normal
-    :param batch_tag: str batch mode, batch tag to be appened to intermediate file
+    :param batch_tag: str batch mode, batch tag to be appended to intermediate file
     :return: path_e, path_s respectively path where
     the expression-filtered matrix and the sample-filtered matrix are saved
     '''
@@ -653,7 +653,7 @@ def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
 
 def save_spark(cancer_kmers, output_dir, path_final_fil, outpartitions=None):
     '''
-    Saves a spark datadrame as a single or partitionned csv file
+    Saves a spark dataframe as a single or partitioned csv file
     :param cancer_kmers: spark dataframe matrix with expression counts for cancer
     :param output_dir: str path for output directory
     :param path_final_fil: str path to save the spark dataframe

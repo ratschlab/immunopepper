@@ -28,13 +28,13 @@ def parse_arguments(argv):
     required.add_argument("--ann-path", help="absolute path of reference gene annotation file", required=True)
     required.add_argument("--splice-path", help="absolute path of splicegraph file", required=True)
     required.add_argument("--ref-path", help="absolute path of reference genome file", required=True)
-    required.add_argument("--kmer", nargs='+', type=int, help="list which specifys the different k for kmer output", required=True, default=[])
+    required.add_argument("--kmer", nargs='+', type=int, help="list which specifies the different k for kmer output", required=True, default=[])
 
     submodes = parser_build.add_argument_group('SUBMODES PROCESS: Conceptual choices about the processing required')
     submodes.add_argument("--libsize-extract", help="goes through the graph only to output gene quantifications and library sizes. Skips neoepitope generation", action="store_true", required=False, default=False)
-    submodes.add_argument("--all-read-frames", help="switch from annotated freading frames to exhaustive translation", action="store_true", required=False, default=False)
-    submodes.add_argument("--count-path", help="absolute path of count hdf5 file. If not provided candidates are outputted without expression quantification", required=False, default=None)
-    submodes.add_argument("--output-samples", nargs='+', help="list of sample names to output, names must match the graph samples. If not provided, all count samples will be outputted (runs faster)", required=False, default=[])
+    submodes.add_argument("--all-read-frames", help="switch from annotated reading frames to exhaustive translation", action="store_true", required=False, default=False)
+    submodes.add_argument("--count-path", help="absolute path of count hdf5 file. If not provided candidates are output without expression quantification", required=False, default=None)
+    submodes.add_argument("--output-samples", nargs='+', help="list of sample names to output, names must match the graph samples. If not provided, all count samples will be output (runs faster)", required=False, default=[])
     submodes.add_argument("--cross-graph-expr", help="switches from per sample edge + segment expression files to edge (resp segment) expression matrices [kmer/peptides x samples]", action="store_true", required=False, default=False)
     submodes.add_argument("--heter-code", type=int, help=argparse.SUPPRESS, default=0) # if count expression data is provided in h5 format, specify the code for heterzygous
 
@@ -47,7 +47,7 @@ def parse_arguments(argv):
     subset = parser_build.add_argument_group('SUBSET: Process subsets of the graph')
     subset.add_argument("--process-chr", nargs='+',  help="Only process the list of given chromosomes from the splicegraph, default: process all", required=False, default=None)
     subset.add_argument("--complexity-cap", type=int, help="limit the processing of the foreground to genes with complexity less than the cap", required=False, default=None)
-    subset.add_argument("--genes-interest", help="only process the genes given as input. Path to file without header", required=False, default=None)
+    subset.add_argument("--genes-interest", help="only process the genes given as input. One gene-ID per line, no header.", required=False, default=None)
     subset.add_argument("--start-id", type=int, help="development feature: start processing the graph at the given id (Tmp folder numbering in parallel mode is conserved)", required=False, default=0)
     subset.add_argument("--process-num", metavar='N', type=int, help="Only process the first N genes in the splicegraph, default: process all", required=False, default=0)
 
@@ -55,19 +55,19 @@ def parse_arguments(argv):
     outputs.add_argument("--skip-annotation", help='skip the generation of the annotated peptides and kmers', action="store_true", default=False)
     outputs.add_argument("--skip-tmpfiles-rm", help='skip the removal of the intermediate directories in parallel mode', action="store_true", default=False)
     outputs.add_argument("--libsize-path", nargs='?', help=argparse.SUPPRESS, required=False, default=None)     #specify the absolute path to expression library sizes if we want to append to a file
-    outputs.add_argument("--output-fasta", help="if True outputs both the sample peptide metadata and the fasta, else outputs only metadata", action="store_true", required=False, default=False)
-    outputs.add_argument("--force-ref-peptides", help="output mutated peptide even it is the same as reference peptide", action="store_true", default=False)
+    outputs.add_argument("--output-fasta", help="if True, outputs both the sample peptide metadata and the fasta, else outputs only metadata", action="store_true", required=False, default=False)
+    outputs.add_argument("--force-ref-peptides", help="output mutated peptide even if it is the same as reference peptide", action="store_true", default=False)
     outputs.add_argument("--filter-redundant", help="apply redundancy filter to the exon list", action="store_true", required=False, default=False)
-    outputs.add_argument("--kmer-database", help="absolute path of database file with kmers on one column (no header). If provided, the kmers matching the given database with I and L equivalence will not be outputted.", required=False, default=None)
-    outputs.add_argument("--gtex-junction-path", help="absolute path of whitelist junction file, currently only support hdf5 format. Will suport tsv format in the future", required=False, default=None)
+    outputs.add_argument("--kmer-database", help="absolute path of database file with kmers on one column (no header). If provided, the kmers matching the given database with I and L equivalence will not be output.", required=False, default=None)
+    outputs.add_argument("--gtex-junction-path", help="absolute path of whitelist junction file, currently only support hdf5 format.", required=False, default=None)
     parameters.add_argument("--disable-concat", help="switch off concatenation of short exons to increase speed", action="store_true", default=False)
-    parameters.add_argument("--disable-process-libsize", help="sample library size generation to increase speed", action="store_true", default=False)
+    parameters.add_argument("--disable-process-libsize", help="sub-sample library size generation to increase speed", action="store_true", default=False)
 
-    mutation = parser_build.add_argument_group('MUTATION FILES: Arguments needed for integration of the germline varinats or somatic mutations')
+    mutation = parser_build.add_argument_group('MUTATION FILES: Arguments needed for integration of the germline variants or somatic mutations')
     mutation.add_argument("--mutation-sample", help="sample id for the somatic and germline application, ids should match the count/graphs but equivalence with the mutation files can be specified (see --sample-name-map)", required=False, default=None)
     mutation.add_argument("--germline", help="Absolute path to an optional germline VCF or MAF mutation file", required=False, default='')
     mutation.add_argument("--somatic", help="Absolute path to an optional somatic VCF or MAF mutation file", required=False, default='')
-    mutation.add_argument("--sample-name-map", help="provide a naming equivalence between the count/graphs files, the germline and the somatic mutation file Format:[ no header, 2 or 3 columns]. If 2 columns [ name in count/graphs files \t name in mutations files ] If 3 columns [name in count/graphs files \t name in germline file \t name in somatic file]", required=False, default=None)
+    mutation.add_argument("--sample-name-map", help="provide a name mapping between the count/graphs files, the germline and the somatic mutation file Format:[ no header, 2 or 3 columns]. If 2 columns [ name in count/graphs files \t name in mutations files ] If 3 columns [name in count/graphs files \t name in germline file \t name in somatic file]", required=False, default=None)
     mutation.add_argument("--use-mut-pickle", help="save and use pickled mutation dict without processing the original files", action="store_true", default=False)
 
     _add_general_args(parser_build)
@@ -110,9 +110,9 @@ def parse_arguments(argv):
     inputs.add_argument("--normalizer-cancer-libsize", type=float, help="Input custom rescaling factor for cancer libsize. Default: Median of libsize", required=False, default=None)
     inputs.add_argument("--normalizer-normal-libsize", type=float, help="Input custom rescaling factor for normal libsize. Default: Median of libsize", required=False, default=None)
 
-    outputs = parser_cancerspecif.add_argument_group('GENERAL OUTPUT FILES: Files and parameters to be outputted by the software regardless of the filtering strategy')
+    outputs = parser_cancerspecif.add_argument_group('GENERAL OUTPUT FILES: Files and parameters to be output by the software regardless of the filtering strategy')
     outputs.add_argument("--output-dir", help="output directory for the filtered matrix" , required=True, default='')
-    outputs.add_argument("--output-count", help="request to write the intermediate number of kmer at each each step to the given path (risk of slow down)" , required=False, default='')
+    outputs.add_argument("--output-count", help="request to write the intermediate number of kmer at each each step to the given path (risk of slowdown)" , required=False, default='')
     outputs.add_argument("--tag-normals", help="name for the normal cohort output files, use when various normal cohorts", required=False, default='')
     outputs.add_argument("--tag-prefix", help="prefix to use for the output files, use when several conditions", required=False, default='')
 
