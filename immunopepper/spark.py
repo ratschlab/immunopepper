@@ -133,7 +133,8 @@ def pq_WithRenamedCols(spark, list_paths):
 
 
 def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
-                        path_matrix, whitelist, cross_junction, annot_flag, tot_batches=None, batch_id=None):
+                        path_matrix, whitelist, cross_junction, filterNeojuncCoord, filterAnnotatedRF,
+                        tot_batches=None, batch_id=None):
     '''
     Preprocess samples if expression is stored in a multi-sample format [kmers] x [samples, metadata]
     Various preprocessing steps including filtering on junction status, on reading frame annotated status,
@@ -183,7 +184,8 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
         matrix = matrix.drop(jct_col)
 
         # Filter according to annotation flag
-        matrix = filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col, annot_flag)
+        matrix = filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col,
+                                                        filterNeojuncCoord, filterAnnotatedRF)
 
 
         # Cast type and fill nans + Reduce samples (columns) to whitelist
@@ -223,26 +225,22 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
         return None
 
 
-def filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col, annot_flag):
+def filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col, filterNeojuncCoord, filterAnnotatedRF):
     '''
     Filters according to the junction and kmer annotated flag
     :param matrix: spark dataframe matrix to filter
     :param jct_annot_col: string junction is annotated column
     :param rf_annot_col: string reading frame is annotated column
-    :param annot_flag: list of codes for filtering 0: do nothing,
-    1: keep junction annotated AND reading frame annotated,
-    2: keep junction annotated AND reading frame not annotated,
-    3: keep junction not annotated AND reading frame annotated,
-    4: keep junction not annotated AND reading frame not annotated.
-    Several codes can be provided as input  and will be combined with OR operation.
-    :return: spark dataframe expression matrix filtered on junction annotated and reading frame annotated flag.
+    :param filterNeojuncCoord: bool if True, filter for kmers from neojunctions,
+     i.e. with non-annotated junction coordinates
+    :param filterAnnotatedRF: bool if True, filter for kmers from annotated reading frames,
+     i.e. with reading frames found in transcripts from the annotation, not propagated
     '''
     # Keep k-mers according to annotation flag
-    code_to_flag = {1: (1, 1), 2: (1, 0), 3: (0, 1), 4: (0, 0)}  # junction and reading frame annotated respectively
-    flag_condition = [f'({jct_annot_col} == {code_to_flag[code][0]} AND {rf_annot_col} == {code_to_flag[code][1]})'
-                      for code in annot_flag if code]
-    if flag_condition:
-        matrix = matrix.filter(' OR '.join(flag_condition))
+    if filterNeojuncCoord:
+        matrix = matrix.filter(f'({jct_annot_col} == {0})')
+    if filterAnnotatedRF:
+        matrix = matrix.filter(f'({rf_annot_col} == {1})')
     return matrix
 
 
@@ -337,7 +335,7 @@ def filter_statistical(spark, tissue_grp_files, normal_matrix, index_name, path_
 
 
 def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsize,
-                          out_dir, expr_limit, n_samples_lim, target_sample='', annot_flag=[],
+                          out_dir, expr_limit, n_samples_lim, target_sample='',
                           tag='normals', batch_tag=''):
     '''
     Filter samples based on >0 and >=X reads expressed (expensive operations) and save intermediate files.
@@ -356,7 +354,6 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
     :param n_samples_lim: int number of samples that need to pass the expression limit
     :param target_sample: str name of the sample of interest.
     To be excluded in the number of samples that pass the expression limit
-    :param annot_flag: list with the instruction codes on how to treat the reading frame and junction annotated flags
     :param tag: str tag related to the type of samples. Example cancer or normal
     :param batch_tag: str batch mode, batch tag to be appended to intermediate file
     :return: path_e, path_s respectively path where
@@ -404,7 +401,8 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
         else:
             logging.info((f'Filter matrix with cohort expression support {expr_limit} '
                           f'in {base_n_samples} sample(s) already performed. Loading results from {path_e}'))
-            logging.info(f'Using intermediate files means ignoring --annotated-flags {annot_flag} parameter.')
+            logging.info((f'Using intermediate files means ignoring --filterNeojuncCoord, '
+                          f'--filterAnnotatedRF parameter.'))
 
     # Sample filtering, take k-mers with exclude >0 reads in >= 1 sample
     if n_samples_lim is not None:
@@ -430,7 +428,8 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
         else:
             logging.info((f'Filter matrix with cohort expression support {base_expr} '
                           f'in {base_n_samples} sample(s) already performed. Loading results from {path_s}'))
-            logging.info(f'Using intermediate files means ignoring --annotated-flags {annot_flag} parameter.')
+            logging.info((f'Using intermediate files means ignoring --filterNeojuncCoord, '
+                          f'--filterAnnotatedRF parameter.'))
     return path_e, path_s
 
 
@@ -506,7 +505,8 @@ def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, pa
 
 
 def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields,
-                         jct_col, jct_annot_col, rf_annot_col, index_name, libsize_c, annot_flag, cross_junction):
+                         jct_col, jct_annot_col, rf_annot_col, index_name, libsize_c,
+                         filterNeojuncCoord, filterAnnotatedRF, cross_junction):
     '''
     Preprocess samples if expression is stored in a single sample file:
     [kmers] x [junction expression, segment expression, metadata]
@@ -521,7 +521,10 @@ def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fiel
     :param rf_annot_col: str reading frame annotated flag column name
     :param index_name: str kmer column name
     :param libsize_c: dataframe with library size
-    :param annot_flag: list with the intruction codes on how to treat the reading frame and junction annotated flags
+    :param filterNeojuncCoord: bool if True, filter for kmers from neojunctions,
+     i.e. with non-annotated junction coordinates
+    :param filterAnnotatedRF: bool if True, filter for kmers from annotated reading frames,
+     i.e. with reading frames found in transcripts from the annotation, not propagated
     :param cross_junction bool whether the count matrix contains junction counts or segment counts
     :return: spark dataframe for preprocessed cancer kmers matrix
     '''
@@ -540,7 +543,8 @@ def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fiel
         cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
 
     # Keep k-mers according to annotation flag
-    cancer_kmers = filter_on_junction_kmer_annotated_flag(cancer_kmers, jct_annot_col, rf_annot_col, annot_flag)
+    cancer_kmers = filter_on_junction_kmer_annotated_flag(cancer_kmers, jct_annot_col, rf_annot_col,
+                                                          filterNeojuncCoord, filterAnnotatedRF)
 
     logging.info("Collapse kmer horizontal")
     # Remove the '/' in the expression data (kmers duplicate within a gene have 'expression1/expression2' format

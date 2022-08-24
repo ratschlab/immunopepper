@@ -142,19 +142,9 @@ def parse_arguments(argv):
     more_backgrouds.add_argument("--uniprot", help="file containg uniprot k-mers. k-mers length should match the one of the cancer and normal files", required=False, default=None)
 
     more_filters = parser_cancerspecif.add_argument_group('ADDITIONAL FILTERS: Currently filters on the annotation status of the junction coordinate and the reading frame of the kmers are supported')
-    more_filters.add_argument("--annotated-flags", nargs='+', required=False, default=[],
-                    help="list with the annotation modes requested."
-                    "Mode C0: No filter based on junction or read frame annotation status in cancer samples"
-                    "Mode C1: In cancer samples filter for (junctionAnnotated == 1) & (readFrameAnnotated==1)"
-                    "Mode C2: In cancer samples filter for (junctionAnnotated == 1) & (readFrameAnnotated==0)"
-                    "Mode C3: In cancer samples filter for (junctionAnnotated == 0) & (readFrameAnnotated==1)"
-                    "Mode C4: In cancer samples filter for (junctionAnnotated == 0) & (readFrameAnnotated==0)"
-                    "Mode N0: No filter based on junction or read frame annotation status in normal samples"
-                    "Mode N1: In normal samples filter for (junctionAnnotated == 1) & (readFrameAnnotated==1)"
-                    "Mode N2: In normal samples filter for (junctionAnnotated == 1) & (readFrameAnnotated==0)"
-                    "Mode N3: In normal samples filter for (junctionAnnotated == 0) & (readFrameAnnotated==1)"
-                    "Mode N4: In normal samples filter for (junctionAnnotated == 0) & (readFrameAnnotated==0)"
-                    "e.g. [C1, C2, N2, N4] or [C1, C2, N0]. Default: ignores all flags")
+    more_filters.add_argument("--filterNeojuncCoord", choices=['C', 'N', 'A'], required=False, default='', help="Retain kmers generated from neojunctions i.e. whose junction coordinates are not found in the annotation. Values: 'C', 'N', 'A' to perform filtering in cancer, normal or both sets respectively")
+    more_filters.add_argument("--filterAnnotatedRF", choices=['C', 'N', 'A'], required=False, default='', help="Retain kmers generated from annotated reading frames i.e. whose reading frames are taken from annotated transcript and not propagated through the graph. Values: 'C', 'N', 'A' to perform filtering in cancer, normal or both sets respectively")
+
 
     development = parser_cancerspecif.add_argument_group('DEVELOPMENT PARAMETERS')
     development.add_argument("--tot-batches", type=int, help="Filter foreground and in background kmers based on hash function. Set number of batches",required=False, default=None)

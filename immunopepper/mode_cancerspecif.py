@@ -87,14 +87,20 @@ def mode_cancerspecif(arg):
                                               arg.path_normal_matrix_segm,
                                               arg.whitelist_normal,
                                               cross_junction=0,
-                                              annot_flag = [int(j[1]) for j in arg.annotated_flags if 'N' in j],
+                                              filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
+                                                                          or (arg.filterNeojuncCoord == 'A') else False,
+                                              filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
+                                                                         or (arg.filterNeojuncCoord == 'A') else False,
                                               tot_batches=arg.tot_batches, batch_id=arg.batch_id)
             normal_junc = process_matrix_file(spark, index_name, jct_col,
                                               jct_annot_col, rf_annot_col,
                                               arg.path_normal_matrix_edge,
                                               arg.whitelist_normal,
                                               cross_junction=1,
-                                              annot_flag=[int(j[1]) for j in arg.annotated_flags  if 'N' in j],
+                                              filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
+                                                                          or (arg.filterNeojuncCoord == 'A') else False,
+                                              filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
+                                                                         or (arg.filterNeojuncCoord == 'A') else False,
                                               tot_batches=arg.tot_batches, batch_id=arg.batch_id)
             normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
 
@@ -121,7 +127,6 @@ def mode_cancerspecif(arg):
                                                                                  libsize_n, normal_out,
                                                                                  arg.cohort_expr_support_normal,
                                                                                  arg.n_samples_lim_normal,
-                                                                                 annot_flag=arg.annotated_flags,
                                                                                  batch_tag=batch_tag)
                 normal_matrix = combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers_s,
                                                                arg.n_samples_lim_normal, index_name)
@@ -152,14 +157,24 @@ def mode_cancerspecif(arg):
                                                   arg.path_cancer_matrix_segm,
                                                   arg.whitelist_cancer,
                                                   cross_junction=0,
-                                                  annot_flag=[int(j[1]) for j in arg.annotated_flags if 'C' in j],
+                                                  filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
+                                                                             or (arg.filterNeojuncCoord == 'A')
+                                                                             else False,
+                                                  filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'C')
+                                                                            or (arg.filterNeojuncCoord == 'A')
+                                                                            else False,
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
                 cancer_junc = process_matrix_file(spark, index_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
                                                   arg.path_cancer_matrix_edge,
                                                   arg.whitelist_cancer,
                                                   cross_junction=1,
-                                                  annot_flag=[int(j[1]) for j in arg.annotated_flags if 'C' in j],
+                                                  filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
+                                                                             or (arg.filterNeojuncCoord == 'A')
+                                                                             else False,
+                                                  filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'C')
+                                                                            or (arg.filterNeojuncCoord == 'A')
+                                                                            else False,
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
 
@@ -187,7 +202,6 @@ def mode_cancerspecif(arg):
                                                                                       arg.cohort_expr_support_cancer,
                                                                                       arg.n_samples_lim_cancer,
                                                                                       target_sample=cancer_sample,
-                                                                                      annot_flag=arg.annotated_flags,
                                                                                       tag=f'cancer_{mutation_mode}',
                                                                                       batch_tag=batch_tag)
                     cancer_cross_filter = combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e,
@@ -223,11 +237,21 @@ def mode_cancerspecif(arg):
                 # Preprocess cancer samples
                 cancer_junc = preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols,expression_fields, jct_col,
                                                    jct_annot_col, rf_annot_col, index_name, libsize_c,
-                                                   annot_flag=[int(j[1]) for j in arg.annotated_flags if 'C' in j],
+                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
+                                                                              or (arg.filterNeojuncCoord == 'A')
+                                                                              else False,
+                                                   filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'C')
+                                                                             or (arg.filterNeojuncCoord == 'A')
+                                                                             else False,
                                                    cross_junction=1)
                 cancer_segm = preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields, jct_col,
                                                    jct_annot_col, rf_annot_col, index_name, libsize_c,
-                                                   annot_flag=[int(j[1]) for j in arg.annotated_flags if 'C' in j],
+                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
+                                                                              or (arg.filterNeojuncCoord == 'A')
+                                                                              else False,
+                                                   filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'C')
+                                                                             or (arg.filterNeojuncCoord == 'A')
+                                                                             else False,
                                                    cross_junction=0)
                 # Apply expression filter to foreground
                 cancer_junc = filter_expr_kmer(cancer_junc, expression_fields[1], arg.sample_expr_support_cancer)
