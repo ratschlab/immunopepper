@@ -1,6 +1,7 @@
 import logging
 import os
 from pyspark.sql import functions as sf
+import sys
 
 
 from immunopepper.spark_config import create_spark_session_from_config
@@ -227,10 +228,14 @@ def mode_cancerspecif(arg):
 
             ## Cancer file is kmer file
             if arg.paths_cancer_samples:
-                cancer_path = [arg.paths_cancer_samples[cix]]
+                try:
+                    cancer_path = [arg.paths_cancer_samples[cix]]
+                except:
+                    logging.error(f'--ids_cancer_samples not matching --paths_cancer_samples, exit.')
+                    sys.exit(1)
                 rename = True # development
                 if rename:
-                    cancer_kmers = pq_WithRenamedCols(spark, cancer_path, arg.output_dir)
+                    cancer_kmers = pq_WithRenamedCols(spark, cancer_path)
                 else:
                     cancer_kmers = spark.read.parquet(cancer_path)
 
