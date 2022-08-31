@@ -473,7 +473,7 @@ def mode_build(arg):
             collect_results(filepointer.background_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
             collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, mutation.mode)
             collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, mutation.mode)
-            if not arg.skip_tmpfiles_rm:
+            if not arg.keep_tmpfiles:
                 logging.info("Cleaning temporary files")
                 remove_folder_list(os.path.join(output_path, f'tmp_out_{mutation.mode}_batch'))
 
