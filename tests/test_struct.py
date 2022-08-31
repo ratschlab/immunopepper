@@ -49,7 +49,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
                '--count-path', os.path.join(data_dir,'ImmunoPepper_usecase.count.hdf5'),
                '--ann-path', os.path.join(data_dir,'ImmunoPepper_usecase.gtf'),
                '--ref-path', os.path.join(data_dir,'GRCm38.p6.genome.fa'),
-               '--kmer', '9',
+               '--kmer', '34',
                '--batch-size', '1',
                '--output-fasta',
                #'--all-read-frames',
@@ -242,12 +242,10 @@ mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
 #for mutation_mode in ['ref', 'somatic', 'germline', 'somatic_and_germline']:
-#test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=True) #TODO add back
-
+test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_cross_sample=True) #TODO add back
 #test_end_to_end_samplespecif('ERR2130621', tmpdir, "9", mutation_mode) # TEST DEPRECATED
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
 #for mutation_mode in ['ref', 'germline', 'somatic', 'somatic_and_germline']:
-#test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False) #TODO add back
 #     test_end_to_end_makebg('ERR2130621', tmpdir, "9")
 #     test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
 #    test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
