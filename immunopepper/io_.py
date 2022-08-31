@@ -115,7 +115,7 @@ def save_bg_peptide_dict(data, filepointer: Filepointer, compression: str = None
         save_pd_toparquet(path, data, compression, verbose)
 
 
-def save_fg_peptide_set(data: dict, filepointer: Filepointer, compression: str = None, out_dir: str = None,
+def save_fg_peptide_set(data: set, filepointer: Filepointer, compression: str = None, out_dir: str = None,
                          save_fasta: bool = False, verbose: bool = False):
     """
     Save foreground peptide data in a parquet file
