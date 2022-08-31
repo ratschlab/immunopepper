@@ -137,17 +137,17 @@ def junction_tuple_is_annotated(junction_flag: np.ndarray, vertex_ids: list[int]
        vertices i and j are connected
     :param vertex_ids: list of vertex ids defining junction pairs
     :return:
-       np.nan if vertex_ids contains a np.nan,
+       False if vertex_ids contains a np.nan,
        otherwise returns a tuple containing the junction annotation status:
-       1 if the junction is present in the annotation, 0 otherwise
-       Example (1,) or (0,)
+       True if the junction is present in the annotation, False otherwise
+       Example (True,) or (False,)
        if the peptide contains more than one junction, the junction annotation status of the second junction is added
-       Example (1,0) (1,1)
+       Example (True, False) (True, True)
     """
     if np.nan in vertex_ids:
-        return (np.nan)
+        return (False)
 
-    junction_annotated = [1 if junction_flag[vertex_ids[i], vertex_ids[i + 1]] else 0
+    junction_annotated = [True if junction_flag[vertex_ids[i], vertex_ids[i + 1]] else False
                           for i in range(len(vertex_ids) - 1)]
     return tuple(junction_annotated)
 

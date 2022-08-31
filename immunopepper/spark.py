@@ -240,9 +240,9 @@ def filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col, 
     '''
     # Keep k-mers according to annotation flag
     if filterNeojuncCoord:
-        matrix = matrix.filter(f'({jct_annot_col} == {0})')
+        matrix = matrix.filter(f'({jct_annot_col} == {False})')
     if filterAnnotatedRF:
-        matrix = matrix.filter(f'({rf_annot_col} == {1})')
+        matrix = matrix.filter(f'({rf_annot_col} == {True})')
     return matrix
 
 
