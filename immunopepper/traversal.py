@@ -498,6 +498,7 @@ def create_output_kmer(output_peptide, k, expr_list, kmer_database=None):
             if j in spanning_index1_2:
                 is_in_junction = True
                 kmer_junction_count = np.nanmin(junction_count)
+		junction_annotated = max(junction_annotated_)
             elif j in spanning_index1:
                 is_in_junction = True
                 kmer_junction_count = junction_count[0] if junction_count is not np.nan else np.nan
