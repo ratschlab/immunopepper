@@ -330,7 +330,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                                        modified_exons_coord=modi_coord,
                                        original_exons_coord=vertex_pair.original_exons_coord,
                                        vertex_idx=vertex_list,
-                                       junction_expr=edge_expr,
+                                       junction_expr=edge_expr_meta,
                                        segment_expr=segment_expr_meta,
                                        kmer_type=kmer_type
                                        ), sep = '\t'))
