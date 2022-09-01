@@ -309,32 +309,27 @@ def save_pd_toparquet(path, pd_df, compression=None, verbose=False, pqwriter=Non
 
 def collect_results(filepointer_item, out_dir, compression, mutation_mode, kmer_list=None):
     """
-    Merges results written by each parallel process into a single parquet file.
+    Merges results written by each parallel process into a single rechunked parquet file.
     """
     if filepointer_item is not None:
-        s1 = timeit.default_timer()
-
+        # get paths for several kmer lengths
         if kmer_list:
             file_to_collect = filepointer_item['path'].values()
         else:
             file_to_collect = [filepointer_item['path']]
+
+        # merge the partitions
         for file_path in file_to_collect:
             file_name = os.path.basename(file_path)
             tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*', file_name))
-            tot_shape = 0
-            for tmp_file in tmp_file_list:
-                try:
-                    table = pq.read_table(tmp_file)
-                    if tot_shape == 0:
-                        pqwriter = pq.ParquetWriter(file_path, table.schema, compression=compression)
-                    pqwriter.write_table(table)
-                    tot_shape += table.shape[0]
-                except:
-                    logging.error(f'Unable to read: {tmp_file}')
-                    sys.exit(1)
-            if tmp_file_list:
-                pqwriter.close()
-                logging.info(f'Collected {file_name} with {tot_shape} lines in {timeit.default_timer() - s1}s');
+
+            try:
+                dset = pq.ParquetDataset(tmp_file_list)
+                dset_pandas = dset.read().to_pandas()
+                save_pd_toparquet(file_path, dset_pandas, compression, verbose=1)
+            except:
+                logging.error(f'Unable to read one of files for {file_path} collection')
+                sys.exit(1)
 
 
 def remove_folder_list(base_path):
