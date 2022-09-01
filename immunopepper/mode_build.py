@@ -73,8 +73,8 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
         set_kmer_back =  defaultdict(set, {})
         set_pept_backgrd = set()
-        time_per_gene = [np.nan]
-        mem_per_gene = [np.nan]
+        time_per_gene = []
+        mem_per_gene = []
         all_gene_idxs = []
 
         for i, gene in enumerate(genes):
@@ -127,11 +127,13 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
         set_kmer_back.clear()
 
         pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
-        logging_string = (f'....{output_sample}: annotation graph from batch {batch_name}/{n_genes} '
-                          f'processed, max time cost: {np.round(np.nanmax(time_per_gene), 2)}, '
-                          f'memory cost: {np.round(np.nanmax(mem_per_gene), 2)} GB')
 
-        logging.debug(logging_string)
+        if time_per_gene:
+            logging_string = (f'....{output_sample}: annotation graph from batch {batch_name}/{n_genes} '
+                              f'processed, max time cost: {np.round(np.nanmax(time_per_gene), 2)}, '
+                              f'memory cost: {np.round(np.nanmax(mem_per_gene), 2)} GB')
+            logging.debug(logging_string)
+
         if (batch_name != 'all') and (batch_name % 10000 == 0):
             logging.info(logging_string)
 
@@ -157,8 +159,8 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
         dict_kmer_foregr = defaultdict(dict, {})
         set_pept_forgrd = set()
-        time_per_gene = [np.nan]
-        mem_per_gene = [np.nan]
+        time_per_gene = []
+        mem_per_gene = []
         all_gene_idxs = []
         gene_expr = []
 
@@ -299,11 +301,13 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             filepointer.kmer_edge_expr_fp['pqwriter'].close()
 
         pathlib.Path(os.path.join(outbase, "output_sample_IS_SUCCESS")).touch()
-        logging_string = (f'....{output_sample}: output_sample graph from batch {batch_name}/{n_genes} processed, '
+
+        if time_per_gene:
+            logging_string = (f'....{output_sample}: output_sample graph from batch {batch_name}/{n_genes} processed, '
                           f'max time cost: {np.round(np.nanmax(time_per_gene), 2)}, '
                           f'memory cost: {np.round(np.nanmax(mem_per_gene), 2)} GB')
+            logging.debug(logging_string)
 
-        logging.debug(logging_string)
         if (batch_name != 'all') and (batch_name % 10000 == 0):
             logging.info(logging_string)
 

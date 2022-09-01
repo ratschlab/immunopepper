@@ -480,7 +480,7 @@ def create_output_kmer(output_peptide, k, expr_list, kmer_database=None):
             kmer_peptide = output_peptide.peptide[j:j+k]
             if kmer_database and (replace_I_with_L(kmer_peptide) in kmer_database): # remove on the fly peptides from a database
                 continue
-            if expr_array is None:
+            if (expr_array is None) or (np.isnan(expr_array).all()):
                 kmer_peptide_expr = np.nan
             else:
                 kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]), 2)
@@ -590,17 +590,27 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
             if (sum(np.isnan(sublist_seg)) != len(sublist_seg) or sum(np.isnan(sublist_jun)) != len(sublist_jun)) and \
                     (check_database):
                 if kmer_peptide not in kmer_matrix[0]:
+                    # add flags from unseen kmer
                     kmer_matrix[0][kmer_peptide] = is_in_junction
-                    kmer_matrix[1][kmer_peptide] = np.round(sublist_seg, 2)
-                    kmer_matrix[2][kmer_peptide] = sublist_jun
                     kmer_matrix[3][kmer_peptide] = junction_annotated
                     kmer_matrix[4][kmer_peptide] = output_peptide.read_frame_annotated
+                    # add expression from unseen kmer
+                    kmer_matrix[1][kmer_peptide] = np.round(sublist_seg, 2)
+                    kmer_matrix[2][kmer_peptide] = sublist_jun
+
                 else:
+                    # check if any of previous or unseen kmer is flagged cross junction or annotated
                     kmer_matrix[0][kmer_peptide] = max(kmer_matrix[0][kmer_peptide], is_in_junction )
-                    kmer_matrix[1][kmer_peptide] = np.nanmax(np.array( [kmer_matrix[1][kmer_peptide], np.round(sublist_seg, 2)]), axis = 0)# make unique per gene with maximum
-                    kmer_matrix[2][kmer_peptide] = np.nanmax(np.array( [kmer_matrix[2][kmer_peptide], sublist_jun]), axis = 0)
                     kmer_matrix[3][kmer_peptide] = max([kmer_matrix[3][kmer_peptide], junction_annotated])
                     kmer_matrix[4][kmer_peptide] = max([kmer_matrix[4][kmer_peptide], output_peptide.read_frame_annotated])
+                    # add max expression of previous and unseen kmer
+                    if not np.isnan(np.array([kmer_matrix[1][kmer_peptide], np.round(sublist_seg, 2)])).all():
+                        kmer_matrix[1][kmer_peptide] = np.nanmax(np.array([kmer_matrix[1][kmer_peptide],
+                                                                            np.round(sublist_seg, 2)]), axis = 0)
+                    if not np.isnan(np.array([kmer_matrix[2][kmer_peptide], sublist_jun])).all():
+                        kmer_matrix[2][kmer_peptide] = np.nanmax(np.array([kmer_matrix[2][kmer_peptide],
+                                                                            sublist_jun]), axis = 0)
+
 
 
     return kmer_matrix
