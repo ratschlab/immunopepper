@@ -23,7 +23,7 @@ Output_junc_peptide namedtuple
 - read_frame_annotated: bool. True if a transcript in the given reading frame is present in the annotation, 
   False if it is created by propagation
 """
-OutputJuncPeptide = namedtuple('OutputJuncPeptide', ['output_id', 'peptide', 'exons_coor', 'junction_expr',
+OutputPeptide = namedtuple('OutputPeptide', ['output_id', 'peptide', 'exons_coor', 'junction_expr',
                                                      'junction_annotated', 'read_frame_annotated'])
 
 
@@ -69,13 +69,6 @@ OutputMetadata = namedtuple('OutputMetadata', ['peptide', 'output_id', 'read_fra
 
 VertexPair = namedtuple('VertexPair', ['output_id', 'read_frame','has_stop_codon','modified_exons_coord','original_exons_coord','vertex_idxs','peptide_weight'])
 
-
-"""
-Output_backgrouond namedtuple.
-- id: transcript name
-- peptide: background peptide
-"""
-OutputBackground = namedtuple('OutputBackground', ['output_id', 'peptide'])
 
 
 """
