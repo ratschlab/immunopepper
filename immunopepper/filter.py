@@ -215,32 +215,4 @@ def add_kmers(kmer_set: set[str], output_kmers: list[OutputKmer]):
         kmer_set.add(output_kmer.kmer)
 
 
-# TODO(dd): this function also smells. It takes nicely structured data and massages it into an undecipherable jumble
-def add_peptide_properties(peptide_properties: dict[str, list[set]], namedtuple_list: list,
-                           skip_expr=False):
-    """
-    Updates peptide_properties using namedtuple_list. The namedtuple_list is converted to a dictionary, and each element
-    from this dictionary is used to update the corresponding values for the given peptide. Lists and nested named tuples
-    within namedtuple_list are converted to tuples prior to addition to the set.
 
-    :param peptide_properties: maps peptides to a set of properties for that peptide (e.g. 'output_id`, 'chr',
-          'gene_name', etc). The properties are extracted from the namedtuple_list.
-    :param namedtuple_list: list of `class:OutputBackground` or of `class:OutputMetadata`
-    :param skip_expr: if True, the 'junction_expr' and 'segment_expr' keys are removed from the result
-    """
-    for namedtuple_peptide in namedtuple_list:
-        ord_dict_metadata = {}
-        for k, v in namedtuple_peptide._asdict().items():
-            ord_dict_metadata[k] = namedtuple_to_str(v, None, ';') if isinstance(v, Coord) else list_to_tuple(v);
-
-        del ord_dict_metadata['peptide']
-        if skip_expr:
-            del ord_dict_metadata['junction_expr']
-            del ord_dict_metadata['segment_expr']
-
-        # aggregate metadata of unique peptides
-        if namedtuple_peptide.peptide not in peptide_properties:
-            peptide_properties[namedtuple_peptide.peptide] = [{i} for i in ord_dict_metadata.values()]
-        else:
-            for idx, value in enumerate(ord_dict_metadata.values()):
-                peptide_properties[namedtuple_peptide.peptide][idx].add(value)

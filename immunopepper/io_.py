@@ -11,6 +11,7 @@ import sys
 import timeit
 
 from immunopepper.namedtuples import Filepointer
+from immunopepper.namedtuples import OutputPeptide
 
 # --- intermediate fix to load pickle files stored under previous version
 
@@ -97,19 +98,19 @@ def save_fg_kmer_dict(data: dict, filepointer: Filepointer, kmer_length: int, co
         save_pd_toparquet(path, data, compression, verbose)
 
 
-def save_bg_peptide_dict(data, filepointer: Filepointer, compression: str = None, out_dir: str = None,
+def save_bg_peptide_set(data, filepointer: Filepointer, compression: str = None, out_dir: str = None,
                          verbose: bool = False):
     """
     Writes peptide information (dict of peptide to output ids) as a fasta file in parquet format.
     The keys in the fasta file are the concatenated output ids, and the value is the protein itself, e.g.::
-            >ENSMUST00000027035.9/ENSMUST00000116652.7
+            >ENSMUST00000027035.9
             MSSPDAGYASDDQSQPRSAQPAVMAGLGPCPWAESLSPLGDVKVKGEVVASSGAPAGTSGRAKAESRIRRPMNAF
     """
     if data:
-        data = pd.DataFrame(data.values(), index=data.keys()).reset_index()
-        data.columns = ['index', 'outputId']
-        data['outputId'] = data['outputId'].apply(lambda x: '>' + '/'.join(x))
-        data = pd.concat([data['outputId'], data['index']]).sort_index(kind="mergesort").reset_index(drop=True)
+        data = pd.DataFrame([line.split('\t') for line in data])
+        data.columns = OutputPeptide._fields
+        data['output_id'] = data['output_id'].apply(lambda x: '>' + x)
+        data = pd.concat([data['output_id'], data['peptide']]).sort_index(kind="mergesort").reset_index(drop=True)
         data = pd.DataFrame(data, columns=filepointer.background_peptide_fp['columns'])
         path = get_save_path(filepointer.background_peptide_fp, out_dir)
         save_pd_toparquet(path, data, compression, verbose)

@@ -3,7 +3,6 @@
 from collections import defaultdict
 import numpy as np
 
-from immunopepper.filter import add_peptide_properties
 from immunopepper.filter import add_kmer_properties
 from immunopepper.filter import add_kmers
 from immunopepper.filter import filter_redundant_junctions
@@ -405,7 +404,7 @@ def get_spanning_index(coord, k):
 
     return spanning_id_range1, spanning_id_range2, spanning_id_range1_2
 
-def get_and_write_background_peptide_and_kmer(peptide_dict, kmer_dict, gene, ref_mut_seq, gene_table, countinfo, seg_counts, Idx, kmer, all_read_frames):
+def get_and_write_background_peptide_and_kmer(peptide_set, kmer_dict, gene, ref_mut_seq, gene_table, countinfo, seg_counts, Idx, kmer, all_read_frames):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
     Parameters
@@ -439,8 +438,8 @@ def get_and_write_background_peptide_and_kmer(peptide_dict, kmer_dict, gene, ref
                               junction_expr=None,
                               junction_annotated=None,
                               read_frame_annotated=None)
+            peptide_set.add(namedtuple_to_str(peptide, sep = '\t'))
 
-            add_peptide_properties(peptide_dict, [peptide]) #TODO replace to get rid of add_peptide_properties
             if kmer:
                 for kmer_length in kmer:
                     add_kmers(kmer_dict[kmer_length],

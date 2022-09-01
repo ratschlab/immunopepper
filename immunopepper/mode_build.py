@@ -17,7 +17,7 @@ from immunopepper.io_ import collect_results
 from immunopepper.io_ import initialize_fp
 from immunopepper.io_ import remove_folder_list
 from immunopepper.io_ import save_bg_kmer_set
-from immunopepper.io_ import save_bg_peptide_dict
+from immunopepper.io_ import save_bg_peptide_set
 from immunopepper.io_ import save_gene_expr_distr
 from immunopepper.io_ import save_fg_kmer_dict
 from immunopepper.io_ import save_fg_peptide_set
@@ -72,7 +72,7 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
     if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "Annot_IS_SUCCESS"))):
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
         set_kmer_back =  defaultdict(set, {})
-        dict_pept_backgrd = {}
+        set_pept_backgrd = set()
         time_per_gene = [np.nan]
         mem_per_gene = [np.nan]
         all_gene_idxs = []
@@ -106,7 +106,7 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
             else:
                 seg_counts = None
 
-            get_and_write_background_peptide_and_kmer(peptide_dict = dict_pept_backgrd,
+            get_and_write_background_peptide_and_kmer(peptide_set = set_pept_backgrd,
                                                       kmer_dict = set_kmer_back,
                                                       gene=gene,
                                                       ref_mut_seq=ref_mut_seq,
@@ -120,8 +120,8 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
             time_per_gene.append(timeit.default_timer() - start_time)
             mem_per_gene.append(print_memory_diags(disable_print=True))
 
-        save_bg_peptide_dict(dict_pept_backgrd, filepointer, compression, outbase, verbose)
-        dict_pept_backgrd.clear()
+        save_bg_peptide_set(set_pept_backgrd, filepointer, compression, outbase, verbose)
+        set_pept_backgrd.clear()
         for kmer_length in set_kmer_back:
             save_bg_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
         set_kmer_back.clear()
