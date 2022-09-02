@@ -62,12 +62,16 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
     :return: Preprocessed spark dataframe
     '''
 
-    def cast_type_dbl(matrix, name_list, index_name, jct_annot_col, rf_annot_col):
+    def cast_type_dbl(matrix, index_name, jct_annot_col, rf_annot_col):
         return matrix.select(
             [sf.col(name_).cast(st.DoubleType()).alias(name_) if ((name_ != index_name)
                                                                   and (name_ != jct_annot_col)
                                                                   and (name_ != rf_annot_col))
-                                                                  else sf.col(name_) for name_ in name_list])
+                                                                  else sf.col(name_) for name_ in matrix.schema.names])
+
+    def filter_whitelist(matrix, name_list, index_name, jct_annot_col, rf_annot_col):
+        name_list.extend([index_name, jct_annot_col, rf_annot_col])
+        return matrix.select([sf.col(name_) for name_ in name_list])
 
     if path_matrix is not None:
         # Rename columns for better spark processing (spark does not support '_')
@@ -104,10 +108,10 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
         if whitelist is not None:
             whitelist = pd.read_csv(whitelist, sep='\t', header=None)[0].to_list()
             whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
-            whitelist.extend([index_name, jct_annot_col, rf_annot_col])
-            matrix = cast_type_dbl(matrix, whitelist, index_name, jct_annot_col, rf_annot_col)
+            matrix = cast_type_dbl(matrix, index_name, jct_annot_col, rf_annot_col)
+            matrix = filter_whitelist(matrix, whitelist, index_name, jct_annot_col, rf_annot_col)
         else:
-            matrix = cast_type_dbl(matrix, matrix.schema.names, index_name, jct_annot_col, rf_annot_col)
+            matrix = cast_type_dbl(matrix, index_name, jct_annot_col, rf_annot_col)
 
         # Fill Nans
         logging.info("Remove Nans")
