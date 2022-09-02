@@ -90,7 +90,6 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
 
             matrix = matrix.filter(sf.abs(sf.hash('kmer') % tot_batches) == batch_id)
 
-
         # Filter on junction status depending on the content on the matrix
         if cross_junction:
             matrix = matrix.filter(f'{jct_col} == True')
@@ -98,24 +97,23 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
             matrix = matrix.filter(f'{jct_col} == False')
         matrix = matrix.drop(jct_col)
 
-        # Filter according to annotation flag
-        matrix = filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col,
-                                                        filterNeojuncCoord, filterAnnotatedRF)
-
-
-        # Cast type and fill nans + Reduce samples (columns) to whitelist
-        logging.info("Cast types")
-        if whitelist is not None:
-            whitelist = pd.read_csv(whitelist, sep='\t', header=None)[0].to_list()
-            whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
-            matrix = cast_type_dbl(matrix, index_name, jct_annot_col, rf_annot_col)
-            matrix = filter_whitelist(matrix, whitelist, index_name, jct_annot_col, rf_annot_col)
-        else:
-            matrix = cast_type_dbl(matrix, index_name, jct_annot_col, rf_annot_col)
+        # Cast type to double
+        matrix = cast_type_dbl(matrix, index_name, jct_annot_col, rf_annot_col)
 
         # Fill Nans
         logging.info("Remove Nans")
         matrix = matrix.na.fill(0)
+
+        # Filter according to annotation flag
+        matrix = filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col,
+                                                        filterNeojuncCoord, filterAnnotatedRF)
+
+        # Reduce samples (columns) to whitelist
+        logging.info("Cast types")
+        if whitelist is not None:
+            whitelist = pd.read_csv(whitelist, sep='\t', header=None)[0].to_list()
+            whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
+            matrix = filter_whitelist(matrix, whitelist, index_name, jct_annot_col, rf_annot_col)
 
         # Remove kmers present in the table but absent mapping from all samples
         logging.info("Remove non expressed kmers SQL-")
