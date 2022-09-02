@@ -12,9 +12,7 @@ from immunopepper.spark import combine_hard_threshold_normals
 from immunopepper.spark import combine_normals
 from immunopepper.spark import filter_expr_kmer
 from immunopepper.spark import filter_hard_threshold
-from immunopepper.spark import filter_statistical
 from immunopepper.spark import loader
-from immunopepper.spark import outlier_filtering
 from immunopepper.spark import output_count
 from immunopepper.spark import pq_WithRenamedCols
 from immunopepper.spark import preprocess_kmer_file
@@ -105,32 +103,20 @@ def mode_cancerspecif(arg):
                                               tot_batches=arg.tot_batches, batch_id=arg.batch_id)
             normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
 
-            # NORMALS: Statistical Filtering # Remove outlier kmers before statistical modelling
-            # (Very highly expressed kmers do not follow a NB, we classify them as expressed without hypothesis testing)
-            if arg.statistical:
-                logging.info("\n \n >>>>>>>> Normals: Perform statistical filtering")
-                if arg.expr_high_limit_normal is not None:
-                    logging.info( (f'... Normal kmers with expression >= {arg.expr_high_limit_normal} in >= 1 sample(s) '
-                                   f'are truly expressed. \n Will be substracted from cancer set'))
-                    high_expr_normals, normal_matrix = outlier_filtering(spark, normal_matrix, index_name, libsize_n,
-                                                                         arg.expr_high_limit_normal)
 
-                filter_statistical(spark, arg.tissue_grp_files, normal_matrix, index_name, arg.path_normal_matrix_segm,
-                                       libsize_n, arg.threshold_noise, arg.output_dir, arg.cores)
             # NORMALS: Hard Filtering
-            else:
-                logging.info((f'\n \n >>>>>>>> Normals: Perform Hard Filtering \n '
-                              f'(expressed in {arg.n_samples_lim_normal} samples'
-                              f' with {arg.cohort_expr_support_normal} normalized counts'))
-                logging.info("expression filter")
-                path_normal_kmers_e, path_normal_kmers_s = filter_hard_threshold(normal_matrix, index_name,
-                                                                                 jct_annot_col, rf_annot_col,
-                                                                                 libsize_n, normal_out,
-                                                                                 arg.cohort_expr_support_normal,
-                                                                                 arg.n_samples_lim_normal,
-                                                                                 batch_tag=batch_tag)
-                normal_matrix = combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers_s,
-                                                               arg.n_samples_lim_normal, index_name)
+            logging.info((f'\n \n >>>>>>>> Normals: Perform Hard Filtering \n '
+                          f'(expressed in {arg.n_samples_lim_normal} samples'
+                          f' with {arg.cohort_expr_support_normal} normalized counts'))
+            logging.info("expression filter")
+            path_normal_kmers_e, path_normal_kmers_s = filter_hard_threshold(normal_matrix, index_name,
+                                                                             jct_annot_col, rf_annot_col,
+                                                                             libsize_n, normal_out,
+                                                                             arg.cohort_expr_support_normal,
+                                                                             arg.n_samples_lim_normal,
+                                                                             batch_tag=batch_tag)
+            normal_matrix = combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers_s,
+                                                           arg.n_samples_lim_normal, index_name)
 
         if arg.path_normal_kmer_list is not None:
             logging.info("Load {}".format(arg.path_normal_kmer_list))

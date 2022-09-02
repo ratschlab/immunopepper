@@ -8,6 +8,5 @@ pyarrow==6.0.1
 pyensembl
 pyspark>=3.0.0
 pytest
-rpy2>=2.1.0
 spladder==2.4.2
 tblib>=1.7.0
