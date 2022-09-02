@@ -43,7 +43,7 @@ def pq_WithRenamedCols(spark, list_paths):
 
 def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
                         path_matrix, whitelist, cross_junction, filterNeojuncCoord, filterAnnotatedRF,
-                        tot_batches=None, batch_id=None):
+                        separate_back_annot=False, tot_batches=None, batch_id=None):
     '''
     Preprocess samples if expression is stored in a multi-sample format [kmers] x [samples, metadata]
     Various preprocessing steps including filtering on junction status, on reading frame annotated status,
@@ -104,6 +104,17 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
         logging.info("Remove Nans")
         matrix = matrix.na.fill(0)
 
+        # Separate kmers only present in the backbone annotation from the ones supported by the reads of any sample
+        partitions_ = matrix.rdd.getNumPartitions()
+        logging.info(f'...partitions: {partitions_}')
+        if separate_back_annot:
+            logging.info("Isolating kmers only in backbone annotation")
+            matrix, kmers_AnnotOnly = split_only_found_annotation_backbone(matrix, index_name, jct_annot_col,
+                                                                            rf_annot_col, cross_junction)
+            #TODO add SAVE kmers_AnnotOnly intermediate file
+            #TODO FILTER OUT from cancer set the kmers_AnnotOnly
+            #TODO check the reloads conditions
+
         # Filter according to annotation flag
         matrix = filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col,
                                                         filterNeojuncCoord, filterAnnotatedRF)
@@ -115,15 +126,6 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
             whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
             matrix = filter_whitelist(matrix, whitelist, index_name, jct_annot_col, rf_annot_col)
 
-        # Remove kmers present in the table but absent mapping from all samples
-        logging.info("Remove non expressed kmers SQL-")
-        partitions_ = matrix.rdd.getNumPartitions()
-        logging.info(f'...partitions: {partitions_}')
-        not_null = ' OR '.join(
-            [f'({col_name} != 0.0)'
-             for col_name in matrix.schema.names
-             if col_name not in [index_name, jct_annot_col, rf_annot_col]])  # SQL style  # All zeros
-        matrix = matrix.filter(not_null)
 
         # Make unique on kmers
         logging.info("Make unique")
@@ -136,6 +138,37 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
         return matrix
     else:
         return None
+
+
+def split_only_found_annotation_backbone(matrix, index_name, jct_annot_col, rf_annot_col, cross_junction):
+    '''
+    Separate kmers only present in the backbone annotation from the ones supported by the reads of any sample:
+    If kmer is cross junction:
+    - Only present in annotation if (jct_annot_col == True) and (all samples have zero expression)
+    If kmer is from a segment
+    - Only present in annotation if (rf_annot_col == True) and (all samples have zero expression)
+    The opposite condition is implemented to make use of short-circuit evaluation
+
+    :param matrix: spark dataframe matrix to filter
+    :param index_name: str kmer column name
+    :param jct_annot_col: string junction is annotated column
+    :param rf_annot_col: string reading frame is annotated column
+    :param cross_junction: bool whether the count matrix contains junction counts or segment counts
+    :return: spark matrix with expressed kmers, spark serie with kmers only in backbone annotation
+    '''
+    if cross_junction:
+        novel = f'({jct_annot_col} == {False})' #novel junction
+    else:
+        novel = f'({rf_annot_col} == {False})'  #novel reading frame
+    expressed = ' OR '.join( [f'({col_name} != 0.0)'
+                                   for col_name in matrix.schema.names
+                                   if col_name not in [index_name, jct_annot_col, rf_annot_col]]) # SQL style because many cols
+    matrix = matrix.withColumn('expr_or_novel',
+                             sf.when(sf.expr(f"{novel} OR {expressed}"), True).otherwise(False))
+
+    kmers_AnnotOnly = matrix.select(index_name).where(sf.col('expr_or_novel') == False)
+    matrix = matrix.filter(sf.col('expr_or_novel') == True)
+    return matrix, kmers_AnnotOnly
 
 
 def filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col, filterNeojuncCoord, filterAnnotatedRF):
