@@ -90,7 +90,7 @@ def mode_cancerspecif(arg):
                                                                           or (arg.filterNeojuncCoord == 'A') else False,
                                               filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
                                                                          or (arg.filterNeojuncCoord == 'A') else False,
-                                              separate_back_annot=True,
+                                              output_dir=normal_out, separate_back_annot=os.path.join(normal_out, 'Only_Annot.csv'), #TODO Will add an additional function to define and check the existence of the paths
                                               tot_batches=arg.tot_batches, batch_id=arg.batch_id)
             normal_junc = process_matrix_file(spark, index_name, jct_col,
                                               jct_annot_col, rf_annot_col,
@@ -101,7 +101,7 @@ def mode_cancerspecif(arg):
                                                                           or (arg.filterNeojuncCoord == 'A') else False,
                                               filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
                                                                          or (arg.filterNeojuncCoord == 'A') else False,
-                                              separate_back_annot=True,
+                                              output_dir=normal_out,  separate_back_annot=os.path.join(normal_out, 'Only_Annot.csv'),
                                               tot_batches=arg.tot_batches, batch_id=arg.batch_id)
             normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
 

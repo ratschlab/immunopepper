@@ -43,7 +43,7 @@ def pq_WithRenamedCols(spark, list_paths):
 
 def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
                         path_matrix, whitelist, cross_junction, filterNeojuncCoord, filterAnnotatedRF,
-                        separate_back_annot=False, tot_batches=None, batch_id=None):
+                        output_dir=None, separate_back_annot=None, tot_batches=None, batch_id=None):
     '''
     Preprocess samples if expression is stored in a multi-sample format [kmers] x [samples, metadata]
     Various preprocessing steps including filtering on junction status, on reading frame annotated status,
@@ -57,13 +57,15 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
     :param whitelist: list whitelist for samples
     :param cross_junction: bool whether the count matrix contains junction counts or segment counts
     :param annot_flag: list with the intruction codes on how to treat the reading frame and junction annotated flags
+    :param output_dir: str path for output directory
     :param filterNeojuncCoord: bool if True, filter for kmers from neojunctions,
      i.e. with non-annotated junction coordinates
     :param filterAnnotatedRF: bool if True, filter for kmers from annotated reading frames,
      i.e. with reading frames found in transcripts from the annotation, not propagated
-    :param separate_back_annot: bool, the kmers derived from the annotation but without read support
-    in any cohort sample are excluded from expression based criteria in the background matrix and will be by default
-    removed from the foreground matrix
+    :param separate_back_annot: str, if provided, the kmers derived from the annotation only (i.e. without read support
+    in any cohort sample) are saved into this path.
+    - The kmers are thereby skipped from expression threshold filtering in the background matrix.
+    - They will be by default removed from the foreground matrix as "annotated kmers"
     :param tot_batches: int batch mode only, total number of batches
     :param batch_id: int batch mode only, id of the batch
     :return: Preprocessed spark dataframe
@@ -116,9 +118,8 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
         logging.info(f'...partitions: {partitions_}')
         if separate_back_annot:
             logging.info("Isolating kmers only in backbone annotation")
-            matrix, kmers_AnnotOnly = split_only_found_annotation_backbone(matrix, index_name, jct_annot_col,
-                                                                            rf_annot_col, cross_junction)
-            #TODO add SAVE kmers_AnnotOnly intermediate file
+            matrix = split_only_found_annotation_backbone(separate_back_annot, output_dir, matrix, index_name,
+                                                          jct_annot_col, rf_annot_col, cross_junction)
             #TODO FILTER OUT from cancer set the kmers_AnnotOnly
             #TODO check the reloads conditions
 
@@ -147,7 +148,8 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
         return None
 
 
-def split_only_found_annotation_backbone(matrix, index_name, jct_annot_col, rf_annot_col, cross_junction):
+def split_only_found_annotation_backbone(separate_back_annot, output_dir, matrix, index_name,
+                                         jct_annot_col, rf_annot_col, cross_junction):
     '''
     Separate kmers only present in the backbone annotation from the ones supported by the reads of any sample:
     If kmer is cross junction:
@@ -175,7 +177,8 @@ def split_only_found_annotation_backbone(matrix, index_name, jct_annot_col, rf_a
 
     kmers_AnnotOnly = matrix.select(index_name).where(sf.col('expr_or_novel') == False)
     matrix = matrix.filter(sf.col('expr_or_novel') == True)
-    return matrix, kmers_AnnotOnly
+    save_spark(kmers_AnnotOnly, output_dir, separate_back_annot)
+    return matrix
 
 
 def filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col, filterNeojuncCoord, filterAnnotatedRF):
