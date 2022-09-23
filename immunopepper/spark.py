@@ -221,9 +221,73 @@ def combine_normals(normal_segm, normal_junc, index_name):
         return normal_segm
 
 
+def check_interm_files(out_dir, expr_limit, n_samples_lim, target_sample='', tag='normals', batch_tag=''):
+    '''
+    Filtering steps for normal (resp. cancer) samples are saved as intermediate files because it is an expensive operation
+    The function checks the presence of the intermediate filtering files to decide whether to perform
+    - the full preprocessing + threshold filtering steps
+    - or simply re-load the intermediate files
+    :param out_dir: str path for output directory
+    :param expr_limit: float expression limit threshold to keep a kmer
+    :param n_samples_lim: int number of samples that need to pass the expression limit
+    :param target_sample: str name of the sample of interest.
+    To be excluded in the number of samples that pass the expression limit
+    :param tag: str tag related to the type of samples. Example cancer or normal
+    :param batch_tag: str batch mode, batch tag to be appended to intermediate file
+    :returns:
+    - launch_preprocess: bool, whether to perform the full preprocessing + threshold filtering steps
+     or simply re-load the intermediate files
+    - path_interm_matrix_for_express_threshold, path_interm_matrix_for_sample_threshold,
+     path_interm_kmers_annotOnly are respectively the path (str) where
+     the expression-filtered matrix, the sample-filtered matrix and
+     the kmers derived solely from the annotation are saved
+    '''
+    base_n_samples = 1
+    base_expr = 0.0
+
+    # For cancer matrix intermediate file the recurrence filter is not applied to the target sample
+    if target_sample:
+        suffix = f'Except{target_sample}'
+    else:
+        suffix = ''
+
+    # For normal samples the expression threshold filtering is not applied to the kmers found only in the annotation
+    # but not in the background samples. These kmers will be by default removed from the foreground matrix.
+    if tag == 'normals':
+        path_interm_kmers_annotOnly = os.path.join(out_dir, 'kmers_derived_solely_from_annotation.csv')
+    else:
+        path_interm_kmers_annotOnly = None
+
+    # Saving paths
+    path_interm_matrix_for_express_threshold = os.path.join(out_dir,
+                          f'interm_{tag}_combiExprCohortLim{expr_limit}Across{base_n_samples}{suffix}{batch_tag}'
+                          + '.tsv')
+    path_interm_matrix_for_sample_threshold = os.path.join(out_dir,
+                              f'interm_{tag}_combiExprCohortLim{base_expr}Across{base_n_samples}{suffix}{batch_tag}'
+                              + '.tsv')
+    # Check existence
+    if (expr_limit and os.path.isfile(os.path.join(path_interm_matrix_for_express_threshold, '_SUCCESS'))) \
+        or (n_samples_lim is not None and os.path.isfile(os.path.join(path_interm_matrix_for_sample_threshold, '_SUCCESS'))):
+
+        logging.info((f'Intermediate {tag} filtering already performed in: {path_interm_matrix_for_express_threshold} '
+                      f' and {path_interm_matrix_for_sample_threshold}. Re-loading {tag} intermediate data...'))
+        logging.info((f'Proceed with care! Using intermediate files means ignoring --filterNeojuncCoord, '
+                      f'--filterAnnotatedRF parameter.'))
+        launch_preprocess = False
+    else:
+        logging.info(f'No intermediate {tag} filtering file found.')
+        logging.info(f'Will compute full filtering steps according to user input parameters')
+        launch_preprocess = True
+
+    return launch_preprocess, \
+           path_interm_matrix_for_express_threshold, \
+           path_interm_matrix_for_sample_threshold, \
+           path_interm_kmers_annotOnly
+
+
 def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsize,
-                          out_dir, expr_limit, n_samples_lim, target_sample='',
-                          tag='normals', batch_tag=''):
+                          expr_limit, n_samples_lim, path_e, path_s, target_sample='',
+                          tag='normals'):
     '''
     Filter samples based on >0 and >=X reads expressed (expensive operations) and save intermediate files.
     Additional thresholds will be applied specifically for cancer or normals matrices in subsequent combine functions
@@ -236,26 +300,18 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
     :param jct_annot_col: str junction annotated flag column name
     :param rf_annot_col: str reading frame annotated flag column name
     :param libsize: dataframe with library size
-    :param out_dir: str path for output directory
     :param expr_limit: float expression limit threshold to keep a kmer
     :param n_samples_lim: int number of samples that need to pass the expression limit
+    :param path_e: path where the expression-filtered matrix (a) is saved
+    :param path_s: path where the sample-filtered matrix (b) is saved
     :param target_sample: str name of the sample of interest.
-    To be excluded in the number of samples that pass the expression limit
+     To be excluded in the number of samples that pass the expression limit
     :param tag: str tag related to the type of samples. Example cancer or normal
-    :param batch_tag: str batch mode, batch tag to be appended to intermediate file
-    :return: path_e, path_s respectively path where
-    the expression-filtered matrix and the sample-filtered matrix are saved
+
     '''
 
-    path_e = None
-    path_s = None
     base_n_samples = 1
     base_expr = 0.0
-    if target_sample:
-        suffix = f'Except{target_sample}'
-    else:
-        suffix = ''
-
 
     if target_sample:
         logging.info(f'Target sample {target_sample} not included in the cohort filtering')
@@ -266,58 +322,41 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
 
     # Expression filtering, take k-mers with >= X reads in >= 1 sample
     if expr_limit:
-        path_e = os.path.join(out_dir,
-                              f'interm_{tag}_combiExprCohortLim{expr_limit}Across{base_n_samples}{suffix}{batch_tag}'
-                              + '.tsv')
-        if not os.path.isfile(os.path.join(path_e, '_SUCCESS')):
-            logging.info(f'Filter matrix with cohort expression support >= {expr_limit} in {base_n_samples} sample')
-            # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
-            # Skip target sample and metadata
-            matrix_e = matrix.select(index_name, *[
-                sf.when(sf.col(name_) >= expr_limit, 1).otherwise(0).alias(name_)
-                for name_ in matrix.schema.names if name_
-                not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
-            # Map each kmer: x[0] to the number of samples where the expression threshold is met: sum(x[1:])
-            # Get a tuple (kmer, number of samples where expression >= threshold)
-            # Then filter kmers based on the number of samples
-            # This uses rdds syntax because spark dataframe operations are slower
-            matrix_e = matrix_e.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
-                filter(lambda x: x[1] >= base_n_samples)
-            logging.info(f'Save to {path_e}')
-            matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e)
-        else:
-            logging.info((f'Filter matrix with cohort expression support {expr_limit} '
-                          f'in {base_n_samples} sample(s) already performed. Loading results from {path_e}'))
-            logging.info((f'Using intermediate files means ignoring --filterNeojuncCoord, '
-                          f'--filterAnnotatedRF parameter.'))
+        logging.info(f'Filter matrix with cohort expression support >= {expr_limit} in {base_n_samples} sample')
+        # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
+        # Skip target sample and metadata
+        matrix_e = matrix.select(index_name, *[
+            sf.when(sf.col(name_) >= expr_limit, 1).otherwise(0).alias(name_)
+            for name_ in matrix.schema.names if name_
+            not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
+        # Map each kmer: x[0] to the number of samples where the expression threshold is met: sum(x[1:])
+        # Get a tuple (kmer, number of samples where expression >= threshold)
+        # Then filter kmers based on the number of samples
+        # This uses rdds syntax because spark dataframe operations are slower
+        matrix_e = matrix_e.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
+            filter(lambda x: x[1] >= base_n_samples)
+        logging.info(f'Save intermediate 1/2 {tag} filtering file to {path_e}')
+        matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e)
 
     # Sample filtering, take k-mers with exclude >0 reads in >= 1 sample
     if n_samples_lim is not None:
-        path_s = os.path.join(out_dir,
-                              f'interm_{tag}_combiExprCohortLim{base_expr}Across{base_n_samples}{suffix}{batch_tag}'
-                              + '.tsv')
-        if not os.path.isfile(os.path.join(path_s, '_SUCCESS')):
-            logging.info(f'Filter matrix with cohort expression support > {base_expr} in {base_n_samples} sample')
-            # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
-            # Skip target sample and metadata
-            matrix_s = matrix.select(index_name, *[
-                sf.when(sf.col(name_) > base_expr, 1).otherwise(0).alias(name_)
-                for name_ in matrix.schema.names if name_
-                not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
-            # Map each kmer: x[0] to the number of samples where the expression threshold is met: sum(x[1:])
-            # Get a tuple (kmer, number of samples where expression >= threshold)
-            # Then filter kmers based on the number of samples
-            # This uses rdds syntax because spark dataframe operations are slower
-            matrix_s = matrix_s.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
-                filter(lambda x: x[1] >= base_n_samples)
-            logging.info(f'Save to {path_s}')
-            matrix_s.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_s)
-        else:
-            logging.info((f'Filter matrix with cohort expression support {base_expr} '
-                          f'in {base_n_samples} sample(s) already performed. Loading results from {path_s}'))
-            logging.info((f'Using intermediate files means ignoring --filterNeojuncCoord, '
-                          f'--filterAnnotatedRF parameter.'))
-    return path_e, path_s
+        logging.info(f'Filter matrix with cohort expression support > {base_expr} in {base_n_samples} sample')
+        # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
+        # Skip target sample and metadata
+        matrix_s = matrix.select(index_name, *[
+            sf.when(sf.col(name_) > base_expr, 1).otherwise(0).alias(name_)
+            for name_ in matrix.schema.names if name_
+            not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
+        # Map each kmer: x[0] to the number of samples where the expression threshold is met: sum(x[1:])
+        # Get a tuple (kmer, number of samples where expression >= threshold)
+        # Then filter kmers based on the number of samples
+        # This uses rdds syntax because spark dataframe operations are slower
+        matrix_s = matrix_s.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
+            filter(lambda x: x[1] >= base_n_samples)
+        logging.info(f'Save intermediate 2/2 {tag} filtering file to {path_s}')
+        matrix_s.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_s)
+
+
 
 
 def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers_s, n_samples_lim_normal, index_name):
