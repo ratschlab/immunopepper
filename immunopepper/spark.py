@@ -555,6 +555,23 @@ def combine_cancer(cancer_kmers_segm, cancer_kmers_edge, index_name):
         return cancer_kmers_segm
 
 
+def remove_external_kmer_list(spark, path_external_kmer_database, spark_matrix, index_name):
+    '''
+    Takes an expression matrix of the format [kmers] x [samples, metadata] and removes an external database
+    :param spark: spark context
+    :param path_normal_kmer_list: str. path of file containing kmers to be removed
+    :param spark_matrix: str path for count matrix
+    :param index_name: str kmer column name
+    :return: Filtered matrix for external kmer database
+    '''
+    logging.info("Load {}".format(path_external_kmer_database))
+    external_database = loader(spark, path_external_kmer_database)
+    external_database = external_database.select(sf.col(index_name))
+    if spark_matrix:
+        spark_matrix = spark_matrix.union(external_database).distinct()
+    return spark_matrix
+
+
 def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
     '''
     Filters a spark dataframe against uniprot or any peptide database.

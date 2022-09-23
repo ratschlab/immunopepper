@@ -20,6 +20,7 @@ from immunopepper.spark import preprocess_kmer_file
 from immunopepper.spark import process_matrix_file
 from immunopepper.spark import process_libsize
 from immunopepper.spark import redirect_scratch
+from immunopepper.spark import remove_external_kmer_list
 from immunopepper.spark import remove_uniprot
 from immunopepper.spark import save_output_count
 from immunopepper.spark import save_spark
@@ -94,7 +95,7 @@ def mode_cancerspecif(arg):
                                                                           or (arg.filterNeojuncCoord == 'A') else False,
                                               filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
                                                                          or (arg.filterNeojuncCoord == 'A') else False,
-                                              output_dir=normal_out, separate_back_annot=os.path.join(normal_out, 'Only_Annot.csv'), #TODO Will add an additional function to define and check the existence of the paths
+                                              output_dir=normal_out, separate_back_annot=path_interm_kmers_annotOnly,
                                               tot_batches=arg.tot_batches, batch_id=arg.batch_id)
             normal_junc = process_matrix_file(spark, index_name, jct_col,
                                               jct_annot_col, rf_annot_col,
@@ -105,7 +106,7 @@ def mode_cancerspecif(arg):
                                                                           or (arg.filterNeojuncCoord == 'A') else False,
                                               filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
                                                                          or (arg.filterNeojuncCoord == 'A') else False,
-                                              output_dir=normal_out,  separate_back_annot=os.path.join(normal_out, 'Only_Annot.csv'),
+                                              output_dir=normal_out,  separate_back_annot=path_interm_kmers_annotOnly,
                                               tot_batches=arg.tot_batches, batch_id=arg.batch_id)
             normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
 
@@ -124,14 +125,10 @@ def mode_cancerspecif(arg):
                                                        arg.n_samples_lim_normal, index_name)
         # Additional kmer backgrounds filtering
         if arg.path_normal_kmer_list is not None:
-            logging.info("Load {}".format(arg.path_normal_kmer_list))
-            normal_list = loader(spark, arg.path_normal_kmer_list)
-            normal_list = normal_list.select(sf.col(index_name))
-            if normal_matrix:
-                normal_matrix = normal_matrix.union(normal_list).distinct()
-            else:
-                normal_matrix = normal_list
+            normal_matrix = remove_external_kmer_list(spark, arg.path_normal_kmer_list, normal_matrix, index_name)
 
+        if path_interm_kmers_annotOnly:
+            normal_matrix = remove_external_kmer_list(spark, path_interm_kmers_annotOnly, normal_matrix, index_name)
 
         ### Apply filtering to foreground
         for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
