@@ -57,6 +57,10 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
     :param whitelist: list whitelist for samples
     :param cross_junction: bool whether the count matrix contains junction counts or segment counts
     :param annot_flag: list with the intruction codes on how to treat the reading frame and junction annotated flags
+    :param filterNeojuncCoord: bool if True, filter for kmers from neojunctions,
+     i.e. with non-annotated junction coordinates
+    :param filterAnnotatedRF: bool if True, filter for kmers from annotated reading frames,
+     i.e. with reading frames found in transcripts from the annotation, not propagated
     :param separate_back_annot: bool, the kmers derived from the annotation but without read support
     in any cohort sample are excluded from expression based criteria in the background matrix and will be by default
     removed from the foreground matrix
