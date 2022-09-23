@@ -57,6 +57,9 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
     :param whitelist: list whitelist for samples
     :param cross_junction: bool whether the count matrix contains junction counts or segment counts
     :param annot_flag: list with the intruction codes on how to treat the reading frame and junction annotated flags
+    :param separate_back_annot: bool, the kmers derived from the annotation but without read support
+    in any cohort sample are excluded from expression based criteria in the background matrix and will be by default
+    removed from the foreground matrix
     :param tot_batches: int batch mode only, total number of batches
     :param batch_id: int batch mode only, id of the batch
     :return: Preprocessed spark dataframe
