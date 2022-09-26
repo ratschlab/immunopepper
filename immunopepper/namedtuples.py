@@ -18,7 +18,7 @@ Output_junc_peptide namedtuple
 - junction_id is the index of given junction pair in all junction pair (in descending or ascending order)
 - peptide: (peptide_string). The peptide translated from junction pairs.
 - exons_coor: Coord namedtuple
-- junction_annotated: bool. True if the junction also appear in the input annotation file, False otherwise. 
+- junction_annotated: bool. True if the junction also appears in the input annotation file, False otherwise. 
   False if the peptide stops before the junction  
 - read_frame_annotated: bool. True if a transcript in the given reading frame is present in the annotation, 
   False if it is created by propagation
@@ -38,10 +38,10 @@ Output_metadata namedtuple.
 - gene_chr: str. The Chromosome id where the gene is located.
 - gene_strand: str ('+', '_'). The strand of gene.
 - mutation_mode: str ('ref', 'somatic', 'germline', 'somatic_and_germline'). Mutation mode
-- junction_annotated: bool. True if the junction also appear in the input annotation file, False otherwise.
+- junction_annotated: bool. True if the junction also appears in the input annotation file, False otherwise.
   False if the peptide stops before the junction
 - has_stop_codon. Boolean. Indicate if there is stop codon in the junction pair.
-- is_in_junction_list: Boolean. Indicate if the junction pair appear in the given junction whitelist
+- is_in_junction_list: Boolean. Indicate if the junction pair appears in the given junction whitelist
 - is_isolated: Boolean. Indicate if the output peptide is actually translated from a single exon instead of two.
 - variant_comb: shows the somatic variantion combination used in this line of output. seperate by ';'
     eg. 5;25 means the somatic mutation of position 5 and 25 take effect in this output.
@@ -78,7 +78,7 @@ Output_kmer namedtuple.
 - expr: float. length-weighted sum of expression of the kmer
 - is_cross_junction: boolen. indicate if the kmer spans over the cross junction
 - junction_expr: float. Number or reads spanning the junction
-- junction_annotated: bool. True if the junction also appear in the input annotation file, False otherwise.
+- junction_annotated: bool. True if the junction also appears in the input annotation file, False otherwise.
   False if the peptide stops before the junction
 - read_frame_annotated: bool. True if a transcript in the given reading frame is present in the annotation,
   False if it is created by propagation
