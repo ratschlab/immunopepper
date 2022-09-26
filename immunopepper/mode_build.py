@@ -157,7 +157,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
 
     if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "output_sample_IS_SUCCESS"))):
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
-        dict_kmer_foregr = defaultdict(dict, {})
+        dictofSets_kmer_foregr = defaultdict(set, {})
         set_pept_forgrd = set()
         time_per_gene = []
         mem_per_gene = []
@@ -256,7 +256,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                                                  filter_redundant=arg.filter_redundant)
 
             get_and_write_peptide_and_kmer(peptide_set=set_pept_forgrd,
-                                            kmer_dict = dict_kmer_foregr,
+                                            kmer_dict = dictofSets_kmer_foregr,
                                             gene=gene,
                                             all_vertex_pairs=vertex_pairs,
                                             ref_mut_seq=ref_mut_seq,
@@ -293,8 +293,8 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
         set_pept_forgrd.clear()
         if not arg.cross_graph_expr: # Write kmer file for single sample (multiple kmer lengths supported)
             for kmer_length in arg.kmer:
-                save_fg_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
-            dict_kmer_foregr.clear()
+                save_fg_kmer_dict(dictofSets_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
+            dictofSets_kmer_foregr.clear()
         if arg.cross_graph_expr \
                 and filepointer.kmer_segm_expr_fp['pqwriter'] is not None: # Write kmer files for multiple samples
             filepointer.kmer_segm_expr_fp['pqwriter'].close()

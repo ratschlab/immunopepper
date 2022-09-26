@@ -159,48 +159,6 @@ class TestIsIntronInJunctionList:
         assert 0 == filter.is_intron_in_junction_list(splice_graph, vertex_ids, '-', ['305:500:+'])
 
 
-class TestAddKmerProperties:
-    """ Tests for :meth:`filter.add_kmer_properties` """
-
-    def test_add(self):
-        output_kmers = [
-            OutputKmer(kmer='MSPHGYKLA', id='ENSMUSG00000025902.13:32_14:0:4495155:2-exons', segment_expr=51.43,
-                       is_cross_junction=True, junction_expr=1.0, junction_annotated=True, reading_frame_annotated=False),
-            OutputKmer(kmer='SPHGYKLAS', id='ENSMUSG00000025902.13:32_14:0:4495155:2-exons', segment_expr=57.45,
-                       is_cross_junction=True, junction_expr=1.0),
-            OutputKmer(kmer='PHGYKLASD', id='ENSMUSG00000025902.13:32_14:0:4495155:2-exons', segment_expr=63.48,
-                       is_cross_junction=True, junction_expr=1.0),
-            OutputKmer(kmer='HGYKLASDP', id='ENSMUSG00000025902.13:32_14:0:4495155:2-exons', segment_expr=69.5,
-                       is_cross_junction=True, junction_expr=1.0)]
-        kmer_dict = {}
-        filter.add_kmer_properties(kmer_dict, output_kmers)
-        assert len(kmer_dict) == 4
-        assert kmer_dict == {'MSPHGYKLA': [{'ENSMUSG00000025902.13'}, {51.43}, {True}, {1.0}],
-                             'SPHGYKLAS': [{'ENSMUSG00000025902.13'}, {57.45}, {True}, {1.0}],
-                             'PHGYKLASD': [{'ENSMUSG00000025902.13'}, {63.48}, {True}, {1.0}],
-                             'HGYKLASDP': [{'ENSMUSG00000025902.13'}, {69.5}, {True}, {1.0}]}
-
-    def test_duplicate_kmer(self):
-        output_kmers = [
-            OutputKmer(kmer='MSPHGYKLA', id='ENSMUSG00000025902.13:32_14:0:4495155:2-exons', segment_expr=51.43,
-                       is_cross_junction=False, junction_expr=1.0),
-            OutputKmer(kmer='MSPHGYKLA', id='ENSMUSG00000025902.13:32_14:0:4495155:2-exons', segment_expr=12.34,
-                       is_cross_junction=True, junction_expr=1.0),
-            OutputKmer(kmer='SPHGYKLAS', id='ENSMUSG00000025902.13:32_14:0:4495155:2-exons', segment_expr=57.45,
-                       is_cross_junction=True, junction_expr=1.0),
-            OutputKmer(kmer='PHGYKLASD', id='ENSMUSG00000025902.13:32_14:0:4495155:2-exons', segment_expr=63.48,
-                       is_cross_junction=True, junction_expr=1.0),
-            OutputKmer(kmer='HGYKLASDP', id='ENSMUSG00000025902.13:32_14:0:4495155:2-exons', segment_expr=69.5,
-                       is_cross_junction=True, junction_expr=1.0)]
-        kmer_dict = {}
-        filter.add_kmer_properties(kmer_dict, output_kmers)
-        assert len(kmer_dict) == 4
-        assert kmer_dict == {'MSPHGYKLA': [{'ENSMUSG00000025902.13'}, {51.43, 12.34}, {True, False}, {1.0}],
-                             'SPHGYKLAS': [{'ENSMUSG00000025902.13'}, {57.45}, {True}, {1.0}],
-                             'PHGYKLASD': [{'ENSMUSG00000025902.13'}, {63.48}, {True}, {1.0}],
-                             'HGYKLASDP': [{'ENSMUSG00000025902.13'}, {69.5}, {True}, {1.0}]}
-
-
 class TestAddKmers:
     """ Tests for :meth:`filter.add_kmers` """
 

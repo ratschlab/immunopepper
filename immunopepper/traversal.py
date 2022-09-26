@@ -3,7 +3,6 @@
 from collections import defaultdict
 import numpy as np
 
-from immunopepper.filter import add_kmer_properties
 from immunopepper.filter import add_kmers
 from immunopepper.filter import filter_redundant_junctions
 from immunopepper.filter import junction_is_annotated
@@ -234,8 +233,8 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
 
     Parameters
     ----------
-    peptide_set: Set. of metadata tuples
-    kmer_dict: Dict. (kmer sequence)|-> metadata
+    peptide_set: set(OutputMetadata, OutputMetadata) with OutputMetadata namedtuple
+    kmer_dict: Dict. (kmer length)|-> set(OutputKmer, OutputKmer) with OutputKmer namedtuple
     gene: Object, returned by SplAdder.
     all_vertex_pairs: List of VertexPair
     ref_mut_seq: Str, reference sequnce of specific chromosome
@@ -344,19 +343,21 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
 
                     ### kmers
                     if cross_graph_expr: #generate kmer x sample expression matrix for all samples in graph
-                        kmer_matrix = create_output_kmer_cross_samples(output_peptide, kmer[0], expr_list, graph_output_samples_ids, kmer_matrix, kmer_database) # Only one kmer lengthsupported for this mode
+                        kmer_matrix = create_output_kmer_cross_samples(output_peptide, kmer[0], expr_list,
+                                                                       graph_output_samples_ids, kmer_matrix,
+                                                                       kmer_database) # Only one kmer length supported for this mode
 
                     else:
                         # generate sample kmers for each vertex pair and each kmer_length
                         if '2-exons' in kmer_type:
                             for kmer_length in kmer:
-                                add_kmer_properties(kmer_dict[kmer_length],
-                                                         create_output_kmer(output_peptide, kmer_length, expr_list, kmer_database)) #TODO create other type of kmer dictionnary, + other saving function for batch // OR SAVE STRAIGHT away # adapt kmer to list of expressins -- keep cros junction info
+                                kmer_dict[kmer_length].update(create_output_kmer(output_peptide, kmer_length,
+                                                                              expr_list, kmer_database))
                         # generate sample kmers for each vertex triplets, only for the kmer_lengths that require it
                         else:
                             kmer_length = int(kmer_type.split('_')[-1].split('-')[0])
-                            add_kmer_properties(kmer_dict[kmer_length],
-                                                     create_output_kmer(output_peptide, kmer_length, expr_list, kmer_database))
+                            kmer_dict[kmer_length].update(create_output_kmer(output_peptide, kmer_length,
+                                                                          expr_list, kmer_database))
 
         if not gene.splicegraph.edges is None:
             gene.to_sparse()

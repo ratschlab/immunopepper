@@ -177,38 +177,6 @@ def is_intron_in_junction_list(splicegraph: Splicegraph, vertex_ids: list[int], 
     return 0
 
 
-# TODO(dd): this function smells. It takes nicely structured data and massages it into an undecipherable jumble. Why?
-def add_kmer_properties(foreground_dict, output_kmers: list[OutputKmer]):
-    """
-    Update foreground_dict by collapsing the metadata in output_kmers.
-
-    :param foreground_dict: a dictionary where keys are peptides, values are lists of property sets containing the
-        collapsed metadata for the given peptide; for example::
-        {'MSPHGYKLA' : [{'ENSMUSG00000025902.13'}, {51.43}, {True}, {1.0}]}
-    :param output_kmers: list of :class:`OutputKmer` used to update the dictionary
-    """
-    for output_kmer in output_kmers:
-        # Prepare metadata
-        ord_dict_metadata = output_kmer._asdict()
-        del ord_dict_metadata['kmer']
-
-        # aggregate metadata of unique kmers
-        if output_kmer.kmer not in foreground_dict:
-            add_novel_kmer = []
-            for i, j in enumerate(ord_dict_metadata.values()):
-                if i == 0:
-                    add_novel_kmer.append({j.split(':')[0]})
-                else:
-                    add_novel_kmer.append({j})
-            foreground_dict[output_kmer.kmer] = add_novel_kmer
-        else:
-            for idx, value in enumerate(ord_dict_metadata.values()):
-                if idx == 0:
-                    foreground_dict[output_kmer.kmer][idx].add(value.split(':')[0])
-                else:
-                    foreground_dict[output_kmer.kmer][idx].add(value)
-
-
 def add_kmers(kmer_set: set[str], output_kmers: list[OutputKmer]):
     """ Add the kmer from each output_kmers to kmer_set. """
     for output_kmer in output_kmers:

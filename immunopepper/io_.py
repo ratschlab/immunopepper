@@ -90,9 +90,8 @@ def save_fg_kmer_dict(data: dict, filepointer: Filepointer, kmer_length: int, co
     File structure is: ['kmer', 'id', 'segmentExpr', 'isCrossJunction', 'junctionExpr']
     """
     if data:
-        data = pd.DataFrame(data.values(), index=data.keys())
-        data = data.applymap(_convert_list_to_str)
-        data = data.rename_axis('kmer').reset_index()
+        data = set(namedtuple_to_str(item, sep='\t') for item in data)
+        data = pd.DataFrame([line.split('\t') for line in data])
         data.columns = filepointer.junction_kmer_fp['columns']
         path = get_save_path(filepointer.junction_kmer_fp, out_dir, kmer_length)
         save_pd_toparquet(path, data, compression, verbose)
