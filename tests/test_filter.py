@@ -165,7 +165,7 @@ class TestAddKmerProperties:
     def test_add(self):
         output_kmers = [
             OutputKmer(kmer='MSPHGYKLA', id='ENSMUSG00000025902.13:32_14:0:4495155:2-exons', segment_expr=51.43,
-                       is_cross_junction=True, junction_expr=1.0),
+                       is_cross_junction=True, junction_expr=1.0, junction_annotated=True, reading_frame_annotated=False),
             OutputKmer(kmer='SPHGYKLAS', id='ENSMUSG00000025902.13:32_14:0:4495155:2-exons', segment_expr=57.45,
                        is_cross_junction=True, junction_expr=1.0),
             OutputKmer(kmer='PHGYKLASD', id='ENSMUSG00000025902.13:32_14:0:4495155:2-exons', segment_expr=63.48,
@@ -236,81 +236,3 @@ class TestAddKmers:
         assert kmer_set == set(['MSSPDAGYA', 'SSPDAGYAS', 'SPDAGYASD'])
 
 
-class TestAddPeptideProperties:
-    """ Tests for :meth:`filter.add_peptide_properties` """
-
-    def test_empty(self):
-        peptide_properties = {}
-        output_metadata = []
-        filter.add_peptide_properties(peptide_properties, output_metadata)
-        assert len(peptide_properties) == 0
-
-    def test_add_one(self):
-        peptide_properties = {}
-        output_metadata = [
-            OutputMetadata(peptide='MSPHGYK', output_id='ENSMUSG00000025902.13:23_4:0:4495155:2-exons', read_frame=1,
-                           gene_name='ENSMUSG00000025902.13', gene_chr='chr1', gene_strand='-', mutation_mode='ref',
-                           junction_annotated=1, has_stop_codon=1, is_in_junction_list=np.nan, is_isolated=1,
-                           variant_comb=np.nan,
-                           variant_seg_expr=np.nan,
-                           modified_exons_coord=Coord(start_v1=4493771, stop_v1=4495155, start_v2=4491712,
-                                                      stop_v2=4492668,
-                                                      start_v3=None, stop_v3=None),
-                           original_exons_coord=Coord(start_v1=4493771, stop_v1=4496413, start_v2=4491712,
-                                                      stop_v2=4492668,
-                                                      start_v3=None, stop_v3=None), vertex_idx=[23, 4],
-                           junction_expr=np.nan,
-                           segment_expr=99, kmer_type='2-exons')]
-        filter.add_peptide_properties(peptide_properties, output_metadata)
-        assert len(peptide_properties) == 1
-        assert list(peptide_properties.keys()) == ['MSPHGYK']
-        assert peptide_properties['MSPHGYK'] == [{'ENSMUSG00000025902.13:23_4:0:4495155:2-exons'}, {1},
-                                                 {'ENSMUSG00000025902.13'}, {'chr1'}, {'-'}, {'ref'}, {1}, {1},
-                                                 {np.nan},
-                                                 {1},
-                                                 {np.nan}, {np.nan}, {'4493771;4495155;4491712;4492668;None;None'},
-                                                 {'4493771;4496413;4491712;4492668;None;None'}, {(23, 4)}, {np.nan},
-                                                 {99},
-                                                 {'2-exons'}]
-
-    def test_add_two(self):
-        peptide_properties = {}
-        output_metadata1 = [
-            OutputMetadata(peptide='MSPHGYK', output_id='ENSMUSG00000025902.13:23_4:0:4495155:2-exons', read_frame=1,
-                           gene_name='ENSMUSG00000025902.13', gene_chr='chr1', gene_strand='-', mutation_mode='ref',
-                           junction_annotated=1, has_stop_codon=1, is_in_junction_list=np.nan, is_isolated=1,
-                           variant_comb=np.nan,
-                           variant_seg_expr=np.nan,
-                           modified_exons_coord=Coord(start_v1=4493771, stop_v1=4495155, start_v2=4491712,
-                                                      stop_v2=4492668,
-                                                      start_v3=None, stop_v3=None),
-                           original_exons_coord=Coord(start_v1=4493771, stop_v1=4496413, start_v2=4491712,
-                                                      stop_v2=4492668,
-                                                      start_v3=None, stop_v3=None), vertex_idx=[23, 4],
-                           junction_expr=np.nan,
-                           segment_expr=99, kmer_type='2-exons')]
-        output_metadata2 = [
-            OutputMetadata(peptide='MSPHGYK', output_id='ENSMUSG00000025902.13:23_4:0:4495155:2-exons2', read_frame=1,
-                           gene_name='ENSMUSG00000025902.13', gene_chr='chr2', gene_strand='+', mutation_mode='ref',
-                           junction_annotated=1, has_stop_codon=1, is_in_junction_list=np.nan, is_isolated=1,
-                           variant_comb=np.nan,
-                           variant_seg_expr=np.nan,
-                           modified_exons_coord=Coord(start_v1=4493771, stop_v1=4495155, start_v2=4491712,
-                                                      stop_v2=4492668,
-                                                      start_v3=None, stop_v3=None),
-                           original_exons_coord=Coord(start_v1=4493771, stop_v1=4496413, start_v2=4491712,
-                                                      stop_v2=4492668,
-                                                      start_v3=None, stop_v3=None), vertex_idx=[23, 4],
-                           junction_expr=np.nan,
-                           segment_expr=99, kmer_type='2-exons')]
-        filter.add_peptide_properties(peptide_properties, output_metadata1)
-        filter.add_peptide_properties(peptide_properties, output_metadata2)
-        assert len(peptide_properties) == 1
-        assert list(peptide_properties.keys()) == ['MSPHGYK']
-        assert peptide_properties['MSPHGYK'] == [
-            {'ENSMUSG00000025902.13:23_4:0:4495155:2-exons', 'ENSMUSG00000025902.13:23_4:0:4495155:2-exons2'}, {1},
-            {'ENSMUSG00000025902.13'}, {'chr1', 'chr2'}, {'-', '+'}, {'ref'}, {1}, {1}, {np.nan},
-            {1},
-            {np.nan}, {np.nan}, {'4493771;4495155;4491712;4492668;None;None'},
-            {'4493771;4496413;4491712;4492668;None;None'}, {(23, 4)}, {np.nan}, {99},
-            {'2-exons'}]
