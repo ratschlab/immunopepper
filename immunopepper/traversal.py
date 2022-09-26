@@ -261,8 +261,10 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
     # as a  junction of a protein coding transcript
     junction_flag = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
     som_exp_dict = exon_to_expression(gene, list(mutation.somatic_dict.keys()), countinfo, seg_counts, mut_count_id)
-    kmer_matrix = [{}, {}, {}, {}, {}]  # in cross sample mode, will contain unique kmers per gene (1), is_junction (2), segments expr per sample
-    # (3), junction expr per sample (4) junction is annotated (5) reading frame is annotated
+    kmer_matrix_edge = set()
+    # set of tuples: (kmer, is_junction, junction_is_annotated, reading_frame_is_annotated, edge_expression_sample_i ..)
+    kmer_matrix_segm = set()
+    # set of tuples: (kmer, is_junction, junction_is_annotated, reading_frame_is_annotated, segment_expression_sample_i ..)
 
 
     ### iterate over all vertex pairs and translate
@@ -343,9 +345,8 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
 
                     ### kmers
                     if cross_graph_expr: #generate kmer x sample expression matrix for all samples in graph
-                        kmer_matrix = create_output_kmer_cross_samples(output_peptide, kmer[0], expr_list,
-                                                                       graph_output_samples_ids, kmer_matrix,
-                                                                       kmer_database) # Only one kmer length supported for this mode
+                        create_output_kmer_cross_samples(output_peptide, kmer[0], expr_list, graph_output_samples_ids,
+                                                         kmer_matrix_edge, kmer_matrix_segm, kmer_database) # Only one kmer length supported for this mode
 
                     else:
                         # generate sample kmers for each vertex pair and each kmer_length
@@ -362,7 +363,8 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
         if not gene.splicegraph.edges is None:
             gene.to_sparse()
     if cross_graph_expr:
-        save_kmer_matrix(kmer_matrix, graph_samples, filepointer, compression=None, out_dir=out_dir, verbose=verbose_save)
+        save_kmer_matrix(kmer_matrix_edge, kmer_matrix_segm, graph_samples, filepointer,
+                         compression=None, out_dir=out_dir, verbose=verbose_save)
 
 
 
@@ -509,7 +511,8 @@ def create_output_kmer(output_peptide, k, expr_list, kmer_database=None):
     return output_kmer_list
 
 
-def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_output_samples_ids, kmer_matrix, kmer_database):
+def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_output_samples_ids,
+                                     kmer_matrix_edge, kmer_matrix_segm, kmer_database):
     """Calculate the output kmer and the corresponding expression based on output peptide
 
     Parameters
@@ -517,9 +520,9 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
     output_peptide: OutputPeptide. Filtered output_peptide_list.
     k: int. Specify k-mer length
     segm_expr_list: List(Tuple). Filtered expr_list.
-    graph_samples: samples list found in graph
-    kmer_matrix: [will contain unique kmers per gene
-    (1), is_junction (2), segments expr per sample (3), junction expr per sample (4)]
+    graph_output_samples_ids: samples list found in graph
+    kmer_matrix_edge: set of tuples: (kmer, is_junction, junction_is_annotated, reading_frame_is_annotated, edge_expression_sample_i ..)
+    kmer_matrix_segm: set of tuples: (kmer, is_junction, junction_is_annotated, reading_frame_is_annotated, segment_expression_sample_i ..)
     kmer_database: Set of kmers to be removed on the fly,
     usually from a public database as uniprot. I and L equivalence is applied
 
@@ -588,33 +591,11 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
                 W_past = W
 
             # update the cross samples matrix
-            if (sum(np.isnan(sublist_seg)) != len(sublist_seg) or sum(np.isnan(sublist_jun)) != len(sublist_jun)) and \
-                    (check_database):
-                if kmer_peptide not in kmer_matrix[0]:
-                    # add flags from unseen kmer
-                    kmer_matrix[0][kmer_peptide] = is_in_junction
-                    kmer_matrix[3][kmer_peptide] = junction_annotated
-                    kmer_matrix[4][kmer_peptide] = output_peptide.read_frame_annotated
-                    # add expression from unseen kmer
-                    kmer_matrix[1][kmer_peptide] = np.round(sublist_seg, 2)
-                    kmer_matrix[2][kmer_peptide] = sublist_jun
+            if check_database:
+                row_metadata = [kmer_peptide, is_in_junction, junction_annotated, output_peptide.read_frame_annotated]
+                kmer_matrix_edge.add(tuple(row_metadata + list(sublist_jun)))
+                kmer_matrix_segm.add(tuple(row_metadata + list(np.round(sublist_seg, 2))))
 
-                else:
-                    # check if any of previous or unseen kmer is flagged cross junction or annotated
-                    kmer_matrix[0][kmer_peptide] = max(kmer_matrix[0][kmer_peptide], is_in_junction )
-                    kmer_matrix[3][kmer_peptide] = max([kmer_matrix[3][kmer_peptide], junction_annotated])
-                    kmer_matrix[4][kmer_peptide] = max([kmer_matrix[4][kmer_peptide], output_peptide.read_frame_annotated])
-                    # add max expression of previous and unseen kmer
-                    if not np.isnan(np.array([kmer_matrix[1][kmer_peptide], np.round(sublist_seg, 2)])).all():
-                        kmer_matrix[1][kmer_peptide] = np.nanmax(np.array([kmer_matrix[1][kmer_peptide],
-                                                                            np.round(sublist_seg, 2)]), axis = 0)
-                    if not np.isnan(np.array([kmer_matrix[2][kmer_peptide], sublist_jun])).all():
-                        kmer_matrix[2][kmer_peptide] = np.nanmax(np.array([kmer_matrix[2][kmer_peptide],
-                                                                            sublist_jun]), axis = 0)
-
-
-
-    return kmer_matrix
 
 
 

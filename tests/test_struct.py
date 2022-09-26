@@ -243,7 +243,7 @@ mutation_mode ='ref'
 #pr = cProfile.Profile()
 #pr.enable()
 #for mutation_mode in ['ref', 'somatic', 'germline', 'somatic_and_germline']:
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=False) #TODO add back
+test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False, graph_cross_sample=True) #TODO add back
 #test_end_to_end_samplespecif('ERR2130621', tmpdir, "9", mutation_mode) # TEST DEPRECATED
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
 #for mutation_mode in ['ref', 'germline', 'somatic', 'somatic_and_germline']:

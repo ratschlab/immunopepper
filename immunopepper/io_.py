@@ -158,16 +158,12 @@ def save_gene_expr_distr(data: list[list], input_samples: list[str], process_sam
         save_pd_toparquet(path, data, compression, verbose)
 
 
-def save_kmer_matrix(data, graph_samples, filepointer: Filepointer, compression: str = None, out_dir: str = None,
-                     verbose: bool = False):
+def save_kmer_matrix(data_edge, data_segm, graph_samples, filepointer: Filepointer, compression: str = None,
+                     out_dir: str = None, verbose: bool = False):
     '''
-    Saves matrices of [kmers] x [samples, metadata] containing either segment expression or junction expression
-    :param data: list which contains in position
-            # 0: metadata cross junction status (dict),
-            # 1: segment expression (dict),
-            # 2: junction expression (dict),
-            # 3: metadata junction annotated status (dict)
-            # 4: metadata reading frame annotated status (dict)
+    Saves matrices of [kmers] x [metadata, samples] containing either segment expression or junction expression
+    :param data_edge: set of tuples: (kmer, is_junction, junction_is_annotated, reading_frame_is_annotated, edge_expression_sample_i ..)
+    :param data_segm: set of tuples: (kmer, is_junction, junction_is_annotated, reading_frame_is_annotated, segment_expression_sample_i ..)
     :param graph_samples: list sample names
     :param filepointer: class object which contains the saving path,
                         columns names and writer object for each of the files to save
@@ -176,34 +172,25 @@ def save_kmer_matrix(data, graph_samples, filepointer: Filepointer, compression:
     :param verbose: int verbose parameter
     '''
 
-
-    if data[0]:
-        segm_path = get_save_path(filepointer.kmer_segm_expr_fp, out_dir)
-        edge_path = get_save_path(filepointer.kmer_edge_expr_fp, out_dir)
-        # data is a list which contains in position 1: the segment expression dict -> converted to dataframe
-        data[1] = pd.DataFrame.from_dict(data[1], orient='index', columns=graph_samples).reset_index().rename(
-            {'index': filepointer.kmer_segm_expr_fp['columns'][0]}, axis=1)
-        # data is a list which contains in position 2: the junction expression dict ->  converted to dataframe
-        data[2] = pd.DataFrame.from_dict(data[2], orient='index', columns=graph_samples).reset_index().rename(
-            {'index': filepointer.kmer_segm_expr_fp['columns'][0]}, axis=1)
-
-        for (name_idx, data_idx) in zip([1,2,3], [0,3,4]):
-            # data is a list which contains in position
-            # 0: metadata cross junction status (dict)
-            # 3: metadata junction annotated status (dict)
-            # 4: metadata reading frame annotated status (dict)
-            # Here we update the expression dataframes with the metadata and corresponding column names
-            data[1][filepointer.kmer_segm_expr_fp['columns'][name_idx]] = data[data_idx].values()
-            data[2][filepointer.kmer_segm_expr_fp['columns'][name_idx]] = data[data_idx].values()
-
-        filepointer.kmer_segm_expr_fp['pqwriter'] = save_pd_toparquet(segm_path, data[1],
-                                                                      compression=compression, verbose=verbose,
-                                                                      pqwriter=filepointer.kmer_segm_expr_fp[
-                                                                          'pqwriter'], writer_close=False)
-        filepointer.kmer_edge_expr_fp['pqwriter'] = save_pd_toparquet(edge_path, data[2],
+    segm_path = get_save_path(filepointer.kmer_segm_expr_fp, out_dir)
+    edge_path = get_save_path(filepointer.kmer_edge_expr_fp, out_dir)
+    if data_edge:
+        data_edge = pd.DataFrame(data_edge)
+        data_edge.columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
+        filepointer.kmer_edge_expr_fp['pqwriter'] = save_pd_toparquet(edge_path, data_edge,
                                                                       compression=compression, verbose=verbose,
                                                                       pqwriter=filepointer.kmer_edge_expr_fp[
                                                                           'pqwriter'], writer_close=False)
+    if data_segm:
+        data_segm = pd.DataFrame(data_segm)
+        data_segm.columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
+        filepointer.kmer_segm_expr_fp['pqwriter'] = save_pd_toparquet(segm_path, data_segm,
+                                                                      compression=compression, verbose=verbose,
+                                                                      pqwriter=filepointer.kmer_segm_expr_fp[
+                                                                          'pqwriter'], writer_close=False)
+
+
+
 
 
 def initialize_fp(output_path: str, mutation_mode: str,
