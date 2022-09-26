@@ -13,7 +13,7 @@ from immunopepper.namedtuples import Coord, OutputKmer, OutputMetadata, ReadingF
 class TestFilterRedundantJunctions:
     """ Tests for :meth:`filter.filter_redundant_junctions` """
     def test_no_redundant(self):
-        read_frame = ReadingFrameTuple(cds_left_modi=4495135, cds_right_modi=4495155, read_phase=2)
+        read_frame = ReadingFrameTuple(cds_left_modi=4495135, cds_right_modi=4495155, read_phase=2, annotated_RF=True)
         # the second VertexPair is subsuming the first, because they both refer to the same read_phase (2), and the
         # same intron (4493490, 4495135) but the exon of the 2nd [4491713-4495155]
         # includes the coordinates of the first [4493099-4495155]
@@ -31,7 +31,7 @@ class TestFilterRedundantJunctions:
         assert vertex_pairs == filter.filter_redundant_junctions(vertex_pairs, '-')
 
     def test_one_redundant(self):
-        read_frame = ReadingFrameTuple(cds_left_modi=4495135, cds_right_modi=4495155, read_phase=2)
+        read_frame = ReadingFrameTuple(cds_left_modi=4495135, cds_right_modi=4495155, read_phase=2, annotated_RF=True)
         # the second VertexPair is subsuming the first, because they both refer to the same read_phase (2), and the
         # same intron (4493490, 4495135) but the exon of the 2nd [4491713-4495155]
         # includes the coordinates of the first [4493099-4495155]
@@ -50,7 +50,7 @@ class TestFilterRedundantJunctions:
         assert filtered_vertex_pairs == [vertex_pairs[1]]
 
     def test_identical_introns(self):
-        read_frame = ReadingFrameTuple(cds_left_modi=4495135, cds_right_modi=4495155, read_phase=2)
+        read_frame = ReadingFrameTuple(cds_left_modi=4495135, cds_right_modi=4495155, read_phase=2, annotated_RF=True)
         # the second VertexPair is subsuming the first, because they both refer to the same read_phase (2), and the
         # same intron (4493490, 4495135) but the exon of the 2nd [4491713-4495155]
         # includes the coordinates of the first [4493099-4495155]
@@ -125,13 +125,13 @@ def test_junction_tuple_is_annotated():
     junction_flag[1, 2] = 1
     junction_flag[2, 3] = 1
     vertex_id_tuple = (1, 2, 3)
-    assert 1 == filter.junction_tuple_is_annotated(junction_flag, vertex_id_tuple)
+    assert (True, True) == filter.junction_tuple_is_annotated(junction_flag, vertex_id_tuple)
     vertex_id_tuple = (0, 2, 3)
-    assert 1 == filter.junction_tuple_is_annotated(junction_flag, vertex_id_tuple)
+    assert (False, True) == filter.junction_tuple_is_annotated(junction_flag, vertex_id_tuple)
     vertex_id_tuple = (0, 1, 3)
-    assert 0 == filter.junction_tuple_is_annotated(junction_flag, vertex_id_tuple)
+    assert (False, False) == filter.junction_tuple_is_annotated(junction_flag, vertex_id_tuple)
     vertex_id_tuple = (1, 2)
-    assert 1 == filter.junction_tuple_is_annotated(junction_flag, vertex_id_tuple)
+    assert (True,) == filter.junction_tuple_is_annotated(junction_flag, vertex_id_tuple)
 
 
 class TestIsIntronInJunctionList:
@@ -170,11 +170,11 @@ class TestAddKmers:
     def test_three_kmers(self):
         kmer_set = set()
         kmers = [OutputKmer(kmer='MSSPDAGYA', id='ENSMUST00000027035.9', segment_expr=97.29, is_cross_junction=False,
-                            junction_expr=np.nan),
+                            junction_expr=np.nan, junction_annotated=True, reading_frame_annotated=False),
                  OutputKmer(kmer='SSPDAGYAS', id='ENSMUST00000027035.9', segment_expr=97.29, is_cross_junction=False,
-                            junction_expr=np.nan),
+                            junction_expr=np.nan, junction_annotated=True, reading_frame_annotated=False),
                  OutputKmer(kmer='SPDAGYASD', id='ENSMUST00000027035.9', segment_expr=97.29, is_cross_junction=False,
-                            junction_expr=np.nan)]
+                            junction_expr=np.nan, junction_annotated=True, reading_frame_annotated=False)]
 
         filter.add_kmers(kmer_set, kmers)
         assert len(kmer_set) == 3
@@ -183,11 +183,11 @@ class TestAddKmers:
     def test_duplicates(self):
         kmer_set = set(['MSSPDAGYA', 'SSPDAGYAS'])
         kmers = [OutputKmer(kmer='MSSPDAGYA', id='ENSMUST00000027035.9', segment_expr=97.29, is_cross_junction=False,
-                            junction_expr=np.nan),
+                            junction_expr=np.nan, junction_annotated=True, reading_frame_annotated=False),
                  OutputKmer(kmer='SSPDAGYAS', id='ENSMUST00000027035.9', segment_expr=97.29, is_cross_junction=False,
-                            junction_expr=np.nan),
+                            junction_expr=np.nan, junction_annotated=True, reading_frame_annotated=False),
                  OutputKmer(kmer='SPDAGYASD', id='ENSMUST00000027035.9', segment_expr=97.29, is_cross_junction=False,
-                            junction_expr=np.nan)]
+                            junction_expr=np.nan, junction_annotated=True, reading_frame_annotated=False)]
 
         filter.add_kmers(kmer_set, kmers)
         assert len(kmer_set) == 3
