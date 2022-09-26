@@ -3,6 +3,7 @@ import numpy as np
 import os
 import pandas as pd
 import pathlib
+import sys
 from pyspark.sql import functions as sf
 from pyspark.sql import types as st
 
@@ -120,8 +121,6 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
             logging.info("Isolating kmers only in backbone annotation")
             matrix = split_only_found_annotation_backbone(separate_back_annot, output_dir, matrix, index_name,
                                                           jct_annot_col, rf_annot_col, cross_junction)
-            #TODO FILTER OUT from cancer set the kmers_AnnotOnly
-            #TODO check the reloads conditions
 
         # Filter according to annotation flag
         matrix = filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col,
@@ -177,6 +176,7 @@ def split_only_found_annotation_backbone(separate_back_annot, output_dir, matrix
 
     kmers_AnnotOnly = matrix.select(index_name).where(sf.col('expr_or_novel') == False)
     matrix = matrix.filter(sf.col('expr_or_novel') == True)
+    matrix = matrix.drop(sf.col('expr_or_novel'))
     save_spark(kmers_AnnotOnly, output_dir, separate_back_annot)
     return matrix
 
@@ -555,20 +555,23 @@ def combine_cancer(cancer_kmers_segm, cancer_kmers_edge, index_name):
         return cancer_kmers_segm
 
 
-def remove_external_kmer_list(spark, path_external_kmer_database, spark_matrix, index_name):
+def remove_external_kmer_list(spark, path_external_kmer_database, spark_matrix, index_name, header=False):
     '''
     Takes an expression matrix of the format [kmers] x [samples, metadata] and removes an external database
     :param spark: spark context
     :param path_normal_kmer_list: str. path of file containing kmers to be removed
     :param spark_matrix: str path for count matrix
     :param index_name: str kmer column name
+    :param header: bool. whether the file contains a header
     :return: Filtered matrix for external kmer database
     '''
     logging.info("Load {}".format(path_external_kmer_database))
-    external_database = loader(spark, path_external_kmer_database)
+    external_database = loader(spark, path_external_kmer_database, header=header)
     external_database = external_database.select(sf.col(index_name))
     if spark_matrix:
-        spark_matrix = spark_matrix.union(external_database).distinct()
+        spark_matrix = spark_matrix.union(external_database)
+    else:
+        spark_matrix = external_database
     return spark_matrix
 
 
@@ -615,22 +618,30 @@ def save_spark(cancer_kmers, output_dir, path_final_fil, outpartitions=None):
         cancer_kmers.write.mode('overwrite').options(header="true", sep="\t").csv(path_final_fil)
 
 
-def loader(spark, path_kmer_list):
+def loader(spark, path_kmer, header=False):
     '''
-    Loads path parquet or csv to spark dataframe
-    If user provides a list of parquet files with the same schema -> They will be loaded as a single file
-    elif user provides a list with a single csv -> Only the first entry of the list will be loaded as a single file
+    Loads a parquet, csv or tsv (partitioned) file as a spark dataframe
+    The user can provide either
+    - a list of files with the same schema
+    - a string. folder containing the files
     :param spark: spark context
-    :param path_kmer_list: list of paths to read
+    :param path_kmer: Either (1) a list of files or (b) a string with the basefolder where the files are placed
+    :param header: bool. whether the file contains a header
     :return: loaded spark dataframe
+
     '''
-    #TODO allow multiple tsv
-    if 'tsv' in path_kmer_list[0]:
-        logging.warning((f'Only the first file of {path_kmer_list} will be read. '
-                         f'Use list of parquets to process multiple paths'))
-        matrix = spark.read.csv(path_kmer_list[0], sep=r'\t', header=False)
+    if ('parquet' in path_kmer) or ('pq' in path_kmer): #single file or folder
+        matrix = spark.read.parquet(path_kmer)
+    elif ('parquet' in path_kmer[0]) or ('pq' in path_kmer[0]): # list
+        matrix = spark.read.parquet(*path_kmer)
+    elif ('csv' in path_kmer[0]) or ('csv' in path_kmer):
+        matrix = spark.read.csv(path_kmer, sep=',', header=header)
+    elif ('tsv' in path_kmer[0]) or ('tsv' in path_kmer):
+        matrix = spark.read.csv(path_kmer, sep=r'\t', header=header)
     else:
-        matrix = spark.read.parquet(*path_kmer_list)
+        logging.error(f'Cannot determine file type of {path_kmer}. Please include .parquet .pq .tsv .csv suffix to the files or the folder (partitionned)')
+        sys.exit()
+
 
     return matrix
 

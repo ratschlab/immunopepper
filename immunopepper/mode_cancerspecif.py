@@ -1,6 +1,5 @@
 import logging
 import os
-from pyspark.sql import functions as sf
 import sys
 
 
@@ -13,7 +12,6 @@ from immunopepper.spark import combine_hard_threshold_normals
 from immunopepper.spark import combine_normals
 from immunopepper.spark import filter_expr_kmer
 from immunopepper.spark import filter_hard_threshold
-from immunopepper.spark import loader
 from immunopepper.spark import output_count
 from immunopepper.spark import pq_WithRenamedCols
 from immunopepper.spark import preprocess_kmer_file
@@ -82,53 +80,56 @@ def mode_cancerspecif(arg):
         path_interm_kmers_annotOnly = check_interm_files(normal_out, arg.cohort_expr_support_normal,
                                                          arg.n_samples_lim_normal, tag='normals', batch_tag=batch_tag)
         ### Preprocessing Normals
-        if launch_preprocess_normal and \
-                ((arg.path_normal_matrix_segm is not None) or (arg.path_normal_matrix_edge is not None)):
-            logging.info("\n \n >>>>>>>> Preprocessing Normal samples")
+        if (arg.path_normal_matrix_segm is not None) or (arg.path_normal_matrix_edge is not None):
+            if launch_preprocess_normal:
+                logging.info("\n \n >>>>>>>> Preprocessing Normal samples")
 
-            normal_segm = process_matrix_file(spark, index_name, jct_col,
-                                              jct_annot_col, rf_annot_col,
-                                              arg.path_normal_matrix_segm,
-                                              arg.whitelist_normal,
-                                              cross_junction=0,
-                                              filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
-                                                                          or (arg.filterNeojuncCoord == 'A') else False,
-                                              filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
-                                                                         or (arg.filterNeojuncCoord == 'A') else False,
-                                              output_dir=normal_out, separate_back_annot=path_interm_kmers_annotOnly,
-                                              tot_batches=arg.tot_batches, batch_id=arg.batch_id)
-            normal_junc = process_matrix_file(spark, index_name, jct_col,
-                                              jct_annot_col, rf_annot_col,
-                                              arg.path_normal_matrix_edge,
-                                              arg.whitelist_normal,
-                                              cross_junction=1,
-                                              filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
-                                                                          or (arg.filterNeojuncCoord == 'A') else False,
-                                              filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
-                                                                         or (arg.filterNeojuncCoord == 'A') else False,
-                                              output_dir=normal_out,  separate_back_annot=path_interm_kmers_annotOnly,
-                                              tot_batches=arg.tot_batches, batch_id=arg.batch_id)
-            normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
+                normal_segm = process_matrix_file(spark, index_name, jct_col,
+                                                  jct_annot_col, rf_annot_col,
+                                                  arg.path_normal_matrix_segm,
+                                                  arg.whitelist_normal,
+                                                  cross_junction=0,
+                                                  filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
+                                                                              or (arg.filterNeojuncCoord == 'A') else False,
+                                                  filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
+                                                                             or (arg.filterNeojuncCoord == 'A') else False,
+                                                  output_dir=normal_out, separate_back_annot=path_interm_kmers_annotOnly,
+                                                  tot_batches=arg.tot_batches, batch_id=arg.batch_id)
+                normal_junc = process_matrix_file(spark, index_name, jct_col,
+                                                  jct_annot_col, rf_annot_col,
+                                                  arg.path_normal_matrix_edge,
+                                                  arg.whitelist_normal,
+                                                  cross_junction=1,
+                                                  filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
+                                                                              or (arg.filterNeojuncCoord == 'A') else False,
+                                                  filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
+                                                                             or (arg.filterNeojuncCoord == 'A') else False,
+                                                  output_dir=normal_out,  separate_back_annot=path_interm_kmers_annotOnly,
+                                                  tot_batches=arg.tot_batches, batch_id=arg.batch_id)
+                normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
 
 
-            # Hard Filtering
-            logging.info((f'\n \n >>>>>>>> Normals: Perform Hard Filtering \n '
-                          f'(expressed in {arg.n_samples_lim_normal} samples'
-                          f' with {arg.cohort_expr_support_normal} normalized counts'))
-            logging.info("expression filter")
-            filter_hard_threshold(normal_matrix, index_name, jct_annot_col, rf_annot_col, libsize_n,
-                                  arg.cohort_expr_support_normal, arg.n_samples_lim_normal,
-                                  path_normal_for_express_threshold, path_normal_for_sample_threshold, tag = 'normals')
+                # Hard Filtering
+                logging.info((f'\n \n >>>>>>>> Normals: Perform Hard Filtering \n '
+                              f'(expressed in {arg.n_samples_lim_normal} samples'
+                              f' with {arg.cohort_expr_support_normal} normalized counts'))
+                logging.info("expression filter")
+                filter_hard_threshold(normal_matrix, index_name, jct_annot_col, rf_annot_col, libsize_n,
+                                      arg.cohort_expr_support_normal, arg.n_samples_lim_normal,
+                                      path_normal_for_express_threshold, path_normal_for_sample_threshold, tag = 'normals')
 
-        normal_matrix = combine_hard_threshold_normals(spark, path_normal_for_express_threshold,
-                                                       path_normal_for_sample_threshold,
-                                                       arg.n_samples_lim_normal, index_name)
+            normal_matrix = combine_hard_threshold_normals(spark, path_normal_for_express_threshold,
+                                                           path_normal_for_sample_threshold,
+                                                           arg.n_samples_lim_normal, index_name)
+            # Add back kmer annot
+            normal_matrix = remove_external_kmer_list(spark, path_interm_kmers_annotOnly,
+                                                      normal_matrix, index_name, header=True)
+
         # Additional kmer backgrounds filtering
         if arg.path_normal_kmer_list is not None:
             normal_matrix = remove_external_kmer_list(spark, arg.path_normal_kmer_list, normal_matrix, index_name)
 
-        if path_interm_kmers_annotOnly:
-            normal_matrix = remove_external_kmer_list(spark, path_interm_kmers_annotOnly, normal_matrix, index_name)
+
 
         ### Apply filtering to foreground
         for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
