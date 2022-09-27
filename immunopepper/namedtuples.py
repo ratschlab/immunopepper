@@ -18,12 +18,12 @@ Output_junc_peptide namedtuple
 - junction_id is the index of given junction pair in all junction pair (in descending or ascending order)
 - peptide: (peptide_string). The peptide translated from junction pairs.
 - exons_coor: Coord namedtuple
-- junction_annotated: int. 1 if the junction also appear in the input annotation file, 0 otherwise. 
-  nan if the peptide stops before the junction  
-- read_frame_annotated: int 1 if a transcript in the given reading frame is present in the annotation, 
-  0 if it is created by propagation
+- junction_annotated: bool. True if the junction also appears in the input annotation file, False otherwise. 
+  False if the peptide stops before the junction  
+- read_frame_annotated: bool. True if a transcript in the given reading frame is present in the annotation, 
+  False if it is created by propagation
 """
-OutputJuncPeptide = namedtuple('OutputJuncPeptide', ['output_id', 'peptide', 'exons_coor', 'junction_expr',
+OutputPeptide = namedtuple('OutputPeptide', ['output_id', 'peptide', 'exons_coor', 'junction_expr',
                                                      'junction_annotated', 'read_frame_annotated'])
 
 
@@ -32,16 +32,16 @@ Output_metadata namedtuple.
 - id:  the same with that in Output_junc_peptide
 - output_id: the same with that in Output_junc_peptide with '>'
 - read_frame: int (0,1,2). The number of base left to the next junction pair.
-- read_frame_annotated: int 1 if a transcript in the given reading frame is present in the annotation, 
-  0 if it is created by propagation
+- read_frame_annotated: bool. True if a transcript in the given reading frame is present in the annotation,
+  False if it is created by propagation
 - gene_name: str. The name of Gene.
 - gene_chr: str. The Chromosome id where the gene is located.
 - gene_strand: str ('+', '_'). The strand of gene.
 - mutation_mode: str ('ref', 'somatic', 'germline', 'somatic_and_germline'). Mutation mode
-- junction_annotated: int. 1 if the junction also appear in the input annotation file, 0 otherwise. 
-  nan if the peptide stops before the junction  
+- junction_annotated: bool. True if the junction also appears in the input annotation file, False otherwise.
+  False if the peptide stops before the junction
 - has_stop_codon. Boolean. Indicate if there is stop codon in the junction pair.
-- is_in_junction_list: Boolean. Indicate if the junction pair appear in the given junction whitelist
+- is_in_junction_list: Boolean. Indicate if the junction pair appears in the given junction whitelist
 - is_isolated: Boolean. Indicate if the output peptide is actually translated from a single exon instead of two.
 - variant_comb: shows the somatic variantion combination used in this line of output. seperate by ';'
     eg. 5;25 means the somatic mutation of position 5 and 25 take effect in this output.
@@ -70,13 +70,6 @@ OutputMetadata = namedtuple('OutputMetadata', ['peptide', 'output_id', 'read_fra
 VertexPair = namedtuple('VertexPair', ['output_id', 'read_frame','has_stop_codon','modified_exons_coord','original_exons_coord','vertex_idxs','peptide_weight'])
 
 
-"""
-Output_backgrouond namedtuple.
-- id: transcript name
-- peptide: background peptide
-"""
-OutputBackground = namedtuple('OutputBackground', ['output_id', 'peptide'])
-
 
 """
 Output_kmer namedtuple.
@@ -84,11 +77,11 @@ Output_kmer namedtuple.
 - id: transcript id(generated from background peptide) or gene_vertex_id (generated from concat peptide)
 - expr: float. length-weighted sum of expression of the kmer
 - is_cross_junction: boolen. indicate if the kmer spans over the cross junction
-- junction_annotated: int. 1 if the junction also appear in the input annotation file, 0 otherwise. 
-  nan if the peptide stops before the junction  
-- read_frame_annotated: int 1 if a transcript in the given reading frame is present in the annotation, 
-  0 if it is created by propagation
-(and not created by propagation) 
+- junction_expr: float. Number or reads spanning the junction
+- junction_annotated: bool. True if the junction also appears in the input annotation file, False otherwise.
+  False if the peptide stops before the junction
+- read_frame_annotated: bool. True if a transcript in the given reading frame is present in the annotation,
+  False if it is created by propagation
 """
 OutputKmer= namedtuple('OutputKmer', ['kmer','id','segment_expr','is_cross_junction','junction_expr',
                                       'junction_annotated', 'reading_frame_annotated'])
@@ -123,8 +116,8 @@ Reading_frame_tuple namedtuple
 - cds_left_modi: int, modified left cds coordinate. (modifies means read frame shift has already been considered)
 - cds_right_modi: int, modified right cds coordinate
 - read_phase: (0,1,2). the number of bases left for the next cds
-- annotated_RF : read_frame_annotated: int 1 if a transcript in the given reading frame is present in the annotation, 
-  0 if it is created by propagation
+- annotated_RF: bool. True if a transcript in the given reading frame is present in the annotation,
+  False if it is created by propagation
 """
 ReadingFrameTuple = namedtuple('ReadingFrameTuple', ['cds_left_modi', 'cds_right_modi', 'read_phase', 'annotated_RF'])
 

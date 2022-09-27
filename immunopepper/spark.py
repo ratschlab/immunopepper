@@ -3,99 +3,9 @@ import numpy as np
 import os
 import pandas as pd
 import pathlib
+import sys
 from pyspark.sql import functions as sf
 from pyspark.sql import types as st
-import rpy2.robjects as ro
-from rpy2.robjects import pandas2ri, Formula, r
-from rpy2.robjects.packages import importr
-import scipy
-from scipy import stats
-
-from immunopepper.io_ import save_pd_toparquet
-
-pandas2ri.activate()
-deseq = importr('DESeq2')
-BiocParallel = importr('BiocParallel')
-BiocGenerics = importr("BiocGenerics")
-
-
-
-def DESeq2(count_matrix, design_matrix, normalize, cores=1): #TODO decide on statistical mode future
-    '''
-    Runs DEseq2
-    :param count_matrix: dataframe matrix with counts
-    :param design_matrix: dataframe  matrix with experiment design
-    :param normalize: dataframe with library sizes
-    :param cores: nt number of cores to use
-    :return: dataframe with result of the negative binomial fit
-    '''
-    # gene_column = ''
-    to_dataframe = ro.r('function(x) data.frame(x)')
-    count_matrix = round(count_matrix)
-    count_matrix = pandas2ri.py2rpy(count_matrix)
-    design_matrix = pandas2ri.py2rpy(design_matrix)
-    design_formula = Formula(' ~ 1')
-
-    dds0 = deseq.DESeqDataSetFromMatrix(countData=count_matrix,
-                                            colData=design_matrix,
-                                            design=design_formula)
-    dds0 = BiocGenerics.estimateSizeFactors(dds0, type="poscounts")
-    order_size_factor = list(dds0.do_slot('colData').do_slot('rownames'))
-    if normalize is not None:
-        logging.info("Enforcing custom normalisation in DESeq2")
-        dds0.do_slot('colData').do_slot('listData')[1] = ro.vectors.FloatVector(list(normalize.loc[order_size_factor,
-                                                                                                   'libsize_75percent'])) # Enforce size factors
-    else:
-        logging.info("WARNING: default size factor of DESeq2 are used")
-    dds = deseq.DESeq(dds0, parallel=True, BPPARAM=BiocParallel.MulticoreParam(cores),
-                      sfType="poscounts", # Will run 1. estimation of size factors: estimateSizeFactors # parameter "poscounts"
-                      fitType="parametric" # 2. estimation of dispersion: estimateDispersions # parameter "parametric"
-                      )
-
-    deseq_result = deseq.results(dds)
-    fit_res = to_dataframe(deseq_result)
-    disp = to_dataframe(deseq.dispersions(dds)).rename({'x': 'dispersion'}, axis = 1)
-    disp.index = fit_res.index
-    fit_res = pd.concat([fit_res['baseMean'], disp], axis=1)
-    return fit_res
-
-
-def fit_NB(spark, normal_matrix, index_name, output_dir, path_normal_matrix_segm, libsize_n, cores):  #TODO decide on statistical mode future
-    ''' Fits negative binomial on kmers expression with DESeq2
-    :param spark: spark context
-    :param normal_matrix: dataframe normal matrix
-    :param index_name: str kmer column name
-    :param output_dir: str output directory
-    :param path_normal_matrix_segm: str path to save matrix
-    :param libsize_n: libsize matrix
-    :param cores: int number of cores to run DESeq2
-    :return: spark session, dataframe normal matrix with additional fit columns
-    '''
-
-    def nb_cdf(mean_, disp):
-        probA = disp / (disp + mean_)
-        N = (probA * mean_) / (1 - probA)
-        return float(scipy.stats.nbinom.cdf(0, n=N, p=probA))
-
-    design_matrix = pd.DataFrame([1] * (len(normal_matrix.columns) - 1), columns=["design"])
-    design_matrix['sample'] = [col_name for col_name in normal_matrix.schema.names if col_name != index_name]
-
-    # Run DESEq2
-    design_matrix = design_matrix.set_index('sample')
-    logging.info("Run DESeq2")
-    normal_matrix = DESeq2(normal_matrix.toPandas().set_index(index_name), design_matrix,
-                           normalize=libsize_n, cores=cores)
-    save_pd_toparquet(os.path.join(output_dir, os.path.basename(path_normal_matrix_segm).split('.')[0]
-                                   + 'deseq_fit' + '.pq.gz'),
-                      normal_matrix, compression = 'gzip', verbose = False)
-    # Test on probability of noise
-    logging.info("Test if noise")
-    normal_matrix = spark.createDataFrame(normal_matrix.reset_index())
-    stat_udf = sf.udf(nb_cdf, st.FloatType())
-    logging.info("Filter out noise from normals")
-    normal_matrix = normal_matrix.withColumn("proba_zero", stat_udf(sf.col('baseMean'), sf.col('dispersion')))
-
-    return spark, normal_matrix
 
 
 def process_libsize(path_lib, custom_normalizer):
@@ -134,7 +44,7 @@ def pq_WithRenamedCols(spark, list_paths):
 
 def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
                         path_matrix, whitelist, cross_junction, filterNeojuncCoord, filterAnnotatedRF,
-                        tot_batches=None, batch_id=None):
+                        output_dir=None, separate_back_annot=None, tot_batches=None, batch_id=None):
     '''
     Preprocess samples if expression is stored in a multi-sample format [kmers] x [samples, metadata]
     Various preprocessing steps including filtering on junction status, on reading frame annotated status,
@@ -148,17 +58,30 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
     :param whitelist: list whitelist for samples
     :param cross_junction: bool whether the count matrix contains junction counts or segment counts
     :param annot_flag: list with the intruction codes on how to treat the reading frame and junction annotated flags
+    :param output_dir: str path for output directory
+    :param filterNeojuncCoord: bool if True, filter for kmers from neojunctions,
+     i.e. with non-annotated junction coordinates
+    :param filterAnnotatedRF: bool if True, filter for kmers from annotated reading frames,
+     i.e. with reading frames found in transcripts from the annotation, not propagated
+    :param separate_back_annot: str, if provided, the kmers derived from the annotation only (i.e. without read support
+    in any cohort sample) are saved into this path.
+    - The kmers are thereby skipped from expression threshold filtering in the background matrix.
+    - They will be by default removed from the foreground matrix as "annotated kmers"
     :param tot_batches: int batch mode only, total number of batches
     :param batch_id: int batch mode only, id of the batch
     :return: Preprocessed spark dataframe
     '''
 
-    def cast_type_dbl(matrix, name_list, index_name, jct_annot_col, rf_annot_col):
+    def cast_type_dbl(matrix, index_name, jct_annot_col, rf_annot_col):
         return matrix.select(
             [sf.col(name_).cast(st.DoubleType()).alias(name_) if ((name_ != index_name)
                                                                   and (name_ != jct_annot_col)
                                                                   and (name_ != rf_annot_col))
-                                                                  else sf.col(name_) for name_ in name_list])
+                                                                  else sf.col(name_) for name_ in matrix.schema.names])
+
+    def filter_whitelist(matrix, name_list, index_name, jct_annot_col, rf_annot_col):
+        name_list.extend([index_name, jct_annot_col, rf_annot_col])
+        return matrix.select([sf.col(name_) for name_ in name_list])
 
     if path_matrix is not None:
         # Rename columns for better spark processing (spark does not support '_')
@@ -177,7 +100,6 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
 
             matrix = matrix.filter(sf.abs(sf.hash('kmer') % tot_batches) == batch_id)
 
-
         # Filter on junction status depending on the content on the matrix
         if cross_junction:
             matrix = matrix.filter(f'{jct_col} == True')
@@ -185,34 +107,32 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
             matrix = matrix.filter(f'{jct_col} == False')
         matrix = matrix.drop(jct_col)
 
-        # Filter according to annotation flag
-        matrix = filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col,
-                                                        filterNeojuncCoord, filterAnnotatedRF)
-
-
-        # Cast type and fill nans + Reduce samples (columns) to whitelist
-        logging.info("Cast types")
-        if whitelist is not None:
-            whitelist = pd.read_csv(whitelist, sep='\t', header=None)[0].to_list()
-            whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
-            whitelist.extend([index_name, jct_annot_col, rf_annot_col])
-            matrix = cast_type_dbl(matrix, whitelist, index_name, jct_annot_col, rf_annot_col)
-        else:
-            matrix = cast_type_dbl(matrix, matrix.schema.names, index_name, jct_annot_col, rf_annot_col)
+        # Cast type to double
+        matrix = cast_type_dbl(matrix, index_name, jct_annot_col, rf_annot_col)
 
         # Fill Nans
         logging.info("Remove Nans")
         matrix = matrix.na.fill(0)
 
-        # Remove kmers present in the table but absent mapping from all samples
-        logging.info("Remove non expressed kmers SQL-")
+        # Separate kmers only present in the backbone annotation from the ones supported by the reads of any sample
         partitions_ = matrix.rdd.getNumPartitions()
         logging.info(f'...partitions: {partitions_}')
-        not_null = ' OR '.join(
-            [f'({col_name} != 0.0)'
-             for col_name in matrix.schema.names
-             if col_name not in [index_name, jct_annot_col, rf_annot_col]])  # SQL style  # All zeros
-        matrix = matrix.filter(not_null)
+        if separate_back_annot:
+            logging.info("Isolating kmers only in backbone annotation")
+            matrix = split_only_found_annotation_backbone(separate_back_annot, output_dir, matrix, index_name,
+                                                          jct_annot_col, rf_annot_col, cross_junction)
+
+        # Filter according to annotation flag
+        matrix = filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col,
+                                                        filterNeojuncCoord, filterAnnotatedRF)
+
+        # Reduce samples (columns) to whitelist
+        logging.info("Cast types")
+        if whitelist is not None:
+            whitelist = pd.read_csv(whitelist, sep='\t', header=None)[0].to_list()
+            whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
+            matrix = filter_whitelist(matrix, whitelist, index_name, jct_annot_col, rf_annot_col)
+
 
         # Make unique on kmers
         logging.info("Make unique")
@@ -225,6 +145,40 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
         return matrix
     else:
         return None
+
+
+def split_only_found_annotation_backbone(separate_back_annot, output_dir, matrix, index_name,
+                                         jct_annot_col, rf_annot_col, cross_junction):
+    '''
+    Separate kmers only present in the backbone annotation from the ones supported by the reads of any sample:
+    If kmer is cross junction:
+    - Only present in annotation if (jct_annot_col == True) and (all samples have zero expression)
+    If kmer is from a segment
+    - Only present in annotation if (rf_annot_col == True) and (all samples have zero expression)
+    The opposite condition is implemented to make use of short-circuit evaluation
+
+    :param matrix: spark dataframe matrix to filter
+    :param index_name: str kmer column name
+    :param jct_annot_col: string junction is annotated column
+    :param rf_annot_col: string reading frame is annotated column
+    :param cross_junction: bool whether the count matrix contains junction counts or segment counts
+    :return: spark matrix with expressed kmers, spark serie with kmers only in backbone annotation
+    '''
+    if cross_junction:
+        novel = f'({jct_annot_col} == {False})' #novel junction
+    else:
+        novel = f'({rf_annot_col} == {False})'  #novel reading frame
+    expressed = ' OR '.join( [f'({col_name} != 0.0)'
+                                   for col_name in matrix.schema.names
+                                   if col_name not in [index_name, jct_annot_col, rf_annot_col]]) # SQL style because many cols
+    matrix = matrix.withColumn('expr_or_novel',
+                             sf.when(sf.expr(f"{novel} OR {expressed}"), True).otherwise(False))
+
+    kmers_AnnotOnly = matrix.select(index_name).where(sf.col('expr_or_novel') == False)
+    matrix = matrix.filter(sf.col('expr_or_novel') == True)
+    matrix = matrix.drop(sf.col('expr_or_novel'))
+    save_spark(kmers_AnnotOnly, output_dir, separate_back_annot)
+    return matrix
 
 
 def filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col, filterNeojuncCoord, filterAnnotatedRF):
@@ -240,9 +194,9 @@ def filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col, 
     '''
     # Keep k-mers according to annotation flag
     if filterNeojuncCoord:
-        matrix = matrix.filter(f'({jct_annot_col} == {0})')
+        matrix = matrix.filter(f'({jct_annot_col} == {False})')
     if filterAnnotatedRF:
-        matrix = matrix.filter(f'({rf_annot_col} == {1})')
+        matrix = matrix.filter(f'({rf_annot_col} == {True})')
     return matrix
 
 
@@ -267,78 +221,73 @@ def combine_normals(normal_segm, normal_junc, index_name):
         return normal_segm
 
 
-def outlier_filtering(normal_matrix, index_name, libsize_n, expr_high_limit_normal):
+def check_interm_files(out_dir, expr_limit, n_samples_lim, target_sample='', tag='normals', batch_tag=''):
     '''
-    Remove very highly expressed kmers / expression outliers before fitting DESeq2. These kmers do not follow a NB,
-    besides no hypothesis testing is required to set their expression status to True
-    :param normal_matrix: spark dataframe for normal matrix
-    :param index_name: str kmer column name
-    :param libsize_n: dataframe for library size
-    :param expr_high_limit_normal: float threshold value on number of normalized reads
-    :return: Two different filtered instances of spark dataframe
+    Filtering steps for normal (resp. cancer) samples are saved as intermediate files because it is an expensive operation
+    The function checks the presence of the intermediate filtering files to decide whether to perform
+    - the full preprocessing + threshold filtering steps
+    - or simply re-load the intermediate files
+    :param out_dir: str path for output directory
+    :param expr_limit: float expression limit threshold to keep a kmer
+    :param n_samples_lim: int number of samples that need to pass the expression limit
+    :param target_sample: str name of the sample of interest.
+    To be excluded in the number of samples that pass the expression limit
+    :param tag: str tag related to the type of samples. Example cancer or normal
+    :param batch_tag: str batch mode, batch tag to be appended to intermediate file
+    :returns:
+    - launch_preprocess: bool, whether to perform the full preprocessing + threshold filtering steps
+     or simply re-load the intermediate files
+    - path_interm_matrix_for_express_threshold, path_interm_matrix_for_sample_threshold,
+     path_interm_kmers_annotOnly are respectively the path (str) where
+     the expression-filtered matrix, the sample-filtered matrix and
+     the kmers derived solely from the annotation are saved
     '''
+    base_n_samples = 1
+    base_expr = 0.0
 
-    # With libsize
-    if libsize_n is not None:
-        highly_expressed_normals = ' AND '.join(
-            [f'({col_name} > { expr_high_limit_normal * libsize_n.loc[col_name, "libsize_75percent"]})'
-             for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style  # Expressed kmers
-
-        ambigous_expression_normals = ' OR '.join(
-            [f'({col_name} <= { expr_high_limit_normal * libsize_n.loc[col_name, "libsize_75percent"]})'
-             for col_name in normal_matrix.schema.names if col_name != index_name])  # SQL style
-    # Without libsize
+    # For cancer matrix intermediate file the recurrence filter is not applied to the target sample
+    if target_sample:
+        suffix = f'Except{target_sample}'
     else:
-        highly_expressed_normals = ' AND '.join([f'({col_name} >= {expr_high_limit_normal})'
-                                                 for col_name in normal_matrix.schema.names if
-                                                 col_name != index_name])  # SQL style  # Expressed kmers
+        suffix = ''
 
-        ambigous_expression_normals = ' OR '.join([f'({col_name} < {expr_high_limit_normal})'
-                                                   for col_name in normal_matrix.schema.names if
-                                                   col_name != index_name])  # SQL style
+    # For normal samples the expression threshold filtering is not applied to the kmers found only in the annotation
+    # but not in the background samples. These kmers will be by default removed from the foreground matrix.
+    if tag == 'normals':
+        path_interm_kmers_annotOnly = os.path.join(out_dir, 'kmers_derived_solely_from_annotation.csv')
+    else:
+        path_interm_kmers_annotOnly = None
 
-    high_expr_normals = normal_matrix.filter(highly_expressed_normals).select(sf.col(index_name))
-    normal_matrix = normal_matrix.filter(ambigous_expression_normals)  # TODO add condition empty matrix
-    return high_expr_normals, normal_matrix
+    # Saving paths
+    path_interm_matrix_for_express_threshold = os.path.join(out_dir,
+                          f'interm_{tag}_combiExprCohortLim{expr_limit}Across{base_n_samples}{suffix}{batch_tag}'
+                          + '.tsv')
+    path_interm_matrix_for_sample_threshold = os.path.join(out_dir,
+                              f'interm_{tag}_combiExprCohortLim{base_expr}Across{base_n_samples}{suffix}{batch_tag}'
+                              + '.tsv')
+    # Check existence
+    if (expr_limit and os.path.isfile(os.path.join(path_interm_matrix_for_express_threshold, '_SUCCESS'))) \
+        or (n_samples_lim is not None and os.path.isfile(os.path.join(path_interm_matrix_for_sample_threshold, '_SUCCESS'))):
 
+        logging.info((f'Intermediate {tag} filtering already performed in: {path_interm_matrix_for_express_threshold} '
+                      f' and {path_interm_matrix_for_sample_threshold}. Re-loading {tag} intermediate data...'))
+        logging.info((f'Proceed with care! Using intermediate files means ignoring --filterNeojuncCoord, '
+                      f'--filterAnnotatedRF parameter.'))
+        launch_preprocess = False
+    else:
+        logging.info(f'No intermediate {tag} filtering file found.')
+        logging.info(f'Will compute full filtering steps according to user input parameters')
+        launch_preprocess = True
 
-def filter_statistical(spark, tissue_grp_files, normal_matrix, index_name, path_normal_matrix_segm, libsize_n,  #TODO decide on statistical mode future
-                       threshold_noise, output_dir, cores):
-    '''
-    :param spark: spark context
-    :param tissue_grp_files: list paths of group tissues
-    :param normal_matrix: spark dataframe for normal matrix
-    :param index_name: str kmer column name
-    :param path_normal_matrix_segm: str path for normal matrix with segment counts
-    :param libsize_n: dataframe for library size
-    :param threshold_noise: float threshold for probability of being noise (< threshold)
-    :param output_dir: str output directory
-    :param cores: int number of cores
-    :return: nothing. Function not finished
-    '''
-    if tissue_grp_files is not None:
-        modelling_grps = []
-        for tissue_grp in tissue_grp_files:
-            grp = pd.read_csv(tissue_grp, header=None)[0].to_list()
-            grp = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in grp]
-            grp.append(index_name)
-            modelling_grps.append(grp)
-        else:
-            modelling_grps = [[name_ for name_ in normal_matrix.schema.names if name_ != index_name]]
-
-        logging.info(">>>... Fit Negative Binomial distribution on normal kmers ")
-        for grp in modelling_grps:
-            # Fit NB and Perform hypothesis testing
-            normal_matrix = fit_NB(spark, normal_matrix, index_name, output_dir, path_normal_matrix_segm,
-                                   libsize_n, cores)
-            normal_matrix = normal_matrix.filter(sf.col("proba_zero") < threshold_noise)  # Expressed kmers
-
-        # Join on the kmers segments. Take the kmer which junction expression is not zero everywhere
+    return launch_preprocess, \
+           path_interm_matrix_for_express_threshold, \
+           path_interm_matrix_for_sample_threshold, \
+           path_interm_kmers_annotOnly
 
 
 def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsize,
-                          out_dir, expr_limit, n_samples_lim, target_sample='',
-                          tag='normals', batch_tag=''):
+                          expr_limit, n_samples_lim, path_e, path_s, target_sample='',
+                          tag='normals'):
     '''
     Filter samples based on >0 and >=X reads expressed (expensive operations) and save intermediate files.
     Additional thresholds will be applied specifically for cancer or normals matrices in subsequent combine functions
@@ -351,26 +300,18 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
     :param jct_annot_col: str junction annotated flag column name
     :param rf_annot_col: str reading frame annotated flag column name
     :param libsize: dataframe with library size
-    :param out_dir: str path for output directory
     :param expr_limit: float expression limit threshold to keep a kmer
     :param n_samples_lim: int number of samples that need to pass the expression limit
+    :param path_e: path where the expression-filtered matrix (a) is saved
+    :param path_s: path where the sample-filtered matrix (b) is saved
     :param target_sample: str name of the sample of interest.
-    To be excluded in the number of samples that pass the expression limit
+     To be excluded in the number of samples that pass the expression limit
     :param tag: str tag related to the type of samples. Example cancer or normal
-    :param batch_tag: str batch mode, batch tag to be appended to intermediate file
-    :return: path_e, path_s respectively path where
-    the expression-filtered matrix and the sample-filtered matrix are saved
+
     '''
 
-    path_e = None
-    path_s = None
     base_n_samples = 1
     base_expr = 0.0
-    if target_sample:
-        suffix = f'Except{target_sample}'
-    else:
-        suffix = ''
-
 
     if target_sample:
         logging.info(f'Target sample {target_sample} not included in the cohort filtering')
@@ -381,58 +322,41 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
 
     # Expression filtering, take k-mers with >= X reads in >= 1 sample
     if expr_limit:
-        path_e = os.path.join(out_dir,
-                              f'interm_{tag}_combiExprCohortLim{expr_limit}Across{base_n_samples}{suffix}{batch_tag}'
-                              + '.tsv')
-        if not os.path.isfile(os.path.join(path_e, '_SUCCESS')):
-            logging.info(f'Filter matrix with cohort expression support >= {expr_limit} in {base_n_samples} sample')
-            # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
-            # Skip target sample and metadata
-            matrix_e = matrix.select(index_name, *[
-                sf.when(sf.col(name_) >= expr_limit, 1).otherwise(0).alias(name_)
-                for name_ in matrix.schema.names if name_
-                not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
-            # Map each kmer: x[0] to the number of samples where the expression threshold is met: sum(x[1:])
-            # Get a tuple (kmer, number of samples where expression >= threshold)
-            # Then filter kmers based on the number of samples
-            # This uses rdds syntax because spark dataframe operations are slower
-            matrix_e = matrix_e.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
-                filter(lambda x: x[1] >= base_n_samples)
-            logging.info(f'Save to {path_e}')
-            matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e)
-        else:
-            logging.info((f'Filter matrix with cohort expression support {expr_limit} '
-                          f'in {base_n_samples} sample(s) already performed. Loading results from {path_e}'))
-            logging.info((f'Using intermediate files means ignoring --filterNeojuncCoord, '
-                          f'--filterAnnotatedRF parameter.'))
+        logging.info(f'Filter matrix with cohort expression support >= {expr_limit} in {base_n_samples} sample')
+        # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
+        # Skip target sample and metadata
+        matrix_e = matrix.select(index_name, *[
+            sf.when(sf.col(name_) >= expr_limit, 1).otherwise(0).alias(name_)
+            for name_ in matrix.schema.names if name_
+            not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
+        # Map each kmer: x[0] to the number of samples where the expression threshold is met: sum(x[1:])
+        # Get a tuple (kmer, number of samples where expression >= threshold)
+        # Then filter kmers based on the number of samples
+        # This uses rdds syntax because spark dataframe operations are slower
+        matrix_e = matrix_e.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
+            filter(lambda x: x[1] >= base_n_samples)
+        logging.info(f'Save intermediate 1/2 {tag} filtering file to {path_e}')
+        matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e)
 
     # Sample filtering, take k-mers with exclude >0 reads in >= 1 sample
     if n_samples_lim is not None:
-        path_s = os.path.join(out_dir,
-                              f'interm_{tag}_combiExprCohortLim{base_expr}Across{base_n_samples}{suffix}{batch_tag}'
-                              + '.tsv')
-        if not os.path.isfile(os.path.join(path_s, '_SUCCESS')):
-            logging.info(f'Filter matrix with cohort expression support > {base_expr} in {base_n_samples} sample')
-            # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
-            # Skip target sample and metadata
-            matrix_s = matrix.select(index_name, *[
-                sf.when(sf.col(name_) > base_expr, 1).otherwise(0).alias(name_)
-                for name_ in matrix.schema.names if name_
-                not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
-            # Map each kmer: x[0] to the number of samples where the expression threshold is met: sum(x[1:])
-            # Get a tuple (kmer, number of samples where expression >= threshold)
-            # Then filter kmers based on the number of samples
-            # This uses rdds syntax because spark dataframe operations are slower
-            matrix_s = matrix_s.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
-                filter(lambda x: x[1] >= base_n_samples)
-            logging.info(f'Save to {path_s}')
-            matrix_s.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_s)
-        else:
-            logging.info((f'Filter matrix with cohort expression support {base_expr} '
-                          f'in {base_n_samples} sample(s) already performed. Loading results from {path_s}'))
-            logging.info((f'Using intermediate files means ignoring --filterNeojuncCoord, '
-                          f'--filterAnnotatedRF parameter.'))
-    return path_e, path_s
+        logging.info(f'Filter matrix with cohort expression support > {base_expr} in {base_n_samples} sample')
+        # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
+        # Skip target sample and metadata
+        matrix_s = matrix.select(index_name, *[
+            sf.when(sf.col(name_) > base_expr, 1).otherwise(0).alias(name_)
+            for name_ in matrix.schema.names if name_
+            not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
+        # Map each kmer: x[0] to the number of samples where the expression threshold is met: sum(x[1:])
+        # Get a tuple (kmer, number of samples where expression >= threshold)
+        # Then filter kmers based on the number of samples
+        # This uses rdds syntax because spark dataframe operations are slower
+        matrix_s = matrix_s.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
+            filter(lambda x: x[1] >= base_n_samples)
+        logging.info(f'Save intermediate 2/2 {tag} filtering file to {path_s}')
+        matrix_s.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_s)
+
+
 
 
 def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers_s, n_samples_lim_normal, index_name):
@@ -631,6 +555,26 @@ def combine_cancer(cancer_kmers_segm, cancer_kmers_edge, index_name):
         return cancer_kmers_segm
 
 
+def remove_external_kmer_list(spark, path_external_kmer_database, spark_matrix, index_name, header=False):
+    '''
+    Takes an expression matrix of the format [kmers] x [samples, metadata] and removes an external database
+    :param spark: spark context
+    :param path_normal_kmer_list: str. path of file containing kmers to be removed
+    :param spark_matrix: str path for count matrix
+    :param index_name: str kmer column name
+    :param header: bool. whether the file contains a header
+    :return: Filtered matrix for external kmer database
+    '''
+    logging.info("Load {}".format(path_external_kmer_database))
+    external_database = loader(spark, path_external_kmer_database, header=header)
+    external_database = external_database.select(sf.col(index_name))
+    if spark_matrix:
+        spark_matrix = spark_matrix.union(external_database)
+    else:
+        spark_matrix = external_database
+    return spark_matrix
+
+
 def remove_uniprot(spark, cancer_kmers, uniprot, index_name):
     '''
     Filters a spark dataframe against uniprot or any peptide database.
@@ -674,22 +618,30 @@ def save_spark(cancer_kmers, output_dir, path_final_fil, outpartitions=None):
         cancer_kmers.write.mode('overwrite').options(header="true", sep="\t").csv(path_final_fil)
 
 
-def loader(spark, path_kmer_list):
+def loader(spark, path_kmer, header=False):
     '''
-    Loads path parquet or csv to spark dataframe
-    If user provides a list of parquet files with the same schema -> They will be loaded as a single file
-    elif user provides a list with a single csv -> Only the first entry of the list will be loaded as a single file
+    Loads a parquet, csv or tsv (partitioned) file as a spark dataframe
+    The user can provide either
+    - a list of files with the same schema
+    - a string. folder containing the files
     :param spark: spark context
-    :param path_kmer_list: list of paths to read
+    :param path_kmer: Either (1) a list of files or (b) a string with the basefolder where the files are placed
+    :param header: bool. whether the file contains a header
     :return: loaded spark dataframe
+
     '''
-    #TODO allow multiple tsv
-    if 'tsv' in path_kmer_list[0]:
-        logging.warning((f'Only the first file of {path_kmer_list} will be read. '
-                         f'Use list of parquets to process multiple paths'))
-        matrix = spark.read.csv(path_kmer_list[0], sep=r'\t', header=False)
+    if ('parquet' in path_kmer) or ('pq' in path_kmer): #single file or folder
+        matrix = spark.read.parquet(path_kmer)
+    elif ('parquet' in path_kmer[0]) or ('pq' in path_kmer[0]): # list
+        matrix = spark.read.parquet(*path_kmer)
+    elif ('csv' in path_kmer[0]) or ('csv' in path_kmer):
+        matrix = spark.read.csv(path_kmer, sep=',', header=header)
+    elif ('tsv' in path_kmer[0]) or ('tsv' in path_kmer):
+        matrix = spark.read.csv(path_kmer, sep=r'\t', header=header)
     else:
-        matrix = spark.read.parquet(*path_kmer_list)
+        logging.error(f'Cannot determine file type of {path_kmer}. Please include .parquet .pq .tsv .csv suffix to the files or the folder (partitionned)')
+        sys.exit()
+
 
     return matrix
 

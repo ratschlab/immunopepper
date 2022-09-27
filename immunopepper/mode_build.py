@@ -17,7 +17,7 @@ from immunopepper.io_ import collect_results
 from immunopepper.io_ import initialize_fp
 from immunopepper.io_ import remove_folder_list
 from immunopepper.io_ import save_bg_kmer_set
-from immunopepper.io_ import save_bg_peptide_dict
+from immunopepper.io_ import save_bg_peptide_set
 from immunopepper.io_ import save_gene_expr_distr
 from immunopepper.io_ import save_fg_kmer_dict
 from immunopepper.io_ import save_fg_peptide_set
@@ -72,9 +72,9 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
     if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "Annot_IS_SUCCESS"))):
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
         set_kmer_back =  defaultdict(set, {})
-        dict_pept_backgrd = {}
-        time_per_gene = [np.nan]
-        mem_per_gene = [np.nan]
+        set_pept_backgrd = set()
+        time_per_gene = []
+        mem_per_gene = []
         all_gene_idxs = []
 
         for i, gene in enumerate(genes):
@@ -106,7 +106,7 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
             else:
                 seg_counts = None
 
-            get_and_write_background_peptide_and_kmer(peptide_dict = dict_pept_backgrd,
+            get_and_write_background_peptide_and_kmer(peptide_set = set_pept_backgrd,
                                                       kmer_dict = set_kmer_back,
                                                       gene=gene,
                                                       ref_mut_seq=ref_mut_seq,
@@ -120,18 +120,20 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
             time_per_gene.append(timeit.default_timer() - start_time)
             mem_per_gene.append(print_memory_diags(disable_print=True))
 
-        save_bg_peptide_dict(dict_pept_backgrd, filepointer, compression, outbase, verbose)
-        dict_pept_backgrd.clear()
+        save_bg_peptide_set(set_pept_backgrd, filepointer, compression, outbase, verbose)
+        set_pept_backgrd.clear()
         for kmer_length in set_kmer_back:
             save_bg_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
         set_kmer_back.clear()
 
         pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
-        logging_string = (f'....{output_sample}: annotation graph from batch {batch_name}/{n_genes} '
-                          f'processed, max time cost: {np.round(np.nanmax(time_per_gene), 2)}, '
-                          f'memory cost: {np.round(np.nanmax(mem_per_gene), 2)} GB')
 
-        logging.debug(logging_string)
+        if time_per_gene:
+            logging_string = (f'....{output_sample}: annotation graph from batch {batch_name}/{n_genes} '
+                              f'processed, max time cost: {np.round(np.nanmax(time_per_gene), 2)}, '
+                              f'memory cost: {np.round(np.nanmax(mem_per_gene), 2)} GB')
+            logging.debug(logging_string)
+
         if (batch_name != 'all') and (batch_name % 10000 == 0):
             logging.info(logging_string)
 
@@ -155,10 +157,10 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
 
     if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "output_sample_IS_SUCCESS"))):
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
-        dict_kmer_foregr = defaultdict(dict, {})
+        dictofSets_kmer_foregr = defaultdict(set, {})
         set_pept_forgrd = set()
-        time_per_gene = [np.nan]
-        mem_per_gene = [np.nan]
+        time_per_gene = []
+        mem_per_gene = []
         all_gene_idxs = []
         gene_expr = []
 
@@ -254,7 +256,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                                                  filter_redundant=arg.filter_redundant)
 
             get_and_write_peptide_and_kmer(peptide_set=set_pept_forgrd,
-                                            kmer_dict = dict_kmer_foregr,
+                                            kmer_dict = dictofSets_kmer_foregr,
                                             gene=gene,
                                             all_vertex_pairs=vertex_pairs,
                                             ref_mut_seq=ref_mut_seq,
@@ -291,19 +293,21 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
         set_pept_forgrd.clear()
         if not arg.cross_graph_expr: # Write kmer file for single sample (multiple kmer lengths supported)
             for kmer_length in arg.kmer:
-                save_fg_kmer_dict(dict_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
-            dict_kmer_foregr.clear()
+                save_fg_kmer_dict(dictofSets_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
+            dictofSets_kmer_foregr.clear()
         if arg.cross_graph_expr \
                 and filepointer.kmer_segm_expr_fp['pqwriter'] is not None: # Write kmer files for multiple samples
             filepointer.kmer_segm_expr_fp['pqwriter'].close()
             filepointer.kmer_edge_expr_fp['pqwriter'].close()
 
         pathlib.Path(os.path.join(outbase, "output_sample_IS_SUCCESS")).touch()
-        logging_string = (f'....{output_sample}: output_sample graph from batch {batch_name}/{n_genes} processed, '
+
+        if time_per_gene:
+            logging_string = (f'....{output_sample}: output_sample graph from batch {batch_name}/{n_genes} processed, '
                           f'max time cost: {np.round(np.nanmax(time_per_gene), 2)}, '
                           f'memory cost: {np.round(np.nanmax(mem_per_gene), 2)} GB')
+            logging.debug(logging_string)
 
-        logging.debug(logging_string)
         if (batch_name != 'all') and (batch_name % 10000 == 0):
             logging.info(logging_string)
 
@@ -473,7 +477,7 @@ def mode_build(arg):
             collect_results(filepointer.background_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
             collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, mutation.mode)
             collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, mutation.mode)
-            if not arg.skip_tmpfiles_rm:
+            if not arg.keep_tmpfiles:
                 logging.info("Cleaning temporary files")
                 remove_folder_list(os.path.join(output_path, f'tmp_out_{mutation.mode}_batch'))
 

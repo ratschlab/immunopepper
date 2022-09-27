@@ -53,7 +53,7 @@ def parse_arguments(argv):
 
     outputs = parser_build.add_argument_group('OUTPUT OPTIONS: Optional choices about the output formatting and filtering')
     outputs.add_argument("--skip-annotation", help='skip the generation of the annotated peptides and kmers', action="store_true", default=False)
-    outputs.add_argument("--skip-tmpfiles-rm", help='skip the removal of the intermediate directories in parallel mode', action="store_true", default=False)
+    outputs.add_argument("--keep-tmpfiles", help='keep the intermediate directories in parallel mode', action="store_true", default=False)
     outputs.add_argument("--libsize-path", nargs='?', help=argparse.SUPPRESS, required=False, default=None)     #specify the absolute path to expression library sizes if we want to append to a file
     outputs.add_argument("--output-fasta", help="if True, outputs both the sample peptide metadata and the fasta, else outputs only metadata", action="store_true", required=False, default=False)
     outputs.add_argument("--force-ref-peptides", help="output mutated peptide even if it is the same as reference peptide", action="store_true", default=False)

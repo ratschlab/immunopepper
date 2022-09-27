@@ -137,17 +137,17 @@ def junction_tuple_is_annotated(junction_flag: np.ndarray, vertex_ids: list[int]
        vertices i and j are connected
     :param vertex_ids: list of vertex ids defining junction pairs
     :return:
-       np.nan if vertex_ids contains a np.nan,
+       False if vertex_ids contains a np.nan,
        otherwise returns a tuple containing the junction annotation status:
-       1 if the junction is present in the annotation, 0 otherwise
-       Example (1,) or (0,)
+       True if the junction is present in the annotation, False otherwise
+       Example (True,) or (False,)
        if the peptide contains more than one junction, the junction annotation status of the second junction is added
-       Example (1,0) (1,1)
+       Example (True, False) (True, True)
     """
     if np.nan in vertex_ids:
-        return (np.nan)
+        return (False)
 
-    junction_annotated = [1 if junction_flag[vertex_ids[i], vertex_ids[i + 1]] else 0
+    junction_annotated = [True if junction_flag[vertex_ids[i], vertex_ids[i + 1]] else False
                           for i in range(len(vertex_ids) - 1)]
     return tuple(junction_annotated)
 
@@ -177,70 +177,10 @@ def is_intron_in_junction_list(splicegraph: Splicegraph, vertex_ids: list[int], 
     return 0
 
 
-# TODO(dd): this function smells. It takes nicely structured data and massages it into an undecipherable jumble. Why?
-def add_kmer_properties(foreground_dict, output_kmers: list[OutputKmer]):
-    """
-    Update foreground_dict by collapsing the metadata in output_kmers.
-
-    :param foreground_dict: a dictionary where keys are peptides, values are lists of property sets containing the
-        collapsed metadata for the given peptide; for example::
-        {'MSPHGYKLA' : [{'ENSMUSG00000025902.13'}, {51.43}, {True}, {1.0}]}
-    :param output_kmers: list of :class:`OutputKmer` used to update the dictionary
-    """
-    for output_kmer in output_kmers:
-        # Prepare metadata
-        ord_dict_metadata = output_kmer._asdict()
-        del ord_dict_metadata['kmer']
-
-        # aggregate metadata of unique kmers
-        if output_kmer.kmer not in foreground_dict:
-            add_novel_kmer = []
-            for i, j in enumerate(ord_dict_metadata.values()):
-                if i == 0:
-                    add_novel_kmer.append({j.split(':')[0]})
-                else:
-                    add_novel_kmer.append({j})
-            foreground_dict[output_kmer.kmer] = add_novel_kmer
-        else:
-            for idx, value in enumerate(ord_dict_metadata.values()):
-                if idx == 0:
-                    foreground_dict[output_kmer.kmer][idx].add(value.split(':')[0])
-                else:
-                    foreground_dict[output_kmer.kmer][idx].add(value)
-
-
 def add_kmers(kmer_set: set[str], output_kmers: list[OutputKmer]):
     """ Add the kmer from each output_kmers to kmer_set. """
     for output_kmer in output_kmers:
         kmer_set.add(output_kmer.kmer)
 
 
-# TODO(dd): this function also smells. It takes nicely structured data and massages it into an undecipherable jumble
-def add_peptide_properties(peptide_properties: dict[str, list[set]], namedtuple_list: list,
-                           skip_expr=False):
-    """
-    Updates peptide_properties using namedtuple_list. The namedtuple_list is converted to a dictionary, and each element
-    from this dictionary is used to update the corresponding values for the given peptide. Lists and nested named tuples
-    within namedtuple_list are converted to tuples prior to addition to the set.
 
-    :param peptide_properties: maps peptides to a set of properties for that peptide (e.g. 'output_id`, 'chr',
-          'gene_name', etc). The properties are extracted from the namedtuple_list.
-    :param namedtuple_list: list of `class:OutputBackground` or of `class:OutputMetadata`
-    :param skip_expr: if True, the 'junction_expr' and 'segment_expr' keys are removed from the result
-    """
-    for namedtuple_peptide in namedtuple_list:
-        ord_dict_metadata = {}
-        for k, v in namedtuple_peptide._asdict().items():
-            ord_dict_metadata[k] = namedtuple_to_str(v, None, ';') if isinstance(v, Coord) else list_to_tuple(v);
-
-        del ord_dict_metadata['peptide']
-        if skip_expr:
-            del ord_dict_metadata['junction_expr']
-            del ord_dict_metadata['segment_expr']
-
-        # aggregate metadata of unique peptides
-        if namedtuple_peptide.peptide not in peptide_properties:
-            peptide_properties[namedtuple_peptide.peptide] = [{i} for i in ord_dict_metadata.values()]
-        else:
-            for idx, value in enumerate(ord_dict_metadata.values()):
-                peptide_properties[namedtuple_peptide.peptide][idx].add(value)

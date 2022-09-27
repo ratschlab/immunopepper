@@ -74,7 +74,7 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frame
                     reading_frames[idx].add(ReadingFrameTuple(cds_left_modi=cds_left_modi,
                                                               cds_right_modi=cds_right_modi,
                                                               read_phase=read_phase,
-                                                              annotated_RF=1))
+                                                              annotated_RF=True))
         gene.to_sparse()
         gene_info.append(GeneInfo(vertex_succ_list, vertex_order, reading_frames, vertex_len_dict, gene.splicegraph.vertices.shape[1]))
 
