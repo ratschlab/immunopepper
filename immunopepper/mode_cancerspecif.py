@@ -106,7 +106,7 @@ def mode_cancerspecif(arg):
                                                                              or (arg.filterNeojuncCoord == 'A') else False,
                                                   output_dir=normal_out,  separate_back_annot=path_interm_kmers_annotOnly,
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
-                normal_matrix = combine_normals(normal_segm, normal_junc, index_name)
+                normal_matrix = combine_normals(normal_segm, normal_junc)
 
 
                 # Hard Filtering

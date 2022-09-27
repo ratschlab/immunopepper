@@ -133,13 +133,6 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
             whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
             matrix = filter_whitelist(matrix, whitelist, index_name, jct_annot_col, rf_annot_col)
 
-
-        # Make unique on kmers
-        logging.info("Make unique")
-        partitions_ = matrix.rdd.getNumPartitions()
-        logging.info(f'...partitions: {partitions_}')
-        exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in matrix.schema.names if name_ != index_name]
-        matrix = matrix.groupBy(index_name).agg(*exprs) #Max operation also performed on the annot flags
         partitions_ = matrix.rdd.getNumPartitions()
         logging.info(f'...partitions: {partitions_}')
         return matrix
@@ -200,20 +193,16 @@ def filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col, 
     return matrix
 
 
-def combine_normals(normal_segm, normal_junc, index_name):
+def combine_normals(normal_segm, normal_junc):
     ''' Given two matrices [kmers] x [samples, metadata] containing segment expression and junction expression,
-    takes the maximal expression for each kmer across the two matrices
+    takes the union expression of the two matrices
     :param normal_segm: spark dataframe matrix with segment expression counts
     :param normal_junc: spark dataframe matrix with junction expression counts
-    :param index_name: str name of the kmer column
     :return: spark dataframe expression matrix after combining junction and segment expression
     '''
     if (normal_segm is not None) and (normal_junc is not None):
         logging.info("Combine segment and edges")
         normal_matrix = normal_segm.union(normal_junc)
-        # Take max expression between edge or segment expression
-        exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
-        normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
         return normal_matrix
     elif normal_segm is None:
         return normal_junc
