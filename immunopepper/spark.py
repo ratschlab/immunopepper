@@ -256,7 +256,7 @@ def check_interm_files(out_dir, expr_limit, n_samples_lim, target_sample='', tag
                               + '.tsv')
     # Check existence
     if (expr_limit and os.path.isfile(os.path.join(path_interm_matrix_for_express_threshold, '_SUCCESS'))) \
-        or (n_samples_lim is not None and os.path.isfile(os.path.join(path_interm_matrix_for_sample_threshold, '_SUCCESS'))):
+        and (n_samples_lim is not None and os.path.isfile(os.path.join(path_interm_matrix_for_sample_threshold, '_SUCCESS'))):
 
         logging.info((f'Intermediate {tag} filtering already performed in: {path_interm_matrix_for_express_threshold} '
                       f' and {path_interm_matrix_for_sample_threshold}. Re-loading {tag} intermediate data...'))
@@ -264,7 +264,7 @@ def check_interm_files(out_dir, expr_limit, n_samples_lim, target_sample='', tag
                       f'--filterAnnotatedRF parameter.'))
         launch_preprocess = False
     else:
-        logging.info(f'No intermediate {tag} filtering file found.')
+        logging.info(f'At least one intermediate {tag} filtering file is missing.')
         logging.info(f'Will compute full filtering steps according to user input parameters')
         launch_preprocess = True
 
@@ -310,7 +310,7 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
             for name_ in matrix.schema.names if name_ not in [index_name, jct_annot_col, rf_annot_col]])
 
     # Expression filtering, take k-mers with >= X reads in >= 1 sample
-    if expr_limit:
+    if expr_limit and (not os.path.isfile(os.path.join(path_e, '_SUCCESS'))):
         logging.info(f'Filter matrix with cohort expression support >= {expr_limit} in {base_n_samples} sample')
         # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
         # Skip target sample and metadata
@@ -328,7 +328,7 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
         matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e)
 
     # Sample filtering, take k-mers with exclude >0 reads in >= 1 sample
-    if n_samples_lim is not None:
+    if (n_samples_lim is not None) and (not os.path.isfile(os.path.join(path_s, '_SUCCESS'))):
         logging.info(f'Filter matrix with cohort expression support > {base_expr} in {base_n_samples} sample')
         # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
         # Skip target sample and metadata

@@ -146,6 +146,7 @@ def mode_cancerspecif(arg):
             if arg.path_cancer_matrix_segm or arg.path_cancer_matrix_edge:
                 logging.info("\n \n >>>>>>>> Preprocessing Cancer sample {}  ".format(cancer_sample_ori))
                 mutation_mode = arg.mut_cancer_samples[0]
+
                 # Preprocess cancer samples
                 cancer_segm = process_matrix_file(spark, index_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
