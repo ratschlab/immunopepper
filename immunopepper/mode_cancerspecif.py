@@ -13,9 +13,7 @@ from immunopepper.spark import combine_normals
 from immunopepper.spark import filter_expr_kmer
 from immunopepper.spark import filter_hard_threshold
 from immunopepper.spark import output_count
-from immunopepper.spark import pq_WithRenamedCols
-from immunopepper.spark import preprocess_kmer_file
-from immunopepper.spark import process_matrix_file
+from immunopepper.spark import process_build_outputs
 from immunopepper.spark import process_libsize
 from immunopepper.spark import redirect_scratch
 from immunopepper.spark import remove_external_kmer_list
@@ -84,10 +82,10 @@ def mode_cancerspecif(arg):
             if launch_preprocess_normal: # else do not need to launch because intermediate files are present
                 logging.info("\n \n >>>>>>>> Preprocessing Normal samples")
 
-                normal_segm = process_matrix_file(spark, index_name, jct_col,
+                normal_segm = process_build_outputs(spark, index_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
-                                                  arg.path_normal_matrix_segm,
-                                                  arg.whitelist_normal,
+                                                  path_matrix=arg.path_normal_matrix_segm,
+                                                  whitelist=arg.whitelist_normal,
                                                   cross_junction=0,
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
                                                                               or (arg.filterNeojuncCoord == 'A') else False,
@@ -96,10 +94,10 @@ def mode_cancerspecif(arg):
                                                   output_dir=normal_out,
                                                   separate_back_annot=path_interm_kmers_annotOnly,
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
-                normal_junc = process_matrix_file(spark, index_name, jct_col,
+                normal_junc = process_build_outputs(spark, index_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
-                                                  arg.path_normal_matrix_edge,
-                                                  arg.whitelist_normal,
+                                                  path_matrix=arg.path_normal_matrix_edge,
+                                                  whitelist=arg.whitelist_normal,
                                                   cross_junction=1,
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
                                                                               or (arg.filterNeojuncCoord == 'A') else False,
@@ -142,16 +140,27 @@ def mode_cancerspecif(arg):
                 = check_interm_files(cancer_out, arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer, \
                                      target_sample=cancer_sample, tag=f'cancer_{mutation_mode}', batch_tag=batch_tag)
 
-            ## Cancer file is matrix
-            if arg.path_cancer_matrix_segm or arg.path_cancer_matrix_edge:
+            ## Cancer file checks
+            if arg.path_cancer_matrix_segm or arg.path_cancer_matrix_edge or arg.paths_cancer_samples:
                 logging.info("\n \n >>>>>>>> Preprocessing Cancer sample {}  ".format(cancer_sample_ori))
                 mutation_mode = arg.mut_cancer_samples[0]
+                if arg.paths_cancer_samples:
+                    try:
+                        path_kmer_file = [arg.paths_cancer_samples[cix]]
+                    except:
+                        logging.error(f'--ids_cancer_samples not matching --paths_cancer_samples, exit.')
+                        sys.exit(1)
+                else:
+                    path_kmer_file = None
 
                 # Preprocess cancer samples
-                cancer_segm = process_matrix_file(spark, index_name, jct_col,
+                cancer_segm = process_build_outputs(spark, index_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
-                                                  arg.path_cancer_matrix_segm,
-                                                  arg.whitelist_cancer,
+                                                  path_matrix=arg.path_cancer_matrix_segm,
+                                                  path_kmer_file=path_kmer_file,
+                                                  col_expr_kmer_file = expression_fields[0],
+                                                  target_sample=cancer_sample,
+                                                  whitelist=arg.whitelist_cancer,
                                                   cross_junction=0,
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
                                                                              or (arg.filterNeojuncCoord == 'A')
@@ -160,10 +169,13 @@ def mode_cancerspecif(arg):
                                                                             or (arg.filterNeojuncCoord == 'A')
                                                                             else False,
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
-                cancer_junc = process_matrix_file(spark, index_name, jct_col,
+                cancer_junc = process_build_outputs(spark, index_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
-                                                  arg.path_cancer_matrix_edge,
-                                                  arg.whitelist_cancer,
+                                                  path_matrix=arg.path_cancer_matrix_edge,
+                                                  path_kmer_file=path_kmer_file,
+                                                  col_expr_kmer_file=expression_fields[1],
+                                                  target_sample=cancer_sample,
+                                                  whitelist=arg.whitelist_cancer,
                                                   cross_junction=1,
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
                                                                              or (arg.filterNeojuncCoord == 'A')
@@ -175,7 +187,7 @@ def mode_cancerspecif(arg):
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
 
 
-                # sample specific filter
+                # sample-specific filter
                 cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample, jct_annot_col, rf_annot_col])
                 # Retrieve initial number of kmers in sample
                 cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0)
@@ -190,7 +202,7 @@ def mode_cancerspecif(arg):
                 else:
                     output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
-                #cross sample filter
+                # cross-sample filter
                 if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
                     if launch_filter_cancer: # else do not need to launch because intermediate files are present
                         filter_hard_threshold(cancer_matrix, index_name, jct_annot_col, rf_annot_col, libsize_c,
@@ -218,43 +230,6 @@ def mode_cancerspecif(arg):
 
 
                 output_count(arg.output_count, cancer_kmers, report_count, report_steps, 'Filter_Sample_Cohort')
-
-            ## Cancer file is kmer file
-            if arg.paths_cancer_samples:
-                try:
-                    cancer_path = [arg.paths_cancer_samples[cix]]
-                except:
-                    logging.error(f'--ids_cancer_samples not matching --paths_cancer_samples, exit.')
-                    sys.exit(1)
-                rename = True # development
-                if rename:
-                    cancer_kmers = pq_WithRenamedCols(spark, cancer_path)
-                else:
-                    cancer_kmers = spark.read.parquet(cancer_path)
-
-                # Preprocess cancer samples #TODO Update the kmer preprocessing functions in accordance to the matrix version
-                cancer_junc = preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols,expression_fields, jct_col,
-                                                   jct_annot_col, rf_annot_col, index_name, libsize_c,
-                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
-                                                                              or (arg.filterNeojuncCoord == 'A')
-                                                                              else False,
-                                                   filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'C')
-                                                                             or (arg.filterNeojuncCoord == 'A')
-                                                                             else False,
-                                                   cross_junction=1)
-                cancer_segm = preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields, jct_col,
-                                                   jct_annot_col, rf_annot_col, index_name, libsize_c,
-                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
-                                                                              or (arg.filterNeojuncCoord == 'A')
-                                                                              else False,
-                                                   filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'C')
-                                                                             or (arg.filterNeojuncCoord == 'A')
-                                                                             else False,
-                                                   cross_junction=0)
-                # Apply expression filter to foreground
-                cancer_junc = filter_expr_kmer(cancer_junc, expression_fields[1], arg.sample_expr_support_cancer)
-                cancer_segm = filter_expr_kmer(cancer_segm, expression_fields[0], arg.sample_expr_support_cancer)
-                cancer_kmers = combine_cancer(cancer_junc, cancer_segm, index_name)
 
 
         ## Cancer \ normals
