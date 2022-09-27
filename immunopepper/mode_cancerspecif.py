@@ -93,7 +93,8 @@ def mode_cancerspecif(arg):
                                                                               or (arg.filterNeojuncCoord == 'A') else False,
                                                   filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
                                                                              or (arg.filterNeojuncCoord == 'A') else False,
-                                                  output_dir=normal_out, separate_back_annot=path_interm_kmers_annotOnly,
+                                                  output_dir=normal_out,
+                                                  separate_back_annot=path_interm_kmers_annotOnly,
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
                 normal_junc = process_matrix_file(spark, index_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
@@ -104,7 +105,8 @@ def mode_cancerspecif(arg):
                                                                               or (arg.filterNeojuncCoord == 'A') else False,
                                                   filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
                                                                              or (arg.filterNeojuncCoord == 'A') else False,
-                                                  output_dir=normal_out,  separate_back_annot=path_interm_kmers_annotOnly,
+                                                  output_dir=normal_out,
+                                                  separate_back_annot=path_interm_kmers_annotOnly if not normal_segm else None, # The kmer only from the annotation need be extracted only once. Ideally from the segment expression matrix
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
                 normal_matrix = combine_normals(normal_segm, normal_junc)
 
