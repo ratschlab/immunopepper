@@ -533,7 +533,6 @@ def combine_cancer(cancer_kmers_segm, cancer_kmers_edge, index_name):
         cancer_kmers_segm = cancer_kmers_segm.join(cancer_kmers_edge,
                                                    cancer_kmers_segm[index_name] == cancer_kmers_edge[index_name],
                                                    how='left_anti')
-        # if  max( edge expression 1 and 2)<threshold and  max( segment expression 1 and 2)>= threshold: keep
         cancer_kmers = cancer_kmers_edge.union(cancer_kmers_segm)
         partitions_ = cancer_kmers.rdd.getNumPartitions()
         logging.info(f'...partitions cancer filtered: {partitions_}')

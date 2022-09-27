@@ -81,7 +81,7 @@ def mode_cancerspecif(arg):
                                                          arg.n_samples_lim_normal, tag='normals', batch_tag=batch_tag)
         ### Preprocessing Normals
         if (arg.path_normal_matrix_segm is not None) or (arg.path_normal_matrix_edge is not None):
-            if launch_preprocess_normal:
+            if launch_preprocess_normal: # else do not need to launch because intermediate files are present
                 logging.info("\n \n >>>>>>>> Preprocessing Normal samples")
 
                 normal_segm = process_matrix_file(spark, index_name, jct_col,
@@ -191,7 +191,7 @@ def mode_cancerspecif(arg):
 
                 #cross sample filter
                 if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
-                    if launch_filter_cancer:
+                    if launch_filter_cancer: # else do not need to launch because intermediate files are present
                         filter_hard_threshold(cancer_matrix, index_name, jct_annot_col, rf_annot_col, libsize_c,
                                               arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
                                               path_cancer_for_express_threshold, path_cancer_for_sample_threshold,
