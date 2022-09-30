@@ -128,9 +128,11 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
                         # no propagation needed in all reading frame mode,  RF not labelled as annotated
                         if (not flag.has_stop) and (not all_read_frames) \
                             and (not ReadingFrameTuple(next_start_v1, next_stop_v1,
-                                                       next_emitting_frame, True) in reading_frame_dict[prop_vertex] ):
-                            reading_frame_dict[prop_vertex].add(ReadingFrameTuple(next_start_v1,
-                                                                                  next_stop_v1, next_emitting_frame, False))
+                                                       next_emitting_frame, [True]) in reading_frame_dict[prop_vertex] )\
+                            and (not ReadingFrameTuple(next_start_v1, next_stop_v1,
+                                                       next_emitting_frame, [False]) in reading_frame_dict[prop_vertex] ) : #TODO complete change planned
+                            reading_frame_dict[prop_vertex].append(ReadingFrameTuple(next_start_v1,
+                                                                                  next_stop_v1, next_emitting_frame, [False]))
                     else:
                         peptide, modi_coord, flag = isolated_peptide_result(read_frame_tuple, gene.strand, variant_comb, mutation.somatic_dict, ref_mut_seq, min_pos, all_read_frames)
                         orig_coord = Coord(sg.vertices[0, v_id],sg.vertices[1, v_id], np.nan, np.nan)
@@ -317,7 +319,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                     peptide_set.add(namedtuple_to_str(OutputMetadata(peptide=peptide.mut[pep_idx],
                                        output_id=new_output_id,
                                        read_frame=vertex_pair.read_frame.read_phase,
-                                       read_frame_annotated=vertex_pair.read_frame.annotated_RF,
+                                       read_frame_annotated=vertex_pair.read_frame.annotated_RF[0],
                                        gene_name=gene.name,
                                        gene_chr=gene.chr,
                                        gene_strand=gene.strand,
@@ -341,7 +343,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                                                     exons_coor=modi_coord,
                                                     junction_expr=edge_expr,
                                                     junction_annotated=vertex_tuple_anno_flag,
-                                                    read_frame_annotated=vertex_pair.read_frame.annotated_RF)
+                                                    read_frame_annotated=vertex_pair.read_frame.annotated_RF[0])
 
                     ### kmers
                     if cross_graph_expr: #generate kmer x sample expression matrix for all samples in graph

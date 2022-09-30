@@ -44,7 +44,7 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frame
         vertex_len_dict = {}
         if not all_read_frames:
             for idx in vertex_order:
-                reading_frames[idx] = set()
+                reading_frames[idx] = list()
                 v_start = gene.splicegraph.vertices[0, idx]
                 v_stop = gene.splicegraph.vertices[1, idx]
                 cds_begins = find_overlapping_cds_simple(v_start, v_stop, gene_cds_begin_dict[gene.name], gene.strand)
@@ -71,10 +71,12 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frame
 
                     read_phase = n_trailing_bases % 3
                     # add all reading frames from the annotation
-                    reading_frames[idx].add(ReadingFrameTuple(cds_left_modi=cds_left_modi,
+                    reading_frame = ReadingFrameTuple(cds_left_modi=cds_left_modi,
                                                               cds_right_modi=cds_right_modi,
                                                               read_phase=read_phase,
-                                                              annotated_RF=True))
+                                                              annotated_RF=[True]) # annotated_RF is now mutable
+                    if reading_frame not in reading_frames[idx]:
+                        reading_frames[idx].append(reading_frame)
         gene.to_sparse()
         gene_info.append(GeneInfo(vertex_succ_list, vertex_order, reading_frames, vertex_len_dict, gene.splicegraph.vertices.shape[1]))
 

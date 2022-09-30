@@ -261,5 +261,5 @@ def get_exhaustive_reading_frames(splicegraph, gene_strand, vertex_order):
                 cds_right_modi = v_stop
             n_trailing_bases = cds_right_modi - cds_left_modi
             read_phase = n_trailing_bases % 3
-            reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, read_phase, False )) #no reading frame annotation status recorded 
+            reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, read_phase, [False] )) #no reading frame annotation status recorded
     return reading_frames
