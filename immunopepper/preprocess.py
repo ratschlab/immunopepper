@@ -13,6 +13,7 @@ from immunopepper.namedtuples import CountInfo
 from immunopepper.namedtuples import GeneInfo
 from immunopepper.namedtuples import GeneTable
 from immunopepper.namedtuples import ReadingFrameTuple
+from immunopepper.translate import read_frame_flag_strict
 from immunopepper.utils import encode_chromosome
 from immunopepper.utils import find_overlapping_cds_simple
 from immunopepper.utils import get_successor_list
@@ -70,13 +71,16 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frame
                         n_trailing_bases = cds_right_modi - cds_left_modi
 
                     read_phase = n_trailing_bases % 3
-                    # add all reading frames from the annotation
+                    #  add all reading frames from the annotation
+                    reading_frame_flag = read_frame_flag_strict(cds_begin[1], cds_left_modi, cds_right_modi,
+                                v_stop, reading_frames[idx], gene.strand)
                     reading_frame = ReadingFrameTuple(cds_left_modi=cds_left_modi,
-                                                              cds_right_modi=cds_right_modi,
-                                                              read_phase=read_phase,
-                                                              annotated_RF=[True]) # annotated_RF is now mutable
+                                                      cds_right_modi=cds_right_modi,
+                                                      read_phase=read_phase,
+                                                      annotated_RF=reading_frame_flag)  # annotated_RF is now mutable
                     if reading_frame not in reading_frames[idx]:
                         reading_frames[idx].append(reading_frame)
+
         gene.to_sparse()
         gene_info.append(GeneInfo(vertex_succ_list, vertex_order, reading_frames, vertex_len_dict, gene.splicegraph.vertices.shape[1]))
 

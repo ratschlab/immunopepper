@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 import numpy as np
+from operator import attrgetter
 
 from immunopepper.filter import add_kmers
 from immunopepper.filter import filter_redundant_junctions
@@ -119,7 +120,7 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
         for prop_vertex in gene_info.vertex_succ_list[v_id]:
             vertex_list = [v_id, prop_vertex]
             mut_seq_comb = get_mut_comb(exon_som_dict,vertex_list)
-            for read_frame_tuple in sorted(reading_frame_dict[v_id]):
+            for read_frame_tuple in sorted(reading_frame_dict[v_id], key=attrgetter('cds_left_modi')):
                 has_stop_flag = True
                 for variant_comb in mut_seq_comb:  # go through each variant combination
                     if prop_vertex is not np.nan:
@@ -597,7 +598,6 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
                 row_metadata = [kmer_peptide, is_in_junction, junction_annotated, output_peptide.read_frame_annotated]
                 kmer_matrix_edge.add(tuple(row_metadata + list(sublist_jun)))
                 kmer_matrix_segm.add(tuple(row_metadata + list(np.round(sublist_seg, 2))))
-
 
 
 

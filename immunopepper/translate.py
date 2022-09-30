@@ -12,7 +12,12 @@ from immunopepper.namedtuples import Coord
 from immunopepper.namedtuples import Flag
 from immunopepper.namedtuples import Peptide
 from immunopepper.namedtuples import ReadingFrameTuple
-from immunopepper.utils import get_exon_expr,get_sub_mut_dna
+from immunopepper.utils import get_exon_expr
+from immunopepper.utils import  get_sub_mut_dna
+from immunopepper.utils import has_same_reading_frame
+from immunopepper.utils import leq_strand
+
+
 
 def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts, Idx, mode, all_read_frames):
     """
@@ -263,3 +268,36 @@ def get_exhaustive_reading_frames(splicegraph, gene_strand, vertex_order):
             read_phase = n_trailing_bases % 3
             reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, read_phase, [False] )) #no reading frame annotation status recorded
     return reading_frames
+
+
+def read_frame_flag_strict(cds_end, cds_begin_phased, cds_end_phased,
+                                v_stop_exon, reading_frames_list_exon, strand):
+    '''
+    :param cds_end:
+    :param cds_begin_phased:
+    :param cds_end_phased:
+    :param v_stop_exon:
+    :param reading_frames_list_exon:
+    :param strand:
+    :return:
+    '''
+    # Remark v_start <= cds_begin per check with find_overlapping_cds_simple above.
+    if leq_strand(cds_end, v_stop_exon, strand):  # cds_end inside exon
+        if (not reading_frames_list_exon) or has_same_reading_frame(reading_frames_list_exon,
+                                                                    cds_begin_phased,
+                                                                    cds_end_phased,
+                                                                    strand):  # No other reading frame is found, or there is one in same reading phase
+            reading_frame_flag = [True]  # One non-ambigous reading frame from annotation
+        else:  # More than 1 different reading frames apply to this vertex. We are unsure which reading frame the peptide will be in.
+            reading_frame_flag = [None]
+            for other_read_frame in reading_frames_list_exon: other_read_frame.annotated_RF[0] = None  # Therefore we also assign an unsure status to all other reading frames
+
+    else:  # cds_end outside exon
+        if (not reading_frames_list_exon) or (not has_same_reading_frame(reading_frames_list_exon,
+                                                                    cds_begin_phased,
+                                                                    cds_end_phased,
+                                                                    strand)):  # No other reading frame is found
+            reading_frame_flag = [False]  # likely comes from another transcript! (reading frame end not within the exon end)
+        else:
+            reading_frame_flag = [True]  # Same non-ambigous reading frame from annotation
+    return reading_frame_flag

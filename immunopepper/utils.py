@@ -72,6 +72,19 @@ def leq_strand(coord1, coord2, strand):
     else:
         return coord1 >= coord2
 
+def has_same_reading_frame(list_ReadingFrameTuple, cds_left_modi, cds_right_modi, strand):
+    '''
+    :param list_ReadingFrameTuple: list of ReadingFrameTuple namedtuples. Contains all reading frames of the vertex
+    :param cds_left_modi: int. left coordinate of the modified CDS after phase propagation
+    :param cds_right_modi: int. right coordinate of the modified CDS after phase propagation
+    :param strand: str. gene strand
+    :return: whether list_ReadingFrameTuple contains a reading frame with the same phasing as (cds_left_modi, cds_right)
+    '''
+    return 0 in [(other_read_frame.cds_left_modi - cds_left_modi) % 3
+                 if strand == '+'
+                 else (other_read_frame.cds_right_modi - cds_right_modi) %3
+                 for other_read_frame in list_ReadingFrameTuple]
+
 
 def encode_chromosome(in_num):
     """  Encodes human chromosome numbers to strings (23==X, 24==Y, 25 ==MT, the rest remain unchanged. """
