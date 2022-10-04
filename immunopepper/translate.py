@@ -272,6 +272,12 @@ def get_exhaustive_reading_frames(splicegraph, gene_strand, vertex_order):
 
 def read_frame_flag_strict(cds_end, cds_begin_phased, cds_end_phased, reading_frames_list_exon, strand):
     '''
+    Determines whether the reading frame of a START exon is from the annotation, or from an other path
+    - True if reading frame of the exon unambigously matches the reading frame of the annotated transcript
+    - False if reading frame of the exon can unambigously be assigned to an other annotated transcript ("propagated")
+    - None if more than one reading frame can be applied to the exon regardless of whether this is the result of
+         - two annotated transcripts with different reading frames containing exactly the same exon
+         - an novel propagated path through the graph
     :param cds_end: int.
     - if strand == '+' this is the largest CDS coordinate from the annotation
     - elif strand == '-' this is the smallest coordinate CDS from the annotation with a -1 shift to get pythonic coordinate
@@ -288,15 +294,7 @@ def read_frame_flag_strict(cds_end, cds_begin_phased, cds_end_phased, reading_fr
     # Remark v_start <= cds_begin per check with find_overlapping_cds_simple above.
     v_stop_exon = cds_end_phased if strand == '+' else cds_begin_phased # by definition
     if leq_strand(cds_end, v_stop_exon, strand):  # cds_end inside exon
-        if (not reading_frames_list_exon) or has_same_reading_frame(reading_frames_list_exon,
-                                                                    cds_begin_phased,
-                                                                    cds_end_phased,
-                                                                    strand):  # No other reading frame is found, or there is one in same reading phase
-            reading_frame_flag = [True]  # One non-ambigous reading frame from annotation
-        else:  # More than 1 different reading frames apply to this vertex. We are unsure which reading frame the peptide will be in.
-            reading_frame_flag = [None]
-            for other_read_frame in reading_frames_list_exon: other_read_frame.annotated_RF[0] = None  # Therefore we also assign an unsure status to all other reading frames
-
+        reading_frame_flag = read_frame_flag_simple(cds_begin_phased, cds_end_phased, reading_frames_list_exon, strand)
     else:  # cds_end outside exon
         if (not reading_frames_list_exon) or (not has_same_reading_frame(reading_frames_list_exon,
                                                                     cds_begin_phased,
@@ -305,4 +303,38 @@ def read_frame_flag_strict(cds_end, cds_begin_phased, cds_end_phased, reading_fr
             reading_frame_flag = [False]  # likely comes from another transcript! (reading frame end not within the exon end)
         else:
             reading_frame_flag = [True]  # Same non-ambigous reading frame from annotation
+    return reading_frame_flag
+
+
+
+
+def read_frame_flag_simple(cds_begin_phased, cds_end_phased, reading_frames_list_exon, strand):
+    '''
+    Determines whether the reading frame of an exon is from the annotation, or from an other path
+    - True if reading frame of the exon unambigously matches the reading frame of the annotated transcript
+    - None if more than one reading frame can be applied to the exon regardless of whether this is the result of
+         - two annotated transcripts with different reading frames containing exactly the same exon
+         - an novel propagated path through the graph
+    :param cds_end: int.
+    - if strand == '+' this is the largest CDS coordinate from the annotation
+    - elif strand == '-' this is the smallest coordinate CDS from the annotation with a -1 shift to get pythonic coordinate
+    :param cds_begin_phased: int.
+    - if strand == '+' this is the smallest CDS coordinate from the annotation with a -1 shift plus read phase (unless the exon ends before) => READ FRAME START PHASED
+    - elif strand == '-' this is the smallest coordinate of the vertex from the graph => EXON END
+    :param cds_end_phased: int
+    - if strand == '+' this is the biggest coordinate of the vertex from the graph => EXON END
+    - elif strand == '-' this is the biggest CDS coordinate from the annotation minus read phase (unless the exon ends before) => READ FRAME START PHASED
+    :param reading_frames_list_exon: list of ReadingFrameTuples currently associated with the exon
+    :param strand: str. gene strand
+    :return: reading_frame_flag: list of bool. Flag indicating whether a given reading frame is found in the annotation
+    '''
+    if (not reading_frames_list_exon) or has_same_reading_frame(reading_frames_list_exon,
+                                                                cds_begin_phased,
+                                                                cds_end_phased,
+                                                                strand):  # No other reading frame is found, or there is one in same reading phase
+        reading_frame_flag = [True]  # One non-ambigous reading frame from annotation
+    else:  # More than 1 different reading frames apply to this vertex. We are unsure which reading frame the peptide will be in.
+        reading_frame_flag = [None]
+        for other_read_frame in reading_frames_list_exon: other_read_frame.annotated_RF[0] = None  # Therefore we also assign an unsure status to all other reading frames
+
     return reading_frame_flag
