@@ -62,18 +62,18 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frame
 
                     #TODO: need to remove the redundance of (cds_start, cds_stop, item)
                     if gene.strand == "-":
-                        cds_right_modi = max(cds_right - cds_phase,v_start)
+                        cds_right_modi = max(cds_right - cds_phase, v_start)
                         cds_left_modi = v_start
                         n_trailing_bases = cds_right_modi - cds_left_modi
                     else:
-                        cds_left_modi = min(cds_left + cds_phase,v_stop)
+                        cds_left_modi = min(cds_left + cds_phase, v_stop)
                         cds_right_modi = v_stop
                         n_trailing_bases = cds_right_modi - cds_left_modi
 
                     read_phase = n_trailing_bases % 3
                     #  add all reading frames from the annotation
                     reading_frame_flag = read_frame_flag_strict(cds_begin[1], cds_left_modi, cds_right_modi,
-                                v_stop, reading_frames[idx], gene.strand)
+                                                                reading_frames[idx], gene.strand)
                     reading_frame = ReadingFrameTuple(cds_left_modi=cds_left_modi,
                                                       cds_right_modi=cds_right_modi,
                                                       read_phase=read_phase,

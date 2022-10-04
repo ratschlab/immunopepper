@@ -270,18 +270,23 @@ def get_exhaustive_reading_frames(splicegraph, gene_strand, vertex_order):
     return reading_frames
 
 
-def read_frame_flag_strict(cds_end, cds_begin_phased, cds_end_phased,
-                                v_stop_exon, reading_frames_list_exon, strand):
+def read_frame_flag_strict(cds_end, cds_begin_phased, cds_end_phased, reading_frames_list_exon, strand):
     '''
-    :param cds_end:
-    :param cds_begin_phased:
-    :param cds_end_phased:
-    :param v_stop_exon:
-    :param reading_frames_list_exon:
-    :param strand:
-    :return:
+    :param cds_end: int.
+    - if strand == '+' this is the largest CDS coordinate from the annotation
+    - elif strand == '-' this is the smallest coordinate CDS from the annotation with a -1 shift to get pythonic coordinate
+    :param cds_begin_phased: int.
+    - if strand == '+' this is the smallest CDS coordinate from the annotation with a -1 shift plus read phase (unless the exon ends before) => READ FRAME START PHASED
+    - elif strand == '-' this is the smallest coordinate of the vertex from the graph => EXON END
+    :param cds_end_phased: int
+    - if strand == '+' this is the biggest coordinate of the vertex from the graph => EXON END
+    - elif strand == '-' this is the biggest CDS coordinate from the annotation minus read phase (unless the exon ends before) => READ FRAME START PHASED
+    :param reading_frames_list_exon: list of ReadingFrameTuples currently associated with the exon
+    :param strand: str. gene strand
+    :return: reading_frame_flag: list of bool. Flag indicating whether a given reading frame is found in the annotation
     '''
     # Remark v_start <= cds_begin per check with find_overlapping_cds_simple above.
+    v_stop_exon = cds_end_phased if strand == '+' else cds_begin_phased # by definition
     if leq_strand(cds_end, v_stop_exon, strand):  # cds_end inside exon
         if (not reading_frames_list_exon) or has_same_reading_frame(reading_frames_list_exon,
                                                                     cds_begin_phased,
