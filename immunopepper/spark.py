@@ -196,7 +196,7 @@ def filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col, 
     if filterNeojuncCoord:
         matrix = matrix.filter(f'({jct_annot_col} == {False})')
     if filterAnnotatedRF:
-        matrix = matrix.filter(f'({rf_annot_col} == {True})')
+        matrix = matrix.filter(f'({rf_annot_col} == {True}) OR ({rf_annot_col} is null)')
     return matrix
 
 
