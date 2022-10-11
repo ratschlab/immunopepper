@@ -53,9 +53,13 @@ sys.modules['modules.classes.splicegraph'] = csplicegraph
 sys.modules['modules.classes.segmentgraph'] = csegmentgraph
 ### end fix
 
-def pool_initializer_glob(countinfo_glob): #Moved from utils because of global variables
+def pool_initializer_glob(countinfo_glob, genetable_glob, kmer_database_glob): #Moved from utils because of global variables
     global countinfo
-    countinfo=countinfo_glob
+    global genetable
+    global kmer_database
+    countinfo = countinfo_glob
+    genetable = genetable_glob
+    kmer_database = kmer_database_glob
     return sig.signal(sig.SIGINT, sig.SIG_IGN)
 
 def mapper_funct(tuple_arg):
@@ -154,9 +158,11 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
 
 def process_gene_batch_foreground(output_sample, mutation_sample, output_samples_ids, genes,
                                   genes_info, gene_idxs, n_genes, genes_interest, disable_process_libsize,
-                                  all_read_frames, complexity_cap, mutation, junction_dict, kmer_database,
-                                  genetable, arg, outbase, filepointer, compression, verbose):
+                                  all_read_frames, complexity_cap, mutation, junction_dict,
+                                  arg, outbase, filepointer, compression, verbose):
     global countinfo
+    global genetable
+    global kmer_database
     if arg.parallel > 1:
         batch_name = int(outbase.split('/')[-1].split('_')[-1])
     else:
@@ -332,6 +338,8 @@ def mode_build(arg):
     global output_sample
     global filepointer
     global countinfo #Will be used in non parallel mode
+    global genetable #Will be used in non parallel mode
+    global kmer_database #Will be used in non parallel mode
     # read and process the annotation file
     logging.info(">>>>>>>>> Build: Start Preprocessing")
     logging.info('Building lookup structure ...')
@@ -450,7 +458,7 @@ def mode_build(arg):
             if (not arg.skip_annotation) and not (arg.libsize_extract):
                 # Build the background
                 logging.info(">>>>>>>>> Start Background processing")
-                with mp.Pool(processes=arg.parallel, initializer=pool_initializer_glob, initargs=(countinfo,)) as pool:
+                with mp.Pool(processes=arg.parallel, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
                     args = [(output_sample, arg.mutation_sample,  graph_data[gene_idx], gene_idx, n_genes, mutation,
                              countinfo, genetable, arg,
                              os.path.join(output_path, f'tmp_out_{mutation.mode}_batch_{i + arg.start_id}'),
@@ -460,11 +468,10 @@ def mode_build(arg):
 
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
-            with mp.Pool(processes=arg.parallel, initializer=pool_initializer_glob, initargs=(countinfo,)) as pool:
+            with mp.Pool(processes=arg.parallel, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
                 args = [(output_sample, arg.mutation_sample, output_samples_ids, graph_data[gene_idx],
                          graph_info[gene_idx], gene_idx, n_genes, genes_interest, disable_process_libsize,
-                         arg.all_read_frames, complexity_cap, mutation, junction_dict, kmer_database,
-                         genetable, arg,
+                         arg.all_read_frames, complexity_cap, mutation, junction_dict, arg,
                          os.path.join(output_path, f'tmp_out_{mutation.mode}_batch_{i + arg.start_id}'),
                          filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
                 result = pool.imap(mapper_funct, args, chunksize=1)
@@ -499,8 +506,8 @@ def mode_build(arg):
             logging.info(">>>>>>>>> Start Foreground processing")
             process_gene_batch_foreground( output_sample, arg.mutation_sample, output_samples_ids, graph_data,
                                            graph_info, genes_range, n_genes, genes_interest, disable_process_libsize,
-                                           arg.all_read_frames, complexity_cap, mutation, junction_dict, kmer_database,
-                                           genetable, arg, output_path, filepointer, pq_compression,
+                                           arg.all_read_frames, complexity_cap, mutation, junction_dict,
+                                           arg, output_path, filepointer, pq_compression,
                                            verbose=True)
 
         if (not disable_process_libsize) and countinfo:
