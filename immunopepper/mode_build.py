@@ -314,8 +314,8 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                           f'max time cost: {np.round(np.nanmax(time_per_gene), 2)}, '
                           f'memory cost: {np.round(np.nanmax(mem_per_gene), 2)} GB')
             logging.debug(logging_string)
-	else:
-	    logging_string = (f'....{output_sample}: output_sample graph from batch {batch_name}/{n_genes}, no processing')
+        else:
+            logging_string = (f'....{output_sample}: output_sample graph from batch {batch_name}/{n_genes}, no processing')
         if (batch_name != 'all') and (batch_name % 10000 == 0):
             logging.info(logging_string)
 
