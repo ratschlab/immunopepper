@@ -41,20 +41,62 @@ def pq_WithRenamedCols(spark, list_paths):
     df = df.toDF(*new_names)
     return df
 
+def loader_immunopepper_outputs(spark, path_matrix, path_kmer_file, col_expr_kmer_file, target_sample, index_name,
+                                jct_col, jct_annot_col, rf_annot_col):
+    '''
+    Loader of immunopepper mode build outputs
+    It also performs (1) renaming of columns and (2) reformating to [kmers] x [samples, metadata] as needed
+    :param spark: spark context
+    :param path_matrix: str path for multi-sample count matrix from immunopepper mode build:  kmer|is_cross_junction|junctionAnnotated|readFrameAnnotated|sample_1|sample_2|...
+    :param path_kmer_file: str path for single sample kmer file from immunopepper mode build:  kmer|id|segmentexpr|iscrossjunction|junctionexpr|junctionAnnotated|readFrameAnnotated|
+    :param col_expr_kmer_file: str name of the expression column of interest in path_kmer_file. e.g. 'segmentexpr' or 'junctionexpr'
+    :param target_sample: str sample for which the path_kmer_file has been computed
+    :param index_name: str kmer column name
+    :param jct_col: str junction column name
+    :param jct_annot_col: str junction annotated flag column name
+    :param rf_annot_col: str reading frame annotated flag column name
+    :return: Loaded spark dataframe
+    '''
+    path_input = path_matrix if (path_matrix is not None) else path_kmer_file
 
-def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
-                        path_matrix, whitelist, cross_junction, filterNeojuncCoord, filterAnnotatedRF,
+    # Loads and rename columns (spark does not support hyphens in column names)
+    rename = True  # For development
+    logging.info(f'Load input {path_input}')
+    if rename:
+        logging.info("Rename")
+        matrix = pq_WithRenamedCols(spark, path_input)
+    else:
+        matrix = spark.read.parquet(*path_input, mergeSchema=True)
+
+    # Reformat kmer_file:  |kmer|id|segmentexpr|iscrossjunction|junctionexpr|junctionAnnotated| readFrameAnnotated|
+    # as: -> |kmer|is_cross_junction|junctionAnnotated|readFrameAnnotated|sample|
+    matrix = matrix.select(
+            [index_name, jct_col, jct_annot_col, rf_annot_col, col_expr_kmer_file]).withColumnRenamed( \
+            col_expr_kmer_file, target_sample)
+
+    return matrix
+
+
+def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
+                        path_matrix=None, path_kmer_file=None, col_expr_kmer_file=None, target_sample=None,
+                        whitelist=None, cross_junction=None,
+                        filterNeojuncCoord=None, filterAnnotatedRF=None,
                         output_dir=None, separate_back_annot=None, tot_batches=None, batch_id=None):
     '''
-    Preprocess samples if expression is stored in a multi-sample format [kmers] x [samples, metadata]
-    Various preprocessing steps including filtering on junction status, on reading frame annotated status,
-    select whitelist samples and make kmer unique
+    Various preprocessing steps including
+    - Loading of data from immunopepper mode build
+    - Separation of the kmers derived solely from the annotation (expression is null in samples)
+    - Filtering on junction and reading frame annotated status
+    - Select whitelist samples
     :param spark: spark context
     :param index_name: str kmer column name
     :param jct_col: str junction column name
     :param jct_annot_col: str junction annotated flag column name
     :param rf_annot_col: str reading frame annotated flag column name
-    :param path_matrix: str path for count matrix
+    :param path_matrix: str path for multi-sample count matrix from immunopepper mode build:  kmer|is_cross_junction|junctionAnnotated|readFrameAnnotated|sample_1|sample_2|...
+    :param path_kmer_file: str path for single sample kmer file from immunopepper mode build:  kmer|id|segmentexpr|iscrossjunction|junctionexpr|junctionAnnotated|readFrameAnnotated|
+    :param col_expr_kmer_file: str name of the expression column of interest in path_kmer_file. e.g. 'segmentexpr' or 'junctionexpr'
+    :param target_sample: str sample for which the path_kmer_file has been computed
     :param whitelist: list whitelist for samples
     :param cross_junction: bool whether the count matrix contains junction counts or segment counts
     :param annot_flag: list with the intruction codes on how to treat the reading frame and junction annotated flags
@@ -83,15 +125,10 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
         name_list.extend([index_name, jct_annot_col, rf_annot_col])
         return matrix.select([sf.col(name_) for name_ in name_list])
 
-    if path_matrix is not None:
-        # Rename columns for better spark processing (spark does not support '_')
-        rename = True # For development
-        logging.info(f'Load {path_matrix}')
-        if rename:
-            logging.info("Rename")
-            matrix = pq_WithRenamedCols(spark, path_matrix)
-        else:
-            matrix = spark.read.parquet(*path_matrix , mergeSchema=True)
+    if (path_matrix is not None) or (path_kmer_file is not None):
+        # Load immunopepper kmer candidates
+        matrix = loader_immunopepper_outputs(spark, path_matrix, path_kmer_file, col_expr_kmer_file, target_sample,
+                                             index_name, jct_col, jct_annot_col, rf_annot_col)
 
         # In batch mode: Dev remove kmers for the matrix based on the hash function
         if tot_batches:
@@ -133,13 +170,6 @@ def process_matrix_file(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
             whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
             matrix = filter_whitelist(matrix, whitelist, index_name, jct_annot_col, rf_annot_col)
 
-
-        # Make unique on kmers
-        logging.info("Make unique")
-        partitions_ = matrix.rdd.getNumPartitions()
-        logging.info(f'...partitions: {partitions_}')
-        exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in matrix.schema.names if name_ != index_name]
-        matrix = matrix.groupBy(index_name).agg(*exprs) #Max operation also performed on the annot flags
         partitions_ = matrix.rdd.getNumPartitions()
         logging.info(f'...partitions: {partitions_}')
         return matrix
@@ -200,20 +230,16 @@ def filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col, 
     return matrix
 
 
-def combine_normals(normal_segm, normal_junc, index_name):
+def combine_normals(normal_segm, normal_junc):
     ''' Given two matrices [kmers] x [samples, metadata] containing segment expression and junction expression,
-    takes the maximal expression for each kmer across the two matrices
+    takes the union expression of the two matrices
     :param normal_segm: spark dataframe matrix with segment expression counts
     :param normal_junc: spark dataframe matrix with junction expression counts
-    :param index_name: str name of the kmer column
     :return: spark dataframe expression matrix after combining junction and segment expression
     '''
     if (normal_segm is not None) and (normal_junc is not None):
         logging.info("Combine segment and edges")
         normal_matrix = normal_segm.union(normal_junc)
-        # Take max expression between edge or segment expression
-        exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in normal_matrix.schema.names if name_ != index_name]
-        normal_matrix = normal_matrix.groupBy(index_name).agg(*exprs)
         return normal_matrix
     elif normal_segm is None:
         return normal_junc
@@ -267,7 +293,7 @@ def check_interm_files(out_dir, expr_limit, n_samples_lim, target_sample='', tag
                               + '.tsv')
     # Check existence
     if (expr_limit and os.path.isfile(os.path.join(path_interm_matrix_for_express_threshold, '_SUCCESS'))) \
-        or (n_samples_lim is not None and os.path.isfile(os.path.join(path_interm_matrix_for_sample_threshold, '_SUCCESS'))):
+        and (n_samples_lim is not None and os.path.isfile(os.path.join(path_interm_matrix_for_sample_threshold, '_SUCCESS'))):
 
         logging.info((f'Intermediate {tag} filtering already performed in: {path_interm_matrix_for_express_threshold} '
                       f' and {path_interm_matrix_for_sample_threshold}. Re-loading {tag} intermediate data...'))
@@ -275,7 +301,7 @@ def check_interm_files(out_dir, expr_limit, n_samples_lim, target_sample='', tag
                       f'--filterAnnotatedRF parameter.'))
         launch_preprocess = False
     else:
-        logging.info(f'No intermediate {tag} filtering file found.')
+        logging.info(f'At least one intermediate {tag} filtering file is missing.')
         logging.info(f'Will compute full filtering steps according to user input parameters')
         launch_preprocess = True
 
@@ -321,7 +347,7 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
             for name_ in matrix.schema.names if name_ not in [index_name, jct_annot_col, rf_annot_col]])
 
     # Expression filtering, take k-mers with >= X reads in >= 1 sample
-    if expr_limit:
+    if expr_limit and (not os.path.isfile(os.path.join(path_e, '_SUCCESS'))):
         logging.info(f'Filter matrix with cohort expression support >= {expr_limit} in {base_n_samples} sample')
         # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
         # Skip target sample and metadata
@@ -339,7 +365,7 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
         matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e)
 
     # Sample filtering, take k-mers with exclude >0 reads in >= 1 sample
-    if n_samples_lim is not None:
+    if (n_samples_lim is not None) and (not os.path.isfile(os.path.join(path_s, '_SUCCESS'))):
         logging.info(f'Filter matrix with cohort expression support > {base_expr} in {base_n_samples} sample')
         # Fill the expression matrix with 1 if expression threshold is met, 0 otherwise
         # Skip target sample and metadata
@@ -430,77 +456,6 @@ def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, pa
     return cancer_cross_filter
 
 
-def preprocess_kmer_file(cancer_kmers, cancer_sample, drop_cols, expression_fields,
-                         jct_col, jct_annot_col, rf_annot_col, index_name, libsize_c,
-                         filterNeojuncCoord, filterAnnotatedRF, cross_junction):
-    '''
-    Preprocess samples if expression is stored in a single sample file:
-    [kmers] x [junction expression, segment expression, metadata]
-    Performs various preprocessing steps including filtering on junction status and on reading frame annotated status,
-    make kmer unique, normalize
-    :param cancer_kmers: spark dataframe with expression counts for cancer
-    :param cancer_sample: str cancer sample ID
-    :param drop_cols: list columns to be dropped
-    :param expression_fields: list containing expression column names
-    :param jct_col: str junction column name
-    :param jct_annot_col: str junction annotated flag column name
-    :param rf_annot_col: str reading frame annotated flag column name
-    :param index_name: str kmer column name
-    :param libsize_c: dataframe with library size
-    :param filterNeojuncCoord: bool if True, filter for kmers from neojunctions,
-     i.e. with non-annotated junction coordinates
-    :param filterAnnotatedRF: bool if True, filter for kmers from annotated reading frames,
-     i.e. with reading frames found in transcripts from the annotation, not propagated
-    :param cross_junction bool whether the count matrix contains junction counts or segment counts
-    :return: spark dataframe for preprocessed cancer kmers matrix
-    '''
-
-    def collapse_values(value):
-        return max([np.float(i) if i != 'nan' else 0.0 for i in value.split('/')])  # np.nanmax not supported
-
-    # Filter on juction status
-    if cross_junction == 1:
-        cancer_kmers = cancer_kmers.filter(f'{jct_col} == True')
-    elif cross_junction == 0:
-        cancer_kmers = cancer_kmers.filter(f'{jct_col} == False')
-
-    # Drop junction column
-    for drop_col in drop_cols:
-        cancer_kmers = cancer_kmers.drop(sf.col(drop_col))
-
-    # Keep k-mers according to annotation flag
-    cancer_kmers = filter_on_junction_kmer_annotated_flag(cancer_kmers, jct_annot_col, rf_annot_col,
-                                                          filterNeojuncCoord, filterAnnotatedRF)
-
-    logging.info("Collapse kmer horizontal")
-    # Remove the '/' in the expression data (kmers duplicate within a gene have 'expression1/expression2' format
-    local_max = sf.udf(collapse_values, st.FloatType())
-    for name_ in expression_fields:
-        cancer_kmers = cancer_kmers.withColumn(name_, local_max(name_))
-
-    # Make kmers unique (Take max expression)
-    logging.info("Collapse kmer vertical")
-    cancer_kmers = cancer_kmers.withColumn(jct_col, sf.col(jct_col).cast("boolean").cast("int"))
-    exprs = [sf.max(sf.col(name_)).alias(name_) for name_ in cancer_kmers.schema.names if name_ != index_name]
-    cancer_kmers = cancer_kmers.groupBy(index_name).agg(*exprs)
-
-    # Remove kmers unexpressed (both junction and segment expression null)
-    cancer_kmers = cancer_kmers.withColumn('allnull', sum(cancer_kmers[name_] for name_ in expression_fields))
-    cancer_kmers = cancer_kmers.filter(sf.col("allnull") > 0.0)
-    cancer_kmers = cancer_kmers.drop("allnull")
-
-    # Normalize by library size
-    if libsize_c is not None:
-        for name_ in expression_fields:
-            cancer_kmers = cancer_kmers.withColumn(name_, sf.round(
-                cancer_kmers[name_] / libsize_c.loc[cancer_sample, "libsize_75percent"], 2))
-    else:
-        for name_ in expression_fields:
-            cancer_kmers = cancer_kmers.withColumn(name_, sf.round(cancer_kmers[name_], 2))
-
-    return cancer_kmers
-
-
 def filter_expr_kmer(matrix_kmers, filter_field, threshold, libsize=None):
     '''
     Filters a spark dataframe on a threshold with or without prior normalization
@@ -544,7 +499,6 @@ def combine_cancer(cancer_kmers_segm, cancer_kmers_edge, index_name):
         cancer_kmers_segm = cancer_kmers_segm.join(cancer_kmers_edge,
                                                    cancer_kmers_segm[index_name] == cancer_kmers_edge[index_name],
                                                    how='left_anti')
-        # if  max( edge expression 1 and 2)<threshold and  max( segment expression 1 and 2)>= threshold: keep
         cancer_kmers = cancer_kmers_edge.union(cancer_kmers_segm)
         partitions_ = cancer_kmers.rdd.getNumPartitions()
         logging.info(f'...partitions cancer filtered: {partitions_}')
@@ -565,7 +519,7 @@ def remove_external_kmer_list(spark, path_external_kmer_database, spark_matrix, 
     :param header: bool. whether the file contains a header
     :return: Filtered matrix for external kmer database
     '''
-    logging.info("Load {}".format(path_external_kmer_database))
+    logging.info("Load input {}".format(path_external_kmer_database))
     external_database = loader(spark, path_external_kmer_database, header=header)
     external_database = external_database.select(sf.col(index_name))
     if spark_matrix:
