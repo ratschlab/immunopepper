@@ -362,8 +362,8 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
 
         if not gene.splicegraph.edges is None:
             gene.to_sparse()
-    if cross_graph_expr:
-        save_kmer_matrix(kmer_matrix_edge, kmer_matrix_segm, graph_samples, filepointer,
+    if cross_graph_expr: # Only one kmer length supported for this mode
+        save_kmer_matrix(kmer_matrix_edge, kmer_matrix_segm, kmer[0], graph_samples, filepointer,
                          compression=None, out_dir=out_dir, verbose=verbose_save)
 
 
