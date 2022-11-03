@@ -384,7 +384,7 @@ def mode_build(arg):
 
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
-    #graph_data = graph_data[0:110]
+    graph_data = graph_data[940:942]
     if arg.start_id != 0 and arg.start_id < len(graph_data):
         logging.info(f'development feature: starting at gene number {arg.start_id}')
         graph_data = graph_data[arg.start_id:]

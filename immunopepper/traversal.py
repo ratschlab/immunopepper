@@ -1,5 +1,5 @@
 """Contains all the output computation based on gene splicegraph"""
-
+import logging
 from collections import defaultdict
 import numpy as np
 
@@ -117,6 +117,7 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
             gene_info.vertex_succ_list[v_id].append(np.nan)
 
         for prop_vertex in gene_info.vertex_succ_list[v_id]:
+            logging.info("new vertex processed")
             vertex_list = [v_id, prop_vertex]
             mut_seq_comb = get_mut_comb(exon_som_dict,vertex_list)
             for read_frame_tuple in sorted(reading_frame_dict[v_id]):
@@ -345,8 +346,13 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
 
                     ### kmers
                     if cross_graph_expr: #generate kmer x sample expression matrix for all samples in graph
+                        logging.info("Start create output kmer samples")
                         create_output_kmer_cross_samples(output_peptide, kmer[0], expr_list, graph_output_samples_ids,
-                                                         kmer_matrix_edge, kmer_matrix_segm, kmer_database) # Only one kmer length supported for this mode
+                                                         kmer_matrix_edge, kmer_matrix_segm, kmer_database,
+                                                         graph_samples, filepointer,
+                                                         compression=None, out_dir=out_dir, verbose=verbose_save)
+                        # Only one kmer length supported for this mode
+                        logging.info("Stop create output kmer samples")
 
                     else:
                         # generate sample kmers for each vertex pair and each kmer_length
@@ -361,8 +367,12 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                                                                           expr_list, kmer_database))
 
         if not gene.splicegraph.edges is None:
+            logging.info("Start gene make sparse")
             gene.to_sparse()
+            logging.info("Stop gene make sparse")
+
     if cross_graph_expr: # Only one kmer length supported for this mode
+        logging.info("Start save kmer matrix")
         save_kmer_matrix(kmer_matrix_edge, kmer_matrix_segm, kmer[0], graph_samples, filepointer,
                          compression=None, out_dir=out_dir, verbose=verbose_save)
 
@@ -512,7 +522,8 @@ def create_output_kmer(output_peptide, k, expr_list, kmer_database=None):
 
 
 def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_output_samples_ids,
-                                     kmer_matrix_edge, kmer_matrix_segm, kmer_database):
+                                     kmer_matrix_edge, kmer_matrix_segm, kmer_database, graph_samples,
+                                     filepointer, compression=None, out_dir=None, verbose=None):
     """Calculate the output kmer and the corresponding expression based on output peptide
 
     Parameters
@@ -538,7 +549,7 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
     else:
         spanning_index1, spanning_index2, spanning_index1_2 = [np.nan], [np.nan], [np.nan]
 
-
+    logging.info(f'Len output peptide {len(output_peptide.peptide)}')
     if len(output_peptide.peptide) >= k:
         for j in range(len(output_peptide.peptide) - k + 1):
             kmer_peptide = output_peptide.peptide[j:j+k]
@@ -565,6 +576,7 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
                     sublist_jun = np.empty((len(graph_output_samples_ids),)) * np.nan
                     junction_annotated = False
 
+            logging.info(f'.........Start segment expression compute')
             # segment expression
             if segm_expr_list is None:
                 sublist_seg = [np.nan] * len(graph_output_samples_ids)
@@ -589,12 +601,24 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
                 sublist_seg = sublist_seg.flatten().tolist()
                 left_past = left
                 W_past = W
-
+            logging.info(f'.........End segment expression compute')
             # update the cross samples matrix
             if check_database:
+                logging.info(f'Respective length of Edge, segment tuples {len(kmer_matrix_edge)}, {len(kmer_matrix_segm)}')
                 row_metadata = [kmer_peptide, is_in_junction, junction_annotated, output_peptide.read_frame_annotated]
+                logging.info(f'.........Start Edge Add tuple')
                 kmer_matrix_edge.add(tuple(row_metadata + list(sublist_jun)))
+                logging.info(f'.........End Edge Add tuple')
+                logging.info(f'.........Start Segm Add tuple')
                 kmer_matrix_segm.add(tuple(row_metadata + list(np.round(sublist_seg, 2))))
+                logging.info(f'.........End Segm Add tuple')
+
+                if len(kmer_matrix_edge) > 50000:
+                    logging.info(f"Start save kmer matrix INTERM to {out_dir}..")
+                    save_kmer_matrix(kmer_matrix_edge, kmer_matrix_segm, k, graph_samples, filepointer,
+                                     compression, out_dir, verbose)
+                    kmer_matrix_edge = set()
+                    kmer_matrix_segm = set()
 
 
 
