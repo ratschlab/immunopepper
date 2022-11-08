@@ -15,6 +15,7 @@ import timeit
 
 # immuno module
 from immunopepper.io_ import collect_results
+from immunopepper.io_ import get_save_path
 from immunopepper.io_ import initialize_fp
 from immunopepper.io_ import remove_folder_list
 from immunopepper.io_ import save_bg_kmer_set
@@ -254,7 +255,10 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             junction_list = None
             if not junction_dict is None and chrm in junction_dict:
                 junction_list = junction_dict[chrm]
-
+ 
+            if arg.cross_graph_expr:
+                pathlib.Path(get_save_path(filepointer.kmer_segm_expr_fp, outbase)).mkdir(exist_ok=True, parents=True)
+                pathlib.Path(get_save_path(filepointer.kmer_edge_expr_fp, outbase)).mkdir(exist_ok=True, parents=True)
             vertex_pairs, \
             ref_mut_seq, \
             exon_som_dict = collect_vertex_pairs(gene=gene,
@@ -308,10 +312,6 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             for kmer_length in arg.kmer:
                 save_fg_kmer_dict(dictofSets_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
             dictofSets_kmer_foregr.clear()
-        if arg.cross_graph_expr \
-                and filepointer.kmer_segm_expr_fp['pqwriter'] is not None: # Write kmer files for multiple samples
-            filepointer.kmer_segm_expr_fp['pqwriter'].close()
-            filepointer.kmer_edge_expr_fp['pqwriter'].close()
 
         pathlib.Path(os.path.join(outbase, "output_sample_IS_SUCCESS")).touch()
 
@@ -340,6 +340,7 @@ def mode_build(arg):
     global countinfo #Will be used in non parallel mode
     global genetable #Will be used in non parallel mode
     global kmer_database #Will be used in non parallel mode
+    mp.set_start_method("spawn")
     # read and process the annotation file
     logging.info(">>>>>>>>> Build: Start Preprocessing")
     logging.info('Building lookup structure ...')
@@ -423,7 +424,6 @@ def mode_build(arg):
     # parse output_sample relatively to output mode
     process_output_samples, output_samples_ids = parse_output_samples_choices(arg, countinfo, matching_count_ids,
                                                                               matching_count_samples)
-
     logging.info(">>>>>>>>> Start traversing splicegraph")
     for output_sample in process_output_samples:
         logging.info(f'>>>> Processing output_sample {output_sample}, there are {n_genes} graphs in total')
@@ -458,7 +458,7 @@ def mode_build(arg):
             if (not arg.skip_annotation) and not (arg.libsize_extract):
                 # Build the background
                 logging.info(">>>>>>>>> Start Background processing")
-                with mp.Pool(processes=arg.parallel, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
+                with mp.get_context("spawn").Pool(processes=arg.parallel, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
                     args = [(output_sample, arg.mutation_sample,  graph_data[gene_idx], gene_idx, n_genes, mutation,
                              countinfo, genetable, arg,
                              os.path.join(output_path, f'tmp_out_{mutation.mode}_batch_{i + arg.start_id}'),
@@ -488,8 +488,10 @@ def mode_build(arg):
             collect_results(filepointer.junction_meta_fp, output_path, pq_compression, mutation.mode)
             collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
             collect_results(filepointer.background_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
-            collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, mutation.mode)
-            collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, mutation.mode)
+            collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression,
+                            mutation.mode, parquet_partitions=True)
+            collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression,
+                            mutation.mode, parquet_partitions=True)
             if not arg.keep_tmpfiles:
                 logging.info("Cleaning temporary files")
                 remove_folder_list(os.path.join(output_path, f'tmp_out_{mutation.mode}_batch'))
