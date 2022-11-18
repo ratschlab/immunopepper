@@ -5,6 +5,7 @@ from collections import defaultdict
 import h5py
 import logging
 import multiprocessing as mp
+from multiprocessing.pool import ThreadPool
 import numpy as np
 import os
 import pathlib
@@ -61,7 +62,7 @@ def pool_initializer_glob(countinfo_glob, genetable_glob, kmer_database_glob): #
     countinfo = countinfo_glob
     genetable = genetable_glob
     kmer_database = kmer_database_glob
-    return sig.signal(sig.SIGINT, sig.SIG_IGN)
+    #return sig.signal(sig.SIGINT, sig.SIG_IGN)
 
 def mapper_funct(tuple_arg):
     process_gene_batch_foreground(*tuple_arg)
@@ -340,7 +341,8 @@ def mode_build(arg):
     global countinfo #Will be used in non parallel mode
     global genetable #Will be used in non parallel mode
     global kmer_database #Will be used in non parallel mode
-    mp.set_start_method("spawn")
+    #mp.set_start_method("spawn")
+    logging.info("NO SPAWN")
     # read and process the annotation file
     logging.info(">>>>>>>>> Build: Start Preprocessing")
     logging.info('Building lookup structure ...')
@@ -468,7 +470,7 @@ def mode_build(arg):
 
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
-            with mp.Pool(processes=arg.parallel, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
+            with ThreadPool(processes=None, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
                 args = [(output_sample, arg.mutation_sample, output_samples_ids, graph_data[gene_idx],
                          graph_info[gene_idx], gene_idx, n_genes, genes_interest, disable_process_libsize,
                          arg.all_read_frames, complexity_cap, mutation, junction_dict, arg,
