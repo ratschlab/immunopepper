@@ -103,7 +103,7 @@ def save_bg_kmer_set(data: set[str], filepointer: Filepointer, kmer_length: int,
         data = np.fromiter(data, dt, -1) #set to array
         data = np.expand_dims(data, 0)
         path = get_save_path(filepointer.background_kmer_fp, out_dir, kmer_length)
-        save_pd_toparquet(path, data, filepointer.background_kmer_fp['columns'], compression, verbose)
+        save_np_to_parquet(path, data, filepointer.background_kmer_fp['columns'], compression, verbose)
 
 
 def save_fg_kmer_dict(data: dict, filepointer: Filepointer, kmer_length: int, compression: str = None,
@@ -116,7 +116,7 @@ def save_fg_kmer_dict(data: dict, filepointer: Filepointer, kmer_length: int, co
         data = set(namedtuple_to_str(item, sep='\t') for item in data)
         data = np.array([line.split('\t') for line in data]).T #set to array
         path = get_save_path(filepointer.junction_kmer_fp, out_dir, kmer_length)
-        save_pd_toparquet(path, data, filepointer.junction_kmer_fp['columns'], compression, verbose)
+        save_np_to_parquet(path, data, filepointer.junction_kmer_fp['columns'], compression, verbose)
 
 
 def save_bg_peptide_set(data, filepointer: Filepointer, compression: str = None, out_dir: str = None,
@@ -136,7 +136,7 @@ def save_bg_peptide_set(data, filepointer: Filepointer, compression: str = None,
         data = data.flatten(order = 'F')
         data = np.expand_dims(data, axis=0)
         path = get_save_path(filepointer.background_peptide_fp, out_dir)
-        save_pd_toparquet(path, data, filepointer.background_peptide_fp['columns'], compression, verbose)
+        save_np_to_parquet(path, data, filepointer.background_peptide_fp['columns'], compression, verbose)
 
 
 def save_fg_peptide_set(data: set, filepointer: Filepointer, compression: str = None, out_dir: str = None,
@@ -155,11 +155,11 @@ def save_fg_peptide_set(data: set, filepointer: Filepointer, compression: str = 
             fasta = np.array([make_fasta_ids(data[1]), data[0]]) #id, peptide
             fasta = fasta.flatten(order='F')
             fasta = np.expand_dims(fasta, axis=0)
-            save_pd_toparquet(path_fa, fasta, filepointer.junction_peptide_fp['columns'], compression, verbose)
+            save_np_to_parquet(path_fa, fasta, filepointer.junction_peptide_fp['columns'], compression, verbose)
             del fasta
 
         path = get_save_path(filepointer.junction_meta_fp, out_dir)
-        save_pd_toparquet(path, data, filepointer.junction_meta_fp['columns'], compression, verbose)  # Test keep peptide name in the metadata file
+        save_np_to_parquet(path, data, filepointer.junction_meta_fp['columns'], compression, verbose)  # Test keep peptide name in the metadata file
 
 
 def save_gene_expr_distr(data: list[list], input_samples: list[str], process_sample: str, filepointer: Filepointer,
@@ -181,7 +181,7 @@ def save_gene_expr_distr(data: list[list], input_samples: list[str], process_sam
             data_columns = filepointer.gene_expr_fp['columns'] + list(input_samples)
         else:
             data_columns = filepointer.gene_expr_fp['columns'] + [process_sample]
-        save_pd_toparquet(path, data, data_columns, compression, verbose)
+        save_np_to_parquet(path, data, data_columns, compression, verbose)
 
 
 def save_kmer_matrix(data_edge, data_segm, kmer_len, graph_samples, filepointer: Filepointer, compression: str = None,
@@ -207,7 +207,7 @@ def save_kmer_matrix(data_edge, data_segm, kmer_len, graph_samples, filepointer:
         data_edge = structured_to_unstructured(data_edge)
         data_edge = data_edge.T
         data_edge_columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
-        filepointer.kmer_edge_expr_fp['pqwriter'] = save_pd_toparquet(edge_path, data_edge, data_edge_columns,
+        filepointer.kmer_edge_expr_fp['pqwriter'] = save_np_to_parquet(edge_path, data_edge, data_edge_columns,
                                                                       compression=compression, verbose=verbose,
                                                                       pqwriter=filepointer.kmer_edge_expr_fp[
                                                                           'pqwriter'], writer_close=True)
@@ -216,7 +216,7 @@ def save_kmer_matrix(data_edge, data_segm, kmer_len, graph_samples, filepointer:
         data_segm = structured_to_unstructured(data_segm)
         data_segm = data_segm.T
         data_segm_columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
-        filepointer.kmer_segm_expr_fp['pqwriter'] = save_pd_toparquet(segm_path, data_segm, data_segm_columns,
+        filepointer.kmer_segm_expr_fp['pqwriter'] = save_np_to_parquet(segm_path, data_segm, data_segm_columns,
                                                                       compression=compression, verbose=verbose,
                                                                       pqwriter=filepointer.kmer_segm_expr_fp[
                                                                           'pqwriter'], writer_close=True)
@@ -299,9 +299,9 @@ def _output_info(path, file_columns, kmer_lengths=None, pq_writer=False):
     return file_info
 
 
-def save_pd_toparquet(path, array, columns, compression=None, verbose=False, pqwriter=None, writer_close=True):
+def save_np_to_parquet(path, array, columns, compression=None, verbose=False, pqwriter=None, writer_close=True):
     """
-    Saves a pandas data frame in parquet format.
+    Saves a numpy data frame in parquet format.
     """
     s1 = timeit.default_timer()
     table = pa.Table.from_arrays(array, names = columns)
@@ -344,7 +344,7 @@ def collect_results(filepointer_item, out_dir, compression, mutation_mode, kmer_
             try:
                 dset = pq.ParquetDataset(tmp_file_list)
                 dset_pandas = dset.read().to_pandas() #TODO check efficiency
-                save_pd_toparquet(file_path, dset_pandas, compression, verbose=1)
+                save_np_to_parquet(file_path, dset_pandas, compression, verbose=1)
             except:
                 logging.error(f'Unable to read one of files for {file_path} collection')
                 sys.exit(1)
