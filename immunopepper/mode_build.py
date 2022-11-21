@@ -342,7 +342,6 @@ def mode_build(arg):
     global genetable #Will be used in non parallel mode
     global kmer_database #Will be used in non parallel mode
     #mp.set_start_method("spawn")
-    logging.info("NO SPAWN")
     # read and process the annotation file
     logging.info(">>>>>>>>> Build: Start Preprocessing")
     logging.info('Building lookup structure ...')

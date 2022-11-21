@@ -1,5 +1,4 @@
 """Contains all the output computation based on gene splicegraph"""
-import logging
 from collections import defaultdict
 import numpy as np
 
@@ -543,7 +542,6 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
     else:
         spanning_index1, spanning_index2, spanning_index1_2 = [np.nan], [np.nan], [np.nan]
 
-    logging.info(f'Len output peptide {len(output_peptide.peptide)}')
     if len(output_peptide.peptide) >= k:
         for j in range(len(output_peptide.peptide) - k + 1):
             kmer_peptide = output_peptide.peptide[j:j+k]
@@ -596,27 +594,18 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
                 W_past = W
             # update the cross samples matrix
             if check_database:
-                logging.info(f'Respective length of Edge, segment tuples {len(kmer_matrix_edge)}, {len(kmer_matrix_segm)}')
                 row_metadata = [kmer_peptide, is_in_junction, junction_annotated, output_peptide.read_frame_annotated]
-                logging.info(f'.........Start Edge Add tuple')
                 kmer_matrix_edge.add(tuple(row_metadata + list(sublist_jun)))
-                logging.info(f'.........End Edge Add tuple')
-                logging.info(f'.........Start Segm Add tuple')
                 kmer_matrix_segm.add(tuple(row_metadata + list(np.round(sublist_seg, 2))))
-                logging.info(f'.........End Segm Add tuple')
 
                 if len(kmer_matrix_segm) > 1000000: # small but dense
-                    logging.info(f"Start save kmer SEGMENT with len {len(kmer_matrix_segm) } matrix INTERM to {out_dir}..")
                     save_kmer_matrix(None, kmer_matrix_segm, k, graph_samples, filepointer,
                                      compression, out_dir, verbose)
                     kmer_matrix_segm.clear()
-                    logging.info(f'Cleared len {len(kmer_matrix_segm)}')
                 if len(kmer_matrix_edge) > 1000000: # big but relatively sparse
-                    logging.info( f"Start save kmer EDGE with len {len(kmer_matrix_edge) } matrix INTERM to {out_dir}..")
                     save_kmer_matrix(kmer_matrix_edge, None, k, graph_samples, filepointer,
                                      compression, out_dir, verbose)
                     kmer_matrix_edge.clear()
-                    logging.info(f'Cleared len {len(kmer_matrix_edge)}')
 
 
 

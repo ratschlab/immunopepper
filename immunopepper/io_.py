@@ -198,51 +198,28 @@ def save_kmer_matrix(data_edge, data_segm, kmer_len, graph_samples, filepointer:
     :param out_dir: str output directory path
     :param verbose: int verbose parameter
     '''
-    logging.info("Start get file pointer")
     segm_path = get_save_path(filepointer.kmer_segm_expr_fp, out_dir, create_partitions=True)
     edge_path = get_save_path(filepointer.kmer_edge_expr_fp, out_dir, create_partitions=True)
-    logging.info("Stop get file pointer")
-    logging.info(f'Number of samples is {len(graph_samples)}')
-    logging.info("Start creating data type array")
     dt = [('kmer', 'S' + str(kmer_len)), ('isCrossJunction', 'bool'), ('junctionAnnotated', 'bool'),
           ('readFrameAnnotated', 'bool') ] + [ (f'{sample}', 'float') for sample in graph_samples]
-    logging.info("Stop creating datatype array")
     if data_edge:
-        logging.info("***Start Save EDGE***")
-        logging.info(f'Number of kmers to save (x patients) is {len(data_edge)}')
-        logging.info("...Start From Iter")
         data_edge = np.fromiter(data_edge, dt, -1) #set to array
-        logging.info("...Stop From Iter")
-        logging.info("...Start structured to unstructured")
         data_edge = structured_to_unstructured(data_edge)
-        logging.info("...Stop structured to unstructured")
-        logging.info("...Start transpose")
         data_edge = data_edge.T
-        logging.info("...Stop transpose")
         data_edge_columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
         filepointer.kmer_edge_expr_fp['pqwriter'] = save_pd_toparquet(edge_path, data_edge, data_edge_columns,
                                                                       compression=compression, verbose=verbose,
                                                                       pqwriter=filepointer.kmer_edge_expr_fp[
                                                                           'pqwriter'], writer_close=True)
-        logging.info("***Stop Save EDGE***")
     if data_segm:
-        logging.info("****Start save SEGM***")
-        logging.info(f'Number of kmers to save (x patients) is {len(data_segm)}')
-        logging.info("...Start From Iter")
         data_segm = np.fromiter(data_segm, dt, -1) #set to array
-        logging.info("...Stop From Iter")
-        logging.info("...Start structured to unstructured")
         data_segm = structured_to_unstructured(data_segm)
-        logging.info("...Stop structured to unstructured")
-        logging.info("...Start transpose")
         data_segm = data_segm.T
-        logging.info("...Stop transpose")
         data_segm_columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
         filepointer.kmer_segm_expr_fp['pqwriter'] = save_pd_toparquet(segm_path, data_segm, data_segm_columns,
                                                                       compression=compression, verbose=verbose,
                                                                       pqwriter=filepointer.kmer_segm_expr_fp[
                                                                           'pqwriter'], writer_close=True)
-        logging.info("****Stop save SEGM****")
 
 
 
@@ -327,18 +304,12 @@ def save_pd_toparquet(path, array, columns, compression=None, verbose=False, pqw
     Saves a pandas data frame in parquet format.
     """
     s1 = timeit.default_timer()
-    logging.info("......Start convert pyarrow")
     table = pa.Table.from_arrays(array, names = columns)
-    logging.info("......Stop convert pyarrow")
     if pqwriter is None:
-        logging.info("......Start writer")
         pqwriter = pq.ParquetWriter(path, table.schema, compression=compression)
     pqwriter.write_table(table)
-    logging.info("......Stop writer")
     if writer_close:
-        logging.info("......Start close writer")
         pqwriter.close()
-        logging.info("......Stop close writer")
         pqwriter = None
 
     if verbose:
