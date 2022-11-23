@@ -1,0 +1,95 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##samtoolsVersion=1.6+htslib-1.6
+##samtoolsCommand=samtools mpileup -g -f genome.fa align/simulated_Ipp_1_sample10Aligned.out.sorted.bam align/simulated_Ipp_1_sample11Aligned.out.sorted.bam align/simulated_Ipp_1_sample12Aligned.out.sorted.bam align/simulated_Ipp_1_sample13Aligned.out.sorted.bam align/simulated_Ipp_1_sample14Aligned.out.sorted.bam align/simulated_Ipp_1_sample15Aligned.out.sorted.bam align/simulated_Ipp_1_sample16Aligned.out.sorted.bam align/simulated_Ipp_1_sample17Aligned.out.sorted.bam align/simulated_Ipp_1_sample18Aligned.out.sorted.bam align/simulated_Ipp_1_sample19Aligned.out.sorted.bam align/simulated_Ipp_1_sample1Aligned.out.sorted.bam align/simulated_Ipp_1_sample20Aligned.out.sorted.bam align/simulated_Ipp_1_sample2Aligned.out.sorted.bam align/simulated_Ipp_1_sample3Aligned.out.sorted.bam align/simulated_Ipp_1_sample4Aligned.out.sorted.bam align/simulated_Ipp_1_sample5Aligned.out.sorted.bam align/simulated_Ipp_1_sample6Aligned.out.sorted.bam align/simulated_Ipp_1_sample7Aligned.out.sorted.bam align/simulated_Ipp_1_sample8Aligned.out.sorted.bam align/simulated_Ipp_1_sample9Aligned.out.sorted.bam
+##reference=file://genome.fa
+##contig=<ID=1,length=1000>
+##ALT=<ID=*,Description="Represents allele(s) other than observed.">
+##INFO=<ID=INDEL,Number=0,Type=Flag,Description="Indicates that the variant is an INDEL.">
+##INFO=<ID=IDV,Number=1,Type=Integer,Description="Maximum number of reads supporting an indel">
+##INFO=<ID=IMF,Number=1,Type=Float,Description="Maximum fraction of reads supporting an indel">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Raw read depth">
+##INFO=<ID=VDB,Number=1,Type=Float,Description="Variant Distance Bias for filtering splice-site artefacts in RNA-seq data (bigger is better)",Version="3">
+##INFO=<ID=RPB,Number=1,Type=Float,Description="Mann-Whitney U test of Read Position Bias (bigger is better)">
+##INFO=<ID=MQB,Number=1,Type=Float,Description="Mann-Whitney U test of Mapping Quality Bias (bigger is better)">
+##INFO=<ID=BQB,Number=1,Type=Float,Description="Mann-Whitney U test of Base Quality Bias (bigger is better)">
+##INFO=<ID=MQSB,Number=1,Type=Float,Description="Mann-Whitney U test of Mapping Quality vs Strand Bias (bigger is better)">
+##INFO=<ID=SGB,Number=1,Type=Float,Description="Segregation based metric.">
+##INFO=<ID=MQ0F,Number=1,Type=Float,Description="Fraction of MQ0 reads (smaller is better)">
+##FORMAT=<ID=PL,Number=G,Type=Integer,Description="List of Phred-scaled genotype likelihoods">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##INFO=<ID=AF1,Number=1,Type=Float,Description="Max-likelihood estimate of the first ALT allele frequency (assuming HWE)">
+##INFO=<ID=AF2,Number=1,Type=Float,Description="Max-likelihood estimate of the first and second group ALT allele frequency (assuming HWE)">
+##INFO=<ID=AC1,Number=1,Type=Float,Description="Max-likelihood estimate of the first ALT allele count (no HWE assumption)">
+##INFO=<ID=MQ,Number=1,Type=Integer,Description="Root-mean-square mapping quality of covering reads">
+##INFO=<ID=FQ,Number=1,Type=Float,Description="Phred probability of all samples being the same">
+##INFO=<ID=PV4,Number=4,Type=Float,Description="P-values for strand bias, baseQ bias, mapQ bias and tail distance bias">
+##INFO=<ID=G3,Number=3,Type=Float,Description="ML estimate of genotype frequencies">
+##INFO=<ID=HWE,Number=1,Type=Float,Description="Chi^2 based HWE test P-value based on G3">
+##INFO=<ID=DP4,Number=4,Type=Integer,Description="Number of high-quality ref-forward , ref-reverse, alt-forward and alt-reverse bases">
+##bcftools_callVersion=1.10.2+htslib-1.10.2
+##bcftools_callCommand=call -c vcf/simulated_Ipp.bcf; Date=Sun Feb 13 08:10:27 2022
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	simulated_Ipp_1_sample10Aligned.out.sorted	simulated_Ipp_1_sample11Aligned.out.sorted	simulated_Ipp_1_sample12Aligned.out.sorted	simulated_Ipp_1_sample13Aligned.out.sorted	simulated_Ipp_1_sample14Aligned.out.sorted	simulated_Ipp_1_sample15Aligned.out.sorted	simulated_Ipp_1_sample16Aligned.out.sorted	simulated_Ipp_1_sample17Aligned.out.sorted	simulated_Ipp_1_sample18Aligned.out.sorted	simulated_Ipp_1_sample19Aligned.out.sorted	simulated_Ipp_1_sample1Aligned.out.sorted	simulated_Ipp_1_sample20Aligned.out.sorted	simulated_Ipp_1_sample2Aligned.out.sorted	simulated_Ipp_1_sample3Aligned.out.sorted	simulated_Ipp_1_sample4Aligned.out.sorted	simulated_Ipp_1_sample5Aligned.out.sorted	simulated_Ipp_1_sample6Aligned.out.sorted	simulated_Ipp_1_sample7Aligned.out.sorted	simulated_Ipp_1_sample8Aligned.out.sorted	simulated_Ipp_1_sample9Aligned.out.sorted
+1	561	.	T	G	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0	1/0:0
+1	416	.	C	A	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	1/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0
+1	433	.	A	G	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0	1/1:0
+1	373	.	A	T	43.2868	.	DP=713;MQ0F=0;AF1=0;AC1=0;DP4=713,0,0,0;MQ=20;FQ=-43.1753	GT:PL	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	149	.	C	A	60.9736	.	DP=1185;MQ0F=0;AF1=0;AC1=0;DP4=1185,0,0,0;MQ=20;FQ=-60.8637	GT:PL	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	68	.	A	G	45.3077	.	DP=355;MQ0F=0;AF1=0;AC1=0;DP4=355,0,0,0;MQ=20;FQ=-45.1974	GT:PL	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	646	.	T	C	57.7247	.	DP=1193;MQ0F=0;AF1=0;AC1=0;DP4=1193,0,0,0;MQ=20;FQ=-57.6149	GT:PL	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	157	.	A	G	60.9209	.	DP=1126;MQ0F=0;AF1=0;AC1=0;DP4=1126,0,0,0;MQ=20;FQ=-60.811	GT:PL	0/0:0	0/0:0	0/0:0	1/1:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	174	.	T	A	51.0122	.	DP=1156;MQ0F=0;AF1=0;AC1=0;DP4=1156,0,0,0;MQ=20;FQ=-50.9022	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	620	.	G	C	75.4755	.	DP=1230;MQ0F=0;AF1=0;AC1=0;DP4=1230,0,0,0;MQ=20;FQ=-75.3657	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	265	.	G	A	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	147	.	G	T	60.9736	.	DP=1151;MQ0F=0;AF1=0;AC1=0;DP4=1151,0,0,0;MQ=20;FQ=-60.8637	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	164	.	T	A	59.226	.	DP=1171;MQ0F=0;AF1=0;AC1=0;DP4=1171,0,0,0;MQ=20;FQ=-59.1161	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	689	.	A	C	72.4394	.	DP=1249;MQ0F=0;AF1=0;AC1=0;DP4=1249,0,0,0;MQ=20;FQ=-72.3296	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	98	.	A	T	54.9238	.	DP=1137;MQ0F=0;AF1=0;AC1=0;DP4=1137,0,0,0;MQ=20;FQ=-54.814	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	124	.	A	T	60.987	.	DP=1192;MQ0F=0;AF1=0;AC1=0;DP4=1192,0,0,0;MQ=20;FQ=-60.8771	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	595	.	G	C	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	275	.	C	T	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	162	.	A	T	60.0163	.	DP=1136;MQ0F=0;AF1=0;AC1=0;DP4=1136,0,0,0;MQ=20;FQ=-59.9065	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	460	.	G	A	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0	0/0:0
+1	390	.	C	A	46.4236	.	DP=770;MQ0F=0;AF1=0;AC1=0;DP4=770,0,0,0;MQ=20;FQ=-46.313	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0	0/0:0
+1	304	.	T	A	45.8965	.	DP=723;MQ0F=0;AF1=0;AC1=0;DP4=723,0,0,0;MQ=20;FQ=-45.7856	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0	0/0:0
+1	471	.	G	T	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/0:0
+1	659	.	A	G	48.723	.	DP=1214;MQ0F=0;AF1=0;AC1=0;DP4=1214,0,0,0;MQ=20;FQ=-48.613	GT:PL	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	259	.	A	C	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	119	.	T	G	57.9832	.	DP=1216;MQ0F=0;AF1=0;AC1=0;DP4=1216,0,0,0;MQ=20;FQ=-57.8733	GT:PL	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	502	.	T	G	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	53	.	A	T	36.4979	.	DP=71;MQ0F=0;AF1=0;AC1=0;DP4=71,0,0,0;MQ=20;FQ=-36.3755	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	391	.	C	G	46.4199	.	DP=777;MQ0F=0;AF1=0;AC1=0;DP4=777,0,0,0;MQ=20;FQ=-46.3093	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	90	.	C	G	54.8562	.	DP=949;MQ0F=0;AF1=0;AC1=0;DP4=949,0,0,0;MQ=20;FQ=-54.7464	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	373	.	A	T	43.2868	.	DP=713;MQ0F=0;AF1=0;AC1=0;DP4=713,0,0,0;MQ=20;FQ=-43.1753	GT:PL	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	647	.	A	G	54.9233	.	DP=1204;MQ0F=0;AF1=0;AC1=0;DP4=1204,0,0,0;MQ=20;FQ=-54.8134	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	610	.	T	C	75.7253	.	DP=1260;MQ0F=0;AF1=0;AC1=0;DP4=1260,0,0,0;MQ=20;FQ=-75.6154	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	555	.	C	G	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	227	.	T	G	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	186	.	A	T	59.9621	.	DP=1129;MQ0F=0;AF1=0;AC1=0;DP4=1129,0,0,0;MQ=20;FQ=-59.8522	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	150	.	G	T	60.9548	.	DP=1184;MQ0F=0;AF1=0;AC1=0;DP4=1184,0,0,0;MQ=20;FQ=-60.845	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	431	.	G	A	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	231	.	C	T	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	409	.	G	C	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0
+1	264	.	A	T	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0
+1	681	.	A	T	57.7256	.	DP=1207;MQ0F=0;AF1=0;AC1=0;DP4=1207,0,0,0;MQ=20;FQ=-57.6158	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0	0/0:0
+1	462	.	T	A	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0
+1	341	.	A	T	43.2929	.	DP=721;MQ0F=0;AF1=0;AC1=0;DP4=721,0,0,0;MQ=20;FQ=-43.1814	GT:PL	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	639	.	T	C	66.7237	.	DP=1253;MQ0F=0;AF1=0;AC1=0;DP4=1253,0,0,0;MQ=20;FQ=-66.6138	GT:PL	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	731	.	A	T	53.3743	.	DP=456;MQ0F=0;AF1=0;AC1=0;DP4=456,0,0,0;MQ=20;FQ=-53.2643	GT:PL	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	157	.	A	G	60.9209	.	DP=1126;MQ0F=0;AF1=0;AC1=0;DP4=1126,0,0,0;MQ=20;FQ=-60.811	GT:PL	0/0:0	0/0:0	0/0:0	1/1:0	1/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	627	.	G	A	75.5976	.	DP=1237;MQ0F=0;AF1=0;AC1=0;DP4=1237,0,0,0;MQ=20;FQ=-75.4878	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	469	.	A	C	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	445	.	C	A	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	197	.	C	A	71.132	.	DP=1191;MQ0F=0;AF1=0;AC1=0;DP4=1191,0,0,0;MQ=20;FQ=-71.0221	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	535	.	T	A	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	322	.	A	C	46.3467	.	DP=753;MQ0F=0;AF1=0;AC1=0;DP4=753,0,0,0;MQ=20;FQ=-46.236	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	462	.	T	A	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/1:0
+1	209	.	G	T	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	231	.	C	T	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/1:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	633	.	A	G	75.7167	.	DP=1271;MQ0F=0;AF1=0;AC1=0;DP4=1271,0,0,0;MQ=20;FQ=-75.6069	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	416	.	C	A	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0	1/1:0	0/1:0	0/1:0	0/1:0	0/1:0	0/1:0
+1	422	.	G	A	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0	0/0:0
+1	205	.	A	C	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0	0/0:0
+1	441	.	A	T	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0	0/0:0
+1	306	.	A	C	45.8965	.	DP=722;MQ0F=0;AF1=0;AC1=0;DP4=722,0,0,0;MQ=20;FQ=-45.7856	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0	0/0:0
+1	295	.	A	G	23.6873	.	DP=0;MQ0F=0;AC1=25;DP4=0,0,0,0;MQ=0;FQ=-23.7128	GT:PL	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	0/0:0	1/1:0

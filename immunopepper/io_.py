@@ -11,6 +11,7 @@ import sys
 import timeit
 
 from immunopepper.namedtuples import Filepointer
+from immunopepper.namedtuples import OutputPeptide
 
 # --- intermediate fix to load pickle files stored under previous version
 
@@ -48,7 +49,7 @@ def namedtuple_to_str(named_tuple: namedtuple, field_list: list[str] = None, sep
             continue
         item = getattr(named_tuple, field)
         if isinstance(item, (list, tuple)):
-            line += _convert_list_to_str(item) + sep
+            line += _convert_list_to_str(item, sep = ';') + sep
         else:
             line += str(item) + sep
     return line[:-1]  # remove the last separator
@@ -89,51 +90,48 @@ def save_fg_kmer_dict(data: dict, filepointer: Filepointer, kmer_length: int, co
     File structure is: ['kmer', 'id', 'segmentExpr', 'isCrossJunction', 'junctionExpr']
     """
     if data:
-        data = pd.DataFrame(data.values(), index=data.keys())
-        data = data.applymap(_convert_list_to_str)
-        data = data.rename_axis('kmer').reset_index()
+        data = set(namedtuple_to_str(item, sep='\t') for item in data)
+        data = pd.DataFrame([line.split('\t') for line in data])
         data.columns = filepointer.junction_kmer_fp['columns']
         path = get_save_path(filepointer.junction_kmer_fp, out_dir, kmer_length)
         save_pd_toparquet(path, data, compression, verbose)
 
 
-def save_bg_peptide_dict(data, filepointer: Filepointer, compression: str = None, out_dir: str = None,
+def save_bg_peptide_set(data, filepointer: Filepointer, compression: str = None, out_dir: str = None,
                          verbose: bool = False):
     """
     Writes peptide information (dict of peptide to output ids) as a fasta file in parquet format.
     The keys in the fasta file are the concatenated output ids, and the value is the protein itself, e.g.::
-            >ENSMUST00000027035.9/ENSMUST00000116652.7
+            >ENSMUST00000027035.9
             MSSPDAGYASDDQSQPRSAQPAVMAGLGPCPWAESLSPLGDVKVKGEVVASSGAPAGTSGRAKAESRIRRPMNAF
     """
     if data:
-        data = pd.DataFrame(data.values(), index=data.keys()).reset_index()
-        data.columns = ['index', 'outputId']
-        data['outputId'] = data['outputId'].apply(lambda x: '>' + '/'.join(x))
-        data = pd.concat([data['outputId'], data['index']]).sort_index(kind="mergesort").reset_index(drop=True)
+        data = pd.DataFrame([line.split('\t') for line in data])
+        data.columns = OutputPeptide._fields
+        data['output_id'] = data['output_id'].apply(lambda x: '>' + x)
+        data = pd.concat([data['output_id'], data['peptide']]).sort_index(kind="mergesort").reset_index(drop=True)
         data = pd.DataFrame(data, columns=filepointer.background_peptide_fp['columns'])
         path = get_save_path(filepointer.background_peptide_fp, out_dir)
         save_pd_toparquet(path, data, compression, verbose)
 
 
-def save_fg_peptide_dict(data: dict, filepointer: Filepointer, compression: str = None, out_dir: str = None,
+def save_fg_peptide_set(data: set, filepointer: Filepointer, compression: str = None, out_dir: str = None,
                          save_fasta: bool = False, verbose: bool = False):
     """
     Save foreground peptide data in a parquet file
-    :param data: dictionary mapping peptides to a list of feature sets
+    :param data: set containing the lines to be written sep is '\t'
     """
     if data:
-        data = pd.DataFrame(data.values(), index=data.keys()).reset_index()
+        data = pd.DataFrame([line.split('\t') for line in data])
         data.columns = filepointer.junction_meta_fp['columns']
         if save_fasta:
             path_fa = get_save_path(filepointer.junction_peptide_fp, out_dir)
-            fasta = pd.concat([data['id'].apply(lambda x: '>' + '/'.join(x)), data['peptide']]).sort_index(
+            fasta = pd.concat(['>' + data['id'], data['peptide']]).sort_index(
                 kind="mergesort").reset_index(drop=True)
             fasta = pd.DataFrame(fasta, columns=filepointer.junction_peptide_fp['columns'])
             save_pd_toparquet(path_fa, fasta, compression, verbose)
             del fasta
-        data = data.set_index('peptide')
-        data = data.applymap(_convert_list_to_str)
-        data = data.reset_index(drop=False)
+
         path = get_save_path(filepointer.junction_meta_fp, out_dir)
         save_pd_toparquet(path, data, compression, verbose)  # Test keep peptide name in the metadata file
 
@@ -160,30 +158,39 @@ def save_gene_expr_distr(data: list[list], input_samples: list[str], process_sam
         save_pd_toparquet(path, data, compression, verbose)
 
 
-def save_kmer_matrix(data, graph_samples, filepointer: Filepointer, compression: str = None, out_dir: str = None,
-                     verbose: bool = False):
-    """
-    Saves the kmer segment and junction matrices per gene.
-    The filepointer is kept open until all genes from the batch are written
-    """
-    if data[0]:
-        segm_path = get_save_path(filepointer.kmer_segm_expr_fp, out_dir)
-        edge_path = get_save_path(filepointer.kmer_edge_expr_fp, out_dir)
-        data[1] = pd.DataFrame.from_dict(data[1], orient='index', columns=graph_samples).reset_index().rename(
-            {'index': filepointer.kmer_segm_expr_fp['columns'][0]}, axis=1)
-        data[2] = pd.DataFrame.from_dict(data[2], orient='index', columns=graph_samples).reset_index().rename(
-            {'index': filepointer.kmer_segm_expr_fp['columns'][0]}, axis=1)
+def save_kmer_matrix(data_edge, data_segm, graph_samples, filepointer: Filepointer, compression: str = None,
+                     out_dir: str = None, verbose: bool = False):
+    '''
+    Saves matrices of [kmers] x [metadata, samples] containing either segment expression or junction expression
+    :param data_edge: set of tuples: (kmer, is_junction, junction_is_annotated, reading_frame_is_annotated, edge_expression_sample_i ..)
+    :param data_segm: set of tuples: (kmer, is_junction, junction_is_annotated, reading_frame_is_annotated, segment_expression_sample_i ..)
+    :param graph_samples: list sample names
+    :param filepointer: class object which contains the saving path,
+                        columns names and writer object for each of the files to save
+    :param compression: str parquet compression format
+    :param out_dir: str output directory path
+    :param verbose: int verbose parameter
+    '''
 
-        data[1][filepointer.kmer_segm_expr_fp['columns'][1]] = data[0].values()
-        data[2][filepointer.kmer_segm_expr_fp['columns'][1]] = data[0].values()
-        filepointer.kmer_segm_expr_fp['pqwriter'] = save_pd_toparquet(segm_path, data[1],
-                                                                      compression=compression, verbose=verbose,
-                                                                      pqwriter=filepointer.kmer_segm_expr_fp[
-                                                                          'pqwriter'], writer_close=False)
-        filepointer.kmer_edge_expr_fp['pqwriter'] = save_pd_toparquet(edge_path, data[2],
+    segm_path = get_save_path(filepointer.kmer_segm_expr_fp, out_dir)
+    edge_path = get_save_path(filepointer.kmer_edge_expr_fp, out_dir)
+    if data_edge:
+        data_edge = pd.DataFrame(data_edge)
+        data_edge.columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
+        filepointer.kmer_edge_expr_fp['pqwriter'] = save_pd_toparquet(edge_path, data_edge,
                                                                       compression=compression, verbose=verbose,
                                                                       pqwriter=filepointer.kmer_edge_expr_fp[
                                                                           'pqwriter'], writer_close=False)
+    if data_segm:
+        data_segm = pd.DataFrame(data_segm)
+        data_segm.columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
+        filepointer.kmer_segm_expr_fp['pqwriter'] = save_pd_toparquet(segm_path, data_segm,
+                                                                      compression=compression, verbose=verbose,
+                                                                      pqwriter=filepointer.kmer_segm_expr_fp[
+                                                                          'pqwriter'], writer_close=False)
+
+
+
 
 
 def initialize_fp(output_path: str, mutation_mode: str,
@@ -200,8 +207,8 @@ def initialize_fp(output_path: str, mutation_mode: str,
     """
 
     # --- Paths
-    background_peptide_file_path = os.path.join(output_path, mutation_mode + '_annot_peptides.fa.pq')
-    background_kmer_file_path = os.path.join(output_path, mutation_mode + '_annot_kmer.pq')
+    annot_peptide_file_path = os.path.join(output_path, mutation_mode + '_annot_peptides.fa.pq')
+    annot_kmer_file_path = os.path.join(output_path, mutation_mode + '_annot_kmer.pq')
     gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.pq')
     junction_meta_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides_meta.pq')
     junction_peptide_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides.fa.pq')
@@ -210,41 +217,40 @@ def initialize_fp(output_path: str, mutation_mode: str,
     graph_kmer_junction_expr_path = os.path.join(output_path, mutation_mode + '_graph_kmer_JuncExpr.pq')
 
     # --- Fields
-    fields_backgrd_pep_dict = ['fasta']
-    fields_backgrd_kmer_dict = ['kmer']
-    fields_gene_expr_file = ['gene']
-    fields_meta_peptide_dict = ['peptide', 'id', 'readFrame', 'geneName', 'geneChr', 'geneStrand',
+    cols_annot_pep_file = ['fasta']
+    cols_annot_kmer_file = ['kmer']
+    cols_gene_expr_file = ['gene']
+    cols_metadata_file = ['peptide', 'id', 'readFrame', 'readFrameAnnotated', 'geneName', 'geneChr', 'geneStrand',
                                 'mutationMode',
                                 'junctionAnnotated', 'hasStopCodon', 'isInJunctionList',
                                 'isIsolated', 'variantComb', 'variantSegExpr', 'modifiedExonsCoord',
-                                'originalExonsCoord', 'vertexIdx',
+                                'originalExonsCoord', 'vertexIdx', 'junctionExpr', 'segmentExpr',
                                 'kmerType']
-    fields_forgrd_pep_dict = ['fasta']
-    fields_forgrd_kmer_dict = ['kmer', 'id', 'segmentExpr', 'isCrossJunction', 'junctionExpr']
-    fields_kmer_expr = ['kmer', 'isCrossJunction']
+    cols_pep_file = ['fasta']
+    cols_kmer_single_sample_file = ['kmer', 'id', 'segmentExpr', 'isCrossJunction', 'junctionExpr',
+                               'junctionAnnotated', 'readFrameAnnotated']
+    cols_metaOnly_kmer_cross_sample_file = ['kmer', 'isCrossJunction', 'junctionAnnotated', 'readFrameAnnotated']
 
     # --- Grouping dict
     if output_fasta:  # Foreground peptide fasta - optional
-        peptide_fp = _output_info(junction_peptide_file_path, fields_forgrd_pep_dict)
+        peptide_fp = _output_info(junction_peptide_file_path, cols_pep_file)
     else:
         peptide_fp = None
     if cross_graph_expr:  # Expression matrices with counts from full graph - optional
         junction_kmer_fp = None
-        kmer_segm_expr_fp = _output_info(graph_kmer_segment_expr_path, fields_kmer_expr, pq_writer=True)
-        kmer_edge_expr_fp = _output_info(graph_kmer_junction_expr_path, fields_kmer_expr, pq_writer=True)
+        kmer_segm_expr_fp = _output_info(graph_kmer_segment_expr_path, cols_metaOnly_kmer_cross_sample_file, pq_writer=True)
+        kmer_edge_expr_fp = _output_info(graph_kmer_junction_expr_path, cols_metaOnly_kmer_cross_sample_file, pq_writer=True)
     else:  # Expression kmer information from single sample
-        fields_meta_peptide_dict.insert(-1, 'junctionExpr')
-        fields_meta_peptide_dict.insert(-1, 'segmentExpr')
-        junction_kmer_fp = _output_info(junction_kmer_file_path, fields_forgrd_kmer_dict, kmer_list)
+        junction_kmer_fp = _output_info(junction_kmer_file_path, cols_kmer_single_sample_file, kmer_list)
         kmer_segm_expr_fp = None
         kmer_edge_expr_fp = None
-    meta_peptide_fp = _output_info(junction_meta_file_path, fields_meta_peptide_dict)
-    background_fp = _output_info(background_peptide_file_path, fields_backgrd_pep_dict)
-    background_kmer_fp = _output_info(background_kmer_file_path, fields_backgrd_kmer_dict, kmer_list)
-    gene_expr_fp = _output_info(gene_expr_file_path, fields_gene_expr_file)
+    metadata_fp = _output_info(junction_meta_file_path, cols_metadata_file)
+    annot_fp = _output_info(annot_peptide_file_path, cols_annot_pep_file)
+    annot_kmer_fp = _output_info(annot_kmer_file_path, cols_annot_kmer_file, kmer_list)
+    gene_expr_fp = _output_info(gene_expr_file_path, cols_gene_expr_file)
 
     # --- Filepointer object
-    filepointer = Filepointer(peptide_fp, meta_peptide_fp, background_fp, junction_kmer_fp, background_kmer_fp,
+    filepointer = Filepointer(peptide_fp, metadata_fp, annot_fp, junction_kmer_fp, annot_kmer_fp,
                               gene_expr_fp, kmer_segm_expr_fp, kmer_edge_expr_fp)
     return filepointer
 
@@ -267,11 +273,6 @@ def save_pd_toparquet(path, pd_df, compression=None, verbose=False, pqwriter=Non
     Saves a pandas data frame in parquet format.
     """
     s1 = timeit.default_timer()
-    size_init = pd_df.shape[1]
-    pd_df = pd_df.loc[:, ~pd_df.columns.duplicated(keep='first')]
-    size_new = pd_df.shape[1]
-    if size_init != size_new:
-        logging.warning("Graph/Count file contains duplicated sample names. Kept the first occurence")
     table = pa.Table.from_pandas(pd_df, preserve_index=False)
 
     if pqwriter is None:
@@ -289,32 +290,27 @@ def save_pd_toparquet(path, pd_df, compression=None, verbose=False, pqwriter=Non
 
 def collect_results(filepointer_item, out_dir, compression, mutation_mode, kmer_list=None):
     """
-    Merges results written by each parallel process into a single parquet file.
+    Merges results written by each parallel process into a single rechunked parquet file.
     """
     if filepointer_item is not None:
-        s1 = timeit.default_timer()
-
+        # get paths for several kmer lengths
         if kmer_list:
             file_to_collect = filepointer_item['path'].values()
         else:
             file_to_collect = [filepointer_item['path']]
+
+        # merge the partitions
         for file_path in file_to_collect:
             file_name = os.path.basename(file_path)
             tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*', file_name))
-            tot_shape = 0
-            for tmp_file in tmp_file_list:
-                try:
-                    table = pq.read_table(tmp_file)
-                    if tot_shape == 0:
-                        pqwriter = pq.ParquetWriter(file_path, table.schema, compression=compression)
-                    pqwriter.write_table(table)
-                    tot_shape += table.shape[0]
-                except:
-                    logging.error(f'Unable to read: {tmp_file}')
-                    sys.exit(1)
-            if tmp_file_list:
-                pqwriter.close()
-                logging.info(f'Collected {file_name} with {tot_shape} lines in {timeit.default_timer() - s1}s');
+
+            try:
+                dset = pq.ParquetDataset(tmp_file_list)
+                dset_pandas = dset.read().to_pandas()
+                save_pd_toparquet(file_path, dset_pandas, compression, verbose=1)
+            except:
+                logging.error(f'Unable to read one of files for {file_path} collection')
+                sys.exit(1)
 
 
 def remove_folder_list(base_path):

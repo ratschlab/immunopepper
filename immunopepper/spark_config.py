@@ -34,7 +34,6 @@ def default_spark_config(cores: int, memory_per_executor_mb: int, parallelism: i
 
     # TODO set as parameter
     java_options = str(extra_java_options)
-    java_options = java_options + "-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintFlagsFinal"
     java_options = java_options + " -XX:ThreadStackSize=81920"
 
     if use_utc:

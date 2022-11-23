@@ -74,9 +74,7 @@ def leq_strand(coord1, coord2, strand):
 
 
 def encode_chromosome(in_num):
-    """
-    Encodes chromosome to same cn
-    """
+    """  Encodes human chromosome numbers to strings (23==X, 24==Y, 25 ==MT, the rest remain unchanged. """
     convert_dict = {23: "X", 24: "Y", 25: "MT"}
     return convert_dict[in_num] if in_num in convert_dict else str(in_num)
 
@@ -158,18 +156,15 @@ def get_size_factor(samples, lib_file_path):
 
 
 def get_all_comb(array, r=None):
-    """ Get all combinations of items in the given array
-    Specifically used for generating variant combination
-
-    Parameters
-    ----------
-    array: 1D array. input array
-    r: int. The number of items in a combination
-
-    Returns
-    -------
-    result: List(Tuple). List of combination
-
+    """ Return all subsequences of the given array with length smaller than r.
+    For example, get_all_comb([1,2,3]) will return::
+       [(1,), (2,), (3,), (1, 2), (1, 3), (2, 3), (1, 2, 3)],
+    and get_all_comb([1,2,3], 2) will return:
+        [(1,), (2,), (3,), (1, 2), (1, 3), (2, 3)]
+    :param array: array to get subsequences from
+    :param r: the maximum length of returned subsequences, or None for no limit
+    :return: list of subsequences
+    :rtype: list[tuple]
     """
     if r is None:
         r = len(array)
@@ -264,11 +259,13 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr):
 
     Returns
     -------
-    mean_expr: float. The average expression counts for the given exon-pair
+    expr_meta_file: float. The average expression counts for the given exon-pair.
+        Is nan if matrix mode, because we do not report peptide expressions per sample in this mode
     expr1: List[Tuple(int,float)] (int, float) represents the length of segment
         and the expression count of that segment.
 
     """
+    expr_meta_file = np.nan
     if coord.start_v3 is None:
         expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts ),
                                get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts )])
@@ -283,8 +280,8 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr):
     len_factor = np.tile(expr_list[:, 0], n_samples).reshape(n_samples, expr_list.shape[0]).transpose()
     mean_expr = (np.sum(expr_list[:, 1:]*len_factor, 0) / seg_len).astype(int) if seg_len > 0 else np.zeros(n_samples).astype(int)
     if not cross_graph_expr:
-        mean_expr = mean_expr[0]
-    return mean_expr,expr_list
+        expr_meta_file = mean_expr[0]
+    return expr_meta_file, expr_list
 
 
 def get_total_gene_expr(gene, countinfo, Idx, seg_expr, cross_graph_expr):
@@ -344,17 +341,20 @@ def create_libsize(expr_distr_fp, output_fp, sample, debug=False):
     output_fp: file pointer. library_size text
     debug: Bool. In debug mode, return the libsize_count dictionary.
     """
+    libsize_exists = ''
     sample_expr_distr = pa.parquet.read_table(expr_distr_fp['path']).to_pandas()
 
-    libsize_count= pd.DataFrame({'sample': sample_expr_distr.columns[1:],
+    libsize_count = pd.DataFrame({'sample': sample_expr_distr.columns[1:],
                                  'libsize_75percent': np.percentile(sample_expr_distr.iloc[:, 1:], 75, axis=0, interpolation='linear'),
                                   'libsize_total_count': np.sum(sample_expr_distr.iloc[:, 1:], axis=0)}, index = None)
 
     df_libsize = pd.DataFrame(libsize_count)
 
     if os.path.isfile(output_fp):
-        previous_libsize =  pd.read_csv(output_fp, sep = '\t')
+        previous_libsize = pd.read_csv(output_fp, sep = '\t')
         df_libsize = pd.concat([previous_libsize, df_libsize], axis=0).drop_duplicates(subset=['sample'], keep='last')
+        libsize_exists = ': append to existing file.'
+    logging.info(f'Saved library size results to {output_fp}{libsize_exists}')
     df_libsize.to_csv(output_fp, sep='\t', index=False)
 
 
@@ -405,14 +405,17 @@ def get_concat_peptide(front_coord_pair, back_coord_pair, front_peptide, back_pe
     else:
         return ''
 
+def replace_I_with_L(kmer):
+    return kmer.replace('I', 'L')
+
 def check_chr_consistence(ann_chr_set, mutation, graph_data):
     germline_chr_set = set()
     somatic_chr_set = set()
     mode = mutation.mode
-    if mutation.germline_mutation_dict:
-        germline_chr_set = set([item[1] for item in mutation.germline_mutation_dict.keys()])
-    if mutation.somatic_mutation_dict:
-        somatic_chr_set = set([item[1] for item in mutation.somatic_mutation_dict.keys()])
+    if mutation.germline_dict:
+        germline_chr_set = set([item[1] for item in mutation.germline_dict.keys()])
+    if mutation.somatic_dict:
+        somatic_chr_set = set([item[1] for item in mutation.somatic_dict.keys()])
     whole_mut_set = somatic_chr_set.union(germline_chr_set)
     common_chr = whole_mut_set.intersection(ann_chr_set)
 
