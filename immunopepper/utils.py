@@ -342,7 +342,7 @@ def create_libsize(expr_distr_fp, output_fp, sample, debug=False):
     debug: Bool. In debug mode, return the libsize_count dictionary.
     """
     libsize_exists = ''
-    sample_expr_distr = pa.parquet.read_table(expr_distr_fp['path']).to_pandas()
+    sample_expr_distr = sample_expr_distr = pd.read_csv(expr_distr_fp['path'], sep='\t', compression='gzip') #TODO gather all the partitions here
 
     # change types
     convert_dict = {}

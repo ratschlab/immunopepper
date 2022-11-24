@@ -73,7 +73,7 @@ def mapper_funct_back(tuple_arg):
 
 
 def process_gene_batch_background(output_sample, mutation_sample, genes, gene_idxs, n_genes, mutation, countinfo_b,
-                                  genetable, arg, outbase, filepointer, compression=None, verbose=False):
+                                  genetable, arg, outbase, filepointer, verbose=False):
     if arg.parallel > 1:
         batch_name = int(outbase.split('/')[-1].split('_')[-1])
     else:
@@ -130,10 +130,10 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
             time_per_gene.append(timeit.default_timer() - start_time)
             mem_per_gene.append(print_memory_diags(disable_print=True))
 
-        save_bg_peptide_set(set_pept_backgrd, filepointer, compression, outbase, verbose)
+        save_bg_peptide_set(set_pept_backgrd, filepointer, outbase, verbose)
         set_pept_backgrd.clear()
         for kmer_length in set_kmer_back:
-            save_bg_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
+            save_bg_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, outbase, verbose)
         set_kmer_back.clear()
 
         pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
@@ -161,7 +161,7 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
 def process_gene_batch_foreground(output_sample, mutation_sample, output_samples_ids, genes,
                                   genes_info, gene_idxs, n_genes, genes_interest, disable_process_libsize,
                                   all_read_frames, complexity_cap, mutation, junction_dict,
-                                  arg, outbase, filepointer, compression, verbose):
+                                  arg, outbase, filepointer, verbose):
     global countinfo
     global genetable
     global kmer_database
@@ -306,12 +306,12 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             mem_per_gene.append(print_memory_diags(disable_print=True))
             all_gene_idxs.append(gene_idxs[i])
 
-        save_gene_expr_distr(gene_expr, arg.output_samples, output_sample,  filepointer, outbase, compression, verbose)
-        save_fg_peptide_set(set_pept_forgrd, filepointer, compression, outbase, arg.output_fasta, verbose)
+        save_gene_expr_distr(gene_expr, arg.output_samples, output_sample,  filepointer, outbase, verbose)
+        save_fg_peptide_set(set_pept_forgrd, filepointer, outbase, arg.output_fasta, verbose)
         set_pept_forgrd.clear()
         if not arg.cross_graph_expr: # Write kmer file for single sample (multiple kmer lengths supported)
             for kmer_length in arg.kmer:
-                save_fg_kmer_dict(dictofSets_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
+                save_fg_kmer_dict(dictofSets_kmer_foregr[kmer_length], filepointer, kmer_length, outbase, verbose)
             dictofSets_kmer_foregr.clear()
 
         pathlib.Path(os.path.join(outbase, "output_sample_IS_SUCCESS")).touch()
@@ -462,7 +462,7 @@ def mode_build(arg):
                     args = [(output_sample, arg.mutation_sample,  graph_data[gene_idx], gene_idx, n_genes, mutation,
                              countinfo, genetable, arg,
                              os.path.join(output_path, f'tmp_out_{mutation.mode}_batch_{i + arg.start_id}'),
-                             filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+                             filepointer, verbose_save) for i, gene_idx in gene_batches ]
                     result = pool.imap(mapper_funct_back, args, chunksize=1)
                     exits_if_exception = [res for res in result]
 
@@ -473,7 +473,7 @@ def mode_build(arg):
                          graph_info[gene_idx], gene_idx, n_genes, genes_interest, disable_process_libsize,
                          arg.all_read_frames, complexity_cap, mutation, junction_dict, arg,
                          os.path.join(output_path, f'tmp_out_{mutation.mode}_batch_{i + arg.start_id}'),
-                         filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
+                         filepointer, verbose_save) for i, gene_idx in gene_batches ]
                 result = pool.imap(mapper_funct, args, chunksize=1)
                 exits_if_exception = [res for res in result]
 
@@ -503,13 +503,13 @@ def mode_build(arg):
             if (not arg.skip_annotation) and not (arg.libsize_extract):
                 process_gene_batch_background(output_sample, arg.mutation_sample, graph_data, genes_range, n_genes,
                                               mutation, countinfo, genetable, arg, output_path, filepointer,
-                                              pq_compression, verbose=True)
+                                              verbose=True)
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
             process_gene_batch_foreground( output_sample, arg.mutation_sample, output_samples_ids, graph_data,
                                            graph_info, genes_range, n_genes, genes_interest, disable_process_libsize,
                                            arg.all_read_frames, complexity_cap, mutation, junction_dict,
-                                           arg, output_path, filepointer, pq_compression,
+                                           arg, output_path, filepointer,
                                            verbose=True)
 
         if (not disable_process_libsize) and countinfo:
