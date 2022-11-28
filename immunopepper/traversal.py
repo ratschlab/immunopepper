@@ -312,7 +312,6 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                         edge_expr_meta, edge_expr = search_edge_metadata_segmentgraph(gene, modi_coord, edge_idxs, edge_counts, cross_graph_expr=cross_graph_expr)
                     else:
                         edge_expr_meta, edge_expr = np.nan, np.nan
-                    logging.info(f'Len peptide {ii}')
                     ### Peptides
                     peptide_set.add(namedtuple_to_str(OutputMetadata(peptide=peptide.mut[pep_idx],
                                        output_id=new_output_id,
