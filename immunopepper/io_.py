@@ -304,31 +304,21 @@ def save_to_gzip(path, data_iterable, columns, verbose=False, filepointer=None, 
     linet = '\n'
     # Open
     if filepointer is None:
-        logging.info('Start filepointer open')
         filepointer = gzip.open(path, 'wt')
-        logging.info('End filepointer open')
-        logging.info('Start columns write')
         filepointer.write(delim.join(columns) + linet)
-        logging.info('End columns write')
 
     # Write
     if is_2d:
-        logging.info('Start writer define')
-        logging.info('End writer define')
-        logging.info('Start write row 2D!!!')
         for idx, line in enumerate(data_iterable):
             filepointer.write(delim.join([str(x) for x in line]) + linet)
-        logging.info('End write row 2D')
     else:
         for line in data_iterable:
             filepointer.write(line + '\n')
 
     # Close
     if writer_close:
-        logging.info('Start writer close')
         filepointer.close()
         filepointer = None
-        logging.info('End writer close')
 
     if verbose:
         file_name = os.path.basename(path)

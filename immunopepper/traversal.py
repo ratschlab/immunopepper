@@ -599,10 +599,10 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
                 kmer_matrix_edge.add(tuple(row_metadata + list(sublist_jun)))
                 kmer_matrix_segm.add(tuple(row_metadata + list(np.round(sublist_seg, 2))))
 
-                if len(kmer_matrix_segm) > 1000000: # small but dense
+                if len(kmer_matrix_segm) > 1000: # small but dense
                     save_kmer_matrix(None, kmer_matrix_segm, k, graph_samples, filepointer, out_dir, verbose)
                     kmer_matrix_segm.clear()
-                if len(kmer_matrix_edge) > 1000000: # big but relatively sparse
+                if len(kmer_matrix_edge) > 1000: # big but relatively sparse
                     save_kmer_matrix(kmer_matrix_edge, None, k, graph_samples, filepointer, out_dir, verbose)
                     kmer_matrix_edge.clear()
 
