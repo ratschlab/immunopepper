@@ -99,7 +99,6 @@ def save_bg_kmer_set(data: set[str], filepointer: Filepointer, kmer_length: int,
                      out_dir: str = None, verbose: bool = False):
     """ Writes a set of strings (protein kmers)""" #TODO update docs
     if data:
-        logging.info(f'Save bg kmer')
         path = get_save_path(filepointer.background_kmer_fp, out_dir, kmer_length)
         save_to_gzip(path, data, filepointer.background_kmer_fp['columns'], verbose=verbose)
 
@@ -111,7 +110,6 @@ def save_fg_kmer_dict(data: dict, filepointer: Filepointer, kmer_length: int,
     File structure is: ['kmer', 'id', 'segmentExpr', 'isCrossJunction', 'junctionExpr']
     """
     if data:
-        logging.info(f'Save fg kmer')
         data = set(namedtuple_to_str(item, sep='\t') for item in data)
         path = get_save_path(filepointer.junction_kmer_fp, out_dir, kmer_length)
         save_to_gzip(path, data, filepointer.junction_kmer_fp['columns'], verbose)
@@ -129,7 +127,6 @@ def save_bg_peptide_set(data, filepointer: Filepointer, out_dir: str = None,
     make_fasta_ids = np.vectorize(fasta_prefix)
 
     if data:
-        logging.info(f'Save bg peptide')
         data = np.array([line.split('\t') for line in data]).T #set to array #TODO vectorize slit
         data = np.array([make_fasta_ids(data[0]), data[1]]) # output_ids,  peptides
         data = data.flatten(order = 'F')
@@ -148,7 +145,6 @@ def save_fg_peptide_set(data: set, filepointer: Filepointer, out_dir: str = None
     make_fasta_ids = np.vectorize(fasta_prefix)
 
     if data:
-        logging.info(f'Save fg peptide')
         data = np.array([line.split('\t') for line in data]).T  # set to array
         if save_fasta:
             path_fa = get_save_path(filepointer.junction_peptide_fp, out_dir)
@@ -175,7 +171,6 @@ def save_gene_expr_distr(data: list[list], input_samples: list[str], process_sam
     :param data: list of (gene_name, gene_expression) elements
     """
     if data:
-        logging.info(f'Save gene expr')
         path = get_save_path(filepointer.gene_expr_fp, out_dir)
         if process_sample == 'cohort':
             data_columns = filepointer.gene_expr_fp['columns'] + list(input_samples)
@@ -202,20 +197,16 @@ def save_kmer_matrix(data_edge, data_segm, kmer_len, graph_samples, filepointer:
     edge_path = get_save_path(filepointer.kmer_edge_expr_fp, out_dir, create_partitions=True)
     if data_edge:
         data_edge_columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
-        logging.info('Starting save EDGE')
         filepointer.kmer_edge_expr_fp['pqwriter'] = save_to_gzip(edge_path, data_edge, data_edge_columns,
                                                                  verbose=verbose,
                                                                  filepointer=filepointer.kmer_edge_expr_fp['pqwriter'],
                                                                  writer_close=True, is_2d=True)
-        logging.info('End save EDGE')
     if data_segm:
-        logging.info('Starting save SEGM')
         data_segm_columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
         filepointer.kmer_segm_expr_fp['pqwriter'] = save_to_gzip(segm_path, data_segm, data_segm_columns,
                                                                  verbose=verbose,
                                                                  filepointer=filepointer.kmer_segm_expr_fp[ 'pqwriter'],
                                                                  writer_close=True, is_2d=True)
-        logging.info('End save SEGM')
 
 
 
