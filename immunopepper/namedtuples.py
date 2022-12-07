@@ -18,12 +18,13 @@ Output_junc_peptide namedtuple
 - junction_id is the index of given junction pair in all junction pair (in descending or ascending order)
 - peptide: (peptide_string). The peptide translated from junction pairs.
 - exons_coor: Coord namedtuple
+- strand: str ('+', '_'). The strand of gene.
 - junction_annotated: bool. True if the junction also appears in the input annotation file, False otherwise. 
   False if the peptide stops before the junction  
 - read_frame_annotated: bool. True if a transcript in the given reading frame is present in the annotation, 
   False if it is created by propagation
 """
-OutputPeptide = namedtuple('OutputPeptide', ['output_id', 'peptide', 'exons_coor', 'junction_expr',
+OutputPeptide = namedtuple('OutputPeptide', ['output_id', 'peptide', 'exons_coor', 'strand', 'junction_expr',
                                                      'junction_annotated', 'read_frame_annotated'])
 
 

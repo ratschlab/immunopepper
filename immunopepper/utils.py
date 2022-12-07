@@ -237,7 +237,7 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
             expr_list = np.c_[segments[1, sv1_id:sv2_id + 1] - segments[0, sv1_id:sv2_id + 1], seg_counts[sv1_id:sv2_id + 1, np.newaxis]]
         expr_list[0, 0] -= (vstart - segments[0, sv1_id])
         expr_list[-1, 0] -= (segments[1, sv2_id] - vstop)
-        if gene.strand == '-': # need to reverse epression list to match the order of translation
+        if gene.strand == '-': # need to reverse expression list to match the order of translation
             expr_list = expr_list[::-1]
     return expr_list
 
