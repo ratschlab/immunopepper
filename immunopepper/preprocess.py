@@ -281,7 +281,7 @@ def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=N
             counts = np.array([edge_counts[cidx]])
         return counts
 
-    edges_res_metafile = np.nan
+    edges_res_metafile = np.nan #TODO remove this output
     segmentgraph = gene.segmentgraph
     sorted_pos = np.sort(np.array([coord.start_v1, coord.stop_v1, coord.start_v2, coord.stop_v2]))
 
