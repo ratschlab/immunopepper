@@ -346,6 +346,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                     ### kmers
                     if cross_graph_expr: #generate kmer x sample expression matrix for all samples in graph
                         create_output_kmer_cross_samples(output_peptide, gene, idx, kmer[0], countinfo, seg_counts,
+                                                         edge_idxs, edge_counts,
                                                          expr_list, graph_output_samples_ids,
                                                          kmer_matrix_edge, kmer_matrix_segm, kmer_database,
                                                          graph_samples, filepointer,
@@ -625,7 +626,7 @@ def retrieve_kmer_coordinates(start_pos_kmer, k, strand, spanning_index1, spanni
     #TODO CLean
 
 
-def create_output_kmer_cross_samples(output_peptide, gene, idx, k, countinfo, seg_counts,
+def create_output_kmer_cross_samples(output_peptide, gene, idx, k, countinfo, seg_counts, edge_idxs, edge_counts,
                                      segm_expr_list, graph_output_samples_ids,
                                      kmer_matrix_edge, kmer_matrix_segm, kmer_database, graph_samples,
                                      filepointer, out_dir=None, verbose=None):
@@ -665,11 +666,34 @@ def create_output_kmer_cross_samples(output_peptide, gene, idx, k, countinfo, se
         for j in range(len(output_peptide.peptide) - k + 1):
             kmer_peptide = output_peptide.peptide[j:j+k]
 
-            # Get kmer coordinates
+            # Get kmer coordinates #TODO NEW **********
             kmer_coord = retrieve_kmer_coordinates(j, k, output_peptide.strand, spanning_index1, spanning_index2,
                                                    spanning_index1_2, sort_coord)
             _meta , expr_test = get_segment_expr(gene, kmer_coord, countinfo, idx, seg_counts, cross_graph_expr=True)
             sublist_seg_alternativen = np.atleast_2d(expr_test[:, 0]).dot(expr_test[:, 1:]) / (k*3) #Do rounding
+            if np.isnan(kmer_coord.start_v2):
+                edge_expr_test1 = np.nan
+            else:
+                _meta, edge_expr_test1 = search_edge_metadata_segmentgraph(gene, kmer_coord, edge_idxs, edge_counts,
+                                                                          cross_graph_expr=True)
+            is_in_junction = True
+            if j in spanning_index1_2:
+                sublist_jun_test = np.nanmin(edge_expr_test1, axis=0)[graph_output_samples_ids] \
+                    if edge_expr_test1 is not np.nan else np.nan
+                junction_annotated = max(output_peptide.junction_annotated)
+            elif j in spanning_index1:
+                sublist_jun_test = edge_expr_test1[0][graph_output_samples_ids] if edge_expr_test1 is not np.nan else np.nan
+                junction_annotated = output_peptide.junction_annotated[0]
+            elif j in spanning_index2:
+                sublist_jun_test = edge_expr_test1[0][graph_output_samples_ids] if edge_expr_test1 is not np.nan else np.nan
+                junction_annotated = output_peptide.junction_annotated[1]
+            else:
+                is_in_junction = False
+                sublist_jun_test = np.nan
+                junction_annotated = False
+
+            #TODO END NEW _____ **********
+
 
             check_database = ((not kmer_database) or (replace_I_with_L(kmer_peptide) not in kmer_database)) # remove on the fly peptides from a database
             
@@ -732,6 +756,8 @@ def create_output_kmer_cross_samples(output_peptide, gene, idx, k, countinfo, se
             res_exp = np.concatenate([np.atleast_2d(w_),segm_expr_list[left:right + 1, 1:].T]).T
             # TODO EXP  ------------------
             # TODO PRINT ---
+            if sublist_jun is not np.nan and sublist_jun[0] is not np.nan and sublist_jun_test is not np.nan:
+                assert(sublist_jun_test[0] == sublist_jun[0])
             if np.round(sublist_seg_alternativen[0,0], 3) != np.round(sublist_seg[0], 3): #TODO check equality AGAIN!!!!!!
                 print(np.round(sublist_seg_alternativen[0,0], 2) , np.round(sublist_seg[0], 2))
                 print(expr_test, '.')
