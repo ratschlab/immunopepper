@@ -249,7 +249,7 @@ def attribute_item_to_dict(a_item, file_type, feature_type):
     return gtf_dict
 
 
-def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=None, cross_graph_expr=None):
+def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=None):
     """Given the ordered edge coordinates of the edge, return expression information of the edge
 
     Parameters
@@ -264,8 +264,7 @@ def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=N
     Returns
     -------
     edges_res: tuple of floats. Expression level for the given edges.
-    edges_res_metafile: adapted value for the peptide metafile.
-    Is nan if matrix mode, because we do not report peptide expressions per sample in this mode
+    edges_res_metafile: adapted value for the peptide metafile. Will be nan.
     """
     def get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts=None):
         a = np.searchsorted(segmentgraph.segments[1, :], sorted_pos[1])
@@ -294,9 +293,6 @@ def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=N
         count2 = get_segmentgraph_edge_expr(sorted_pos, edge_idxs, edge_counts)
         edges_res = np.stack([count, count2])
 
-    if not cross_graph_expr:
-        edges_res = tuple(i for i in edges_res.flatten()) # TODO Back to tuple for unicity. Needs re-write of "add_peptide_properties"
-        edges_res_metafile = edges_res
 
     return edges_res_metafile, edges_res
 

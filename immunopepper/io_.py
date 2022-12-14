@@ -247,7 +247,7 @@ def initialize_fp(output_path: str, mutation_mode: str,
     cols_pep_file = ['fasta']
     cols_kmer_single_sample_file = ['kmer', 'id', 'segmentExpr', 'isCrossJunction', 'junctionExpr',
                                'junctionAnnotated', 'readFrameAnnotated']
-    cols_metaOnly_kmer_cross_sample_file = ['kmer', 'isCrossJunction', 'junctionAnnotated', 'readFrameAnnotated']
+    cols_metaOnly_kmer_cross_sample_file = ['kmer', 'coord', 'isCrossJunction', 'junctionAnnotated', 'readFrameAnnotated']
 
     # --- Grouping dict
     if output_fasta:  # Foreground peptide fasta - optional
