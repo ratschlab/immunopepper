@@ -318,7 +318,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                                                     peptide=peptide.mut[pep_idx],
                                                     exons_coor=modi_coord,
                                                     strand=gene.strand,
-                                                    read_frame_annotated=vertex_pair.read_frame.annotated_RF)  #TODO update with peptide file mode
+                                                    read_frame_annotated=vertex_pair.read_frame.annotated_RF)
 
                     ### kmers
                     if '2-exons' in kmer_type:
@@ -560,7 +560,7 @@ def create_kmer(output_peptide, k, gene_kmer_coord, kmer_database=None):
             if check_database:
                 kmer_coord = retrieve_kmer_coordinates(j, k, output_peptide.strand, spanning_index1, spanning_index2,
                                                        spanning_index1_2, sort_coord)
-                gene_kmer_coord.add((kmer_coord, kmer_peptide))
+                gene_kmer_coord.add((kmer_coord, kmer_peptide, output_peptide.read_frame_annotated))
 
 
 def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts,
@@ -589,7 +589,7 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
     kmer_matrix_segm = []
     logging.info('Start going through kmers')
     logging.info(f'hello: {len(gene_kmer_coord)} kmers for {gene.name}')
-    for kmer_coord, kmer_peptide in gene_kmer_coord:
+    for kmer_coord, kmer_peptide, rf_annot in gene_kmer_coord:
         k = len(kmer_peptide)
 
         # segment expression
@@ -620,8 +620,6 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
                 jx2 = ':'.join([str(i) for i in np.sort(kmer_coord[2:])[1:3]])
                 junction_annotated = (jx1 in gene_annot_jx) or (jx2 in gene_annot_jx)
 
-        rf_annot = None # TODO update reading frame
-
         # create output data
         row_metadata = [kmer_peptide, ':'.join([str(coord) for coord in kmer_coord]),
                         is_in_junction, junction_annotated, rf_annot]
@@ -639,6 +637,5 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
             logging.info('... Saving kmer_matrix edge')
             save_kmer_matrix(kmer_matrix_edge, None, graph_samples, filepointer, out_dir, verbose)
             kmer_matrix_edge.clear()
-
 
     save_kmer_matrix(kmer_matrix_edge, kmer_matrix_segm, graph_samples, filepointer, out_dir, verbose=True)
