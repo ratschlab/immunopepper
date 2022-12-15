@@ -256,7 +256,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
     # as a  junction of a protein coding transcript
     gene_annot_jx = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
     som_exp_dict = exon_to_expression(gene, list(mutation.somatic_dict.keys()), countinfo, seg_counts, mut_count_id)
-    gene_kmer_coord = {}
+    gene_kmer_coord = set()
     logging.info('start get_and_write_kmer')
     ### iterate over all vertex pairs and translate
     for kmer_type, vertex_pairs in all_vertex_pairs.items():
@@ -560,7 +560,7 @@ def create_kmer(output_peptide, k, gene_kmer_coord, kmer_database=None):
             if check_database:
                 kmer_coord = retrieve_kmer_coordinates(j, k, output_peptide.strand, spanning_index1, spanning_index2,
                                                        spanning_index1_2, sort_coord)
-                gene_kmer_coord[kmer_coord] = kmer_peptide
+                gene_kmer_coord.add((kmer_coord, kmer_peptide))
 
 
 def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts,
@@ -589,13 +589,13 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
     kmer_matrix_segm = []
     logging.info('Start going through kmers')
     logging.info(f'hello: {len(gene_kmer_coord)} kmers for {gene.name}')
-    for kmer_coord, kmer_peptide in gene_kmer_coord.items():
+    for kmer_coord, kmer_peptide in gene_kmer_coord:
         k = len(kmer_peptide)
 
         # segment expression
         _, pos_expr_segm = get_segment_expr(gene, kmer_coord, countinfo, idx, seg_counts)
         sublist_seg = np.round(np.atleast_2d(pos_expr_segm[:, 0]).dot(pos_expr_segm[:, 1:]) / (k * 3), 2)
-        sublist_seg = sublist_seg[0].tolist() #TODO cross sample mode. Where are the right samples subseted??
+        sublist_seg = sublist_seg[0].tolist()
 
         # junction expression
         if (countinfo is not None) and (kmer_coord.start_v2 is not np.nan): # kmer crosses only one exon
