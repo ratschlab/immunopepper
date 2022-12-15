@@ -296,7 +296,7 @@ def search_edge_metadata_segmentgraph(gene, coord, edge_idxs=None, edge_counts=N
 
     return edges_res_metafile, edges_res
 
-def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
+def parse_gene_metadata_info(h5fname, sample_list):
     """ Parse the count file
 
     Parameters
@@ -354,7 +354,7 @@ def parse_gene_metadata_info(h5fname, sample_list, cross_graph_expr):
                           gene_id_to_edgerange,
                           h5fname)
     h5f.close()
-    if cross_graph_expr and sample_list:
+    if sample_list:
         # Retrieve count id matching input samples
         matching_count_ids = np.array([s_idx for input_sample in sample_list for s_idx, graph_sample in enumerate(count_names)
                                   if graph_sample.decode() == input_sample ])
@@ -646,29 +646,25 @@ def parse_gene_choices(genes_interest, process_chr, process_num, complexity_cap,
 
 def parse_output_samples_choices(arg, countinfo, matching_count_ids, matching_count_samples):
     '''handle output_sample relatively to output mode '''
-
-    if arg.cross_graph_expr:
-        if countinfo:
-            process_output_samples = ['cohort']
-            # If output samples requested, look for sample ids in count file
-            if arg.output_samples:
-                arg.output_samples = np.array(arg.output_samples)[np.argsort(matching_count_ids)]
-                arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '')
-                                      for output_sample in  arg.output_samples]
-                output_samples_ids = matching_count_ids[np.argsort(matching_count_ids)]
-            # If no output samples requested, take all samples in countfile
-            else:
-                arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '')
-                                      for output_sample in  matching_count_samples]
-                output_samples_ids = None
-        else:
-            logging.error("Count file must be specified in --cross-graph-exp mode")
-            sys.exit(1)
-    else:
+    process_output_samples = ['cohort']
+    if countinfo:
+        # If output samples requested, look for sample ids in count file
         if arg.output_samples:
-            process_output_samples = arg.output_samples
-            output_samples_ids = None
+            arg.output_samples = np.array(arg.output_samples)[np.argsort(matching_count_ids)]
+            arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '')
+                                  for output_sample in arg.output_samples]
+            output_samples_ids = matching_count_ids[np.argsort(matching_count_ids)]
+        # If no output samples requested, take all samples in countfile
         else:
-            logging.error("--arg.output_samples must be specified in single sample mode")
+            arg.output_samples = [output_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '')
+                                  for output_sample in matching_count_samples]
+            output_samples_ids = None
+    else:
+        output_samples_ids = None
+        if arg.output_samples:
+            logging.error(
+                "--output-samples were specified but no --count-path was provided. Cannot extract desired sample expression.")
             sys.exit(1)
+
+
     return process_output_samples, output_samples_ids

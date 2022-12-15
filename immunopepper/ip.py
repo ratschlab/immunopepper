@@ -35,7 +35,6 @@ def parse_arguments(argv):
     submodes.add_argument("--all-read-frames", help="switch from annotated reading frames to exhaustive translation", action="store_true", required=False, default=False)
     submodes.add_argument("--count-path", help="absolute path of count hdf5 file. If not provided candidates are output without expression quantification", required=False, default=None)
     submodes.add_argument("--output-samples", nargs='+', help="list of sample names to output, names must match the graph samples. If not provided, all count samples will be output (runs faster)", required=False, default=[])
-    submodes.add_argument("--cross-graph-expr", help="switches from per sample edge + segment expression files to edge (resp segment) expression matrices [kmer/peptides x samples]", action="store_true", required=False, default=False)
     submodes.add_argument("--heter-code", type=int, help=argparse.SUPPRESS, default=0) # if count expression data is provided in h5 format, specify the code for heterzygous
 
     parameters = parser_build.add_argument_group('TECHNICAL PARAMETERS: Parameters to dump intermediate data or to optimize processing')

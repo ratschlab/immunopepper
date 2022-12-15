@@ -14,7 +14,7 @@ from immunopepper.namedtuples import Peptide
 from immunopepper.namedtuples import ReadingFrameTuple
 from immunopepper.utils import get_exon_expr,get_sub_mut_dna
 
-def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts, Idx, mode, all_read_frames):
+def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts=None, Idx=None, mode='full', all_read_frames=False):
     """
     Output translated peptide and segment expression list given cds_list
 

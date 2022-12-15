@@ -214,7 +214,7 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
 
     """
     if countinfo is None:
-        return np.zeros((0, 1), dtype='float') #[np.nan]
+        return np.zeros((0, 1), dtype='float') #[np.nan] #TODO replace with nan?
 
     out_shape = (seg_counts.shape[1] + 1) if len(seg_counts.shape) > 1 else 2
     if vstart is np.nan or vstop is np.nan:  # isolated exon case
@@ -241,7 +241,7 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
             expr_list = expr_list[::-1]
     return expr_list
 
-def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr):
+def get_segment_expr(gene, coord, countinfo, Idx, seg_counts):
     """ Get the segment expression for one exon-pair.
     Apply 'get_exon_expr' for each exon and concatenate them.
 
@@ -279,12 +279,11 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr):
     n_samples = expr_list[:, 1:].shape[1]
     len_factor = np.tile(expr_list[:, 0], n_samples).reshape(n_samples, expr_list.shape[0]).transpose()
     mean_expr = (np.sum(expr_list[:, 1:]*len_factor, 0) / seg_len).astype(int) if seg_len > 0 else np.zeros(n_samples).astype(int)
-    if not cross_graph_expr:
-        expr_meta_file = mean_expr[0]
+
     return expr_meta_file, expr_list
 
 
-def get_total_gene_expr(gene, countinfo, Idx, seg_expr, cross_graph_expr):
+def get_total_gene_expr(gene, countinfo, seg_expr):
     """ get total reads count for the given sample and the given gene
     actually total_expr = reads_length*total_reads_counts
     """
@@ -297,11 +296,8 @@ def get_total_gene_expr(gene, countinfo, Idx, seg_expr, cross_graph_expr):
         return [np.nan] * n_samples
     seg_len = gene.segmentgraph.segments[1] - gene.segmentgraph.segments[0]
 
-    if cross_graph_expr:
-        total_expr = np.sum(seg_len * seg_expr.T, axis=1)
-        total_expr = total_expr.tolist()
-    else:
-        total_expr = [np.sum(seg_len*seg_expr)]
+    total_expr = np.sum(seg_len * seg_expr.T, axis=1)
+    total_expr = total_expr.tolist()
     return total_expr
 
 

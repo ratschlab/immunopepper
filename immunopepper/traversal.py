@@ -3,11 +3,9 @@ from collections import defaultdict
 import numpy as np
 import logging
 
-from immunopepper.filter import add_kmers
 from immunopepper.filter import filter_redundant_junctions
 from immunopepper.filter import junction_is_annotated
 from immunopepper.filter import is_intron_in_junction_list
-from immunopepper.filter import junction_tuple_is_annotated
 from immunopepper.io_ import namedtuple_to_str
 from immunopepper.io_ import save_kmer_matrix
 from immunopepper.mutations import get_mutated_sequence
@@ -16,7 +14,6 @@ from immunopepper.mutations import get_mut_comb
 from immunopepper.mutations import exon_to_expression
 from immunopepper.namedtuples import Coord
 from immunopepper.namedtuples import OutputPeptide
-from immunopepper.namedtuples import OutputKmer
 from immunopepper.namedtuples import OutputMetadata
 from immunopepper.namedtuples import ReadingFrameTuple
 from immunopepper.namedtuples import VertexPair
@@ -219,7 +216,7 @@ def collect_vertex_triples(gene, vertex_pairs, k):
     return concat_vertex_pair_list
 
 
-def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
+def get_and_write_peptide_and_kmer(peptide_set=None,
                          gene=None, all_vertex_pairs=None, ref_mut_seq=None, idx=None,
                          exon_som_dict=None, countinfo=None,
                          edge_idxs=None, edge_counts=None, seg_counts=None,
@@ -227,14 +224,13 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                          size_factor=None, junction_list=None, kmer_database=None,
                          filepointer=None,
                          force_ref_peptides=False, kmer=None,
-                         cross_graph_expr=None, all_read_frames=None, graph_output_samples_ids=None,
+                        all_read_frames=None, graph_output_samples_ids=None,
                          graph_samples=None,out_dir=None, verbose_save=None):
     """
 
     Parameters
     ----------
     peptide_set: set(OutputMetadata, OutputMetadata) with OutputMetadata namedtuple
-    kmer_dict: Dict. (kmer length)|-> set(OutputKmer, OutputKmer) with OutputKmer namedtuple
     gene: Object, returned by SplAdder.
     all_vertex_pairs: List of VertexPair
     ref_mut_seq: Str, reference sequnce of specific chromosome
@@ -254,7 +250,6 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
         mutated peptides which are the same as reference peptides
     kmer: list containing the length of the kmers requested
     out_dir: str, base direactory used for temporary files
-    cross_graph_expr: bool, whether to generate the expression kmer matrix with all samples from graph
     graph_samples: list, samples contained in the splicing graph object
     """
     # check whether the junction (specific combination of vertices) also is annotated
@@ -300,7 +295,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
 
                     # collect expression data
                     if  countinfo:
-                        segment_expr_meta, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts, cross_graph_expr=cross_graph_expr) #TODO update with peptide file mode
+                        segment_expr_meta, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts) #TODO update with peptide file mode
                     else:
                         segment_expr_meta, expr_list = np.nan, None
                     if countinfo and not flag.is_isolated and edge_counts is not None: ## Will flag is isolated overlap with edge_counts is None?
@@ -339,37 +334,21 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                                                     read_frame_annotated=vertex_pair.read_frame.annotated_RF)  #TODO update with peptide file mode
 
                     ### kmers
-                    if cross_graph_expr: #generate kmer x sample expression matrix for all samples in graph
-                        # create_kmer(output_peptide, gene, idx, kmer[0],
-                        #                                  countinfo, seg_counts, edge_idxs, edge_counts,
-                        #                                  gene_kmer_coord, gene_annot_jx, kmer_database,
-                        #                                  graph_output_samples_ids, graph_samples, filepointer,
-                        #                                  out_dir=out_dir, verbose=verbose_save)
-                        create_kmer(output_peptide, kmer[0], gene_kmer_coord, kmer_database)
+                    if '2-exons' in kmer_type:
+                        for kmer_length in kmer: # generate sample kmers for each vertex pair and each kmer_length
+                            create_kmer(output_peptide, kmer_length, gene_kmer_coord, kmer_database)
 
-
-                        # Only one kmer length supported for this mode
-
-                    else:
-                        # generate sample kmers for each vertex pair and each kmer_length
-                        if '2-exons' in kmer_type:
-                            for kmer_length in kmer:
-                                kmer_dict[kmer_length].update(create_output_kmer(output_peptide, kmer_length,
-                                                                              expr_list, kmer_database))
-                        # generate sample kmers for each vertex triplets, only for the kmer_lengths that require it
-                        else:
-                            kmer_length = int(kmer_type.split('_')[-1].split('-')[0])
-                            kmer_dict[kmer_length].update(create_output_kmer(output_peptide, kmer_length,
-                                                                          expr_list, kmer_database))
+                    else: # if two exons do not allow to reach the desired kmer length, add 3rd exon
+                        kmer_length = int(kmer_type.split('_')[-1].split('-')[0])
+                        create_kmer(output_peptide, kmer_length, gene_kmer_coord, kmer_database)
 
         if not gene.splicegraph.edges is None:
             gene.to_sparse()
 
-    if cross_graph_expr: # Only one kmer length supported for this mode #TODO update
-        prepare_output_kmer(gene, idx, kmer[0], countinfo, seg_counts, edge_idxs, edge_counts,
-                            gene_kmer_coord, gene_annot_jx,
-                            graph_output_samples_ids, cross_graph_expr,
-                            graph_samples, filepointer, out_dir, verbose=verbose_save)
+    prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts,
+                        gene_kmer_coord, gene_annot_jx,
+                        graph_output_samples_ids,
+                        graph_samples, filepointer, out_dir, verbose=verbose_save)
 
 
 
@@ -412,7 +391,7 @@ def get_spanning_index(coord, k):
 
     return spanning_id_range1, spanning_id_range2, spanning_id_range1_2
 
-def get_and_write_background_peptide_and_kmer(peptide_set, kmer_dict, gene, ref_mut_seq, gene_table, countinfo, seg_counts, Idx, kmer, all_read_frames):
+def get_and_write_background_peptide_and_kmer(peptide_set, kmer_set, gene, ref_mut_seq, gene_table, countinfo, kmer, all_read_frames):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
     Parameters
@@ -437,7 +416,9 @@ def get_and_write_background_peptide_and_kmer(peptide_set, kmer_dict, gene, ref_
         # No CDS entries for transcript in annotation file...
         if ts not in transcript_cds_table:
             continue
-        cds_expr_list, cds_string, cds_peptide_list = get_full_peptide(gene, ref_mut_seq['background'], transcript_cds_table[ts], countinfo, seg_counts, Idx, mode='back', all_read_frames=all_read_frames)
+        cds_expr_list, cds_string, cds_peptide_list = get_full_peptide(gene, ref_mut_seq['background'],
+                                                                       transcript_cds_table[ts], countinfo,
+                                                                       mode='back', all_read_frames=all_read_frames)
 
         for cds_peptide in cds_peptide_list: #all_read_frames modes outputs several peptides when encountering a stop codon
             peptide = OutputPeptide(output_id=ts,
@@ -449,72 +430,10 @@ def get_and_write_background_peptide_and_kmer(peptide_set, kmer_dict, gene, ref_
                               read_frame_annotated=None)
             peptide_set.add(namedtuple_to_str(peptide, sep = '\t'))
 
-            if kmer:
-                for kmer_length in kmer:
-                    add_kmers(kmer_dict[kmer_length],
-                              create_output_kmer(peptide, kmer_length, cds_expr_list))
-
-
-
-def create_output_kmer(output_peptide, k, expr_list, kmer_database=None):
-    """Calculate the output kmer and the corresponding expression based on output peptide
-
-    Parameters
-    ----------
-    output_peptide: OutputPeptide. Filtered output_peptide_list.
-    k: int. Specify k-mer length
-    expr_lists: List(Tuple). Filtered expr_list.
-    kmer_database: Set of kmers to be removed on the fly,
-    usually from a public database as uniprot. I and L equivalence is applied
-
-    Returns
-    -------
-    output_kmer_list: List(str). Each line is the output peptide and corresponding expression level.
-
-    """
-    output_kmer_list = []
-
-    if output_peptide.exons_coor:
-        spanning_index1, spanning_index2, spanning_index1_2 = get_spanning_index(output_peptide.exons_coor, k)
-    else:
-        spanning_index1, spanning_index2, spanning_index1_2 = [np.nan], [np.nan], [np.nan]
-
-    if expr_list is None:
-        expr_array = None
-    else:
-        expr_array = np.array([x[1] for x in expr_list for _ in range(int(x[0]))])
-
-    if len(output_peptide.peptide) >= k:
-        for j in range(len(output_peptide.peptide) - k + 1):
-            kmer_peptide = output_peptide.peptide[j:j+k]
-            if kmer_database and (replace_I_with_L(kmer_peptide) in kmer_database): # remove on the fly peptides from a database
-                continue
-            if (expr_array is None) or (np.isnan(expr_array).all()):
-                kmer_peptide_expr = np.nan
-            else:
-                kmer_peptide_expr = np.round(np.mean(expr_array[j*3:(j+k)*3]), 2)
-            if j in spanning_index1_2:
-                is_in_junction = True
-                kmer_junction_count = np.nanmin(output_peptide.junction_expr)
-                junction_annotated = max(output_peptide.junction_annotated)
-            elif j in spanning_index1:
-                is_in_junction = True
-                kmer_junction_count = output_peptide.junction_expr[0] if output_peptide.junction_expr is not np.nan else np.nan
-                junction_annotated = output_peptide.junction_annotated[0]
-            elif j in spanning_index2 :
-                is_in_junction = True
-                kmer_junction_count = output_peptide.junction_expr[1] if output_peptide.junction_expr is not np.nan else np.nan
-                junction_annotated = output_peptide.junction_annotated[1]
-            else:
-                is_in_junction = False
-                kmer_junction_count = np.nan
-                junction_annotated = False
-                # TODO consider two junctions when merging junction_annotated = max(junction_annotated)
-
-            kmer = OutputKmer(kmer_peptide, output_peptide.output_id, kmer_peptide_expr, is_in_junction, kmer_junction_count,
-                              junction_annotated, output_peptide.read_frame_annotated)
-            output_kmer_list.append(kmer)
-    return output_kmer_list
+            for kmer_length in kmer:
+                if len(cds_peptide) >= kmer_length:
+                    for j in range(len(cds_peptide) - kmer_length + 1):
+                        kmer_set.add(cds_peptide[j:j + kmer_length])
 
 
 def retrieve_kmer_coordinates(start_pos_kmer, k, strand, spanning_index1, spanning_index2, spanning_index1_2,
@@ -618,7 +537,7 @@ def retrieve_kmer_coordinates(start_pos_kmer, k, strand, spanning_index1, spanni
     return kmer_coord
 
 
-def create_kmer(output_peptide, k, gene_kmer_coord, kmer_database):
+def create_kmer(output_peptide, k, gene_kmer_coord, kmer_database=None):
 
     """Calculate the output kmer and the corresponding expression based on output peptide #TODO update docstring!!!
 
@@ -659,9 +578,9 @@ def create_kmer(output_peptide, k, gene_kmer_coord, kmer_database):
                 gene_kmer_coord[kmer_coord] = kmer_peptide
 
 
-def prepare_output_kmer(gene, idx, k, countinfo, seg_counts, edge_idxs, edge_counts,
+def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts,
                                      gene_kmer_coord, gene_annot_jx,
-                                     graph_output_samples_ids, cross_graph_expr,
+                                     graph_output_samples_ids,
                                      graph_samples, filepointer, out_dir, verbose=False):
 
     '''
@@ -675,32 +594,34 @@ def prepare_output_kmer(gene, idx, k, countinfo, seg_counts, edge_idxs, edge_cou
     :param gene_kmer_coord:
     :param gene_annot_jx:
     :param graph_output_samples_ids:
-    :param cross_graph_expr:
     :param graph_samples:
     :param filepointer:
     :param out_dir:
     :param verbose:
     :return:
     '''
-
     kmer_matrix_edge = []
     kmer_matrix_segm = []
     logging.info('Start going through kmers')
     logging.info(f'hello: {len(gene_kmer_coord)} kmers for {gene.name}')
     for kmer_coord, kmer_peptide in gene_kmer_coord.items():
+        k = len(kmer_peptide)
 
         # segment expression
-        _, pos_expr_segm = get_segment_expr(gene, kmer_coord, countinfo, idx, seg_counts, cross_graph_expr=cross_graph_expr)
+        _, pos_expr_segm = get_segment_expr(gene, kmer_coord, countinfo, idx, seg_counts)
         sublist_seg = np.round(np.atleast_2d(pos_expr_segm[:, 0]).dot(pos_expr_segm[:, 1:]) / (k * 3), 2)
-        sublist_seg = sublist_seg[0].tolist()
+        sublist_seg = sublist_seg[0].tolist() #TODO cross sample mode. Where are the right samples subseted??
 
         # junction expression
-        if np.isnan(kmer_coord.start_v2): # kmer crosses only one exon
-            sublist_jun = np.nan
-        else:
+        if countinfo is not None: # kmer crosses only one exon
             _, edges_expr = search_edge_metadata_segmentgraph(gene, kmer_coord, edge_idxs, edge_counts)
 
             sublist_jun = np.nanmin(edges_expr, axis=0) # always apply. The min has no effect if one junction only
+            if graph_output_samples_ids is not None:
+                sublist_jun = sublist_jun[graph_output_samples_ids]
+            sublist_jun = sublist_jun.tolist()
+        else:
+            sublist_jun = []
 
         # Flags
         if kmer_coord.start_v2 is np.nan: # kmer crosses only one exon
@@ -709,9 +630,7 @@ def prepare_output_kmer(gene, idx, k, countinfo, seg_counts, edge_idxs, edge_cou
         else: # kmer crosses at least one junction
             is_in_junction = True
             jx1 = ':'.join([ str(i) for i in np.sort(kmer_coord[:4])[1:3]])
-            sublist_jun = sublist_jun[graph_output_samples_ids] #TODO check graph_output_samples_ids in single sample mode
             junction_annotated = jx1 in gene_annot_jx
-
             if kmer_coord.start_v3 is not None:
                 jx2 = ':'.join([str(i) for i in np.sort(kmer_coord[2:])[1:3]])
                 junction_annotated = (jx1 in gene_annot_jx) or (jx2 in gene_annot_jx)
@@ -722,7 +641,6 @@ def prepare_output_kmer(gene, idx, k, countinfo, seg_counts, edge_idxs, edge_cou
         row_metadata = [kmer_peptide, ':'.join([str(coord) for coord in kmer_coord]),
                         is_in_junction, junction_annotated, rf_annot]
         if is_in_junction:
-            sublist_jun = sublist_jun.tolist()
             kmer_matrix_edge.append(row_metadata + sublist_jun)
         else:
             kmer_matrix_segm.append(row_metadata + sublist_seg)
@@ -730,13 +648,12 @@ def prepare_output_kmer(gene, idx, k, countinfo, seg_counts, edge_idxs, edge_cou
         # save output data per batch #TODO check feasibility of less batches for memory
         if len(kmer_matrix_segm) > 1000: # small but dense
             logging.info('... Saving kmer_matrix segm')
-            save_kmer_matrix(None, kmer_matrix_segm, k, graph_samples, filepointer, out_dir, verbose=True)
+            save_kmer_matrix(None, kmer_matrix_segm, graph_samples, filepointer, out_dir, verbose=True)
             kmer_matrix_segm.clear()
         if len(kmer_matrix_edge) > 1000: # big but relatively sparse
             logging.info('... Saving kmer_matrix edge')
-            save_kmer_matrix(kmer_matrix_edge, None, k, graph_samples, filepointer, out_dir, verbose)
+            save_kmer_matrix(kmer_matrix_edge, None, graph_samples, filepointer, out_dir, verbose)
             kmer_matrix_edge.clear()
 
 
-    save_kmer_matrix(kmer_matrix_edge, kmer_matrix_segm, k, graph_samples, filepointer, out_dir, verbose=True)
-    # TODO output should harmonize the modes ....
+    save_kmer_matrix(kmer_matrix_edge, kmer_matrix_segm, graph_samples, filepointer, out_dir, verbose=True)
