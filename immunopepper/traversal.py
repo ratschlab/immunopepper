@@ -613,7 +613,7 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
         sublist_seg = sublist_seg[0].tolist() #TODO cross sample mode. Where are the right samples subseted??
 
         # junction expression
-        if countinfo is not None: # kmer crosses only one exon
+        if (countinfo is not None) and (kmer_coord.start_v2 is not np.nan): # kmer crosses only one exon
             _, edges_expr = search_edge_metadata_segmentgraph(gene, kmer_coord, edge_idxs, edge_counts)
 
             sublist_jun = np.nanmin(edges_expr, axis=0) # always apply. The min has no effect if one junction only

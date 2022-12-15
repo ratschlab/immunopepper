@@ -41,7 +41,7 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
                 #'--kmer-database', os.path.join(data_dir, 'uniprot_test.csv'),
                 #'--libsize-extract',
                #'--disable-process-libsize',
-               '--output-samples', 'ERR2130621', #ERR2130621',# 'ENCSR000BZG'
+               '--output-samples', 'ENCSR000BZG', #ERR2130621',# 'ENCSR000BZG'
                #'--mutation-sample', 'ERR2130621',
                #'--pickle-samples', 'ERR2130621',
                '--output-dir', out_dir,
