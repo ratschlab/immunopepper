@@ -293,15 +293,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                     else:
                         seg_exp_variant_comb = np.nan  # if no mutation or no count file,  the segment expression is .
 
-                    # collect expression data
-                    if  countinfo:
-                        segment_expr_meta, expr_list = get_segment_expr(gene, modi_coord, countinfo, idx, seg_counts) #TODO update with peptide file mode
-                    else:
-                        segment_expr_meta, expr_list = np.nan, None
-                    if countinfo and not flag.is_isolated and edge_counts is not None: ## Will flag is isolated overlap with edge_counts is None?
-                        edge_expr_meta, edge_expr = search_edge_metadata_segmentgraph(gene, modi_coord, edge_idxs, edge_counts) #TODO update with peptide file mode
-                    else:
-                        edge_expr_meta, edge_expr = np.nan, np.nan
+
                     ### Peptides
                     peptide_set.add(namedtuple_to_str(OutputMetadata(peptide=peptide.mut[pep_idx],
                                        output_id=new_output_id,
@@ -311,7 +303,6 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                                        gene_chr=gene.chr,
                                        gene_strand=gene.strand,
                                        mutation_mode=mutation.mode,
-                                       junction_annotated=None, #TODO update
                                        has_stop_codon=int(flag.has_stop),
                                        is_in_junction_list=is_intron_in_junction_list_flag,
                                        is_isolated=int(flag.is_isolated),
@@ -320,8 +311,6 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                                        modified_exons_coord=modi_coord,
                                        original_exons_coord=vertex_pair.original_exons_coord,
                                        vertex_idx=vertex_list,
-                                       junction_expr=edge_expr_meta,
-                                       segment_expr=segment_expr_meta,
                                        kmer_type=kmer_type
                                        ), sep = '\t'))
                     variant_id += 1
@@ -329,8 +318,6 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                                                     peptide=peptide.mut[pep_idx],
                                                     exons_coor=modi_coord,
                                                     strand=gene.strand,
-                                                    junction_expr=edge_expr,
-                                                    junction_annotated=None, #TODO update
                                                     read_frame_annotated=vertex_pair.read_frame.annotated_RF)  #TODO update with peptide file mode
 
                     ### kmers
@@ -425,8 +412,6 @@ def get_and_write_background_peptide_and_kmer(peptide_set, kmer_set, gene, ref_m
                               peptide=cds_peptide,
                               exons_coor=None,
                               strand=None,
-                              junction_expr=None,
-                              junction_annotated=None,
                               read_frame_annotated=None)
             peptide_set.add(namedtuple_to_str(peptide, sep = '\t'))
 

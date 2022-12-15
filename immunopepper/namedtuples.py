@@ -15,17 +15,13 @@ except:
 """
 Output_junc_peptide namedtuple
 - output_id: (gene_id).(junction_id). gene_id is the index of given gene in the splicegraph array.
-- junction_id is the index of given junction pair in all junction pair (in descending or ascending order)
 - peptide: (peptide_string). The peptide translated from junction pairs.
 - exons_coor: Coord namedtuple
 - strand: str ('+', '_'). The strand of gene.
-- junction_annotated: bool. True if the junction also appears in the input annotation file, False otherwise. 
-  False if the peptide stops before the junction  
 - read_frame_annotated: bool. True if a transcript in the given reading frame is present in the annotation, 
   False if it is created by propagation
 """
-OutputPeptide = namedtuple('OutputPeptide', ['output_id', 'peptide', 'exons_coor', 'strand', 'junction_expr',
-                                                     'junction_annotated', 'read_frame_annotated'])
+OutputPeptide = namedtuple('OutputPeptide', ['output_id', 'peptide', 'exons_coor', 'strand', 'read_frame_annotated'])
 
 
 """
@@ -39,8 +35,6 @@ Output_metadata namedtuple.
 - gene_chr: str. The Chromosome id where the gene is located.
 - gene_strand: str ('+', '_'). The strand of gene.
 - mutation_mode: str ('ref', 'somatic', 'germline', 'somatic_and_germline'). Mutation mode
-- junction_annotated: bool. True if the junction also appears in the input annotation file, False otherwise.
-  False if the peptide stops before the junction
 - has_stop_codon. Boolean. Indicate if there is stop codon in the junction pair.
 - is_in_junction_list: Boolean. Indicate if the junction pair appears in the given junction whitelist
 - is_isolated: Boolean. Indicate if the output peptide is actually translated from a single exon instead of two.
@@ -53,19 +47,16 @@ Output_metadata namedtuple.
 - original_exons_coord. Coord namedtuple. Shows the original exon coordination.
 - vertex_idx. shows the vertex id of the given junction. eg 5,6 means this junction pars consists of the fifth and
     sixth vertex.
-- junction_expr. float. The expression of the junction.
-- segment_expr. float. The weighted sum of segment expression. We split the junction into segments and compute the segment
     expression with the length-weighted-sum expression.
 - kmer_type. str indicates whether the peptide is generated from vertice_pair, or 'vertice_triplet_xmer' ie. a triplet was necessary to generate the desired kmer length
 """
 OutputMetadata = namedtuple('OutputMetadata', ['peptide', 'output_id', 'read_frame', 'read_frame_annotated',
                                                'gene_name', 'gene_chr',
                                                  'gene_strand',	'mutation_mode',
-                                                 'junction_annotated',	'has_stop_codon',
+                                                 'has_stop_codon',
                                                  'is_in_junction_list',	'is_isolated',
                                                  'variant_comb',	'variant_seg_expr',
-                                                 'modified_exons_coord','original_exons_coord',	'vertex_idx',	'junction_expr',
-                                                 'segment_expr', 'kmer_type'])
+                                                 'modified_exons_coord','original_exons_coord',	'vertex_idx', 'kmer_type'])
 
 
 VertexPair = namedtuple('VertexPair', ['output_id', 'read_frame','has_stop_codon','modified_exons_coord','original_exons_coord','vertex_idxs','peptide_weight'])
