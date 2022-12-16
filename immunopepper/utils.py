@@ -11,8 +11,9 @@ import pyarrow as pa
 import signal as sig
 import sys
 
-
+from immunopepper.io_ import collect_results
 from immunopepper.namedtuples import Idx
+
 
 
 def to_adj_list(adj_matrix):
@@ -325,20 +326,23 @@ def get_idx(countinfo, sample, gene_idx):
     return Idx(gene_idx, sample_idx)
 
 
-def create_libsize(expr_distr_fp, output_fp, sample, debug=False):
+def create_libsize(expr_distr_fp, libsize_fp, out_dir, mutation_mode, parallel=1):
     """ create library_size text file.
 
     Calculate the 75% expression and sum of expression for each sample
-    and write into output_fp.
+    and write into libsize_fp.
 
     Parameters
     ----------
     expr_distr_dict: Dict. str -> List(float). Mapping sample to the expression of all exon pairs
-    output_fp: file pointer. library_size text
+    libsize_fp: file pointer. library_size text
     debug: Bool. In debug mode, return the libsize_count dictionary.
     """
     libsize_exists = ''
-    sample_expr_distr = sample_expr_distr = pd.read_csv(expr_distr_fp['path'], sep='\t', compression='gzip') #TODO gather all the partitions here
+    if parallel > 1:
+        sample_expr_distr = collect_results(expr_distr_fp, out_dir, mutation_mode, partitions=False)
+    else:
+        sample_expr_distr = pd.read_csv(expr_distr_fp['path'], sep='\t', compression='gzip')
 
     # change types
     convert_dict = {}
@@ -353,12 +357,12 @@ def create_libsize(expr_distr_fp, output_fp, sample, debug=False):
                                   'libsize_total_count': np.sum(sample_expr_distr.iloc[:, 1:], axis=0)}, index = None)
 
 
-    if os.path.isfile(output_fp):
-        previous_libsize = pd.read_csv(output_fp, sep = '\t')
+    if os.path.isfile(libsize_fp):
+        previous_libsize = pd.read_csv(libsize_fp, sep = '\t')
         df_libsize = pd.concat([previous_libsize, df_libsize], axis=0).drop_duplicates(subset=['sample'], keep='last')
         libsize_exists = ': append to existing file.'
-    logging.info(f'Saved library size results to {output_fp}{libsize_exists}')
-    df_libsize.to_csv(output_fp, sep='\t', index=False)
+    logging.info(f'Saved library size results to {libsize_fp}{libsize_exists}')
+    df_libsize.to_csv(libsize_fp, sep='\t', index=False)
 
 
 def get_concat_peptide(front_coord_pair, back_coord_pair, front_peptide, back_peptide, strand, k=None):

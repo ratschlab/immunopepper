@@ -449,21 +449,9 @@ def mode_build(arg):
                 exits_if_exception = [res for res in result]
 
 
-            # Collects and pools the files of each batch
-            logging.info("Start collecting results")
-            if countinfo:
-                collect_results(filepointer.gene_expr_fp, output_path, pq_compression, mutation.mode)
-            if arg.output_fasta:
-                collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, mutation.mode)
-            collect_results(filepointer.background_peptide_fp, output_path, pq_compression, mutation.mode)
-            collect_results(filepointer.junction_meta_fp, output_path, pq_compression, mutation.mode)
-            collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
-            collect_results(filepointer.background_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
-            collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression,
-                            mutation.mode, parquet_partitions=True)
-            collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression,
-                            mutation.mode, parquet_partitions=True)
-            if not arg.keep_tmpfiles:
+            logging.info("Finished traversal")
+
+            if not arg.keep_tmpfiles: #TODO update
                 logging.info("Cleaning temporary files")
                 remove_folder_list(os.path.join(output_path, f'tmp_out_{mutation.mode}_batch'))
 
@@ -484,7 +472,7 @@ def mode_build(arg):
                                            verbose=True)
 
         if (not disable_process_libsize) and countinfo:
-            create_libsize(filepointer.gene_expr_fp, output_libsize_fp, output_sample)
+            create_libsize(filepointer.gene_expr_fp, output_libsize_fp, output_path, mutation.mode, arg.parallel)
 
 
 

@@ -5,6 +5,7 @@ import gzip
 import numpy as np
 import os
 import logging
+import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 from uuid import uuid4
@@ -325,22 +326,18 @@ def save_to_gzip(path, data_iterable, columns, verbose=False, filepointer=None, 
     return filepointer
 
 
-def collect_results(filepointer_item, out_dir, mutation_mode, kmer_list=None, parquet_partitions=False): #TODO Update the collection of results + library size
+def collect_results(filepointer_item, out_dir, mutation_mode, partitions=False):
     """
-    Merges results written by each parallel process into a single rechunked parquet file.
+    Merges results written by each parallel process.
     """
     if filepointer_item is not None:
-        # get paths for several kmer lengths
-        if kmer_list:
-            file_to_collect = filepointer_item['path'].values()
-        else:
-            file_to_collect = [filepointer_item['path']]
+        file_to_collect = [filepointer_item['path']]
 
         # merge the partitions
         for file_path in file_to_collect:
             file_name = os.path.basename(file_path)
-            # adjust name for parquet partitions
-            if parquet_partitions:
+            # adjust name for partitions
+            if partitions:
                 tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*',
                                                        file_name, '*part*'))
             else:
@@ -348,12 +345,11 @@ def collect_results(filepointer_item, out_dir, mutation_mode, kmer_list=None, pa
                                                        file_name))
 
             try:
-                dset = pq.ParquetDataset(tmp_file_list)
-                dset_pandas = dset.read().to_pandas() #TODO check efficiency
-                save_to_gzip(file_path, dset_pandas, verbose=1) #save_to_gzip(path, data_iterable, columns, verbose=False, filepointer=None, writer_close=True, is_2d=False) #TODO remove collect results
+                df = pd.concat((pd.read_csv(f, sep='\t', compression='gzip') for f in tmp_file_list), ignore_index=True)
             except:
                 logging.error(f'Unable to read one of files for {file_path} collection')
                 sys.exit(1)
+        return df
 
 
 def remove_folder_list(base_path):
