@@ -257,7 +257,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
     gene_annot_jx = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
     som_exp_dict = exon_to_expression(gene, list(mutation.somatic_dict.keys()), countinfo, seg_counts, mut_count_id)
     gene_kmer_coord = set()
-    logging.info('start get_and_write_kmer')
+
     ### iterate over all vertex pairs and translate
     for kmer_type, vertex_pairs in all_vertex_pairs.items():
         for ii,vertex_pair in enumerate(vertex_pairs):
@@ -587,8 +587,6 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
     '''
     kmer_matrix_edge = []
     kmer_matrix_segm = []
-    logging.info('Start going through kmers')
-    logging.info(f'hello: {len(gene_kmer_coord)} kmers for {gene.name}')
     for kmer_coord, kmer_peptide, rf_annot in gene_kmer_coord:
         k = len(kmer_peptide)
 
@@ -631,11 +629,11 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
         # save output data per batch #TODO check feasibility of less batches for memory
         if len(kmer_matrix_segm) > 1000: # small but dense
             logging.info('... Saving kmer_matrix segm')
-            save_kmer_matrix(None, kmer_matrix_segm, graph_samples, filepointer, out_dir, verbose=True)
+            save_kmer_matrix(None, kmer_matrix_segm, graph_samples, filepointer, out_dir, verbose=False)
             kmer_matrix_segm.clear()
         if len(kmer_matrix_edge) > 1000: # big but relatively sparse
             logging.info('... Saving kmer_matrix edge')
             save_kmer_matrix(kmer_matrix_edge, None, graph_samples, filepointer, out_dir, verbose)
             kmer_matrix_edge.clear()
 
-    save_kmer_matrix(kmer_matrix_edge, kmer_matrix_segm, graph_samples, filepointer, out_dir, verbose=True)
+    save_kmer_matrix(kmer_matrix_edge, kmer_matrix_segm, graph_samples, filepointer, out_dir, verbose=False)
