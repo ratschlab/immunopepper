@@ -10,6 +10,7 @@ import pyarrow.parquet as pq
 from uuid import uuid4
 import shutil
 import sys
+from time import sleep
 import timeit
 
 from immunopepper.namedtuples import Filepointer
@@ -269,30 +270,53 @@ def _output_info(path, file_columns, kmer_lengths=None, pq_writer=False):
     return file_info
 
 
+def disk_writer(sleep_time, path, data_iterable, columns, filepointer=None, writer_close=True, is_2d=False):
+    """Try write and catch errors"""
+    try:
+        delim = '\t'
+        linet = '\n'
+        # Open
+        if filepointer is None:
+            filepointer = gzip.open(path, 'wt')
+            filepointer.write(delim.join(columns) + linet)
+
+        # Write
+        if is_2d:
+            for idx, line in enumerate(data_iterable):
+                filepointer.write(delim.join([str(x) for x in line]) + linet)
+        else:
+            for line in data_iterable:
+                filepointer.write(line + '\n')
+
+        # Close
+        if writer_close:
+            filepointer.close()
+            filepointer = None
+
+        error_encountered = 0
+
+    except OSError:
+        logging.info(f'Issue saving {path} to file system: sleeping {sleep_time} sec.')
+        sleep(sleep_time)
+        error_encountered = 1
+        logging.info(f'IO Error: Sleeping {sleep_time} seconds and retry.')
+
+    return error_encountered
+
+
 def save_to_gzip(path, data_iterable, columns, verbose=False, filepointer=None, writer_close=True, is_2d=False):
     """
     Saves a  data frame in gzip format.
     """
     s1 = timeit.default_timer()
-    delim = '\t'
-    linet = '\n'
-    # Open
-    if filepointer is None:
-        filepointer = gzip.open(path, 'wt')
-        filepointer.write(delim.join(columns) + linet)
 
-    # Write
-    if is_2d:
-        for idx, line in enumerate(data_iterable):
-            filepointer.write(delim.join([str(x) for x in line]) + linet)
-    else:
-        for line in data_iterable:
-            filepointer.write(line + '\n')
-
-    # Close
-    if writer_close:
-        filepointer.close()
-        filepointer = None
+    error_encountered = 1
+    sleep_times = [60, 10, 1]  # Number of seconds for each saving attempt
+    while sleep_times and error_encountered:
+        error_encountered = disk_writer(sleep_times.pop(), path, data_iterable, columns,
+                                                  filepointer, writer_close, is_2d)
+    if error_encountered:
+        raise OSError('Issue with saving device')
 
     if verbose:
         file_name = os.path.basename(path)
