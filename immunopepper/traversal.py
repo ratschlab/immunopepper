@@ -453,8 +453,10 @@ def retrieve_kmer_coordinates(start_pos_kmer, k, strand, spanning_index1, spanni
     # get the position(s) right after the junction(s)
     if spanning_index1:
         pos_after_jx1 = max(spanning_index1) + 1
+        first_cross_jx1 = min(spanning_index1)
     else:
         pos_after_jx1 = np.nan
+        first_cross_jx1 = np.nan
     if spanning_index2:
         pos_after_jx2 = max(spanning_index2) + 1
     else:
@@ -506,12 +508,12 @@ def retrieve_kmer_coordinates(start_pos_kmer, k, strand, spanning_index1, spanni
         stop_kmer_E2 = start_E3_modi + nt_kmer_right_jx2
 
     # Not cross junction: Before first junction
-    elif start_pos_kmer < min(spanning_index1) or np.isnan(pos_after_jx1):
+    elif start_pos_kmer < first_cross_jx1 or np.isnan(pos_after_jx1):
         start_kmer_E1 = start_E1_modi + shift_to_start(start_pos_kmer, strand)
         stop_kmer_E1 = start_E1_modi + shift_to_start(start_pos_kmer, strand, end_kmer=True)
 
     # Not cross junction: After second junction
-    elif start_pos_kmer > max(spanning_index2):
+    elif start_pos_kmer >= pos_after_jx2:
         start_kmer_E1 = start_E3_modi + shift_to_start(start_pos_kmer - pos_after_jx2, strand, overhang2)
         stop_kmer_E1 = start_E3_modi + shift_to_start(start_pos_kmer - pos_after_jx2, strand, overhang2, end_kmer=True)
 
