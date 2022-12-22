@@ -450,17 +450,27 @@ def retrieve_kmer_coordinates(start_pos_kmer, k, strand, spanning_index1, spanni
 
     start_E1_modi, stop_E1_modi, start_E2_modi, stop_E2_modi, start_E3_modi, stop_E3_modi = translation_sorted_coord
 
-    pos_after_jx1 = max(spanning_index1) + 1
+    # get the position(s) right after the junction(s)
+    if spanning_index1:
+        pos_after_jx1 = max(spanning_index1) + 1
+    else:
+        pos_after_jx1 = np.nan
+    if spanning_index2:
+        pos_after_jx2 = max(spanning_index2) + 1
+    else:
+        pos_after_jx2 = np.nan
+
+    # get the overhang
     if (abs(stop_E1_modi - start_E1_modi) % 3): #TODO elegance code?
         overhang1 = 3 - (abs(stop_E1_modi - start_E1_modi) % 3)
     else:
         overhang1 = 0
-    pos_after_jx2 = max(spanning_index2) + 1
     if ((abs(stop_E1_modi - start_E1_modi) + abs(stop_E2_modi - start_E2_modi)) % 3):
         overhang2 = 3 - ((abs(stop_E1_modi - start_E1_modi) + abs(stop_E2_modi - start_E2_modi)) % 3)
     else:
         overhang2 = 0
 
+    # get the number of nucleotides from the kmer relative to the junction(s)
     nt_kmer_left_jx1 = ((pos_after_jx1 - start_pos_kmer) * 3 ) - overhang1 #number of nucleotides before jx1 from the kmer
     nt_kmer_right_jx1 = ((k - (pos_after_jx1 - start_pos_kmer)) * 3 ) + overhang1
     nt_kmer_left_jx2 = ((pos_after_jx2 - start_pos_kmer) * 3) - overhang2
