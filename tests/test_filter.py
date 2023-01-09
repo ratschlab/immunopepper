@@ -7,7 +7,7 @@ from spladder.classes.gene import Gene
 from spladder.classes.splicegraph import Splicegraph
 
 import immunopepper.filter as filter
-from immunopepper.namedtuples import Coord, OutputKmer, OutputMetadata, ReadingFrameTuple, VertexPair
+from immunopepper.namedtuples import Coord, OutputKmer, ReadingFrameTuple, VertexPair
 
 
 class TestFilterRedundantJunctions:
@@ -98,26 +98,14 @@ class TestJunctionIsAnnotated:
 
     def test_gene_absent(self, gene, gene_to_transcript, transcript_to_cds):
         gene.name = 'doesnt exist'
-        assert not np.any(filter.junction_is_annotated(gene, gene_to_transcript, transcript_to_cds))
-
-    def test_gene_present_empty_graph(self, gene, gene_to_transcript, transcript_to_cds):
-        assert not np.any(filter.junction_is_annotated(gene, gene_to_transcript, transcript_to_cds))
+        assert not filter.junction_is_annotated(gene, gene_to_transcript, transcript_to_cds)
 
     def test_one_junction_present(self, gene, gene_to_transcript, transcript_to_cds):
-        # the third transcript of our gene (ENSMUST00000192650.5) has two junctions:
-        # ['4492668:4493771', '4493863:4495135']; let's create a graph that has one of these junctions
-        gene.splicegraph.vertices = np.array([[4491718, 4493771, 4495135], [123456, 4493863, 4495155]], dtype='int')
-        gene.splicegraph.edges = np.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]], dtype='int')
-        expected = np.array([[False, False, False], [False, False, True], [False, True, False]])
-        assert np.array_equal(expected, filter.junction_is_annotated(gene, gene_to_transcript, transcript_to_cds))
-
-    def test_two_junctions_present(self, gene, gene_to_transcript, transcript_to_cds):
-        # the third transcript of our gene (ENSMUST00000192650.5) has two junctions:
-        # ['4492668:4493771', '4493863:4495135']; let's create a graph that has *both* of these junctions
-        gene.splicegraph.vertices = np.array([[4491718, 4493771, 4495135], [4492668, 4493863, 4495155]], dtype='int')
-        gene.splicegraph.edges = np.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]], dtype='int')
-        expected = np.array([[False, True, False], [True, False, True], [False, True, False]])
-        assert np.array_equal(expected, filter.junction_is_annotated(gene, gene_to_transcript, transcript_to_cds))
+        # the first transcript of our gene (ENSMUST00000027035.95) has one junction: ['4492668:4493099'];
+        # the second transcript of our gene (ENSMUST00000195555.1) has no junction:
+        # the third transcript of our gene (ENSMUST00000192650.5) has two junctions: ['4492668:4493771', '4493863:4495135'];
+        expected = set(['4492668:4493771', '4493863:4495135', '4492668:4493099'])
+        assert expected == filter.junction_is_annotated(gene, gene_to_transcript, transcript_to_cds)
 
 
 def test_junction_tuple_is_annotated():
