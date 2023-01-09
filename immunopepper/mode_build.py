@@ -5,6 +5,7 @@ from collections import defaultdict
 import h5py
 import logging
 import multiprocessing as mp
+from multiprocessing.pool import Pool
 from multiprocessing.pool import ThreadPool
 import numpy as np
 import os
@@ -439,7 +440,7 @@ def mode_build(arg):
 
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
-            with ThreadPool(processes=None, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
+            with Pool(processes=None, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
                 args = [(output_sample, arg.mutation_sample, output_samples_ids, graph_data[gene_idx],
                          graph_info[gene_idx], gene_idx, n_genes, genes_interest, disable_process_libsize,
                          arg.all_read_frames, complexity_cap, mutation, junction_dict, arg,
