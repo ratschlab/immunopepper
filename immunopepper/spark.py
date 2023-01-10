@@ -527,7 +527,7 @@ def save_spark(cancer_kmers, output_dir, path_final_fil, outpartitions=None):
     :param outpartitions: int number of partitions for saving
     '''
     # save
-    logging.info(f'Save to {path_final_fil}')
+    logging.info(f'>>>> Save to {path_final_fil}')
     pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
     if outpartitions is not None:
         cancer_kmers.repartition(outpartitions).write.mode('overwrite').options(header="true", sep="\t").csv(path_final_fil)

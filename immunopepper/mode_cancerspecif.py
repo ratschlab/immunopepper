@@ -166,12 +166,11 @@ def mode_cancerspecif(arg):
 
                 # cancer sample-specific filter
                 cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample, jct_annot_col, rf_annot_col])
-                # Counting step: Retrieve initial number of kmers in sample
                 cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0) #Keep kmers expressed
+                # Counting step: Retrieve initial number of kmers in sample
                 output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Init_cancer')
 
                 if arg.output_count and (arg.sample_expr_support_cancer != 0):
-                    cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample, jct_annot_col, rf_annot_col])
                     cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample,
                                                             arg.sample_expr_support_cancer, libsize_c) #Keep kmers expressed >= threshold
                     # Counting step: Retrieve number of kmers in sample after filtering on cancer expression
@@ -226,14 +225,14 @@ def mode_cancerspecif(arg):
                                             f'Across{arg.n_samples_lim_normal}'))
 
             path_filter_final = base_path_final + batch_tag + extension
-            path_filter_final_uniprot  = base_path_final + '_FiltUniprot'+ batch_tag + extension
+            path_filter_final_uniprot = base_path_final + '_FiltUniprot'+ batch_tag + extension
 
             # Remove background from foreground
             logging.info("Filtering normal background")
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"],
                                              how='left_anti')
             partitions_ = cancer_kmers.rdd.getNumPartitions()
-            logging.info(f'partitions: {cancer_kmers}') #TODO correct
+            logging.info(f'partitions: {partitions_}')
             save_spark(cancer_kmers, arg.output_dir, path_filter_final, outpartitions=arg.out_partitions)
             output_count(arg.output_count, cancer_kmers, report_count, report_steps,
                          'Filter_Sample_Cohort_CohortNormal')
@@ -254,5 +253,4 @@ def mode_cancerspecif(arg):
             #    os.remove(cancer_path_tmp)
 
 
-            #TODO Implement the intersection of the modelling tissues
 
