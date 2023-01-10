@@ -41,8 +41,8 @@ def test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=True, graph_c
                 #'--kmer-database', os.path.join(data_dir, 'uniprot_test.csv'),
                 #'--libsize-extract',
                #'--disable-process-libsize',
-               '--output-samples', 'ENCSR000BZG', #ERR2130621',# 'ENCSR000BZG'
-               #'--mutation-sample', 'ERR2130621',
+               '--output-samples', 'ERR2130621', #ERR2130621',# 'ENCSR000BZG'
+               '--mutation-sample', 'ERR2130621',
                #'--pickle-samples', 'ERR2130621',
                '--output-dir', out_dir,
                '--splice-path', os.path.join(data_dir,'ImmunoPepper_usecase.pickle'),
@@ -239,11 +239,11 @@ def test_end_to_end_cancerspecif_mx():
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
-mutation_mode ='ref'
+mutation_mode ='germline'
 #pr = cProfile.Profile()
 #pr.enable()
 #for mutation_mode in ['ref', 'somatic', 'germline', 'somatic_and_germline']:
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False) #TODO add back
+#test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False) #TODO add back
 #test_end_to_end_samplespecif('ERR2130621', tmpdir, "9", mutation_mode) # TEST DEPRECATED
 #test_end_to_end_filter(tmpdir, 'ERR2130621', "9", mutation_mode)
 #for mutation_mode in ['ref', 'germline', 'somatic', 'somatic_and_germline']:
@@ -253,7 +253,7 @@ test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False) #TODO add 
 #test_end_to_end_crosscohort(tmpdir) #TODO add back
 #mini_crosscohort()
 #test_end_to_end_cancerspecif()
-#test_end_to_end_cancerspecif_mx()
+test_end_to_end_cancerspecif_mx()
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 

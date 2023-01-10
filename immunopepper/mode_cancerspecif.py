@@ -51,15 +51,6 @@ def mode_cancerspecif(arg):
         report_steps = []
         normal_out, cancer_out = redirect_scratch(arg.scratch_dir, arg.interm_dir_norm,
                                                   arg.interm_dir_canc, arg.output_dir)
-        if arg.paths_cancer_samples:
-            if arg.expression_fields_c is None:
-                expression_fields_orig = ['segment_expr', 'junction_expr']  # segment 1 , junction 2
-            else:
-                expression_fields_orig = arg.expression_fields_c
-            expression_fields = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in
-                                 expression_fields_orig]
-            drop_cols = ['id']
-
 
         ### Preprocessing Libsize
         logging.info("\n \n >>>>>>>> Preprocessing libsizes")
@@ -144,22 +135,11 @@ def mode_cancerspecif(arg):
             if arg.path_cancer_matrix_segm or arg.path_cancer_matrix_edge or arg.paths_cancer_samples:
                 logging.info("\n \n >>>>>>>> Preprocessing Cancer sample {}  ".format(cancer_sample_ori))
                 mutation_mode = arg.mut_cancer_samples[0]
-                if arg.paths_cancer_samples:
-                    try:
-                        path_kmer_file = [arg.paths_cancer_samples[cix]]
-                    except:
-                        logging.error(f'--ids_cancer_samples not matching --paths_cancer_samples, exit.')
-                        sys.exit(1)
-                else:
-                    path_kmer_file = None
 
                 # Preprocess cancer samples
                 cancer_segm = process_build_outputs(spark, index_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
                                                   path_matrix=arg.path_cancer_matrix_segm,
-                                                  path_kmer_file=path_kmer_file,
-                                                  col_expr_kmer_file = expression_fields[0],
-                                                  target_sample=cancer_sample,
                                                   whitelist=arg.whitelist_cancer,
                                                   cross_junction=0,
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
@@ -172,9 +152,6 @@ def mode_cancerspecif(arg):
                 cancer_junc = process_build_outputs(spark, index_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
                                                   path_matrix=arg.path_cancer_matrix_edge,
-                                                  path_kmer_file=path_kmer_file,
-                                                  col_expr_kmer_file=expression_fields[1],
-                                                  target_sample=cancer_sample,
                                                   whitelist=arg.whitelist_cancer,
                                                   cross_junction=1,
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
@@ -187,22 +164,23 @@ def mode_cancerspecif(arg):
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
 
 
-                # sample-specific filter
+                # cancer sample-specific filter
                 cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample, jct_annot_col, rf_annot_col])
-                # Retrieve initial number of kmers in sample
-                cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0)
+                # Counting step: Retrieve initial number of kmers in sample
+                cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0) #Keep kmers expressed
                 output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Init_cancer')
 
                 if arg.output_count and (arg.sample_expr_support_cancer != 0):
                     cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample, jct_annot_col, rf_annot_col])
                     cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample,
-                                                            arg.sample_expr_support_cancer, libsize_c)
+                                                            arg.sample_expr_support_cancer, libsize_c) #Keep kmers expressed >= threshold
+                    # Counting step: Retrieve number of kmers in sample after filtering on cancer expression
                     output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
                 else:
                     output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
-                # cross-sample filter
+                # cancer cross-cohort filter
                 if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
                     if launch_filter_cancer: # else do not need to launch because intermediate files are present
                         filter_hard_threshold(cancer_matrix, index_name, jct_annot_col, rf_annot_col, libsize_c,
@@ -255,7 +233,7 @@ def mode_cancerspecif(arg):
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"],
                                              how='left_anti')
             partitions_ = cancer_kmers.rdd.getNumPartitions()
-            logging.info(f'partitions: {cancer_kmers}')
+            logging.info(f'partitions: {cancer_kmers}') #TODO correct
             save_spark(cancer_kmers, arg.output_dir, path_filter_final, outpartitions=arg.out_partitions)
             output_count(arg.output_count, cancer_kmers, report_count, report_steps,
                          'Filter_Sample_Cohort_CohortNormal')

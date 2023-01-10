@@ -28,58 +28,8 @@ def process_libsize(path_lib, custom_normalizer):
     return lib
 
 
-def pq_WithRenamedCols(spark, list_paths):
-    '''
-    Load parquet file, convert column names and convert to spark dataframe
-    :param spark: spark context
-    :param list_paths: list of paths to be read as one parquet file
-    :return: loaded spark dataframe
-    '''
-    df = spark.read.parquet(*list_paths , mergeSchema=True)
-    old_name = df.columns
-    new_names = [name_.replace('-', '').replace('.', '').replace('_', '')  for name_ in  old_name]
-    df = df.toDF(*new_names)
-    return df
-
-def loader_immunopepper_outputs(spark, path_matrix, path_kmer_file, col_expr_kmer_file, target_sample, index_name,
-                                jct_col, jct_annot_col, rf_annot_col):
-    '''
-    Loader of immunopepper mode build outputs
-    It also performs (1) renaming of columns and (2) reformating to [kmers] x [samples, metadata] as needed
-    :param spark: spark context
-    :param path_matrix: str path for multi-sample count matrix from immunopepper mode build:  kmer|is_cross_junction|junctionAnnotated|readFrameAnnotated|sample_1|sample_2|...
-    :param path_kmer_file: str path for single sample kmer file from immunopepper mode build:  kmer|id|segmentexpr|iscrossjunction|junctionexpr|junctionAnnotated|readFrameAnnotated|
-    :param col_expr_kmer_file: str name of the expression column of interest in path_kmer_file. e.g. 'segmentexpr' or 'junctionexpr'
-    :param target_sample: str sample for which the path_kmer_file has been computed
-    :param index_name: str kmer column name
-    :param jct_col: str junction column name
-    :param jct_annot_col: str junction annotated flag column name
-    :param rf_annot_col: str reading frame annotated flag column name
-    :return: Loaded spark dataframe
-    '''
-    path_input = path_matrix if (path_matrix is not None) else path_kmer_file
-
-    # Loads and rename columns (spark does not support hyphens in column names)
-    rename = True  # For development
-    logging.info(f'Load input {path_input}')
-    if rename:
-        logging.info("Rename")
-        matrix = pq_WithRenamedCols(spark, path_input)
-    else:
-        matrix = spark.read.parquet(*path_input, mergeSchema=True)
-
-    # Reformat kmer_file:  |kmer|id|segmentexpr|iscrossjunction|junctionexpr|junctionAnnotated| readFrameAnnotated|
-    # as: -> |kmer|is_cross_junction|junctionAnnotated|readFrameAnnotated|sample|
-    matrix = matrix.select(
-            [index_name, jct_col, jct_annot_col, rf_annot_col, col_expr_kmer_file]).withColumnRenamed( \
-            col_expr_kmer_file, target_sample)
-
-    return matrix
-
-
 def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
-                        path_matrix=None, path_kmer_file=None, col_expr_kmer_file=None, target_sample=None,
-                        whitelist=None, cross_junction=None,
+                        path_matrix=None, whitelist=None, cross_junction=None,
                         filterNeojuncCoord=None, filterAnnotatedRF=None,
                         output_dir=None, separate_back_annot=None, tot_batches=None, batch_id=None):
     '''
@@ -114,6 +64,13 @@ def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_co
     :return: Preprocessed spark dataframe
     '''
 
+    def RenamedCols(df):
+        old_name = df.columns
+        new_names = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in old_name]
+        df = df.toDF(*new_names)
+        return df
+
+
     def cast_type_dbl(matrix, index_name, jct_annot_col, rf_annot_col):
         return matrix.select(
             [sf.col(name_).cast(st.DoubleType()).alias(name_) if ((name_ != index_name)
@@ -125,10 +82,16 @@ def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_co
         name_list.extend([index_name, jct_annot_col, rf_annot_col])
         return matrix.select([sf.col(name_) for name_ in name_list])
 
-    if (path_matrix is not None) or (path_kmer_file is not None):
+
+    if (path_matrix is not None):
         # Load immunopepper kmer candidates
-        matrix = loader_immunopepper_outputs(spark, path_matrix, path_kmer_file, col_expr_kmer_file, target_sample,
-                                             index_name, jct_col, jct_annot_col, rf_annot_col)
+        rename = True  # For development
+        logging.info(f'Load input {path_matrix}')
+        matrix = loader(spark, path_matrix, header=False)
+
+        if rename:
+            logging.info("Rename")
+            matrix = RenamedCols(matrix)
 
         # In batch mode: Dev remove kmers for the matrix based on the hash function
         if tot_batches:
@@ -195,7 +158,7 @@ def split_only_found_annotation_backbone(separate_back_annot, output_dir, matrix
     :return: spark matrix with expressed kmers, spark serie with kmers only in backbone annotation
     '''
     if cross_junction:
-        novel = f'({jct_annot_col} == {False})' #novel junction
+        novel = f'({jct_annot_col} == {False})' #novel junction #TODO: Update later commit
     else:
         novel = f'({rf_annot_col} == {False})'  #novel reading frame
     expressed = ' OR '.join( [f'({col_name} != 0.0)'

@@ -131,7 +131,6 @@ def parse_arguments(argv):
     crf.add_argument("--sample-expr-support-cancer", type=float, help="Normalized expression threshold for the cancer target sample. (Can always be specified)")
     crf.add_argument("--cohort-expr-support-cancer", type=float, help="Normalized expression threshold for the cancer cohort excluding the target sample which should be met in n samples (if --expr-n-limit-cancer and path-cancer-matrix-segm resp. edge are provided)", required=False, default=None)
     crf.add_argument("--n-samples-lim-cancer", type=int, help="Number of cancer samples in which the cancer cohort expression threshold should be met (if --cohort-expr-support-cancer and path-cancer-matrix-segm resp. edge are provided)", required=False, default=None)
-    crf.add_argument("--paths-cancer-samples", nargs='+', help="List of single cancer sample files", required=False, default='')
     crf.add_argument("--path-cancer-matrix-segm", nargs='+', help="List of cohort cancer matrix files containing segment expression in [kmers x samples]", required=False, default=None)
     crf.add_argument("--path-cancer-matrix-edge", nargs='+', help="List of cohort cancer matrix files containing edge expression in [kmers x samples]", required=False, default=None)
     crf.add_argument("--cancer-support-union", help="Choose how to combine sample-expr and cohort-expr support in cancer. Request union, default intersection", action="store_true", required=False, default=False)
