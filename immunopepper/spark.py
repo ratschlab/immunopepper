@@ -120,7 +120,7 @@ def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_co
         if separate_back_annot:
             logging.info("Isolating kmers only in backbone annotation")
             matrix = split_only_found_annotation_backbone(separate_back_annot, output_dir, matrix, index_name,
-                                                          jct_annot_col, rf_annot_col, cross_junction)
+                                                          jct_annot_col, rf_annot_col)
 
         # Filter according to annotation flag
         matrix = filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col,
@@ -141,37 +141,29 @@ def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_co
 
 
 def split_only_found_annotation_backbone(separate_back_annot, output_dir, matrix, index_name,
-                                         jct_annot_col, rf_annot_col, cross_junction):
+                                         jct_annot_col, rf_annot_col):
     '''
     Separate kmers only present in the backbone annotation from the ones supported by the reads of any sample:
-    If kmer is cross junction:
-    - Only present in annotation if (jct_annot_col == True) and (all samples have zero expression)
-    If kmer is from a segment
-    - Only present in annotation if (rf_annot_col == True) and (all samples have zero expression)
+    A kmer is solely derived from the backbone annotation if (all samples have zero expression)
     The opposite condition is implemented to make use of short-circuit evaluation
 
     :param matrix: spark dataframe matrix to filter
     :param index_name: str kmer column name
     :param jct_annot_col: string junction is annotated column
     :param rf_annot_col: string reading frame is annotated column
-    :param cross_junction: bool whether the count matrix contains junction counts or segment counts
     :return: spark matrix with expressed kmers, spark serie with kmers only in backbone annotation
     '''
-    if cross_junction:
-        novel = f'({jct_annot_col} == {False})' #novel junction #TODO: Update later commit
-    else:
-        novel = f'({rf_annot_col} == {False})'  #novel reading frame
     expressed = ' OR '.join( [f'({col_name} != 0.0)'
                                    for col_name in matrix.schema.names
                                    if col_name not in [index_name, jct_annot_col, rf_annot_col]]) # SQL style because many cols
-    matrix = matrix.withColumn('expr_or_novel',
-                             sf.when(sf.expr(f"{novel} OR {expressed}"), True).otherwise(False))
+    matrix = matrix.withColumn('expressed',
+                             sf.when(sf.expr(f"{expressed}"), True).otherwise(False))
 
-    kmers_AnnotOnly = matrix.select(index_name).where(sf.col('expr_or_novel') == False)
-    matrix = matrix.filter(sf.col('expr_or_novel') == True)
-    matrix = matrix.drop(sf.col('expr_or_novel'))
+    kmers_AnnotOnly = matrix.select(index_name).where(sf.col('expressed') == False)
+    matrix_Expressed = matrix.filter(sf.col('expressed') == True)
+    matrix_Expressed = matrix_Expressed.drop(sf.col('expressed'))
     save_spark(kmers_AnnotOnly, output_dir, separate_back_annot)
-    return matrix
+    return matrix_Expressed
 
 
 def filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col, filterNeojuncCoord, filterAnnotatedRF):
