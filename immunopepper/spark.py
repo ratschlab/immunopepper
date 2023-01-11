@@ -225,7 +225,7 @@ def check_interm_files(out_dir, expr_limit, n_samples_lim, target_sample='', tag
     '''
     base_n_samples = 1
     base_expr = 0.0
-
+    format_tag = '.tsv.gz'
     # For cancer matrix intermediate file the recurrence filter is not applied to the target sample
     if target_sample:
         suffix = f'Except{target_sample}'
@@ -235,17 +235,16 @@ def check_interm_files(out_dir, expr_limit, n_samples_lim, target_sample='', tag
     # For normal samples the expression threshold filtering is not applied to the kmers found only in the annotation
     # but not in the background samples. These kmers will be by default removed from the foreground matrix.
     if tag == 'normals':
-        path_interm_kmers_annotOnly = os.path.join(out_dir, 'kmers_derived_solely_from_annotation.csv')
+        path_interm_kmers_annotOnly = os.path.join(out_dir, f'kmers_derived_solely_from_annotation{format_tag}')
     else:
         path_interm_kmers_annotOnly = None
 
     # Saving paths
+
     path_interm_matrix_for_express_threshold = os.path.join(out_dir,
-                          f'interm_{tag}_combiExprCohortLim{expr_limit}Across{base_n_samples}{suffix}{batch_tag}'
-                          + '.tsv')
+                          f'interm_{tag}_combiExprCohortLim{expr_limit}Across{base_n_samples}{suffix}{batch_tag}{format_tag}')
     path_interm_matrix_for_sample_threshold = os.path.join(out_dir,
-                              f'interm_{tag}_combiExprCohortLim{base_expr}Across{base_n_samples}{suffix}{batch_tag}'
-                              + '.tsv')
+                              f'interm_{tag}_combiExprCohortLim{base_expr}Across{base_n_samples}{suffix}{batch_tag}{format_tag}')
     # Check existence
     if (expr_limit and os.path.isfile(os.path.join(path_interm_matrix_for_express_threshold, '_SUCCESS'))) \
         and (n_samples_lim is not None and os.path.isfile(os.path.join(path_interm_matrix_for_sample_threshold, '_SUCCESS'))):
@@ -317,7 +316,8 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
         matrix_e = matrix_e.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
             filter(lambda x: x[1] >= base_n_samples)
         logging.info(f'Save intermediate 1/2 {tag} filtering file to {path_e}')
-        matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e)
+        matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e, \
+                          compressionCodecClass="org.apache.hadoop.io.compress.GzipCodec")
 
     # Sample filtering, take k-mers with exclude >0 reads in >= 1 sample
     if (n_samples_lim is not None) and (not os.path.isfile(os.path.join(path_s, '_SUCCESS'))):
@@ -335,7 +335,8 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
         matrix_s = matrix_s.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
             filter(lambda x: x[1] >= base_n_samples)
         logging.info(f'Save intermediate 2/2 {tag} filtering file to {path_s}')
-        matrix_s.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_s)
+        matrix_s.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_s,  \
+                          compressionCodecClass="org.apache.hadoop.io.compress.GzipCodec")
 
 
 
