@@ -87,7 +87,7 @@ def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_co
         # Load immunopepper kmer candidates
         rename = True  # For development
         logging.info(f'Load input {path_matrix}')
-        matrix = loader(spark, path_matrix, header=False)
+        matrix = loader(spark, path_matrix, header=True)
 
         if rename:
             logging.info("Rename")
@@ -546,6 +546,10 @@ def loader(spark, path_kmer, header=False):
     elif ('csv' in path_kmer[0]) or ('csv' in path_kmer):
         matrix = spark.read.csv(path_kmer, sep=',', header=header)
     elif ('tsv' in path_kmer[0]) or ('tsv' in path_kmer):
+        matrix = spark.read.csv(path_kmer, sep=r'\t', header=header)
+    elif ('gzip' in path_kmer[0]) or ('gzip' in path_kmer): #If tsv or csv not in path -> assume gzip are tab separated
+        matrix = spark.read.csv(path_kmer, sep=r'\t', header=header)
+    elif ('gz' in path_kmer[0]) or ('gz' in path_kmer):
         matrix = spark.read.csv(path_kmer, sep=r'\t', header=header)
     else:
         logging.error(f'Cannot determine file type of {path_kmer}. Please include .parquet .pq .tsv .csv suffix to the files or the folder (partitionned)')

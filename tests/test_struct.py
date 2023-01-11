@@ -196,9 +196,9 @@ def test_end_to_end_cancerspecif_mx():
               #"--path-cancer-libsize",os.path.join(basedir,'cancer_no_ct_var', 'libsize_cancer.tsv'),
               #"--path-normal-libsize", os.path.join(basedir, 'normal', 'libsize_normals_top20'),
               #"--path-cancer-matrix-segm", os.path.join(basedir, 'cancer', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
-              "--path-cancer-matrix-edge", os.path.join(basedir, 'cancer', 'simple_foreground_flag.pq'),
-              "--path-normal-matrix-segm", os.path.join(basedir, 'normal',  'simple_background_flag_bool.pq'),  os.path.join(basedir, 'normal', 'nested' ,'simple_background_flag_copy_flag_bool.pq'),
-              "--path-normal-matrix-edge", os.path.join(basedir, 'normal', 'nested', 'simple_background_overlay1_flag_bool.pq'),
+              "--path-cancer-matrix-edge", os.path.join(basedir, 'cancer', 'simple_foreground_flag.gz'), #TODO moce to proper test folder
+              "--path-normal-matrix-segm", os.path.join(basedir, 'normal',  'simple_background_flag_bool.gz'),  os.path.join(basedir, 'normal', 'nested' ,'simple_background_flag_copy_flag_bool.gz'),
+              "--path-normal-matrix-edge", os.path.join(basedir, 'normal', 'nested', 'simple_background_overlay1_flag_bool.gz'),
               # "--path-normal-matrix-edge", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
               #"--path-normal-kmer-list", os.path.join(basedir, 'normal', 'simple_annotation.pq'),
               # "--path-normal-kmer-list", os.path.join(basedir, 'normal', 'simple_background_precompute.pq'),os.path.join(basedir, 'normal', 'simple_annotation.pq'),
