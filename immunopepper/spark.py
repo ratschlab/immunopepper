@@ -522,9 +522,11 @@ def save_spark(cancer_kmers, output_dir, path_final_fil, outpartitions=None):
     logging.info(f'>>>> Save to {path_final_fil}')
     pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
     if outpartitions is not None:
-        cancer_kmers.repartition(outpartitions).write.mode('overwrite').options(header="true", sep="\t").csv(path_final_fil)
+        cancer_kmers.repartition(outpartitions).write.mode('overwrite')\
+            .options(header="true", sep="\t", compression="gzip").format("tsv.gz").csv(path_final_fil)
     else:
-        cancer_kmers.write.mode('overwrite').options(header="true", sep="\t").csv(path_final_fil)
+        cancer_kmers.write.mode('overwrite')\
+            .options(header="true", sep="\t", compression="gzip").format("tsv.gz").csv(path_final_fil)
 
 
 def loader(spark, path_kmer, header=False):
