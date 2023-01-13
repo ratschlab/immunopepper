@@ -139,6 +139,8 @@ def parse_arguments(argv):
     development = parser_cancerspecif.add_argument_group('DEVELOPMENT PARAMETERS')
     development.add_argument("--tot-batches", type=int, help="Filter foreground and in background kmers based on hash function. Set number of batches",required=False, default=None)
     development.add_argument("--batch-id", type=int, help="Filter foreground and in background kmers based on hash function. Set 0<= batch_id <tot_batches",required=False, default=None)
+    development.add_argument("--on-the-fly", help="computes every filtering step (cancer/normal) on the fly without saving to intermediate files", action="store_true", default=False)
+
     _add_general_args(parser_cancerspecif)
 
     ### mode_mhcbind

@@ -100,17 +100,22 @@ def mode_cancerspecif(arg):
                 normal_matrix = combine_normals(normal_segm, normal_junc)
 
 
-                # Hard Filtering
-                logging.info((f'\n \n >>>>>>>> Normals: Perform Hard Filtering \n '
-                              f'(expressed in {arg.n_samples_lim_normal} samples'
-                              f' with {arg.cohort_expr_support_normal} normalized counts'))
-                logging.info("expression filter")
-                filter_hard_threshold(normal_matrix, index_name, jct_annot_col, rf_annot_col, libsize_n,
-                                      arg.cohort_expr_support_normal, arg.n_samples_lim_normal,
-                                      path_normal_for_express_threshold, path_normal_for_sample_threshold, tag = 'normals')
+            # Hard Filtering
+            logging.info((f'\n \n >>>>>>>> Normals: Perform Hard Filtering \n '
+                          f'(expressed in {arg.n_samples_lim_normal} samples'
+                          f' with {arg.cohort_expr_support_normal} normalized counts'))
+            logging.info("expression filter")
+            inter_matrix_expr, inter_matrix_sample = filter_hard_threshold(normal_matrix, index_name, jct_annot_col,
+                                                                           rf_annot_col, libsize_n,
+                                                                           arg.cohort_expr_support_normal,
+                                                                           arg.n_samples_lim_normal,
+                                                                           path_normal_for_express_threshold,
+                                                                           path_normal_for_sample_threshold,
+                                                                           on_the_fly=arg.on_the_fly, tag='normals')
 
             normal_matrix = combine_hard_threshold_normals(spark, path_normal_for_express_threshold,
                                                            path_normal_for_sample_threshold,
+                                                           inter_matrix_expr, inter_matrix_sample,
                                                            arg.n_samples_lim_normal, index_name)
             # Add back kmer annot
             normal_matrix = remove_external_kmer_list(spark, path_interm_kmers_annotOnly,
@@ -181,14 +186,20 @@ def mode_cancerspecif(arg):
 
                 # cancer cross-cohort filter
                 if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
-                    if launch_filter_cancer: # else do not need to launch because intermediate files are present
-                        filter_hard_threshold(cancer_matrix, index_name, jct_annot_col, rf_annot_col, libsize_c,
-                                              arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
-                                              path_cancer_for_express_threshold, path_cancer_for_sample_threshold,
-                                              target_sample=cancer_sample, tag=f'cancer_{mutation_mode}')
+                    inter_matrix_expr_c, inter_matrix_sample_c = filter_hard_threshold(cancer_matrix, index_name,
+                                                                                       jct_annot_col, rf_annot_col,
+                                                                                       libsize_c,
+                                                                                       arg.cohort_expr_support_cancer,
+                                                                                       arg.n_samples_lim_cancer,
+                                                                                       path_cancer_for_express_threshold,
+                                                                                       path_cancer_for_sample_threshold,
+                                                                                       target_sample=cancer_sample,
+                                                                                       on_the_fly=arg.on_the_fly,
+                                                                                       tag=f'cancer_{mutation_mode}')
                     cancer_cross_filter = combine_hard_threshold_cancers(spark, cancer_matrix,
                                                                          path_cancer_for_express_threshold,
                                                                          path_cancer_for_sample_threshold,
+                                                                         inter_matrix_expr_c, inter_matrix_sample_c,
                                                                          arg.cohort_expr_support_cancer,
                                                                          arg.n_samples_lim_cancer,
                                                                          index_name)

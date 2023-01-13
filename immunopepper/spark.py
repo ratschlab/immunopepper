@@ -267,7 +267,7 @@ def check_interm_files(out_dir, expr_limit, n_samples_lim, target_sample='', tag
 
 def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsize,
                           expr_limit, n_samples_lim, path_e, path_s, target_sample='',
-                          tag='normals'):
+                          tag='normals', on_the_fly=False):
     '''
     Filter samples based on >0 and >=X reads expressed (expensive operations) and save intermediate files.
     Additional thresholds will be applied specifically for cancer or normals matrices in subsequent combine functions
@@ -287,11 +287,16 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
     :param target_sample: str name of the sample of interest.
      To be excluded in the number of samples that pass the expression limit
     :param tag: str tag related to the type of samples. Example cancer or normal
-
+    :param on_the_fly: bool. whether to save intermediate file after counting the number of columns passing a threshold
+    :returns
+        matrix_e: RDD. intermediate object after applying >= X reads in >= 1 sample
+        matrix_s: RDD. intermediate object after applying >0 reads in >= 1 sample
     '''
 
     base_n_samples = 1
     base_expr = 0.0
+    matrix_e, matrix_s = None, None
+
 
     if target_sample:
         logging.info(f'Target sample {target_sample} not included in the cohort filtering')
@@ -315,8 +320,9 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
         # This uses rdds syntax because spark dataframe operations are slower
         matrix_e = matrix_e.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
             filter(lambda x: x[1] >= base_n_samples)
-        logging.info(f'Save intermediate 1/2 {tag} filtering file to {path_e}')
-        matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e, \
+        if not on_the_fly:
+            logging.info(f'Save intermediate 1/2 {tag} filtering file to {path_e}')
+            matrix_e.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_e, \
                           compressionCodecClass="org.apache.hadoop.io.compress.GzipCodec")
 
     # Sample filtering, take k-mers with exclude >0 reads in >= 1 sample
@@ -334,14 +340,19 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
         # This uses rdds syntax because spark dataframe operations are slower
         matrix_s = matrix_s.rdd.map(tuple).map(lambda x: (x[0], sum(x[1:]))).\
             filter(lambda x: x[1] >= base_n_samples)
-        logging.info(f'Save intermediate 2/2 {tag} filtering file to {path_s}')
-        matrix_s.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_s,  \
+        if not on_the_fly:
+            logging.info(f'Save intermediate 2/2 {tag} filtering file to {path_s}')
+            matrix_s.map(lambda x: "%s\t%s" % (x[0], x[1])).saveAsTextFile(path_s,  \
                           compressionCodecClass="org.apache.hadoop.io.compress.GzipCodec")
 
+    return matrix_e, matrix_s
 
 
 
-def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers_s, n_samples_lim_normal, index_name):
+
+def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers_s,
+                                   normal_matrix_e, normal_matrix_s,
+                                   n_samples_lim_normal, index_name):
     '''
     Filter samples based on X reads and H samples.
     a. kmer need to be if >= X reads in >= 1 sample -> load path_*_e (expression) file
@@ -350,27 +361,43 @@ def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers
     :param spark: spark context
     :param path_normal_kmers_e: str path for intermediate file which applied >= X reads in >= 1 sample
     :param path_normal_kmers_s: str path for intermediate file which applied >0 reads in >= 1 sample
+    :param normal_matrix_e: RDD. intermediate object after applying >= X reads in >= 1 sample
+    :param normal_matrix_s: RDD. intermediate object after applying >0 reads in >= 1 sample
     :param n_samples_lim_normal: int number of samples in which any number of reads is required
     :param index_name: index_name: str kmer column name
     :return: spark dataframe filtered with >= X reads in 1 sample OR >0 reads in H samples
     '''
-    if path_normal_kmers_e: #a.k.a exclude >= X reads in >= 1 sample)
-        normal_matrix_e = spark.read.csv(path_normal_kmers_e, sep=r'\t', header=False)
-        normal_matrix_e = normal_matrix_e.withColumnRenamed('_c0', index_name)
-        normal_matrix_e = normal_matrix_e.select(sf.col(index_name))
-        if not path_normal_kmers_s:
-            return normal_matrix_e
-    if path_normal_kmers_s:  # (a.k.a exclude >0  reads in >= H samples)
+    #  Convert or re-load matrix expression threshold (Counts >= X reads in >= 1 sample)
+    if normal_matrix_e:
+        normal_matrix_e = normal_matrix_e.toDF(['kmer', 'n_samples'])
+    elif path_normal_kmers_e:
+        if (path_normal_kmers_s != path_normal_kmers_e):
+            normal_matrix_e = spark.read.csv(path_normal_kmers_e, sep=r'\t', header=False)
+            normal_matrix_e = normal_matrix_e.withColumnRenamed('_c0', index_name)
+            normal_matrix_e = normal_matrix_e.select(sf.col(index_name))
+
+
+    # convert or re-load matrix sample threshold (Counts >0  reads in >= 1 sample)
+    if normal_matrix_s:
+        normal_matrix_s = normal_matrix_s.toDF(['kmer', 'n_samples'])
+    elif path_normal_kmers_s:
         normal_matrix_s = spark.read.csv(path_normal_kmers_s, sep=r'\t', header=False)
         normal_matrix_s = normal_matrix_s.withColumnRenamed('_c0', index_name)
         normal_matrix_s = normal_matrix_s.withColumnRenamed('_c1', "n_samples")
-        if n_samples_lim_normal > 1:
-            logging.info( f'Filter matrix with cohort expression support > {0} in {n_samples_lim_normal} sample(s)')
+
+
+    # Threshold on number of samples
+    if normal_matrix_s:
+        if n_samples_lim_normal > 1: #(Counts >0  reads in >= H samples)
+            logging.info(f'Filter matrix with cohort expression support > {0} in {n_samples_lim_normal} sample(s)')
             normal_matrix_s = normal_matrix_s.filter(sf.col('n_samples') >= n_samples_lim_normal)
         normal_matrix_s = normal_matrix_s.select(sf.col(index_name))
-        if not path_normal_kmers_e:
-            return normal_matrix_s
-    if path_normal_kmers_e and path_normal_kmers_s:
+
+    if normal_matrix_e and not normal_matrix_s:
+        return normal_matrix_e
+    elif normal_matrix_s and not normal_matrix_e:
+        return normal_matrix_s
+    elif normal_matrix_e and normal_matrix_s:
         normal_matrix_res = normal_matrix_e.union(normal_matrix_s) # Do not make distinct
         return normal_matrix_res
     else:
@@ -378,6 +405,7 @@ def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers
 
 
 def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, path_cancer_kmers_s,
+                                   inter_matrix_expr_c, inter_matrix_sample_c,
                                    cohort_expr_support_cancer, n_samples_lim_cancer, index_name):
     '''
      Filter samples based on X reads and H samples.
@@ -388,24 +416,36 @@ def combine_hard_threshold_cancers(spark, cancer_matrix, path_cancer_kmers_e, pa
     :param cancer_matrix: spark dataframe with preprocessed foreground
     :param path_normal_kmers_e: str path for intermediate file which applied >= X reads in >= 1 sample
     :param path_normal_kmers_s: str path for intermediate file which applied >0 reads in >= 1 sample
+    :param inter_matrix_expr_c: RDD. intermediate object after applying >= X reads in >= 1 sample
+    :param inter_matrix_sample_c: RDD. intermediate object after applying >0 reads in >= 1 sample
     :param cohort_expr_support_cancer: float expression threshold to be met for the kmer
     :param n_samples_lim_cancer: int number of samples in which the expression threshold need to be met
     :param index_name: str kmer column name
     :return: spark dataframe with foreground filtered for >= X reads and in >= H samples
     '''
-    # Load intermediate file
+    # Convert or re-load intermediate files
     if cohort_expr_support_cancer != 0.0:
-        valid_foreground = spark.read.csv(path_cancer_kmers_e, sep=r'\t', header=False)
+        if inter_matrix_expr_c:
+            valid_foreground = inter_matrix_expr_c.toDF(['kmer', 'n_samples'])
+        elif path_cancer_kmers_e:
+            valid_foreground = spark.read.csv(path_cancer_kmers_e, sep=r'\t', header=False)
+            valid_foreground = valid_foreground.withColumnRenamed('_c0', index_name).withColumnRenamed('_c1', "n_samples")
+
     else:
-        valid_foreground = spark.read.csv(path_cancer_kmers_s, sep=r'\t', header=False)
-    valid_foreground = valid_foreground.withColumnRenamed('_c0', index_name)
-    valid_foreground = valid_foreground.withColumnRenamed('_c1', "n_samples")
+        if inter_matrix_sample_c:
+            valid_foreground = inter_matrix_sample_c.toDF(['kmer', 'n_samples'])
+        elif path_cancer_kmers_s:
+            valid_foreground = spark.read.csv(path_cancer_kmers_s, sep=r'\t', header=False)
+            valid_foreground = valid_foreground.withColumnRenamed('_c0', index_name).withColumnRenamed('_c1', "n_samples")
+
+
     # kmer need to be expressed with >= X reads and this in >= H samples
     if n_samples_lim_cancer > 1:
         logging.info( (f'Filter matrix with cohort expression support >= {cohort_expr_support_cancer} '
                        f'in {n_samples_lim_cancer} sample(s)'))
         valid_foreground = valid_foreground.filter(sf.col('n_samples') >= n_samples_lim_cancer)
     valid_foreground = valid_foreground.select(sf.col(index_name))
+
     # Apply to preprocessed matrix
     cancer_cross_filter = cancer_matrix.join(valid_foreground, ["kmer"],
                                              how='right')
