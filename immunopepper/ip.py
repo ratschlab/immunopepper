@@ -97,8 +97,8 @@ def parse_arguments(argv):
 
     helpers = parser_cancerspecif.add_argument_group('INPUT HELPERS: Help the software understand the input files')
     helpers.add_argument("--kmer", help='kmer', required=True)
-    helpers.add_argument("--ids-cancer-samples", nargs='+',help=" list of all cancer samples on which to apply the filtering. If --paths-cancer-samples provided they should be given in same order", required=True, default='')
-    helpers.add_argument("--mut-cancer-samples", nargs='+', help=" list of mutation modes corresponding to cancer samples. If --paths-cancer-samples provided they should be given in same order", required=True, default='')
+    helpers.add_argument("--ids-cancer-samples", nargs='+',help=" list of all cancer samples on which to apply the filtering. If --paths-cancer-samples provided they should be given in same order. \n If not provided the software filters the normals only.", required=False, default='')
+    helpers.add_argument("--mut-cancer-samples", nargs='+', help=" list of mutation modes corresponding to cancer samples. If --paths-cancer-samples provided they should be given in same order", required=False, default='')
 
     inputs = parser_cancerspecif.add_argument_group('GENERAL INPUT FILES: Files and parameters to be provided to the software regardless of the filtering strategy')
     inputs.add_argument("--whitelist-normal", help="file containg whitelist for normal samples", required=False, default=None)
