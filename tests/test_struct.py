@@ -61,25 +61,23 @@ def test_end_to_end_samplespecif(sample, tmpdir, kmer, mutation_mode):
     ip.split_mode(my_args)
 
 
-def test_end_to_end_cancerspecif_mx():
-
-    basedir = "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test"
+def test_end_to_end_cancerspecif_mx(outdir):
+    basedir = os.path.join(os.path.dirname(__file__), 'filter_case')
+    if not os.path.exists(os.path.join(outdir, "test_inter_normal")):
+        os.mkdir(os.path.join(outdir, "test_inter_normal"))
+    if not os.path.exists(os.path.join(outdir, "test_inter_cancer")):
+        os.mkdir(os.path.join(outdir, "test_inter_cancer"))
     my_args =["cancerspecif",
               "--cores", "2",
               "--mem-per-core", "6000",
               "--kmer", "9",
-              #"--path-cancer-libsize",os.path.join(basedir,'cancer_no_ct_var', 'libsize_cancer.tsv'),
-              #"--path-normal-libsize", os.path.join(basedir, 'normal', 'libsize_normals_top20'),
-              #"--path-cancer-matrix-segm", os.path.join(basedir, 'cancer', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
-              "--path-cancer-matrix-edge", os.path.join(basedir, 'cancer', 'simple_foreground_flag.gz'), #TODO moce to proper test folder
-              "--path-normal-matrix-segm", os.path.join(basedir, 'normal',  'simple_background_flag_bool.gz'),  os.path.join(basedir, 'normal', 'nested' ,'simple_background_flag_copy_flag_bool.gz'),
+              "--path-cancer-matrix-edge", os.path.join(basedir, 'cancer', 'simple_foreground_flag.gz'),
+              "--path-normal-matrix-segm", os.path.join(basedir, 'normal',  'simple_background_flag_bool.gz'), \
+                                  os.path.join(basedir, 'normal', 'nested','simple_background_flag_copy_flag_bool.gz'),
               "--path-normal-matrix-edge", os.path.join(basedir, 'normal', 'nested', 'simple_background_overlay1_flag_bool.gz'),
-              # "--path-normal-matrix-edge", os.path.join(basedir, 'normal', 'ref_graph_kmer_SegmExpr_top20_n20_overlap.pq.gz'),
-              #"--path-normal-kmer-list", os.path.join(basedir, 'normal', 'simple_annotation.pq'),
-              # "--path-normal-kmer-list", os.path.join(basedir, 'normal', 'simple_background_precompute.pq'),os.path.join(basedir, 'normal', 'simple_annotation.pq'),
-              #"--path-normal-kmer-list", os.path.join(basedir, 'normal', 'simple_background_precompute.tsv'),os.path.join(basedir, 'normal', 'simple_background_precompute_bis.tsv'),
+              "--path-normal-kmer-list", os.path.join(basedir, 'normal', 'simple_annotation.pq'),
               '--ids-cancer-samples',  "TCGA-13-1497-01A-01" , "TCGA-24-1103-01A-01",
-              "--output-dir", os.path.join(basedir, 'filter_out'),
+              "--output-dir", os.path.join(outdir, 'filter_out'),
               "--output-count", os.path.join(basedir, 'filter_out', "collect.txt"),
               '--expr-high-limit-normal', "0.0",
               '--cohort-expr-support-normal', "0",
@@ -92,15 +90,10 @@ def test_end_to_end_cancerspecif_mx():
               # "--tot-batches", "4",
               # "--batch-id", "0",
               "--tag-prefix", 'G_',
-              "--interm-dir-norm", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/test_inter",
-              "--interm-dir-canc", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/test_inter_c",
-              #"--expression-fields-c", 'segment_expr', 'junction_expr',
-              #"--tissue-grp-files", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt",
-              #'/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_OV.txt',
-              #"--whitelist-normal", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/normal/tissue_grps/dummy_BRCA.txt" ,
-              '--whitelist-cancer', '/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/cancer/whitelist_cancer.txt',
-              "--uniprot", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/uniprot",
-              #"--path-normal-kmer-list", "/Users/laurieprelot/Documents/Projects/tmp_kmer/filter_test/filter_out/normals_merge-segm-edge_max_uniq_expr-in-3-samples-with-0.1-normalized-cts.tsv",
+              "--interm-dir-norm", os.path.join(outdir, "test_inter_normal"),
+              "--interm-dir-canc", os.path.join(outdir, "test_inter_cancer"),
+              '--whitelist-cancer', os.path.join(basedir, 'cancer', 'whitelist_cancer.txt'),
+              "--uniprot", os.path.join(basedir, 'uniprot.txt'),
               "--parallelism", "3",
               "--out-partitions", "2",
               "--mut-cancer-samples", "ref", "ref"]
@@ -114,6 +107,7 @@ def test_end_to_end_cancerspecif_mx():
 
 ### Mouse Test
 tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
+
 mutation_mode ='germline'
 #pr = cProfile.Profile()
 #pr.enable()
@@ -122,7 +116,8 @@ mutation_mode ='germline'
 #for mutation_mode in ['ref', 'germline', 'somatic', 'somatic_and_germline']:
 #     test_end_to_end_makebg('ERR2130621', tmpdir, "9")
 #     test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
-test_end_to_end_cancerspecif_mx()
+outdir_filter = os.path.join(tmpdir, "filter_test")
+test_end_to_end_cancerspecif_mx(outdir_filter)
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 
