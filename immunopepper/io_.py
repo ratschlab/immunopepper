@@ -26,6 +26,9 @@ sys.modules['modules.classes.segmentgraph'] = segmentgraph
 
 # --- end fix
 
+fasta_prefix = lambda t: '>' + t
+make_fasta_ids = np.vectorize(fasta_prefix)
+
 
 def open_gz_or_normal(file_path: str, mode: str = 'r'):
     if file_path.endswith('.gz'):
@@ -123,8 +126,6 @@ def save_bg_peptide_set(data, filepointer: Filepointer, out_dir: str = None,
             >ENSMUST00000027035.9
             MSSPDAGYASDDQSQPRSAQPAVMAGLGPCPWAESLSPLGDVKVKGEVVASSGAPAGTSGRAKAESRIRRPMNAF
     """
-    fasta_prefix = lambda t: '>' + t
-    make_fasta_ids = np.vectorize(fasta_prefix)
 
     if data:
         data = np.array([line.split('\t') for line in data]).T #set to array #TODO vectorize slit
@@ -141,8 +142,6 @@ def save_fg_peptide_set(data: set, filepointer: Filepointer, out_dir: str = None
     Save foreground peptide data.
     :param data: set containing the lines to be written sep is '\t'
     """
-    fasta_prefix = lambda t: '>' + t
-    make_fasta_ids = np.vectorize(fasta_prefix)
 
     if data:
         data = np.array([line.split('\t') for line in data]).T  # set to array
