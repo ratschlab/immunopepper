@@ -342,13 +342,20 @@ def create_libsize(expr_distr_fp, output_fp, sample, debug=False):
     debug: Bool. In debug mode, return the libsize_count dictionary.
     """
     libsize_exists = ''
-    sample_expr_distr = pa.parquet.read_table(expr_distr_fp['path']).to_pandas()
+    sample_expr_distr = sample_expr_distr = pd.read_csv(expr_distr_fp['path'], sep='\t', compression='gzip') #TODO gather all the partitions here
 
-    libsize_count = pd.DataFrame({'sample': sample_expr_distr.columns[1:],
+    # change types
+    convert_dict = {}
+    for col in sample_expr_distr.columns:
+        if col != 'gene':
+            convert_dict[col] = float
+    sample_expr_distr = sample_expr_distr.astype(convert_dict)
+
+    # compute libsizes
+    df_libsize = pd.DataFrame({'sample': sample_expr_distr.columns[1:],
                                  'libsize_75percent': np.percentile(sample_expr_distr.iloc[:, 1:], 75, axis=0, interpolation='linear'),
                                   'libsize_total_count': np.sum(sample_expr_distr.iloc[:, 1:], axis=0)}, index = None)
 
-    df_libsize = pd.DataFrame(libsize_count)
 
     if os.path.isfile(output_fp):
         previous_libsize = pd.read_csv(output_fp, sep = '\t')

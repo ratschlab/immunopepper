@@ -10,7 +10,7 @@ import os
 import sys
 
 from immunopepper.io_ import read_pq_with_dict
-from immunopepper.io_ import save_pd_toparquet
+from immunopepper.io_ import save_to_gzip
 
 
 
@@ -34,7 +34,7 @@ def mode_samplespecif(arg):
                 bg_kmer_set.update(f['kmer'])
             else: 
                 logging.info("WARNING annotation file: {} does not exist".format(kmer_file))
-        save_pd_toparquet(arg.bg_file_path , pd.DataFrame(bg_kmer_set, columns = ['kmer'],  dtype='str'),
+        save_to_gzip(arg.bg_file_path , pd.DataFrame(bg_kmer_set, columns = ['kmer'],  dtype='str'),
                   compression=compression, verbose=True)
         logging.info("generated unique background kmer file in {} \n ".format(arg.bg_file_path))
     else:
@@ -54,7 +54,7 @@ def mode_samplespecif(arg):
                 kmer_df['is_neo_flag'] = bg_flag
             
             output_file_path = os.path.join(arg.output_dir, junction_kmer_file.split('/')[-1].replace('.pq', '') + '_' + arg.output_suffix + '.pq')
-            save_pd_toparquet( output_file_path, kmer_df,
+            save_to_gzip(output_file_path, kmer_df,
                   compression='SNAPPY', verbose=True)
             logging.info("output bg-removed kmer file : {} \n ".format(output_file_path))
         else:
