@@ -1,7 +1,7 @@
 """Contains all the output computation based on gene splicegraph"""
+
 from collections import defaultdict
 import numpy as np
-import logging
 
 from immunopepper.filter import add_kmers
 from immunopepper.filter import filter_redundant_junctions
@@ -312,6 +312,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                         edge_expr_meta, edge_expr = search_edge_metadata_segmentgraph(gene, modi_coord, edge_idxs, edge_counts, cross_graph_expr=cross_graph_expr)
                     else:
                         edge_expr_meta, edge_expr = np.nan, np.nan
+
                     ### Peptides
                     peptide_set.add(namedtuple_to_str(OutputMetadata(peptide=peptide.mut[pep_idx],
                                        output_id=new_output_id,
@@ -345,10 +346,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
                     ### kmers
                     if cross_graph_expr: #generate kmer x sample expression matrix for all samples in graph
                         create_output_kmer_cross_samples(output_peptide, kmer[0], expr_list, graph_output_samples_ids,
-                                                         kmer_matrix_edge, kmer_matrix_segm, kmer_database,
-                                                         graph_samples, filepointer,
-                                                         out_dir=out_dir, verbose=verbose_save)
-                        # Only one kmer length supported for this mode
+                                                         kmer_matrix_edge, kmer_matrix_segm, kmer_database) # Only one kmer length supported for this mode
 
                     else:
                         # generate sample kmers for each vertex pair and each kmer_length
@@ -364,10 +362,9 @@ def get_and_write_peptide_and_kmer(peptide_set=None, kmer_dict=None,
 
         if not gene.splicegraph.edges is None:
             gene.to_sparse()
-
-    if cross_graph_expr: # Only one kmer length supported for this mode
-        save_kmer_matrix(kmer_matrix_edge, kmer_matrix_segm, kmer[0], graph_samples, filepointer,
-                         out_dir=out_dir, verbose=verbose_save)
+    if cross_graph_expr:
+        save_kmer_matrix(kmer_matrix_edge, kmer_matrix_segm, graph_samples, filepointer,
+                         compression=None, out_dir=out_dir, verbose=verbose_save)
 
 
 
@@ -515,8 +512,7 @@ def create_output_kmer(output_peptide, k, expr_list, kmer_database=None):
 
 
 def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_output_samples_ids,
-                                     kmer_matrix_edge, kmer_matrix_segm, kmer_database, graph_samples,
-                                     filepointer, out_dir=None, verbose=None):
+                                     kmer_matrix_edge, kmer_matrix_segm, kmer_database):
     """Calculate the output kmer and the corresponding expression based on output peptide
 
     Parameters
@@ -541,6 +537,7 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
         spanning_index1, spanning_index2, spanning_index1_2 = get_spanning_index(output_peptide.exons_coor, k)
     else:
         spanning_index1, spanning_index2, spanning_index1_2 = [np.nan], [np.nan], [np.nan]
+
 
     if len(output_peptide.peptide) >= k:
         for j in range(len(output_peptide.peptide) - k + 1):
@@ -592,20 +589,12 @@ def create_output_kmer_cross_samples(output_peptide, k, segm_expr_list, graph_ou
                 sublist_seg = sublist_seg.flatten().tolist()
                 left_past = left
                 W_past = W
+
             # update the cross samples matrix
             if check_database:
                 row_metadata = [kmer_peptide, is_in_junction, junction_annotated, output_peptide.read_frame_annotated]
-                if is_in_junction:
-                    kmer_matrix_edge.add(tuple(row_metadata + list(sublist_jun)))
-                else:
-                    kmer_matrix_segm.add(tuple(row_metadata + list(np.round(sublist_seg, 2))))
-
-                if len(kmer_matrix_segm) > 1000:
-                    save_kmer_matrix(None, kmer_matrix_segm, k, graph_samples, filepointer, out_dir, verbose)
-                    kmer_matrix_segm.clear()
-                if len(kmer_matrix_edge) > 1000:
-                    save_kmer_matrix(kmer_matrix_edge, None, k, graph_samples, filepointer, out_dir, verbose)
-                    kmer_matrix_edge.clear()
+                kmer_matrix_edge.add(tuple(row_metadata + list(sublist_jun)))
+                kmer_matrix_segm.add(tuple(row_metadata + list(np.round(sublist_seg, 2))))
 
 
 

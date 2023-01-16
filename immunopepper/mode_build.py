@@ -5,7 +5,6 @@ from collections import defaultdict
 import h5py
 import logging
 import multiprocessing as mp
-from multiprocessing.pool import ThreadPool
 import numpy as np
 import os
 import pathlib
@@ -16,7 +15,6 @@ import timeit
 
 # immuno module
 from immunopepper.io_ import collect_results
-from immunopepper.io_ import get_save_path
 from immunopepper.io_ import initialize_fp
 from immunopepper.io_ import remove_folder_list
 from immunopepper.io_ import save_bg_kmer_set
@@ -62,7 +60,7 @@ def pool_initializer_glob(countinfo_glob, genetable_glob, kmer_database_glob): #
     countinfo = countinfo_glob
     genetable = genetable_glob
     kmer_database = kmer_database_glob
-    #return sig.signal(sig.SIGINT, sig.SIG_IGN)
+    return sig.signal(sig.SIGINT, sig.SIG_IGN)
 
 def mapper_funct(tuple_arg):
     process_gene_batch_foreground(*tuple_arg)
@@ -73,7 +71,7 @@ def mapper_funct_back(tuple_arg):
 
 
 def process_gene_batch_background(output_sample, mutation_sample, genes, gene_idxs, n_genes, mutation, countinfo_b,
-                                  genetable, arg, outbase, filepointer, verbose=False):
+                                  genetable, arg, outbase, filepointer, compression=None, verbose=False):
     if arg.parallel > 1:
         batch_name = int(outbase.split('/')[-1].split('_')[-1])
     else:
@@ -130,10 +128,10 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
             time_per_gene.append(timeit.default_timer() - start_time)
             mem_per_gene.append(print_memory_diags(disable_print=True))
 
-        save_bg_peptide_set(set_pept_backgrd, filepointer, outbase, verbose)
+        save_bg_peptide_set(set_pept_backgrd, filepointer, compression, outbase, verbose)
         set_pept_backgrd.clear()
         for kmer_length in set_kmer_back:
-            save_bg_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, outbase, verbose)
+            save_bg_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
         set_kmer_back.clear()
 
         pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
@@ -161,7 +159,7 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
 def process_gene_batch_foreground(output_sample, mutation_sample, output_samples_ids, genes,
                                   genes_info, gene_idxs, n_genes, genes_interest, disable_process_libsize,
                                   all_read_frames, complexity_cap, mutation, junction_dict,
-                                  arg, outbase, filepointer, verbose):
+                                  arg, outbase, filepointer, compression, verbose):
     global countinfo
     global genetable
     global kmer_database
@@ -256,10 +254,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             junction_list = None
             if not junction_dict is None and chrm in junction_dict:
                 junction_list = junction_dict[chrm]
- 
-            if arg.cross_graph_expr:
-                pathlib.Path(get_save_path(filepointer.kmer_segm_expr_fp, outbase)).mkdir(exist_ok=True, parents=True)
-                pathlib.Path(get_save_path(filepointer.kmer_edge_expr_fp, outbase)).mkdir(exist_ok=True, parents=True)
+
             vertex_pairs, \
             ref_mut_seq, \
             exon_som_dict = collect_vertex_pairs(gene=gene,
@@ -306,13 +301,17 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             mem_per_gene.append(print_memory_diags(disable_print=True))
             all_gene_idxs.append(gene_idxs[i])
 
-        save_gene_expr_distr(gene_expr, arg.output_samples, output_sample,  filepointer, outbase, verbose)
-        save_fg_peptide_set(set_pept_forgrd, filepointer, outbase, arg.output_fasta, verbose)
+        save_gene_expr_distr(gene_expr, arg.output_samples, output_sample,  filepointer, outbase, compression, verbose)
+        save_fg_peptide_set(set_pept_forgrd, filepointer, compression, outbase, arg.output_fasta, verbose)
         set_pept_forgrd.clear()
         if not arg.cross_graph_expr: # Write kmer file for single sample (multiple kmer lengths supported)
             for kmer_length in arg.kmer:
-                save_fg_kmer_dict(dictofSets_kmer_foregr[kmer_length], filepointer, kmer_length, outbase, verbose)
+                save_fg_kmer_dict(dictofSets_kmer_foregr[kmer_length], filepointer, kmer_length, compression, outbase, verbose)
             dictofSets_kmer_foregr.clear()
+        if arg.cross_graph_expr \
+                and filepointer.kmer_segm_expr_fp['pqwriter'] is not None: # Write kmer files for multiple samples
+            filepointer.kmer_segm_expr_fp['pqwriter'].close()
+            filepointer.kmer_edge_expr_fp['pqwriter'].close()
 
         pathlib.Path(os.path.join(outbase, "output_sample_IS_SUCCESS")).touch()
 
@@ -385,7 +384,7 @@ def mode_build(arg):
 
     ### DEBUG
     #graph_data = graph_data[[3170]] #TODO remove
-    #graph_data = graph_data[940:942]
+    #graph_data = graph_data[0:110]
     if arg.start_id != 0 and arg.start_id < len(graph_data):
         logging.info(f'development feature: starting at gene number {arg.start_id}')
         graph_data = graph_data[arg.start_id:]
@@ -424,6 +423,7 @@ def mode_build(arg):
     # parse output_sample relatively to output mode
     process_output_samples, output_samples_ids = parse_output_samples_choices(arg, countinfo, matching_count_ids,
                                                                               matching_count_samples)
+
     logging.info(">>>>>>>>> Start traversing splicegraph")
     for output_sample in process_output_samples:
         logging.info(f'>>>> Processing output_sample {output_sample}, there are {n_genes} graphs in total')
@@ -458,22 +458,22 @@ def mode_build(arg):
             if (not arg.skip_annotation) and not (arg.libsize_extract):
                 # Build the background
                 logging.info(">>>>>>>>> Start Background processing")
-                with ThreadPool(processes=None, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
+                with mp.Pool(processes=arg.parallel, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
                     args = [(output_sample, arg.mutation_sample,  graph_data[gene_idx], gene_idx, n_genes, mutation,
                              countinfo, genetable, arg,
                              os.path.join(output_path, f'tmp_out_{mutation.mode}_batch_{i + arg.start_id}'),
-                             filepointer, verbose_save) for i, gene_idx in gene_batches ]
+                             filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
                     result = pool.imap(mapper_funct_back, args, chunksize=1)
                     exits_if_exception = [res for res in result]
 
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
-            with ThreadPool(processes=None, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
+            with mp.Pool(processes=arg.parallel, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
                 args = [(output_sample, arg.mutation_sample, output_samples_ids, graph_data[gene_idx],
                          graph_info[gene_idx], gene_idx, n_genes, genes_interest, disable_process_libsize,
                          arg.all_read_frames, complexity_cap, mutation, junction_dict, arg,
                          os.path.join(output_path, f'tmp_out_{mutation.mode}_batch_{i + arg.start_id}'),
-                         filepointer, verbose_save) for i, gene_idx in gene_batches ]
+                         filepointer, None, verbose_save) for i, gene_idx in gene_batches ]
                 result = pool.imap(mapper_funct, args, chunksize=1)
                 exits_if_exception = [res for res in result]
 
@@ -488,10 +488,8 @@ def mode_build(arg):
             collect_results(filepointer.junction_meta_fp, output_path, pq_compression, mutation.mode)
             collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
             collect_results(filepointer.background_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
-            collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression,
-                            mutation.mode, parquet_partitions=True)
-            collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression,
-                            mutation.mode, parquet_partitions=True)
+            collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression, mutation.mode)
+            collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression, mutation.mode)
             if not arg.keep_tmpfiles:
                 logging.info("Cleaning temporary files")
                 remove_folder_list(os.path.join(output_path, f'tmp_out_{mutation.mode}_batch'))
@@ -503,13 +501,13 @@ def mode_build(arg):
             if (not arg.skip_annotation) and not (arg.libsize_extract):
                 process_gene_batch_background(output_sample, arg.mutation_sample, graph_data, genes_range, n_genes,
                                               mutation, countinfo, genetable, arg, output_path, filepointer,
-                                              verbose=True)
+                                              pq_compression, verbose=True)
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
             process_gene_batch_foreground( output_sample, arg.mutation_sample, output_samples_ids, graph_data,
                                            graph_info, genes_range, n_genes, genes_interest, disable_process_libsize,
                                            arg.all_read_frames, complexity_cap, mutation, junction_dict,
-                                           arg, output_path, filepointer,
+                                           arg, output_path, filepointer, pq_compression,
                                            verbose=True)
 
         if (not disable_process_libsize) and countinfo:
