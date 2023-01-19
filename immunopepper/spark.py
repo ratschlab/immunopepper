@@ -665,28 +665,23 @@ def save_output_count(output_count, report_count, report_steps, prefix, cancer_s
         logging.info(f'Save intermediate info to {output_count}')
 
 
-def redirect_scratch(scratch_dir, interm_dir_norm, interm_dir_canc, output_dir):
+def redirect_interm(interm_dir_norm, interm_dir_canc, output_dir):
     '''
     Set the directory to save intermediary file
-    - Uses either the scratch directory variable from the cluster
     - The output directory
-    - Any other specified normal or cancer scratch directory
+    - Any other specified normal or cancer directory
     Default. Uses output directory
-    :param scratch_dir: str os environement variable name containing the cluster scratch directory path
     :param interm_dir_norm: str custom scatch dir path to save intermediate normal files
     :param interm_dir_canc: str custom scatch dir path to save intermediate cancer files
     :param output_dir: str output directory for the filtered matrix
     :return:
     '''
-    if scratch_dir:
-        cancer_out = os.environ[scratch_dir]
-        normal_out = os.environ[scratch_dir]
-        return normal_out, cancer_out
+
     if interm_dir_canc:
         cancer_out = interm_dir_canc
     else:
         cancer_out = output_dir
-    if  interm_dir_norm:
+    if interm_dir_norm:
         normal_out = interm_dir_norm
     else:
         normal_out = output_dir

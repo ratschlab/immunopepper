@@ -15,7 +15,7 @@ from immunopepper.spark import filter_hard_threshold
 from immunopepper.spark import output_count
 from immunopepper.spark import process_build_outputs
 from immunopepper.spark import process_libsize
-from immunopepper.spark import redirect_scratch
+from immunopepper.spark import redirect_interm
 from immunopepper.spark import remove_external_kmer_list
 from immunopepper.spark import remove_uniprot
 from immunopepper.spark import save_output_count
@@ -28,7 +28,7 @@ from immunopepper.spark import save_spark
 ### Main
 def mode_cancerspecif(arg):
 
-    spark_cfg = default_spark_config(arg.cores, arg.mem_per_core, arg.parallelism)
+    spark_cfg = default_spark_config(arg.cores, arg.mem_per_core, arg.parallelism, tmp_dir=arg.scratch_dir)
     with create_spark_session_from_config(spark_cfg) as spark:
         # if os.path.exists(os.path.join(arg.output_dir, "checkpoint")):
         #     shutil.rmtree(os.path.join(arg.output_dir, "checkpoint"))
@@ -49,7 +49,7 @@ def mode_cancerspecif(arg):
             arg.tag_prefix = arg.tag_prefix + '_'
         report_count = []
         report_steps = []
-        normal_out, cancer_out = redirect_scratch(arg.scratch_dir, arg.interm_dir_norm,
+        normal_out, cancer_out = redirect_interm(arg.interm_dir_norm,
                                                   arg.interm_dir_canc, arg.output_dir)
 
         ### Preprocessing Libsize

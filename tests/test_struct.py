@@ -79,7 +79,7 @@ def test_end_to_end_cancerspecif_mx(outdir):
               "--path-normal-kmer-list", os.path.join(basedir, 'normal', 'simple_annotation.pq'),
               '--ids-cancer-samples',  "TCGA-13-1497-01A-01" , "TCGA-24-1103-01A-01", #If cancer thresholding and differential filtering needed
               "--output-dir", os.path.join(outdir, 'filter_out'),
-              "--output-count", os.path.join(basedir, 'filter_out', "collect.txt"),
+              "--output-count", os.path.join(outdir, 'filter_out', "collect.txt"),
               '--cohort-expr-support-normal', "0",
               "--n-samples-lim-normal", "0",
               '--sample-expr-support-cancer', "4",
