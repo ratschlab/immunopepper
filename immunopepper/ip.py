@@ -28,7 +28,7 @@ def parse_arguments(argv):
     required.add_argument("--ann-path", help="absolute path of reference gene annotation file", required=True)
     required.add_argument("--splice-path", help="absolute path of splicegraph file", required=True)
     required.add_argument("--ref-path", help="absolute path of reference genome file", required=True)
-    required.add_argument("--kmer", nargs='+', type=int, help="list which specifies the different k for kmer output", required=True, default=[])
+    required.add_argument("--kmer", type=int, help="specifies the desired kmer length output", required=True, default=9)
 
     submodes = parser_build.add_argument_group('SUBMODES PROCESS: Conceptual choices about the processing required')
     submodes.add_argument("--libsize-extract", help="goes through the graph only to output gene quantifications and library sizes. Skips neoepitope generation", action="store_true", required=False, default=False)

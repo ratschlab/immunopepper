@@ -57,7 +57,7 @@ def collect_background_transcripts(gene=None, ref_seq_file=None, chrm=None, muta
 
 
 
-def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None, idx=None, mutation=None, all_read_frames=False, disable_concat=False, kmer=None, filter_redundant=False):
+def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None, idx=None, mutation=None, all_read_frames=False, disable_concat=False, kmer_length=None, filter_redundant=False):
     """Calculate the output peptide for every exon-pair in the splicegraph
 
        Parameters
@@ -68,8 +68,8 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
        mutation: Namedtuple Mutation, store the mutation information of specific chromosome and sample.
            has the attribute ['mode', 'maf_dict', 'vcf_dict']
        disable_concat: bool, flag indicating whether to disable the concanation of vertices into triples
-        kmer: bool, flag indicating whether to extract kmers from the current parse
-        filter_redundant: flag indicating whether to remove pairs spanning the same intron
+       kmer_length: int. kmer length
+       filter_redundant: flag indicating whether to remove pairs spanning the same intron
 
        Returns
        -------
@@ -147,8 +147,7 @@ def collect_vertex_pairs(gene=None, gene_info=None, ref_seq_file=None, chrm=None
         vertex_pair_list = filter_redundant_junctions(vertex_pair_list, gene.strand)
     concat_vertex_pair_list = defaultdict(list, {'2-exons': vertex_pair_list})
     if not disable_concat:
-        for kmer_length in kmer: #
-            concat_vertex_pair_list['3-exons_{}-mer'.format(kmer_length)] = collect_vertex_triples(gene, vertex_pair_list, kmer_length)
+        concat_vertex_pair_list['3-exons'] = collect_vertex_triples(gene, vertex_pair_list, kmer_length)
     #vertex_pair_list += concat_vertex_pair_list
 
     return concat_vertex_pair_list, ref_mut_seq, exon_som_dict
@@ -321,13 +320,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                                                     read_frame_annotated=vertex_pair.read_frame.annotated_RF)
 
                     ### kmers
-                    if '2-exons' in kmer_type:
-                        for kmer_length in kmer: # generate sample kmers for each vertex pair and each kmer_length
-                            create_kmer(output_peptide, kmer_length, gene_kmer_coord, kmer_database)
-
-                    else: # if two exons do not allow to reach the desired kmer length, add 3rd exon
-                        kmer_length = int(kmer_type.split('_')[-1].split('-')[0])
-                        create_kmer(output_peptide, kmer_length, gene_kmer_coord, kmer_database)
+                    create_kmer(output_peptide, kmer, gene_kmer_coord, kmer_database)
 
         if not gene.splicegraph.edges is None:
             gene.to_sparse()
@@ -378,7 +371,7 @@ def get_spanning_index(coord, k):
 
     return spanning_id_range1, spanning_id_range2, spanning_id_range1_2
 
-def get_and_write_background_peptide_and_kmer(peptide_set, kmer_set, gene, ref_mut_seq, gene_table, countinfo, kmer, all_read_frames):
+def get_and_write_background_peptide_and_kmer(peptide_set, kmer_set, gene, ref_mut_seq, gene_table, countinfo, kmer_length, all_read_frames):
     """Calculate the peptide translated from the complete transcript instead of single exon pairs
 
     Parameters
@@ -389,7 +382,7 @@ def get_and_write_background_peptide_and_kmer(peptide_set, kmer_set, gene, ref_m
        from .gtf file. has attribute ['gene_to_cds_begin', 'ts_to_cds', 'gene_to_cds']
     countinfo: NamedTuple containing SplAdder counts
     Idx: Namedtuple containing sample and gene index information
-    kmer: bool, flag indicating whether kmers from the parse should be output
+    kmer_length: int. length of kmer requested
 
     Returns
     -------
@@ -415,10 +408,9 @@ def get_and_write_background_peptide_and_kmer(peptide_set, kmer_set, gene, ref_m
                               read_frame_annotated=None)
             peptide_set.add(namedtuple_to_str(peptide, sep = '\t'))
 
-            for kmer_length in kmer:
-                if len(cds_peptide) >= kmer_length:
-                    for j in range(len(cds_peptide) - kmer_length + 1):
-                        kmer_set.add(cds_peptide[j:j + kmer_length])
+            if len(cds_peptide) >= kmer_length:
+                for j in range(len(cds_peptide) - kmer_length + 1):
+                    kmer_set.add(cds_peptide[j:j + kmer_length])
 
 
 def retrieve_kmer_coordinates(start_pos_kmer, k, strand, spanning_index1, spanning_index2, spanning_index1_2,

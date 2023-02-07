@@ -209,13 +209,11 @@ def save_kmer_matrix(data_edge, data_segm, graph_samples, filepointer: Filepoint
 
 
 
-def initialize_fp(output_path: str, mutation_mode: str,
-                  kmer_list: list[int], output_fasta: bool):
+def initialize_fp(output_path: str, mutation_mode: str, output_fasta: bool):
     """"
     Initializes a Filepointer object for the given parameters.
     :param output_path: base directory where data is written
     :param mutation_mode: what type of mutation mode we operate in, such as 'ref', 'somatic', 'germline', etc.
-    :kmer_list: list of kmer sizes to operate on
     :output_fasta: if true, create a fasta file for foreground peptides
     :return: Filepointer instance containing output information for all information that will be written to a file
     :rtype: Filepointer
@@ -254,7 +252,7 @@ def initialize_fp(output_path: str, mutation_mode: str,
 
     metadata_fp = _output_info(junction_meta_file_path, cols_metadata_file)
     annot_fp = _output_info(annot_peptide_file_path, cols_annot_pep_file)
-    annot_kmer_fp = _output_info(annot_kmer_file_path, cols_annot_kmer_file, kmer_list)
+    annot_kmer_fp = _output_info(annot_kmer_file_path, cols_annot_kmer_file)
     gene_expr_fp = _output_info(gene_expr_file_path, cols_gene_expr_file)
 
     # --- Filepointer object
@@ -263,8 +261,11 @@ def initialize_fp(output_path: str, mutation_mode: str,
     return filepointer
 
 
-def _output_info(path, file_columns, kmer_lengths=None, pq_writer=False):
-    """ Builds a path for each kmer length """
+def _output_info(path, file_columns, pq_writer=False):
+    """ Creates a dictionary with keys:
+    path: the path of the file
+    columns: the columns of the file
+    pqwriter: the file handle """
     file_info = {'path': path, 'columns': file_columns}
     if pq_writer:
         file_info['pqwriter'] = None
@@ -327,25 +328,24 @@ def collect_results(filepointer_item, out_dir, mutation_mode, partitions=False):
     Merges results written by each parallel process.
     """
     if filepointer_item is not None:
-        file_to_collect = [filepointer_item['path']]
+        file_path = filepointer_item['path']
 
-        # merge the partitions
-        for file_path in file_to_collect:
-            file_name = os.path.basename(file_path)
-            # adjust name for partitions
-            if partitions:
-                tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*',
-                                                       file_name, '*part*'))
-            else:
-                tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*',
-                                                       file_name))
+    # merge the partitions
+    file_name = os.path.basename(file_path)
+    # adjust name for partitions
+    if partitions:
+	tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*',
+					       file_name, '*part*'))
+    else:
+	tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*',
+					       file_name))
 
-            try:
-                df = pd.concat((pd.read_csv(f, sep='\t', compression='gzip') for f in tmp_file_list), ignore_index=True)
-            except:
-                logging.error(f'Unable to read one of files for {file_path} collection')
-                sys.exit(1)
-        return df
+    try:
+	df = pd.concat((pd.read_csv(f, sep='\t', compression='gzip') for f in tmp_file_list), ignore_index=True)
+    except:
+	logging.error(f'Unable to read one of files for {file_path} collection')
+	sys.exit(1)
+    return df
 
 
 def remove_folder_list(base_path):
