@@ -71,13 +71,6 @@ def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_co
         return df
 
 
-    def cast_type_dbl(matrix, index_name, jct_annot_col, rf_annot_col):
-        return matrix.select(
-            [sf.col(name_).cast(st.DoubleType()).alias(name_) if ((name_ != index_name)
-                                                                  and (name_ != jct_annot_col)
-                                                                  and (name_ != rf_annot_col))
-                                                                  else sf.col(name_) for name_ in matrix.schema.names])
-
     def filter_whitelist(matrix, name_list, index_name, jct_annot_col, rf_annot_col):
         name_list.extend([index_name, jct_annot_col, rf_annot_col])
         return matrix.select([sf.col(name_) for name_ in name_list])
@@ -85,9 +78,11 @@ def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_co
 
     if (path_matrix is not None):
         # Load immunopepper kmer candidates
-        rename = True  # For development
+        rename = False  # For development
         logging.info(f'Load input {path_matrix}')
         matrix = loader(spark, path_matrix, header=True)
+        partitions_ = matrix.rdd.getNumPartitions()
+        logging.info(f'...partitions: {partitions_}')
 
         if rename:
             logging.info("Rename")
@@ -101,26 +96,16 @@ def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_co
             matrix = matrix.filter(sf.abs(sf.hash('kmer') % tot_batches) == batch_id)
 
         # Filter on junction status depending on the content on the matrix
-        if cross_junction:
-            matrix = matrix.filter(f'{jct_col} == True')
-        else:
-            matrix = matrix.filter(f'{jct_col} == False')
         matrix = matrix.drop(jct_col)
 
-        # Cast type to double
-        matrix = cast_type_dbl(matrix, index_name, jct_annot_col, rf_annot_col)
-
-        # Fill Nans
-        logging.info("Remove Nans")
-        matrix = matrix.na.fill(0)
 
         # Separate kmers only present in the backbone annotation from the ones supported by the reads of any sample
-        partitions_ = matrix.rdd.getNumPartitions()
-        logging.info(f'...partitions: {partitions_}')
-        if separate_back_annot:
-            logging.info("Isolating kmers only in backbone annotation")
-            matrix = split_only_found_annotation_backbone(separate_back_annot, output_dir, matrix, index_name,
-                                                          jct_annot_col, rf_annot_col)
+#        partitions_ = matrix.rdd.getNumPartitions()
+#        logging.info(f'...partitions: {partitions_}')
+#        if separate_back_annot:
+#            logging.info("Isolating kmers only in backbone annotation")
+#            matrix = split_only_found_annotation_backbone(separate_back_annot, output_dir, matrix, index_name,
+#                                                          jct_annot_col, rf_annot_col)
 
         # Filter according to annotation flag
         matrix = filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col,
