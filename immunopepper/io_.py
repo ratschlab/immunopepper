@@ -241,7 +241,7 @@ def initialize_fp(output_path: str, mutation_mode: str,
                                 'originalExonsCoord', 'vertexIdx', 'junctionExpr', 'segmentExpr',
                                 'kmerType']
     cols_pep_file = ['fasta']
-    cols_metaOnly_kmer_cross_sample_file = ['kmer', 'coord', 'isCrossJunction', 'junctionAnnotated', 'readFrameAnnotated']
+    metacols_kmers_expr_file = ['kmer', 'coord', 'isCrossJunction', 'junctionAnnotated', 'readFrameAnnotated']
 
     # --- Grouping dict
     if output_fasta:  # Foreground peptide fasta - optional
@@ -249,8 +249,8 @@ def initialize_fp(output_path: str, mutation_mode: str,
     else:
         peptide_fp = None
 
-    kmer_segm_expr_fp = _output_info(graph_kmer_segment_expr_path, cols_metaOnly_kmer_cross_sample_file, pq_writer=True)
-    kmer_edge_expr_fp = _output_info(graph_kmer_junction_expr_path, cols_metaOnly_kmer_cross_sample_file, pq_writer=True)
+    kmer_segm_expr_fp = _output_info(graph_kmer_segment_expr_path, metacols_kmers_expr_file, pq_writer=True)
+    kmer_edge_expr_fp = _output_info(graph_kmer_junction_expr_path, metacols_kmers_expr_file, pq_writer=True)
 
     metadata_fp = _output_info(junction_meta_file_path, cols_metadata_file)
     annot_fp = _output_info(annot_peptide_file_path, cols_annot_pep_file)

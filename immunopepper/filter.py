@@ -114,7 +114,7 @@ def junctions_annotated(gene: Gene, gene_to_transcript_table: dict[str: list[str
         if len(curr_ts) < 2:
             continue
         curr_ts = np.array(curr_ts)[:, [0, 1]]
-        # create a list of pairs that join the end of a transcript to the beginning of the next transcript
+        # collect junctions coordinates for the current transcript 
         gene_annot_jx.update([':'.join(x) for x in
                                 curr_ts.ravel()[1:-1].reshape(curr_ts.shape[0] - 1, 2).astype('str')])
 

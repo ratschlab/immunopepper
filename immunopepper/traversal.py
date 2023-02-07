@@ -428,15 +428,15 @@ def retrieve_kmer_coordinates(start_pos_kmer, k, strand, spanning_index1, spanni
     :param k: int. len of the kmer
     :param spanning_index1: set. set of starting positions for which the kmer will cross junction 1
     :param spanning_index2: set. set of starting positions for which the kmer will cross junction 2
-    :param spanning_index1_2: set. set of starting positions for which the kmer will cross junction 1 and 2
+    :param spanning_index1_2: set. set of starting positions for which the kmer will cross junctions 1 and 2
     :param translation_sorted_coord: np.array. exon coordinates modified by reading frame in translation order
     :return: Coord namedtuples with:
     start_v1 = int. start genomic coordinate in exon 1 of the kmer (may not be exon 1 of the peptide)
     stop_v1 = int. stop genomic coordinate in exon 1 of the kmer (may not be exon 1 of the peptide)
     start_v2 = int. start genomic coordinate in exon 2 of the kmer (may not be exon 2 of the peptide)
     stop_v2 = int. stop genomic coordinate in exon 2 of the kmer (may not be exon 2 of the peptide)
-    start_v3 = int. start genomic coordinate in exon 3 of the kmer (may not be exon 3 of the peptide)
-    stop_v3 = int. stop genomic coordinate in exon 3 of the kmer (may not be exon 3 of the peptide)
+    start_v3 = int. start genomic coordinate in exon 3 of the kmer
+    stop_v3 = int. stop genomic coordinate in exon 3 of the kmer
     '''
 
     def shift_to_start(start_pos_kmer, strand, overhang=0, end_kmer=False):
