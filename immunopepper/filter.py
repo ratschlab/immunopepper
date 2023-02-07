@@ -89,9 +89,9 @@ def filter_redundant_junctions(vertex_pairs: list[VertexPair], strand: str):
     return list(filter(lambda m: m.output_id not in remove_id_list, vertex_pairs))
 
 
-def junction_is_annotated(gene: Gene, gene_to_transcript_table: dict[str: list[str]],
+def junctions_annotated(gene: Gene, gene_to_transcript_table: dict[str: list[str]],
                           transcript_to_cds_table: dict[str: list[tuple[int, int, int]]]):
-    """ Indicates whether a junction also appears in any transcript given by .gtf file
+    """Get exhaustive list of junctions appearing in any transcript given by .gtf file
 
     :param gene: :class:`Gene` instance created by Spladder
     :param gene_to_transcript_table: maps gene to its transcripts, e.g.

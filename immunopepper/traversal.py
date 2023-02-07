@@ -4,7 +4,7 @@ import numpy as np
 import logging
 
 from immunopepper.filter import filter_redundant_junctions
-from immunopepper.filter import junction_is_annotated
+from immunopepper.filter import junctions_annotated
 from immunopepper.filter import is_intron_in_junction_list
 from immunopepper.io_ import namedtuple_to_str
 from immunopepper.io_ import save_kmer_matrix
@@ -254,7 +254,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
     """
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
-    gene_annot_jx = junction_is_annotated(gene, table.gene_to_ts, table.ts_to_cds)
+    gene_annot_jx = junctions_annotated(gene, table.gene_to_ts, table.ts_to_cds)
     som_exp_dict = exon_to_expression(gene, list(mutation.somatic_dict.keys()), countinfo, seg_counts, mut_count_id)
     gene_kmer_coord = set()
 
