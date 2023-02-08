@@ -455,12 +455,14 @@ def retrieve_kmer_coordinates(start_pos_kmer, k, strand, spanning_index1, spanni
         pos_after_jx2 = np.nan
 
     # get the overhang
-    if (abs(stop_E1_modi - start_E1_modi) % 3): #TODO elegance code?
-        overhang1 = 3 - (abs(stop_E1_modi - start_E1_modi) % 3)
+    len_E1_modi = abs(stop_E1_modi - start_E1_modi)
+    len_E2_modi = abs(stop_E2_modi - start_E2_modi)
+    if (len_E1_modi % 3):
+        overhang1 = 3 - (len_E1_modi % 3)
     else:
         overhang1 = 0
-    if ((abs(stop_E1_modi - start_E1_modi) + abs(stop_E2_modi - start_E2_modi)) % 3):
-        overhang2 = 3 - ((abs(stop_E1_modi - start_E1_modi) + abs(stop_E2_modi - start_E2_modi)) % 3)
+    if ((len_E1_modi + len_E2_modi) % 3):
+        overhang2 = 3 - ((len_E1_modi + len_E2_modi) % 3)
     else:
         overhang2 = 0
 
