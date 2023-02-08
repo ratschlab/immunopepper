@@ -284,10 +284,10 @@ def disk_writer(path, data_iterable, columns, filepointer=None, writer_close=Tru
     # Write
     if is_2d:
         for idx, line in enumerate(data_iterable):
-	    filepointer.write(delim.join([str(x) for x in line]) + linet)
+            filepointer.write(delim.join([str(x) for x in line]) + linet)
     else:
-	for line in data_iterable:
-	    filepointer.write(line + '\n')
+        for line in data_iterable:
+            filepointer.write(line + '\n')
 
     # Close
     if writer_close:
@@ -309,9 +309,9 @@ def save_to_gzip(path, data_iterable, columns, verbose=False, filepointer=None, 
             error_encountered = 0
         except OSError:
             sleep_time = sleep_times.pop()
-	    logging.info(f'Issue saving {path} to file system: sleeping {sleep_time} sec. and retry')
-	    sleep(sleep_time)
-	    error_encountered = 1
+            logging.info(f'Issue saving {path} to file system: sleeping {sleep_time} sec. and retry')
+            sleep(sleep_time)
+            error_encountered = 1
  
     if error_encountered:
         raise OSError('Issue with saving device')
@@ -334,17 +334,15 @@ def collect_results(filepointer_item, out_dir, mutation_mode, partitions=False):
     file_name = os.path.basename(file_path)
     # adjust name for partitions
     if partitions:
-	tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*',
-					       file_name, '*part*'))
+        tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*', file_name, '*part*'))
     else:
-	tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*',
-					       file_name))
+        tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*', file_name))
 
     try:
-	df = pd.concat((pd.read_csv(f, sep='\t', compression='gzip') for f in tmp_file_list), ignore_index=True)
+        df = pd.concat((pd.read_csv(f, sep='\t', compression='gzip') for f in tmp_file_list), ignore_index=True)
     except:
-	logging.error(f'Unable to read one of files for {file_path} collection')
-	sys.exit(1)
+        logging.error(f'Unable to read one of files for {file_path} collection')
+        sys.exit(1)
     return df
 
 

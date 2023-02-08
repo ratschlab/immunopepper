@@ -109,10 +109,10 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
                                                       kmer_set=set_kmer_backgrd,
                                                       gene=gene,
                                                       ref_mut_seq=ref_mut_seq,
-                                                       gene_table=genetable,
-                                                       countinfo=None,
-                                                       kmer=arg.kmer,
-                                                       all_read_frames=arg.all_read_frames)
+                                                      gene_table=genetable,
+                                                      countinfo=None,
+                                                      kmer_length=arg.kmer,
+                                                      all_read_frames=arg.all_read_frames)
 
             time_per_gene.append(timeit.default_timer() - start_time)
             mem_per_gene.append(print_memory_diags(disable_print=True))
@@ -248,7 +248,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                                                  mutation=sub_mutation,
                                                  all_read_frames=all_read_frames,
                                                  disable_concat=arg.disable_concat,
-                                                 kmer=arg.kmer,
+                                                 kmer_length=arg.kmer,
                                                  filter_redundant=arg.filter_redundant)
 
             get_and_write_peptide_and_kmer(peptide_set=set_pept_forgrd,
@@ -414,8 +414,7 @@ def mode_build(arg):
             pq_compression = 'SNAPPY'
         else:
             pq_compression = None
-        filepointer = initialize_fp(output_path, mutation.mode,
-                  arg.kmer, arg.output_fasta)
+        filepointer = initialize_fp(output_path, mutation.mode, arg.output_fasta)
 
         # go over each gene in splicegraph
         genes_range = list(range(0, n_genes))
