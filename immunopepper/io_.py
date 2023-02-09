@@ -5,11 +5,13 @@ import gzip
 import numpy as np
 import os
 import logging
+import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 from uuid import uuid4
 import shutil
 import sys
+from time import sleep
 import timeit
 
 from immunopepper.namedtuples import Filepointer
@@ -67,7 +69,7 @@ def decode_utf8(s):
     return s.decode('utf-8') if hasattr(s, 'decode') else s
 
 
-def get_save_path(file_info: dict, out_dir: str = None, kmer_length: int = None, create_partitions: bool = False):
+def get_save_path(file_info: dict, out_dir: str = None,  create_partitions: bool = False):
     """ Parse the path stored by the filepointer depending on:
     - the nesting level of the filepointer
     - the use of a batch directory
@@ -75,17 +77,13 @@ def get_save_path(file_info: dict, out_dir: str = None, kmer_length: int = None,
 
     :param file_info: filepointer namedtuple containing either a single path or a dictionary of paths
     :param out_dir: str. any base directory used for the path. Used for creating batches base directories
-    :param kmer_length: str. the kmer length wished
     :param create_partitions: bool. whether to add an additional path depth and save uniquely identified files
     :return:
 
     """
 
     # Access the right part of the filepointer
-    if kmer_length:
-        path = file_info['path'][kmer_length]
-    else:
-        path = file_info['path']
+    path = file_info['path']
 
     # Add a batch subdirectory
     if out_dir:
@@ -98,11 +96,11 @@ def get_save_path(file_info: dict, out_dir: str = None, kmer_length: int = None,
     return path
 
 
-def save_bg_kmer_set(data: set[str], filepointer: Filepointer, kmer_length: int,
+def save_bg_kmer_set(data: set[str], filepointer: Filepointer,
                      out_dir: str = None, verbose: bool = False):
     """ Writes a set of strings (protein kmers)""" #TODO update docs
     if data:
-        path = get_save_path(filepointer.background_kmer_fp, out_dir, kmer_length)
+        path = get_save_path(filepointer.background_kmer_fp, out_dir)
         save_to_gzip(path, data, filepointer.background_kmer_fp['columns'], verbose=verbose)
 
 
@@ -178,7 +176,7 @@ def save_gene_expr_distr(data: list[list], input_samples: list[str], process_sam
         save_to_gzip(path, data, data_columns, verbose=verbose, is_2d=True)
 
 
-def save_kmer_matrix(data_edge, data_segm, kmer_len, graph_samples, filepointer: Filepointer,
+def save_kmer_matrix(data_edge, data_segm, graph_samples, filepointer: Filepointer,
                      out_dir: str = None, verbose: bool = False):
     '''
     Saves matrices of [kmers] x [metadata, samples] containing either segment expression or junction expression
@@ -210,15 +208,12 @@ def save_kmer_matrix(data_edge, data_segm, kmer_len, graph_samples, filepointer:
 
 
 
-def initialize_fp(output_path: str, mutation_mode: str,
-                  kmer_list: list[int], output_fasta: bool, cross_graph_expr: bool):
+def initialize_fp(output_path: str, mutation_mode: str, output_fasta: bool):
     """"
     Initializes a Filepointer object for the given parameters.
     :param output_path: base directory where data is written
     :param mutation_mode: what type of mutation mode we operate in, such as 'ref', 'somatic', 'germline', etc.
-    :kmer_list: list of kmer sizes to operate on
     :output_fasta: if true, create a fasta file for foreground peptides
-    :cross_graph_expr: if true, write gene expression matrices with counts from the full graph
     :return: Filepointer instance containing output information for all information that will be written to a file
     :rtype: Filepointer
     """
@@ -229,7 +224,6 @@ def initialize_fp(output_path: str, mutation_mode: str,
     gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.gz')
     junction_meta_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides_meta.gz')
     junction_peptide_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides.fa.gz')
-    junction_kmer_file_path = os.path.join(output_path, mutation_mode + '_sample_kmer.gz')
     graph_kmer_segment_expr_path = os.path.join(output_path, mutation_mode + '_graph_kmer_SegmExpr')
     graph_kmer_junction_expr_path = os.path.join(output_path, mutation_mode + '_graph_kmer_JuncExpr')
 
@@ -244,52 +238,41 @@ def initialize_fp(output_path: str, mutation_mode: str,
                                 'originalExonsCoord', 'vertexIdx', 'junctionExpr', 'segmentExpr',
                                 'kmerType']
     cols_pep_file = ['fasta']
-    cols_kmer_single_sample_file = ['kmer', 'id', 'segmentExpr', 'isCrossJunction', 'junctionExpr',
-                               'junctionAnnotated', 'readFrameAnnotated']
-    cols_metaOnly_kmer_cross_sample_file = ['kmer', 'isCrossJunction', 'junctionAnnotated', 'readFrameAnnotated']
+    metacols_kmers_expr_file = ['kmer', 'coord', 'isCrossJunction', 'junctionAnnotated', 'readFrameAnnotated']
 
     # --- Grouping dict
     if output_fasta:  # Foreground peptide fasta - optional
         peptide_fp = _output_info(junction_peptide_file_path, cols_pep_file)
     else:
         peptide_fp = None
-    if cross_graph_expr:  # Expression matrices with counts from full graph - optional
-        junction_kmer_fp = None
-        kmer_segm_expr_fp = _output_info(graph_kmer_segment_expr_path, cols_metaOnly_kmer_cross_sample_file, pq_writer=True)
-        kmer_edge_expr_fp = _output_info(graph_kmer_junction_expr_path, cols_metaOnly_kmer_cross_sample_file, pq_writer=True)
-    else:  # Expression kmer information from single sample
-        junction_kmer_fp = _output_info(junction_kmer_file_path, cols_kmer_single_sample_file, kmer_list)
-        kmer_segm_expr_fp = None
-        kmer_edge_expr_fp = None
+
+    kmer_segm_expr_fp = _output_info(graph_kmer_segment_expr_path, metacols_kmers_expr_file, pq_writer=True)
+    kmer_edge_expr_fp = _output_info(graph_kmer_junction_expr_path, metacols_kmers_expr_file, pq_writer=True)
+
     metadata_fp = _output_info(junction_meta_file_path, cols_metadata_file)
     annot_fp = _output_info(annot_peptide_file_path, cols_annot_pep_file)
-    annot_kmer_fp = _output_info(annot_kmer_file_path, cols_annot_kmer_file, kmer_list)
+    annot_kmer_fp = _output_info(annot_kmer_file_path, cols_annot_kmer_file)
     gene_expr_fp = _output_info(gene_expr_file_path, cols_gene_expr_file)
 
     # --- Filepointer object
-    filepointer = Filepointer(peptide_fp, metadata_fp, annot_fp, junction_kmer_fp, annot_kmer_fp,
+    filepointer = Filepointer(peptide_fp, metadata_fp, annot_fp, annot_kmer_fp,
                               gene_expr_fp, kmer_segm_expr_fp, kmer_edge_expr_fp)
     return filepointer
 
 
-def _output_info(path, file_columns, kmer_lengths=None, pq_writer=False):
-    """ Builds a path for each kmer length """
-    if kmer_lengths:  # variable number of kmer files
-        path_dict = {}
-        for kmer_length in kmer_lengths:
-            path_dict[kmer_length] = path.replace('kmer.pq', f'{kmer_length}mer.pq')
-        path = path_dict
+def _output_info(path, file_columns, pq_writer=False):
+    """ Creates a dictionary with keys:
+    path: the path of the file
+    columns: the columns of the file
+    pqwriter: the file handle """
     file_info = {'path': path, 'columns': file_columns}
     if pq_writer:
         file_info['pqwriter'] = None
     return file_info
 
 
-def save_to_gzip(path, data_iterable, columns, verbose=False, filepointer=None, writer_close=True, is_2d=False):
-    """
-    Saves a  data frame in gzip format.
-    """
-    s1 = timeit.default_timer()
+def disk_writer(path, data_iterable, columns, filepointer=None, writer_close=True, is_2d=False):
+    """Write gzip to disk"""
     delim = '\t'
     linet = '\n'
     # Open
@@ -310,6 +293,28 @@ def save_to_gzip(path, data_iterable, columns, verbose=False, filepointer=None, 
         filepointer.close()
         filepointer = None
 
+
+def save_to_gzip(path, data_iterable, columns, verbose=False, filepointer=None, writer_close=True, is_2d=False):
+    """
+    Saves a  data frame in gzip format.
+    """
+    s1 = timeit.default_timer()
+
+    error_encountered = 1
+    sleep_times = [60, 10, 1]  # Number of seconds for each saving attempt
+    while sleep_times and error_encountered:
+        try:
+            disk_writer(path, data_iterable, columns, filepointer, writer_close, is_2d)
+            error_encountered = 0
+        except OSError:
+            sleep_time = sleep_times.pop()
+            logging.info(f'Issue saving {path} to file system: sleeping {sleep_time} sec. and retry')
+            sleep(sleep_time)
+            error_encountered = 1
+ 
+    if error_encountered:
+        raise OSError('Issue with saving device')
+
     if verbose:
         file_name = os.path.basename(path)
         tot_shape = len(data_iterable)
@@ -317,35 +322,27 @@ def save_to_gzip(path, data_iterable, columns, verbose=False, filepointer=None, 
     return filepointer
 
 
-def collect_results(filepointer_item, out_dir, mutation_mode, kmer_list=None, parquet_partitions=False): #TODO Update the collection of results + library size
+def collect_results(filepointer_item, out_dir, mutation_mode, partitions=False):
     """
-    Merges results written by each parallel process into a single rechunked parquet file.
+    Merges results written by each parallel process.
     """
     if filepointer_item is not None:
-        # get paths for several kmer lengths
-        if kmer_list:
-            file_to_collect = filepointer_item['path'].values()
-        else:
-            file_to_collect = [filepointer_item['path']]
+        file_path = filepointer_item['path']
 
-        # merge the partitions
-        for file_path in file_to_collect:
-            file_name = os.path.basename(file_path)
-            # adjust name for parquet partitions
-            if parquet_partitions:
-                tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*',
-                                                       file_name, '*part*'))
-            else:
-                tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*',
-                                                       file_name))
+    # merge the partitions
+    file_name = os.path.basename(file_path)
+    # adjust name for partitions
+    if partitions:
+        tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*', file_name, '*part*'))
+    else:
+        tmp_file_list = glob.glob(os.path.join(out_dir, f'tmp_out_{mutation_mode}_batch_[0-9]*', file_name))
 
-            try:
-                dset = pq.ParquetDataset(tmp_file_list)
-                dset_pandas = dset.read().to_pandas() #TODO check efficiency
-                save_to_gzip(file_path, dset_pandas, verbose=1) #save_to_gzip(path, data_iterable, columns, verbose=False, filepointer=None, writer_close=True, is_2d=False) #TODO remove collect results
-            except:
-                logging.error(f'Unable to read one of files for {file_path} collection')
-                sys.exit(1)
+    try:
+        df = pd.concat((pd.read_csv(f, sep='\t', compression='gzip') for f in tmp_file_list), ignore_index=True)
+    except:
+        logging.error(f'Unable to read one of files for {file_path} collection')
+        sys.exit(1)
+    return df
 
 
 def remove_folder_list(base_path):

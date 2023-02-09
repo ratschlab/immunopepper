@@ -5,6 +5,7 @@ from collections import defaultdict
 import h5py
 import logging
 import multiprocessing as mp
+from multiprocessing.pool import Pool
 from multiprocessing.pool import ThreadPool
 import numpy as np
 import os
@@ -72,7 +73,7 @@ def mapper_funct_back(tuple_arg):
     process_gene_batch_background(*tuple_arg)
 
 
-def process_gene_batch_background(output_sample, mutation_sample, genes, gene_idxs, n_genes, mutation, countinfo_b,
+def process_gene_batch_background(output_sample, mutation_sample, genes, gene_idxs, n_genes, mutation,
                                   genetable, arg, outbase, filepointer, verbose=False):
     if arg.parallel > 1:
         batch_name = int(outbase.split('/')[-1].split('_')[-1])
@@ -81,8 +82,8 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
 
     if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "Annot_IS_SUCCESS"))):
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
-        set_kmer_back =  defaultdict(set, {})
         set_pept_backgrd = set()
+        set_kmer_backgrd = set()
         time_per_gene = []
         mem_per_gene = []
         all_gene_idxs = []
@@ -96,7 +97,6 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
                     gene.name not in genetable.gene_to_ts):
                 continue
 
-            idx = get_idx(countinfo_b, output_sample, gene_idxs[i])
             all_gene_idxs.append(gene_idxs[i])
 
             chrm = gene.chr.strip()
@@ -104,37 +104,23 @@ def process_gene_batch_background(output_sample, mutation_sample, genes, gene_id
             ref_mut_seq = collect_background_transcripts(gene=gene, ref_seq_file=arg.ref_path,
                                                          chrm=chrm, mutation=sub_mutation)
 
-            # Gene counts information
-            if arg.cross_graph_expr:
-                countinfo_b = None
-            if countinfo_b:
-                gidx = countinfo_b.gene_idx_dict[gene.name]
-                count_segments = np.arange(countinfo_b.gene_id_to_segrange[gidx][0],
-                                           countinfo_b.gene_id_to_segrange[gidx][1])
-                with h5py.File(countinfo_b.h5fname, 'r') as h5f:
-                    seg_counts = h5f['segments'][count_segments, idx.sample]
-            else:
-                seg_counts = None
 
-            get_and_write_background_peptide_and_kmer(peptide_set = set_pept_backgrd,
-                                                      kmer_dict = set_kmer_back,
+            get_and_write_background_peptide_and_kmer(peptide_set=set_pept_backgrd,
+                                                      kmer_set=set_kmer_backgrd,
                                                       gene=gene,
                                                       ref_mut_seq=ref_mut_seq,
-                                                       gene_table=genetable,
-                                                       countinfo=countinfo_b,
-                                                       seg_counts=seg_counts,
-                                                       Idx=idx,
-                                                       kmer=arg.kmer,
-                                                       all_read_frames=arg.all_read_frames)
+                                                      gene_table=genetable,
+                                                      countinfo=None,
+                                                      kmer_length=arg.kmer,
+                                                      all_read_frames=arg.all_read_frames)
 
             time_per_gene.append(timeit.default_timer() - start_time)
             mem_per_gene.append(print_memory_diags(disable_print=True))
 
         save_bg_peptide_set(set_pept_backgrd, filepointer, outbase, verbose)
         set_pept_backgrd.clear()
-        for kmer_length in set_kmer_back:
-            save_bg_kmer_set(set_kmer_back[kmer_length], filepointer, kmer_length, outbase, verbose)
-        set_kmer_back.clear()
+        save_bg_kmer_set(set_kmer_backgrd, filepointer, outbase, verbose)
+        set_kmer_backgrd.clear()
 
         pathlib.Path(os.path.join(outbase, "Annot_IS_SUCCESS")).touch()
 
@@ -172,7 +158,6 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
 
     if (arg.parallel==1) or (not os.path.exists(os.path.join(outbase, "output_sample_IS_SUCCESS"))):
         pathlib.Path(outbase).mkdir(exist_ok=True, parents=True)
-        dictofSets_kmer_foregr = defaultdict(set, {})
         set_pept_forgrd = set()
         time_per_gene = []
         mem_per_gene = []
@@ -206,21 +191,16 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                                 edge_gene_idxs = np.arange(countinfo.gene_id_to_edgerange[gidx][0],
                                                            countinfo.gene_id_to_edgerange[gidx][1])
                                 edge_idxs = h5f['edge_idx'][list(edge_gene_idxs)].astype('int')
-                                if arg.cross_graph_expr:
-                                    edge_counts = h5f['edges'][edge_gene_idxs,:] # will compute expression on whole graph
-                                else:
-                                    edge_counts = h5f['edges'][edge_gene_idxs,idx.sample]
+                                edge_counts = h5f['edges'][edge_gene_idxs,:] # will compute expression on whole graph
+
                             # Get segment counts
                             seg_gene_idxs = np.arange(countinfo.gene_id_to_segrange[gidx][0],
                                                       countinfo.gene_id_to_segrange[gidx][1])
-                            if arg.cross_graph_expr:
-                                seg_counts = h5f['segments'][seg_gene_idxs, :]
-                                if output_samples_ids is not None:
-                                    seg_counts = seg_counts[:, output_samples_ids] # limitation fancy hdf5 indexing
-                                else:
-                                    output_samples_ids = np.arange(seg_counts.shape[1])
+                            seg_counts = h5f['segments'][seg_gene_idxs, :]
+                            if output_samples_ids is not None:
+                                seg_counts = seg_counts[:, output_samples_ids] # limitation fancy hdf5 indexing
                             else:
-                                seg_counts = h5f['segments'][seg_gene_idxs, idx.sample]
+                                output_samples_ids = np.arange(seg_counts.shape[1])
                 else:
                     edge_idxs = None
                     edge_counts = None
@@ -228,8 +208,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
 
             # library size calculated only for genes with CDS
             if (gene.name in genetable.gene_to_cds_begin) and (gene.name in genetable.gene_to_ts) and countinfo:
-                gene_expr.append([gene.name] + get_total_gene_expr(gene, countinfo, idx,
-                                                                   seg_counts, arg.cross_graph_expr))
+                gene_expr.append([gene.name] + get_total_gene_expr(gene, countinfo, seg_counts))
 
             # Process only gene quantifications and libsizes
             if arg.libsize_extract:
@@ -248,7 +227,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
 
             chrm = gene.chr.strip()
             sub_mutation = get_sub_mutations(mutation, mutation_sample, chrm)
-            if (arg.mutation_sample is not None) and (arg.cross_graph_expr):
+            if (arg.mutation_sample is not None):
                 mut_count_id = [idx for idx, sample in enumerate(arg.output_samples)
                                 if arg.mutation_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') == sample][0]
             else:
@@ -257,9 +236,8 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             if not junction_dict is None and chrm in junction_dict:
                 junction_list = junction_dict[chrm]
  
-            if arg.cross_graph_expr:
-                pathlib.Path(get_save_path(filepointer.kmer_segm_expr_fp, outbase)).mkdir(exist_ok=True, parents=True)
-                pathlib.Path(get_save_path(filepointer.kmer_edge_expr_fp, outbase)).mkdir(exist_ok=True, parents=True)
+            pathlib.Path(get_save_path(filepointer.kmer_segm_expr_fp, outbase)).mkdir(exist_ok=True, parents=True)
+            pathlib.Path(get_save_path(filepointer.kmer_edge_expr_fp, outbase)).mkdir(exist_ok=True, parents=True)
             vertex_pairs, \
             ref_mut_seq, \
             exon_som_dict = collect_vertex_pairs(gene=gene,
@@ -270,11 +248,10 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                                                  mutation=sub_mutation,
                                                  all_read_frames=all_read_frames,
                                                  disable_concat=arg.disable_concat,
-                                                 kmer=arg.kmer,
+                                                 kmer_length=arg.kmer,
                                                  filter_redundant=arg.filter_redundant)
 
             get_and_write_peptide_and_kmer(peptide_set=set_pept_forgrd,
-                                            kmer_dict = dictofSets_kmer_foregr,
                                             gene=gene,
                                             all_vertex_pairs=vertex_pairs,
                                             ref_mut_seq=ref_mut_seq,
@@ -293,7 +270,6 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                                             edge_idxs=edge_idxs,
                                             edge_counts=edge_counts,
                                             seg_counts=seg_counts,
-                                            cross_graph_expr=arg.cross_graph_expr,
                                             all_read_frames=arg.all_read_frames,
                                             filepointer=filepointer,
                                             graph_output_samples_ids = output_samples_ids,
@@ -309,10 +285,6 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
         save_gene_expr_distr(gene_expr, arg.output_samples, output_sample,  filepointer, outbase, verbose)
         save_fg_peptide_set(set_pept_forgrd, filepointer, outbase, arg.output_fasta, verbose)
         set_pept_forgrd.clear()
-        if not arg.cross_graph_expr: # Write kmer file for single sample (multiple kmer lengths supported)
-            for kmer_length in arg.kmer:
-                save_fg_kmer_dict(dictofSets_kmer_foregr[kmer_length], filepointer, kmer_length, outbase, verbose)
-            dictofSets_kmer_foregr.clear()
 
         pathlib.Path(os.path.join(outbase, "output_sample_IS_SUCCESS")).touch()
 
@@ -355,8 +327,8 @@ def mode_build(arg):
     if arg.count_path is not None:
         logging.info('Loading count data ...')
         countinfo, matching_count_samples, matching_count_ids  = parse_gene_metadata_info(arg.count_path,
-                                                                                          arg.output_samples,
-                                                                                          arg.cross_graph_expr)
+                                                                                          arg.output_samples)
+
 
         end_time = timeit.default_timer()
         logging.info('\tTime spent: {:.3f} seconds'.format(end_time - start_time))
@@ -437,13 +409,12 @@ def mode_build(arg):
 
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
-        gzip_tag = ''
+        gzip_tag = '' #TODO clean next commit
         if arg.compressed:
             pq_compression = 'SNAPPY'
         else:
             pq_compression = None
-        filepointer = initialize_fp(output_path, mutation.mode,
-                  arg.kmer, arg.output_fasta, arg.cross_graph_expr)
+        filepointer = initialize_fp(output_path, mutation.mode, arg.output_fasta)
 
         # go over each gene in splicegraph
         genes_range = list(range(0, n_genes))
@@ -460,7 +431,7 @@ def mode_build(arg):
                 logging.info(">>>>>>>>> Start Background processing")
                 with ThreadPool(processes=None, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
                     args = [(output_sample, arg.mutation_sample,  graph_data[gene_idx], gene_idx, n_genes, mutation,
-                             countinfo, genetable, arg,
+                             genetable, arg,
                              os.path.join(output_path, f'tmp_out_{mutation.mode}_batch_{i + arg.start_id}'),
                              filepointer, verbose_save) for i, gene_idx in gene_batches ]
                     result = pool.imap(mapper_funct_back, args, chunksize=1)
@@ -468,7 +439,7 @@ def mode_build(arg):
 
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
-            with ThreadPool(processes=None, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
+            with Pool(processes=None, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
                 args = [(output_sample, arg.mutation_sample, output_samples_ids, graph_data[gene_idx],
                          graph_info[gene_idx], gene_idx, n_genes, genes_interest, disable_process_libsize,
                          arg.all_read_frames, complexity_cap, mutation, junction_dict, arg,
@@ -478,21 +449,9 @@ def mode_build(arg):
                 exits_if_exception = [res for res in result]
 
 
-            # Collects and pools the files of each batch
-            logging.info("Start collecting results")
-            if countinfo:
-                collect_results(filepointer.gene_expr_fp, output_path, pq_compression, mutation.mode)
-            if arg.output_fasta:
-                collect_results(filepointer.junction_peptide_fp, output_path, pq_compression, mutation.mode)
-            collect_results(filepointer.background_peptide_fp, output_path, pq_compression, mutation.mode)
-            collect_results(filepointer.junction_meta_fp, output_path, pq_compression, mutation.mode)
-            collect_results(filepointer.junction_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
-            collect_results(filepointer.background_kmer_fp, output_path, pq_compression, mutation.mode, arg.kmer)
-            collect_results(filepointer.kmer_segm_expr_fp, output_path, pq_compression,
-                            mutation.mode, parquet_partitions=True)
-            collect_results(filepointer.kmer_edge_expr_fp, output_path, pq_compression,
-                            mutation.mode, parquet_partitions=True)
-            if not arg.keep_tmpfiles:
+            logging.info("Finished traversal")
+
+            if not arg.keep_tmpfiles: #TODO update
                 logging.info("Cleaning temporary files")
                 remove_folder_list(os.path.join(output_path, f'tmp_out_{mutation.mode}_batch'))
 
@@ -502,7 +461,7 @@ def mode_build(arg):
             logging.info(">>>>>>>>> Start Background processing")
             if (not arg.skip_annotation) and not (arg.libsize_extract):
                 process_gene_batch_background(output_sample, arg.mutation_sample, graph_data, genes_range, n_genes,
-                                              mutation, countinfo, genetable, arg, output_path, filepointer,
+                                              mutation, genetable, arg, output_path, filepointer,
                                               verbose=True)
             # Build the foreground and remove the background if needed
             logging.info(">>>>>>>>> Start Foreground processing")
@@ -513,7 +472,7 @@ def mode_build(arg):
                                            verbose=True)
 
         if (not disable_process_libsize) and countinfo:
-            create_libsize(filepointer.gene_expr_fp, output_libsize_fp, output_sample)
+            create_libsize(filepointer.gene_expr_fp, output_libsize_fp, output_path, mutation.mode, arg.parallel)
 
 
 

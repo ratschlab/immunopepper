@@ -28,14 +28,13 @@ def parse_arguments(argv):
     required.add_argument("--ann-path", help="absolute path of reference gene annotation file", required=True)
     required.add_argument("--splice-path", help="absolute path of splicegraph file", required=True)
     required.add_argument("--ref-path", help="absolute path of reference genome file", required=True)
-    required.add_argument("--kmer", nargs='+', type=int, help="list which specifies the different k for kmer output", required=True, default=[])
+    required.add_argument("--kmer", type=int, help="specifies the desired kmer length output", required=True, default=9)
 
     submodes = parser_build.add_argument_group('SUBMODES PROCESS: Conceptual choices about the processing required')
     submodes.add_argument("--libsize-extract", help="goes through the graph only to output gene quantifications and library sizes. Skips neoepitope generation", action="store_true", required=False, default=False)
     submodes.add_argument("--all-read-frames", help="switch from annotated reading frames to exhaustive translation", action="store_true", required=False, default=False)
     submodes.add_argument("--count-path", help="absolute path of count hdf5 file. If not provided candidates are output without expression quantification", required=False, default=None)
     submodes.add_argument("--output-samples", nargs='+', help="list of sample names to output, names must match the graph samples. If not provided, all count samples will be output (runs faster)", required=False, default=[])
-    submodes.add_argument("--cross-graph-expr", help="switches from per sample edge + segment expression files to edge (resp segment) expression matrices [kmer/peptides x samples]", action="store_true", required=False, default=False)
     submodes.add_argument("--heter-code", type=int, help=argparse.SUPPRESS, default=0) # if count expression data is provided in h5 format, specify the code for heterzygous
 
     parameters = parser_build.add_argument_group('TECHNICAL PARAMETERS: Parameters to dump intermediate data or to optimize processing')
