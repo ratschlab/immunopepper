@@ -69,8 +69,8 @@ class TestFilterRedundantJunctions:
         assert filtered_vertex_pairs == [vertex_pairs[1]]
 
 
-class TestJunctionIsAnnotated:
-    """ Tests for :meth:`filter.junction_is_annotated` """
+class TestJunctionsAnnotated:
+    """ Tests for :meth:`filter.junctions_annotated` """
 
     @pytest.fixture
     def gene(self):
@@ -98,14 +98,14 @@ class TestJunctionIsAnnotated:
 
     def test_gene_absent(self, gene, gene_to_transcript, transcript_to_cds):
         gene.name = 'doesnt exist'
-        assert not filter.junction_is_annotated(gene, gene_to_transcript, transcript_to_cds)
+        assert not filter.junctions_annotated(gene, gene_to_transcript, transcript_to_cds)
 
     def test_one_junction_present(self, gene, gene_to_transcript, transcript_to_cds):
         # the first transcript of our gene (ENSMUST00000027035.95) has one junction: ['4492668:4493099'];
         # the second transcript of our gene (ENSMUST00000195555.1) has no junction:
         # the third transcript of our gene (ENSMUST00000192650.5) has two junctions: ['4492668:4493771', '4493863:4495135'];
         expected = set(['4492668:4493771', '4493863:4495135', '4492668:4493099'])
-        assert expected == filter.junction_is_annotated(gene, gene_to_transcript, transcript_to_cds)
+        assert expected == filter.junctions_annotated(gene, gene_to_transcript, transcript_to_cds)
 
 
 def test_junction_tuple_is_annotated():
