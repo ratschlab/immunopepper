@@ -1,11 +1,13 @@
 """Contains all the output computation based on gene splicegraph"""
 from collections import defaultdict
 import numpy as np
+import os
 import logging
 
 from immunopepper.filter import filter_redundant_junctions
 from immunopepper.filter import junctions_annotated
 from immunopepper.filter import is_intron_in_junction_list
+from immunopepper.io_ import get_save_path
 from immunopepper.io_ import namedtuple_to_str
 from immunopepper.io_ import save_kmer_matrix
 from immunopepper.mutations import get_mutated_sequence
@@ -595,12 +597,13 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
     kmer_matrix_segm = []
     kmers_edge = []
     kmers_segm = []
-    n_lines_edge_file = 1000
-    n_lines_segm_file = 1000
-
+    n_lines_edge_file = 500
+    n_lines_segm_file = 500
+    entry_point = 0
     gene_kmer_coord = sorted(gene_kmer_coord)
 
 
+    # Test if kmer files exists, and get an entry point at the first file that does not exist
     for start_id, (kmer_coord, kmer_peptide, rf_annot) in enumerate(gene_kmer_coord):
         # Flags
         if kmer_coord.start_v2 is np.nan:  # kmer crosses only one exon
@@ -613,13 +616,25 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
         else:
             kmers_segm.append(kmer_peptide)
 
-        # save output data per batch
-        if len(kmer_matrix_segm) > n_lines_segm_file:
+        # Set
+        if len(kmers_segm) > n_lines_segm_file:
+            if (not os.path.exists(get_save_path(filepointer.kmer_segm_expr_fp, out_dir,
+                                                 create_partitions=True,
+                                                 hash_target=tuple(kmers_segm)))):
+                break
             kmers_segm.clear()
-        if len(kmer_matrix_edge) > n_lines_edge_file:
+            entry_point = start_id
+        if len(kmers_edge) > n_lines_edge_file:
+            if (not os.path.exists(get_save_path(filepointer.kmer_edge_expr_fp, out_dir,
+                                                 create_partitions=True,
+                                                 hash_target=tuple(kmers_edge)))):
+                break
             kmers_edge.clear()
+            entry_point = start_id
 
 
+
+    # Compute the kmer files
     for kmer_coord, kmer_peptide, rf_annot in gene_kmer_coord:
         k = len(kmer_peptide)
 

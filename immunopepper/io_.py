@@ -16,6 +16,9 @@ import timeit
 
 from immunopepper.namedtuples import Filepointer
 
+os.environ["PYTHONHASHSEED"] = '42'
+
+
 # --- intermediate fix to load pickle files stored under previous version
 
 import spladder.classes.gene as gene
@@ -195,15 +198,18 @@ def save_kmer_matrix(data_edge, data_segm, graph_samples, filepointer: Filepoint
     :param out_dir: str output directory path
     :param verbose: int verbose parameter
     '''
-    segm_path = get_save_path(filepointer.kmer_segm_expr_fp, out_dir, create_partitions=True, hash_target=tuple(col[0] for col in data_segm))
-    edge_path = get_save_path(filepointer.kmer_edge_expr_fp, out_dir, create_partitions=True, hash_target=tuple(col[0] for col in data_edge))
+
     if data_edge:
+        edge_path = get_save_path(filepointer.kmer_edge_expr_fp, out_dir, create_partitions=True,
+                                  hash_target=tuple(col[0] for col in data_edge))
         data_edge_columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
         filepointer.kmer_edge_expr_fp['pqwriter'] = save_to_gzip(edge_path, data_edge, data_edge_columns,
                                                                  verbose=verbose,
                                                                  filepointer=filepointer.kmer_edge_expr_fp['pqwriter'],
                                                                  writer_close=True, is_2d=True)
     if data_segm:
+        segm_path = get_save_path(filepointer.kmer_segm_expr_fp, out_dir, create_partitions=True,
+                                  hash_target=tuple(col[0] for col in data_segm))
         data_segm_columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
         filepointer.kmer_segm_expr_fp['pqwriter'] = save_to_gzip(segm_path, data_segm, data_segm_columns,
                                                                  verbose=verbose,
