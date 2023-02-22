@@ -593,7 +593,7 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
     '''
     kmer_matrix_edge = []
     kmer_matrix_segm = []
-    for kmer_coord, kmer_peptide, rf_annot in gene_kmer_coord:
+    for kmer_coord, kmer_peptide, rf_annot in sorted(gene_kmer_coord):
         k = len(kmer_peptide)
 
         # segment expression
