@@ -593,7 +593,34 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
     '''
     kmer_matrix_edge = []
     kmer_matrix_segm = []
-    for kmer_coord, kmer_peptide, rf_annot in sorted(gene_kmer_coord):
+    kmers_edge = []
+    kmers_segm = []
+    n_lines_edge_file = 1000
+    n_lines_segm_file = 1000
+
+    gene_kmer_coord = sorted(gene_kmer_coord)
+
+
+    for start_id, (kmer_coord, kmer_peptide, rf_annot) in enumerate(gene_kmer_coord):
+        # Flags
+        if kmer_coord.start_v2 is np.nan:  # kmer crosses only one exon
+            is_in_junction = False
+        else:  # kmer crosses at least one junction
+            is_in_junction = True
+
+        if is_in_junction:
+            kmers_edge.append(kmer_peptide)
+        else:
+            kmers_segm.append(kmer_peptide)
+
+        # save output data per batch
+        if len(kmer_matrix_segm) > n_lines_segm_file:
+            kmers_segm.clear()
+        if len(kmer_matrix_edge) > n_lines_edge_file:
+            kmers_edge.clear()
+
+
+    for kmer_coord, kmer_peptide, rf_annot in gene_kmer_coord:
         k = len(kmer_peptide)
 
         # segment expression
@@ -633,10 +660,10 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
             kmer_matrix_segm.append(row_metadata + sublist_seg)
 
         # save output data per batch
-        if len(kmer_matrix_segm) > 1000:
+        if len(kmer_matrix_segm) > n_lines_segm_file:
             save_kmer_matrix(None, kmer_matrix_segm, graph_samples, filepointer, out_dir, verbose=False)
             kmer_matrix_segm.clear()
-        if len(kmer_matrix_edge) > 1000:
+        if len(kmer_matrix_edge) > n_lines_edge_file:
             save_kmer_matrix(kmer_matrix_edge, None, graph_samples, filepointer, out_dir, verbose)
             kmer_matrix_edge.clear()
 
