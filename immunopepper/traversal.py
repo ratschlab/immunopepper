@@ -632,11 +632,11 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
         else:
             kmer_matrix_segm.append(row_metadata + sublist_seg)
 
-        # save output data per batch #TODO check feasibility of less batches for memory
-        if len(kmer_matrix_segm) > 1000: # small but dense
+        # save output data per batch
+        if len(kmer_matrix_segm) > 1000:
             save_kmer_matrix(None, kmer_matrix_segm, graph_samples, filepointer, out_dir, verbose=False)
             kmer_matrix_segm.clear()
-        if len(kmer_matrix_edge) > 1000: # big but relatively sparse
+        if len(kmer_matrix_edge) > 1000:
             save_kmer_matrix(kmer_matrix_edge, None, graph_samples, filepointer, out_dir, verbose)
             kmer_matrix_edge.clear()
 
