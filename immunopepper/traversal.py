@@ -597,8 +597,8 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
     kmer_matrix_segm = []
     kmers_edge = []
     kmers_segm = []
-    n_lines_edge_file = 500
-    n_lines_segm_file = 500
+    n_lines_edge_file = 1000
+    n_lines_segm_file = 1000
     entry_point = 0
     gene_kmer_coord = sorted(gene_kmer_coord)
 
