@@ -2,6 +2,7 @@ from collections import namedtuple
 import csv
 import glob
 import gzip
+import hashlib
 import numpy as np
 import os
 import logging
@@ -16,7 +17,6 @@ import timeit
 
 from immunopepper.namedtuples import Filepointer
 
-os.environ["PYTHONHASHSEED"] = '42'
 
 
 # --- intermediate fix to load pickle files stored under previous version
@@ -96,8 +96,8 @@ def get_save_path(file_info: dict, out_dir: str = None,  create_partitions: bool
     # Add a parquet partition
     if create_partitions:
         if hash_target is not None:
-            hash_code = hash(hash_target)
-            path = os.path.join(path, f'part-{hash_code}.gz') if hash_code > 0 else os.path.join(path, f'part-m{hash_code}.gz')
+            hash_code = hashlib.md5(hash_target).hexdigest()
+            path = os.path.join(path, f'part-{hash_code}.gz')
         else:
             path = os.path.join(path, f'part-{str(uuid4())}.gz')
 
@@ -201,7 +201,7 @@ def save_kmer_matrix(data_edge, data_segm, graph_samples, filepointer: Filepoint
 
     if data_edge:
         edge_path = get_save_path(filepointer.kmer_edge_expr_fp, out_dir, create_partitions=True,
-                                  hash_target=tuple(col[0] for col in data_edge))
+                                  hash_target=''.join([col[0] for col in data_edge]).encode())
         data_edge_columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
         filepointer.kmer_edge_expr_fp['pqwriter'] = save_to_gzip(edge_path, data_edge, data_edge_columns,
                                                                  verbose=verbose,
@@ -209,7 +209,7 @@ def save_kmer_matrix(data_edge, data_segm, graph_samples, filepointer: Filepoint
                                                                  writer_close=True, is_2d=True)
     if data_segm:
         segm_path = get_save_path(filepointer.kmer_segm_expr_fp, out_dir, create_partitions=True,
-                                  hash_target=tuple(col[0] for col in data_segm))
+                                  hash_target=''.join([col[0] for col in data_segm]).encode())
         data_segm_columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
         filepointer.kmer_segm_expr_fp['pqwriter'] = save_to_gzip(segm_path, data_segm, data_segm_columns,
                                                                  verbose=verbose,

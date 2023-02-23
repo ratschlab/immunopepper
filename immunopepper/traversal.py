@@ -620,14 +620,14 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
         if len(kmers_segm) > n_lines_segm_file:
             if (not os.path.exists(get_save_path(filepointer.kmer_segm_expr_fp, out_dir,
                                                  create_partitions=True,
-                                                 hash_target=tuple(kmers_segm)))):
+                                                 hash_target=''.join(kmers_segm).encode()))):
                 break
             kmers_segm.clear()
             entry_point = start_id
         if len(kmers_edge) > n_lines_edge_file:
             if (not os.path.exists(get_save_path(filepointer.kmer_edge_expr_fp, out_dir,
                                                  create_partitions=True,
-                                                 hash_target=tuple(kmers_edge)))):
+                                                 hash_target=''.join(kmers_edge).encode()))):
                 break
             kmers_edge.clear()
             entry_point = start_id
