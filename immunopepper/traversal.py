@@ -635,7 +635,7 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
 
 
     # Compute the kmer files
-    for kmer_coord, kmer_peptide, rf_annot in gene_kmer_coord:
+    for kmer_coord, kmer_peptide, rf_annot in gene_kmer_coord[entry_point + 1 :]:
         k = len(kmer_peptide)
 
         # segment expression
