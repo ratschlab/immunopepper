@@ -255,6 +255,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
     """
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
+    len_pep_save = 9999
     gene_annot_jx = junctions_annotated(gene, table.gene_to_ts, table.ts_to_cds)
     som_exp_dict = exon_to_expression(gene, list(mutation.somatic_dict.keys()), countinfo, seg_counts, mut_count_id)
     gene_kmer_coord = set()
@@ -324,7 +325,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                     ### kmers
                     create_kmer(output_peptide, kmer, gene_kmer_coord, kmer_database)
 
-                    if len(peptide_set) > 2:
+                    if len(peptide_set) > len_pep_save:
                         save_fg_peptide_set(peptide_set, filepointer, out_dir, fasta_save,
                                             verbose=False, id=f'{kmer_type}{ii}')
                         peptide_set.clear()
