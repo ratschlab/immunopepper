@@ -69,7 +69,7 @@ def decode_utf8(s):
     return s.decode('utf-8') if hasattr(s, 'decode') else s
 
 
-def get_save_path(file_info: dict, out_dir: str = None,  create_partitions: bool = False):
+def get_save_path(file_info: dict, out_dir: str = None,  create_partitions: bool = False, tag: str = ''):
     """ Parse the path stored by the filepointer depending on:
     - the nesting level of the filepointer
     - the use of a batch directory
@@ -78,6 +78,7 @@ def get_save_path(file_info: dict, out_dir: str = None,  create_partitions: bool
     :param file_info: filepointer namedtuple containing either a single path or a dictionary of paths
     :param out_dir: str. any base directory used for the path. Used for creating batches base directories
     :param create_partitions: bool. whether to add an additional path depth and save uniquely identified files
+    :param tag: str. tag to add to the partitioned file
     :return:
 
     """
@@ -91,7 +92,10 @@ def get_save_path(file_info: dict, out_dir: str = None,  create_partitions: bool
 
     # Add a parquet partition
     if create_partitions:
-        path = os.path.join(path, f'part-{str(uuid4())}.gz')
+        if tag:
+            path = os.path.join(path, f'part-{tag}.gz')
+        else:
+            path = os.path.join(path, f'part-{str(uuid4())}.gz')
 
     return path
 
@@ -135,7 +139,7 @@ def save_bg_peptide_set(data, filepointer: Filepointer, out_dir: str = None,
 
 
 def save_fg_peptide_set(data: set, filepointer: Filepointer, out_dir: str = None,
-                         save_fasta: bool = False, verbose: bool = False):
+                         save_fasta: bool = False, verbose: bool = False, id: str = ''):
     """
     Save foreground peptide data.
     :param data: set containing the lines to be written sep is '\t'
@@ -144,14 +148,14 @@ def save_fg_peptide_set(data: set, filepointer: Filepointer, out_dir: str = None
     if data:
         data = np.array([line.split('\t') for line in data]).T  # set to array
         if save_fasta:
-            path_fa = get_save_path(filepointer.junction_peptide_fp, out_dir, create_partitions=True)
+            path_fa = get_save_path(filepointer.junction_peptide_fp, out_dir, create_partitions=True, tag=id)
             fasta = np.array([make_fasta_ids(data[1]), data[0]]) #id, peptide
             fasta = fasta.flatten(order='F')
             fasta = np.expand_dims(fasta, axis=0).T
             save_to_gzip(path_fa, fasta, filepointer.junction_peptide_fp['columns'], verbose, is_2d=True)
             del fasta
 
-        path = get_save_path(filepointer.junction_meta_fp, out_dir, create_partitions=True)
+        path = get_save_path(filepointer.junction_meta_fp, out_dir, create_partitions=True, tag=id)
         save_to_gzip(path, data.T, filepointer.junction_meta_fp['columns'], verbose, is_2d=True)  # Test keep peptide name in the metadata file
 
 

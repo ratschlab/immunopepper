@@ -325,7 +325,8 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                     create_kmer(output_peptide, kmer, gene_kmer_coord, kmer_database)
 
                     if len(peptide_set) > 2:
-                        save_fg_peptide_set(peptide_set, filepointer, out_dir, fasta_save, verbose=False) #TODO Update
+                        save_fg_peptide_set(peptide_set, filepointer, out_dir, fasta_save,
+                                            verbose=False, id=f'{kmer_type}{ii}')
                         peptide_set.clear()
 
         if not gene.splicegraph.edges is None:
@@ -336,7 +337,8 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                         graph_output_samples_ids,
                         graph_samples, filepointer, out_dir, verbose=verbose_save)
 
-    save_fg_peptide_set(peptide_set, filepointer, out_dir, fasta_save, verbose=False)  # TODO Update
+    save_fg_peptide_set(peptide_set, filepointer, out_dir, fasta_save,
+                        verbose=False, id=f'{kmer_type}{ii}')
 
 def get_spanning_index(coord, k):
     """
