@@ -144,14 +144,14 @@ def save_fg_peptide_set(data: set, filepointer: Filepointer, out_dir: str = None
     if data:
         data = np.array([line.split('\t') for line in data]).T  # set to array
         if save_fasta:
-            path_fa = get_save_path(filepointer.junction_peptide_fp, out_dir)
+            path_fa = get_save_path(filepointer.junction_peptide_fp, out_dir, create_partitions=True)
             fasta = np.array([make_fasta_ids(data[1]), data[0]]) #id, peptide
             fasta = fasta.flatten(order='F')
             fasta = np.expand_dims(fasta, axis=0).T
             save_to_gzip(path_fa, fasta, filepointer.junction_peptide_fp['columns'], verbose, is_2d=True)
             del fasta
 
-        path = get_save_path(filepointer.junction_meta_fp, out_dir)
+        path = get_save_path(filepointer.junction_meta_fp, out_dir, create_partitions=True)
         save_to_gzip(path, data.T, filepointer.junction_meta_fp['columns'], verbose, is_2d=True)  # Test keep peptide name in the metadata file
 
 
@@ -222,8 +222,8 @@ def initialize_fp(output_path: str, mutation_mode: str, output_fasta: bool):
     annot_peptide_file_path = os.path.join(output_path, mutation_mode + '_annot_peptides.fa.gz')
     annot_kmer_file_path = os.path.join(output_path, mutation_mode + '_annot_kmer.gz')
     gene_expr_file_path = os.path.join(output_path, 'gene_expression_detail.gz')
-    junction_meta_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides_meta.gz')
-    junction_peptide_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides.fa.gz')
+    junction_meta_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides_meta')
+    junction_peptide_file_path = os.path.join(output_path, mutation_mode + '_sample_peptides.fa')
     graph_kmer_segment_expr_path = os.path.join(output_path, mutation_mode + '_graph_kmer_SegmExpr')
     graph_kmer_junction_expr_path = os.path.join(output_path, mutation_mode + '_graph_kmer_JuncExpr')
 

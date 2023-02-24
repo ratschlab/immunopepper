@@ -7,6 +7,7 @@ from immunopepper.filter import filter_redundant_junctions
 from immunopepper.filter import junctions_annotated
 from immunopepper.filter import is_intron_in_junction_list
 from immunopepper.io_ import namedtuple_to_str
+from immunopepper.io_ import save_fg_peptide_set
 from immunopepper.io_ import save_kmer_matrix
 from immunopepper.mutations import get_mutated_sequence
 from immunopepper.mutations import exon_to_mutations
@@ -224,7 +225,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                          filepointer=None,
                          force_ref_peptides=False, kmer=None,
                         all_read_frames=None, graph_output_samples_ids=None,
-                         graph_samples=None,out_dir=None, verbose_save=None):
+                         graph_samples=None,out_dir=None, verbose_save=None, fasta_save=None):
     """
 
     Parameters
@@ -250,6 +251,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
     kmer: list containing the length of the kmers requested
     out_dir: str, base direactory used for temporary files
     graph_samples: list, samples contained in the splicing graph object
+    fasta_save: bool. whether to save a fasta file with the peptides
     """
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
@@ -322,6 +324,10 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                     ### kmers
                     create_kmer(output_peptide, kmer, gene_kmer_coord, kmer_database)
 
+                    if len(peptide_set) > 2:
+                        save_fg_peptide_set(peptide_set, filepointer, out_dir, fasta_save, verbose=False) #TODO Update
+                        peptide_set.clear()
+
         if not gene.splicegraph.edges is None:
             gene.to_sparse()
 
@@ -330,7 +336,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                         graph_output_samples_ids,
                         graph_samples, filepointer, out_dir, verbose=verbose_save)
 
-
+    save_fg_peptide_set(peptide_set, filepointer, out_dir, fasta_save, verbose=False)  # TODO Update
 
 def get_spanning_index(coord, k):
     """

@@ -238,6 +238,9 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
  
             pathlib.Path(get_save_path(filepointer.kmer_segm_expr_fp, outbase)).mkdir(exist_ok=True, parents=True)
             pathlib.Path(get_save_path(filepointer.kmer_edge_expr_fp, outbase)).mkdir(exist_ok=True, parents=True)
+            pathlib.Path(get_save_path(filepointer.junction_meta_fp, outbase)).mkdir(exist_ok=True, parents=True)
+            if arg.output_fasta:
+                pathlib.Path(get_save_path(filepointer.junction_peptide_fp, outbase)).mkdir(exist_ok=True, parents=True)
             vertex_pairs, \
             ref_mut_seq, \
             exon_som_dict = collect_vertex_pairs(gene=gene,
@@ -274,7 +277,8 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                                             filepointer=filepointer,
                                             graph_output_samples_ids = output_samples_ids,
                                             graph_samples=arg.output_samples,
-                                            verbose_save=verbose
+                                            verbose_save=verbose,
+                                            fasta_save=arg.output_fasta
             )
 
 
@@ -283,8 +287,6 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             all_gene_idxs.append(gene_idxs[i])
 
         save_gene_expr_distr(gene_expr, arg.output_samples, output_sample,  filepointer, outbase, verbose)
-        save_fg_peptide_set(set_pept_forgrd, filepointer, outbase, arg.output_fasta, verbose)
-        set_pept_forgrd.clear()
 
         pathlib.Path(os.path.join(outbase, "output_sample_IS_SUCCESS")).touch()
 
