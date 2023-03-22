@@ -11,8 +11,9 @@ import pyarrow as pa
 import signal as sig
 import sys
 
-
+from immunopepper.io_ import collect_results
 from immunopepper.namedtuples import Idx
+
 
 
 def to_adj_list(adj_matrix):
@@ -214,7 +215,7 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
 
     """
     if countinfo is None:
-        return np.zeros((0, 1), dtype='float') #[np.nan]
+        return np.zeros((0, 1), dtype='float') #[np.nan] #TODO replace with nan?
 
     out_shape = (seg_counts.shape[1] + 1) if len(seg_counts.shape) > 1 else 2
     if vstart is np.nan or vstop is np.nan:  # isolated exon case
@@ -237,11 +238,11 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
             expr_list = np.c_[segments[1, sv1_id:sv2_id + 1] - segments[0, sv1_id:sv2_id + 1], seg_counts[sv1_id:sv2_id + 1, np.newaxis]]
         expr_list[0, 0] -= (vstart - segments[0, sv1_id])
         expr_list[-1, 0] -= (segments[1, sv2_id] - vstop)
-        if gene.strand == '-': # need to reverse epression list to match the order of translation
+        if gene.strand == '-': # need to reverse expression list to match the order of translation
             expr_list = expr_list[::-1]
     return expr_list
 
-def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr):
+def get_segment_expr(gene, coord, countinfo, Idx, seg_counts):
     """ Get the segment expression for one exon-pair.
     Apply 'get_exon_expr' for each exon and concatenate them.
 
@@ -279,12 +280,11 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts, cross_graph_expr):
     n_samples = expr_list[:, 1:].shape[1]
     len_factor = np.tile(expr_list[:, 0], n_samples).reshape(n_samples, expr_list.shape[0]).transpose()
     mean_expr = (np.sum(expr_list[:, 1:]*len_factor, 0) / seg_len).astype(int) if seg_len > 0 else np.zeros(n_samples).astype(int)
-    if not cross_graph_expr:
-        expr_meta_file = mean_expr[0]
+
     return expr_meta_file, expr_list
 
 
-def get_total_gene_expr(gene, countinfo, Idx, seg_expr, cross_graph_expr):
+def get_total_gene_expr(gene, countinfo, seg_expr):
     """ get total reads count for the given sample and the given gene
     actually total_expr = reads_length*total_reads_counts
     """
@@ -297,11 +297,8 @@ def get_total_gene_expr(gene, countinfo, Idx, seg_expr, cross_graph_expr):
         return [np.nan] * n_samples
     seg_len = gene.segmentgraph.segments[1] - gene.segmentgraph.segments[0]
 
-    if cross_graph_expr:
-        total_expr = np.sum(seg_len * seg_expr.T, axis=1)
-        total_expr = total_expr.tolist()
-    else:
-        total_expr = [np.sum(seg_len*seg_expr)]
+    total_expr = np.sum(seg_len * seg_expr.T, axis=1)
+    total_expr = total_expr.tolist()
     return total_expr
 
 
@@ -329,33 +326,43 @@ def get_idx(countinfo, sample, gene_idx):
     return Idx(gene_idx, sample_idx)
 
 
-def create_libsize(expr_distr_fp, output_fp, sample, debug=False):
+def create_libsize(expr_distr_fp, libsize_fp, out_dir, mutation_mode, parallel=1):
     """ create library_size text file.
 
     Calculate the 75% expression and sum of expression for each sample
-    and write into output_fp.
+    and write into libsize_fp.
 
     Parameters
     ----------
     expr_distr_dict: Dict. str -> List(float). Mapping sample to the expression of all exon pairs
-    output_fp: file pointer. library_size text
+    libsize_fp: file pointer. library_size text
     debug: Bool. In debug mode, return the libsize_count dictionary.
     """
     libsize_exists = ''
-    sample_expr_distr = pa.parquet.read_table(expr_distr_fp['path']).to_pandas()
+    if parallel > 1:
+        sample_expr_distr = collect_results(expr_distr_fp, out_dir, mutation_mode, partitions=False)
+    else:
+        sample_expr_distr = pd.read_csv(expr_distr_fp['path'], sep='\t', compression='gzip')
 
-    libsize_count = pd.DataFrame({'sample': sample_expr_distr.columns[1:],
+    # change types
+    convert_dict = {}
+    for col in sample_expr_distr.columns:
+        if col != 'gene':
+            convert_dict[col] = float
+    sample_expr_distr = sample_expr_distr.astype(convert_dict)
+
+    # compute libsizes
+    df_libsize = pd.DataFrame({'sample': sample_expr_distr.columns[1:],
                                  'libsize_75percent': np.percentile(sample_expr_distr.iloc[:, 1:], 75, axis=0, interpolation='linear'),
                                   'libsize_total_count': np.sum(sample_expr_distr.iloc[:, 1:], axis=0)}, index = None)
 
-    df_libsize = pd.DataFrame(libsize_count)
 
-    if os.path.isfile(output_fp):
-        previous_libsize = pd.read_csv(output_fp, sep = '\t')
+    if os.path.isfile(libsize_fp):
+        previous_libsize = pd.read_csv(libsize_fp, sep = '\t')
         df_libsize = pd.concat([previous_libsize, df_libsize], axis=0).drop_duplicates(subset=['sample'], keep='last')
         libsize_exists = ': append to existing file.'
-    logging.info(f'Saved library size results to {output_fp}{libsize_exists}')
-    df_libsize.to_csv(output_fp, sep='\t', index=False)
+    logging.info(f'Saved library size results to {libsize_fp}{libsize_exists}')
+    df_libsize.to_csv(libsize_fp, sep='\t', index=False)
 
 
 def get_concat_peptide(front_coord_pair, back_coord_pair, front_peptide, back_peptide, strand, k=None):

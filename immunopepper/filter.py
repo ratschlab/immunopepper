@@ -89,25 +89,21 @@ def filter_redundant_junctions(vertex_pairs: list[VertexPair], strand: str):
     return list(filter(lambda m: m.output_id not in remove_id_list, vertex_pairs))
 
 
-def junction_is_annotated(gene: Gene, gene_to_transcript_table: dict[str: list[str]],
+def junctions_annotated(gene: Gene, gene_to_transcript_table: dict[str: list[str]],
                           transcript_to_cds_table: dict[str: list[tuple[int, int, int]]]):
-    """ Indicates whether a junction also appears in any transcript given by .gtf file
+    """Get exhaustive list of junctions appearing in any transcript given by .gtf file
 
     :param gene: :class:`Gene` instance created by Spladder
     :param gene_to_transcript_table: maps gene to its transcripts, e.g.
         'ENSMUSG00000025902.13' -> ['ENSMUST00000027035.9', 'ENSMUST00000195555.1']
     :param transcript_to_cds_table: maps a transcript to a list of coding DNA sequencing (cds), e.g.
         'ENSMUST00000027035.9' -> [(4491718, 4492668, 2), (4493099, 4493406, 0)]
-    :return junction_flag: 2D array matrix with shape len(edges) x len(edges).
-        True indicates the exon pair also appears in gtf file while False indicates that the
-         exon pair not exist or it does not show in the given .gtf file.
+    :return set of all the junctions pairs of a gene
     """
-    vertices = gene.splicegraph.vertices
-    edges = gene.splicegraph.edges
-    junction_flag = np.zeros(edges.shape, dtype='bool')
+    gene_annot_jx = set()
 
     if gene.name not in gene_to_transcript_table:
-        return junction_flag
+        return gene_annot_jx
 
     ts_list = gene_to_transcript_table[gene.name]
     for ts in ts_list:
@@ -118,16 +114,11 @@ def junction_is_annotated(gene: Gene, gene_to_transcript_table: dict[str: list[s
         if len(curr_ts) < 2:
             continue
         curr_ts = np.array(curr_ts)[:, [0, 1]]
-        # create a list of pairs that join the end of a transcript to the beginning of the next transcript
-        transcript_junctions = [':'.join(x) for x in
-                                curr_ts.ravel()[1:-1].reshape(curr_ts.shape[0] - 1, 2).astype('str')]
+        # collect junctions coordinates for the current transcript 
+        gene_annot_jx.update([':'.join(x) for x in
+                                curr_ts.ravel()[1:-1].reshape(curr_ts.shape[0] - 1, 2).astype('str')])
 
-        for x in np.array(np.where(np.triu(edges))).T:
-            if f'{vertices[1, x[0]]}:{vertices[0, x[1]]}' in transcript_junctions:
-                junction_flag[x[0], x[1]] = 1
-                junction_flag[x[1], x[0]] = 1
-
-    return junction_flag
+    return gene_annot_jx
 
 
 def junction_tuple_is_annotated(junction_flag: np.ndarray, vertex_ids: list[int]):
