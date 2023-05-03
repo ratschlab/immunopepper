@@ -451,9 +451,6 @@ def mode_build(arg):
 
             logging.info("Finished traversal")
 
-            if not arg.keep_tmpfiles: #TODO update
-                logging.info("Cleaning temporary files")
-                remove_folder_list(os.path.join(output_path, f'tmp_out_{mutation.mode}_batch'))
 
         else:
             logging.info('Not Parallel')
