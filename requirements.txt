@@ -1,7 +1,7 @@
 cython>=0.29.17
 h5py
 mhctools
-numpy
+numpy>=1.13
 pandas>=1.0.5
 psutil==5.4.6
 pyarrow==6.0.1
