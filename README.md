@@ -7,6 +7,7 @@ part of the reference annotation, but present in the given RNA-Seq sample) into 
 comprehensive set of peptides can be used subsequently for further downstream analyses, such as
 domain annotation or computational immunology.
 
+#TODO: include explanation of background and foreground somewhere?
 ## Get Started
 
 ### Installation
@@ -37,10 +38,10 @@ documentation](https://spladder.readthedocs.io/en/latest/).
 ## Basic workflow
 The software has four basic working modes:
 
-1. `build`: Core part of ImmunoPepper. Traverses the input splice graph and generates all possible
+1. [`build`](#mode-build): Core part of ImmunoPepper. Traverses the input splice graph and generates all possible
 peptides/kmers.
-2. `cancerspecif`:
-3. `samplespecif`:
+2. [`samplespecif`](#mode-samplespecif): This mode filters from the foreground kmer list the peptides that are also appearing in the background kmer list, and keeps only the novel kmers. It needs to be applied after the build mode.
+3. `cancerspecif`:
 4. `mhcbind`:
 
 ### Mode `build`
@@ -80,8 +81,8 @@ be downloaded from various databases such as [GENCODE](https://www.gencodegenes.
 - `--libsize-path`: #TODO: not used in build mode
 - `--output-fasta`: Default = False. Set this parameter to True to output the foreground peptides in fasta format.
 - `--force-ref-peptides`: Default = False. Set this parameter to True to output mutated peptides even if they are the same as the ones in the reference.
-- `--kmer-database`: Default = None. Absolute path of uniprot file containing kmers in one column, without header. #TODO: where is this file obtained. If we provide this file the kmers contained in the database will not be output in the kmer files for background and foreground. #TODO: check this. Mention I->L conversion?
-- `--gtex-junction-path`: Default = None. Absolute path of whitelist junction path. Format: hdf5. #TODO: where is this file obtained and what is it exactly?
+- `--kmer-database`: Default = None. Absolute path of a file containing kmers in one column, without header. A file from uniprot or any other standard library can be provided. The kmers provided in this file will not be outputted if found in the foreground peptides. Please note that is a standard proteome is downloaded from an online resource the proteins should be cut into the kmers length selected under `--kmer`.
+- `--gtex-junction-path`: Default = None. Absolute path of whitelist junction path. The junctions of this file will be the only ones outputted from the tool. Format: hdf5. #TODO: check the format this file should have
 - `--disable-concat`: Default = False. Disable the generation of kmers from combinations of more than 2 exons ((kmers generated from combinations of short exons might be missed). If set to true, kmer generation is faster.
 - `--disable-process-libsize`: Default = False. Set to True to generate the libsize file (file 7 from the [output section](#output-files)).
 
@@ -92,7 +93,7 @@ be downloaded from various databases such as [GENCODE](https://www.gencodegenes.
 - `--sample-name-map`: Default = None. Name mapping to sample names from graphs/counts files. Format: No header. Two columns: *[name of count/graphs file \t name of mutation/pickle file]*. Three columns: *[name of count/graphs file \t name of germline file \t name of somatic file]*.
 - `--use-mut-pickle`: Default = False. Set to True to save and use pickled mutation dictionary.
 
-#TODO: Keep this but updated with the new parameters?
+#TODO: Keep this but updated with the new parameters? Leave it for a little bit later and test that it runs properly
 Example command line (replace `ref` with `germline` to consider mutation information)
 ```
 immunopepper build \
@@ -110,34 +111,60 @@ immunopepper build \
 --gtex-junction-path tests/test1/data/posgraph/spladder/genes_graph_conf3.test1pos.junction.hdf5
 ```
 
+### Mode `samplespecif`
+
+The following parameters are *mandatory*:
+
+- `--annot-kmer-files`: List of absolute paths to the annotation kmer files. The files should have the name **\[mut_mode\]_annot_peptides.fa** (Files 1 from the [output section](#output-files))
+- `--output-dir`: Path to the output directory.
+- `--junction-kmer-files`: List of absolute paths to the sample kmer files. The files are the ones inside the folders **\[mut_mode\]_graph_kmer_JuncExpr** (Files 6 from the [output section](#output-files)) #TODO: also SegmExpr?.
+- `--bg-file-path`: Absolute path to the intermediate pooled annotation file. This file is the set of unique kmers in `--annot-kmer-files` files. If the file is not provided it will be generated. Format: One column with header 'kmer'.
+- `--output-suffix`: Default = 'no-annot'. Sufflix to be appended to the filtered `--junction-kmer-files`.
+
+The following parameter is *optional*:
+
+- `--remove-bg`: Default = False. Set to True to remove from `--junction-kmer-files`the kmers in `--bg-file-path`. If set to False, a new column `is_neo_flag` will be added to the `--junction-kmer-files` files. The column will contain False if the kmer is in `--bg-file-path` and True otherwise.
+
+#TODO: Keep this but updated with the new parameters or examples?
+Example command line:
+```
+immunopepper make_bg \
+--kmer-files tests/test1/current_output_pos/test1pos/ref_back_kmer.txt tests/test1/current_output_pos/test1pos/ref_back_kmer.txt \
+--output-dir tests/test1/current_output_pos/ \
+--output-file-path tests/test1/current_output_pos/test1pos/uniq_back_kmer.txt \
+--verbose 2
+```
+
 ## Output files
+
+# Mode `build`
 There are 10 files for the `build` mode. `mut_mode` refers to `ref`, `somatic`,  `germline` and `somatic_and_germline`.
 
 1. **\[mut_mode\]_annot_peptides.fa**: FASTA file containing background peptides for each gene transcript. The header shows
-the transcript ID and the value is the result peptide. Generated only if `--skip-annotation` is set to False.
+the transcript ID and the value is the result peptide. Generated only if `--skip-annotation` is set to False. #TODO add example
 2. **\[mut_mode\]_annot_kmers**: kmers generated from **\[mut_mode\]_annot_peptides.fa**. There is one column called *kmer* containing each resulting kmer.
-Generated only if `--skip-annotation` is set to False.
-3. **gene_expression_detail**: File containing expression for each gene and each sample. The output is a matrix with samples as columns, genes as rows and expression as values.
-Generated only if `--count-path` file is provided. #TODO: Add example output?
+Generated only if `--skip-annotation` is set to False. #TODO: Add example
+3. **gene_expression_detail**: File containing expression for each gene and each sample. Generated only if `--count-path` file is provided. #TODO: Copy an example of how it looks instead of describing how it looks
 4. **\[mut_mode\]_sample_peptides.fa**: FASTA file containing foreground peptides for each gene transcript obtained from traversing splicegraph. The header shows the transcript ID and the value is the result peptide.
-Generated only if `--output-fasta` is set to True.
+Generated only if `--output-fasta` is set to True. #TODO: add example
 5. **\[mut_mode\]_graph_kmer_SegmExpr**: Folder containing a file with the expression levels of kmers found in one exon. kmers shown in this file are generated from a single exon and are not located in an exon junction. Format: [kmer, coord, isCrossJunction, junctionAnnotated, readFrameAnnotated, sample names (nº columns = nº samples)]
     - *kmer*: str. The kmer sequence
     - *coord*: str. The genomic coordinates of the kmer. Format: start:end:nan:nan:None:None
     - *isCrossJunction*: Boolean. True if the kmer is located in an exon junction. In this case, all the kmers will get False.
     - *junctionAnnotated*: Boolean. True if the junction kmer is appearing in the annotation file provided under `--ann-path`. In this case, all kmers will get False.
-    - *readFrameAnnotated*: Boolean. #TODO: what is this exactly?
-6. **\[mut_mode\]_graph_kmer_JuncExpr**: Folder containing a file with the expression levels of kmers located across exon junctions. Format: [kmer, coord, isCrossJunction, junctionAnnotated, readFrameAnnotated]
+    - *readFrameAnnotated*: Boolean. True if the reading frame was appearing in the annotation file provided under `--ann-path`. The flag value will the False if the reading frame was obtained with the immunopepper tool.
+6. **\[mut_mode\]_graph_kmer_JuncExpr**: Folder containing a file with the expression levels of kmers located across exon junctions.
+#TODO: check this and add a better example. Format: [kmer, coord, isCrossJunction, junctionAnnotated, readFrameAnnotated]
     - *kmer*: str. The kmer sequence
     - *coord*: str. The genomic coordinates of the kmer. Format: start_e1:end_e1:start_e2:end_e2:start_e3:end_e3. If the kmer is only crossing one junction, start_e3 and end_e3 will be `None`.
     - *isCrossJunction*: Boolean. True if the kmer is located in an exon junction. In this case, all the kmers will get True.
-    - *junctionAnnotated*: Boolean. True if the junction kmer is appearing in the annotation file provided under `--ann-path`. If this flag is False, it means that it is a novel kmer. #TODO: is this correct?
-    - *readFrameAnnotated*: Boolean. #TODO: what is this exactly?
+    - *junctionAnnotated*: Boolean. True if the junction kmer is appearing in the annotation file provided under `--ann-path`. If this flag is False, it means that it is a novel kmer.
+    - *readFrameAnnotated*: Boolean. True if the reading frame was appearing in the annotation file provided under `--ann-path`. The flag value will the False if the reading frame was obtained with the immunopepper tool.
 
 7. **expression_counts.libsize.tsv**: File containing 75% of expression and total expression for each sample. Format: sample_id, 75% expression, total expression.
 Generated only if `--disable-libsize` is set to False and if `--count-path` file is provided.
-8. **Annot_IS_SUCCESS**: Empty file indicating that background generation was successful. Generated only if `--skip-annotation` is set to False. #TODO: mention this file?
-9. **Output_sample_IS_SUCCESS**: Empty file created if the foreground generation was successful. #TODO: mention this file?
+8. **Annot_IS_SUCCESS**: Empty file indicating that background generation was successful. Generated only if `--skip-annotation` is set to False.
+9. **Output_sample_IS_SUCCESS**: Empty file created if the foreground generation was successful.
 10. **\[mut_mode\]_sample_peptides_meta**: File containing details for each peptide generated from an exon pair.
 
 Detail explanation for columns in **\[mut_mode\]_sample_peptides_meta**
@@ -146,16 +173,16 @@ Detail explanation for columns in **\[mut_mode\]_sample_peptides_meta**
 `ENSG00000198515.13` is the gene name, `0_2` means this junction consists of vertex 0 and vertex 2. `0` means there is no
 somatic mutation or that it is the first case of all somatic mutation combination cases. `47952701 ` is the translation start position. `2-exons` means that the peptide is made by the combination of 2 exons.
 - **readFrame**: int (0,1,2). Reading frame used for translating the peptide.
-- **readFrameAnnotated**: #TODO: what is this
+- **readFrameAnnotated**: True if the reading frame was appearing in the annotation file provided under `--ann-path`. The flag value will the False if the reading frame was obtained with the immunopepper tool.
 - **geneName**: str. The name of Gene.
 - **geneChr**: str. The Chromosome id where the gene is located.
 - **geneStrand**: str ('+', '_'). The strand of gene.
 - **mutationMode**: str ('ref', 'somatic', 'germline', 'somatic_and_germline'). Mutation mode
-- **junctionAnnotated**: #TODO: not appearing in metadata
+- **junctionAnnotated**: #TODO: Remove. Not appearing in metadata
 - **hasStopCodon**: Boolean. Indicate if there is stop codon in the junction pair.
 - **isJunctionList**: (np.nan, 1, 0). Indicate if the junction pair appear in the given junction whitelist provided under `--gtex-junction-path`.
 - **isIsolated**: Boolean. Indicate if the output peptide is actually translated from a single exon instead of two.
-- **variantComb**: If mutation files are provided, it shows the somatic mutation combination used in this line of output. separate by ';' #TODO: is this still separated like this?
+- **variantComb**: If mutation files are provided, it shows the somatic mutation combination used in this line of output. Separated by ';' #TODO: is this still separated like this?
     eg. 5;25 means the somatic mutation of position 5 and 25 take effect in this output.
 - **variantSegExpr**: If mutation file and count file are provided, this field shows the expression of segments where the somatic mutation is in.
     eg. 257.0;123.2 means the segment where the somatic mutation in position 5 is in has counts 257.0 #TODO: check if this is still like this
@@ -163,9 +190,15 @@ somatic mutation or that it is the first case of all somatic mutation combinatio
 - **originalExonsCoord**: Shows the original exon coordinates obtained from splice graph without taking into account the CDS.
 - **vertexIdx**: shows the vertex id of the given junction. Eg: 5,6 means this junction pair consists of the fifth and
     sixth vertex.
-- **junctionExpr**: float. The expression of the junction. #TODO: not appearing in my metadata
+- **junctionExpr**: float. The expression of the junction. #TODO: Remove. Not appearing in metadata
 - **segment_expr**: float. The weighted sum of segment expression. We split the junction into segments and compute the segment
-    expression with the length-weighted-sum expression. #TODO: not appearing in my metadata
+    expression with the length-weighted-sum expression. #TODO: Remove. Not appearing in metadata
 - **kmerType**: str. Shows whether the peptide was translated from 2 or 3 exons.
+
+# Mode `samplespecif`
+
+The output of this mode is a modified version of the files in **\[mut_mode\]_graph_kmer_JuncExpr** and **\[mut_mode\]_graph_kmer_SegmExpr**. #TODO: check if this last folder too.
+If `--remove-bg` is set to False, the files will contain a new column called `is_neo_flag`. This flag will be True if the kmer is unique to the foreground data and False if it is also present in the background data.
+If `--remove-bg` is set to True, the mode will return the files without the kmers that are common with the background data.
 
 
