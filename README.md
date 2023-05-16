@@ -65,7 +65,7 @@ The following parameters are *optional*:
 - `--all-read-frames`: Default = False. Set this parameter to True to switch to exhaustive translation and study all possible reading frames instead of just the annotated ones in the annotation file.
 - `--count-path`: Default = None. Absolute path for the gene counts file. Used for expression quantification of genes. Format: hdf5.)
 - `--output-samples`: Default = None. List of sample names to output. *Note: Names should match the file name of the splice graphs. If not provided all samples are processed and program runs faster.*
-- `--heter-code`: Default = 0. It specifies the heterozygous alelle. Options: 0 or 2.
+- `--heter-code`: Default = 0. It specifies the heterozygous allele. Options: 0 or 2. #TODO: provide more info?
 
 *Optional technical* parameters: Commands for optimization of the software.
 - `--compressed`: Default = True. Compress output files in SNAPPY format.
@@ -83,19 +83,19 @@ The following parameters are *optional*:
 *Optional output* parameters: Commands to select output formatting and filtering.
 - `--skip-annotation`: Default = False. Set this parameter to True to skip the generation of a background file.
 - `--keep-tempfiles`: Default = False. Set this parameter to True to keep the temporary files.
-- `--libsize-path`: #TODO: not used in build mode
+- `--libsize-path`: #TODO: not used in build mode. Remove?
 - `--output-fasta`: Default = False. Set this parameter to True to output the foreground peptides in fasta format.
 - `--force-ref-peptides`: Default = False. Set this parameter to True to output mutated peptides even if they are the same as the ones in the reference.
 - `--kmer-database`: Default = None. Absolute path of a file containing kmers in one column, without header. A file from uniprot or any other standard library can be provided. The kmers provided in this file will not be outputted if found in the foreground peptides. Please note that is a standard proteome is downloaded from an online resource the proteins should be cut into the kmers length selected under `--kmer`.
-- `--gtex-junction-path`: Default = None. Absolute path of whitelist junction path. The junctions of this file will be the only ones outputted from the tool. Format: hdf5. #TODO: check the format this file should have
-- `--disable-concat`: Default = False. Disable the generation of kmers from combinations of more than 2 exons ((kmers generated from combinations of short exons might be missed). If set to true, kmer generation is faster.
+- `--gtex-junction-path`: Default = None. Absolute path of whitelist junction path. The junctions of this file will be the only ones outputted from the tool. Format: hdf5. The hdf5 file should have a key `chrms` indicating the chromosome where the junction is located, a key `pos` containing the starting and ending position of the junction in genomic coordinates, and a key `strand` with information on whether the junction is in the '+' or '-' strand.
+- `--disable-concat`: Default = False. Disable the generation of kmers from combinations of more than 2 exons. In this mode, any kmer shorter than `--kmer` will be discarded. By setting this command to False, the generation of kmers from 3 exons is allowed. This might ensure that kmers generated from shorter exons are kept, but one should take into account that kmers translated from 3 exons might have lower confidence. By setting the argument to True the generation of kmers is faster.
 - `--disable-process-libsize`: Default = False. Set to True to generate the libsize file (file 7 from the [output section](#output-files)).
 
 *Optional mutation* parameters: Commands to add somatic and germline mutation information.
 - `--mutation-sample`: Default = None. Sample id of the files to which mutations are added. The ids should match the graphs/counts names, but an equivalence can be set with --sample-name-map.
 - `--germline`: Default = ''. Absolute path of the germline mutation file. Format: VCF, MAF or h5.
 - `--somatic`: Default = ''. Absolute path of the somatic mutation file. Format: VCF, MAF or h5.
-- `--sample-name-map`: Default = None. Name mapping to sample names from graphs/counts files. Format: No header. Two columns: *[name of count/graphs file \t name of mutation/pickle file]*. Three columns: *[name of count/graphs file \t name of germline file \t name of somatic file]*.
+- `--sample-name-map`: Default = None. Name mapping to sample names from graphs/counts files. Format: No header. Two columns: *[name of count/graphs file \t name of mutation/pickle file]*. Three columns: *[name of count/graphs file \t name of germline file \t name of somatic file]*. #TODO: add example?
 - `--use-mut-pickle`: Default = False. Set to True to save and use pickled mutation dictionary.
 
 #TODO: Keep this but updated with the new parameters? Leave it for a little bit later and test that it runs properly
@@ -149,12 +149,12 @@ The following parameters are *mandatory*:
 
 - `mhc-software-path`: Path for the MHC prediction software. Currently supported: netmhc3, netmhc4, netmhcpan, mhcflurry.
 - `--argstring`: Complete command line for the MHC prediction tool passed as a string. One should include here the command that will be directly passed to the selected MHC tool. The two *mandatory* arguments are:
-  1.`--mhc-predictor`: This argument will specify the name of the software tool that will be used. The name should be in the format accepted by the library mhc_tools #TODO: include link
+  1.`--mhc-predictor`: This argument will specify the name of the software tool that will be used. The name should be in the format accepted by the library [mhc_tools](https://github.com/openvax/mhctools)
   1. `--output-csv`: This argument will contain the path where the MHC prediction tool will save the results.
   2. `--input-peptides-file`: This argument will have the path to the file containing the set of kmers on which MHC binding affinity prediction will be performed. If `--partitioned-tsv`files are provided, an intermediate file will be created and stored under the path `--input-peptides-file`. This intermediate file will contain the set of all unique kmers present in the partitioned files obtained from `cancerspecif` mode. If one does not want to use the output of `cancerspecif` mode for prediction, the path to the file that will be used for prediction will be directly provided under `--input-peptides-list`.
 
 The following parameters are *optional*:
-- `--partitioned-tsv`: Default = None. The input to this command is the path to the folder containing the partitioned tsv files from `cancerspecif` mode (output number #TODO:set number of output section(#TODO: add reference)). If this parameter is set the tool will directly accept the files from cancerspecif mode as input.
+- `--partitioned-tsv`: Default = None. The input to this command is the path to the folder containing the partitioned tsv files from `cancerspecif` mode (output number #TODO:set number of [output section](#output-files)). If this parameter is set the tool will directly accept the files from cancerspecif mode as input.
 - `--bind-score-method`: Default = None. Scoring method to filter the MHC tools predictions. E.g. score, affinity, percentile_rank (only for netmhcpan).
 - `--bind-score-threshold`: Default = None. Threshold to filter the MHC tools predictions.All the peptides with a score lower than the threshold will be filtered out and only the ones with a score higher than the threshold will be kept.
 - `--less-than`: Default = False. If set to True the `--bind-score-threshold` will be considered as an upper bound instead of a lower bound. This means that peptides with a score higher than this threshold will be filtered out.
@@ -165,28 +165,86 @@ The following parameters are *optional*:
 There are 10 files for the `build` mode. `mut_mode` refers to `ref`, `somatic`,  `germline` and `somatic_and_germline`.
 
 1. **\[mut_mode\]_annot_peptides.fa**: FASTA file containing background peptides for each gene transcript. The header shows
-the transcript ID and the value is the result peptide. Generated only if `--skip-annotation` is set to False. #TODO add example
+the transcript ID and the value is the result peptide. Generated only if `--skip-annotation` is set to False.
+
+```
+>ENST00000514520.5
+MKLSMKNNIINTQQSFVTMPNVIVPDIEKEIRRMENGACSSFSEDDDSASTSEESENENPHARGSFSYKSLRKGGPSQREQYLPGAIALFNVNNSSNKDQ
+```
+
 2. **\[mut_mode\]_annot_kmers**: kmers generated from **\[mut_mode\]_annot_peptides.fa**. There is one column called *kmer* containing each resulting kmer.
-Generated only if `--skip-annotation` is set to False. #TODO: Add example
-3. **gene_expression_detail**: File containing expression for each gene and each sample. Generated only if `--count-path` file is provided. #TODO: Copy an example of how it looks instead of describing how it looks
+Generated only if `--skip-annotation` is set to False.
+
+```
+kmer
+WLILDYVSD
+VIIIHWNAC
+TEYPDAKTM
+```
+3. **gene_expression_detail**: File containing expression for each gene and each sample. Generated only if `--count-path` file is provided.
+
+```
+____________________________________________________
+| gene                  | sample 1 | ... | sample n |
+_____________________________________________________
+| ENSMUSG00000025902.13 | 366155   | ... | 0        |
+|                       |          |     |          |
+| ENSMUSG00000025903.14 | 0        | ... | 0        |
+_____________________________________________________
+```
+
 4. **\[mut_mode\]_sample_peptides.fa**: FASTA file containing foreground peptides for each gene transcript obtained from traversing splicegraph. The header shows the transcript ID and the value is the result peptide.
-Generated only if `--output-fasta` is set to True. #TODO: add example
+Generated only if `--output-fasta` is set to True.
+
+```
+>ENST00000513178.1
+MKLSMKNNIINTQQSFVTMPNVIVPDIEKEIRRMENGACSSFSEDDDSASTSEESENENPHARGSFSYKSLRKGGPSQREQYLPGAIALFNVNNSSNKD
+```
 5. **\[mut_mode\]_graph_kmer_SegmExpr**: Folder containing a file with the expression levels of kmers found in one exon. kmers shown in this file are generated from a single exon and are not located in an exon junction. Format: [kmer, coord, isCrossJunction, junctionAnnotated, readFrameAnnotated, sample names (nº columns = nº samples)]
     - *kmer*: str. The kmer sequence
     - *coord*: str. The genomic coordinates of the kmer. Format: start:end:nan:nan:None:None
     - *isCrossJunction*: Boolean. True if the kmer is located in an exon junction. In this case, all the kmers will get False.
     - *junctionAnnotated*: Boolean. True if the junction kmer is appearing in the annotation file provided under `--ann-path`. In this case, all kmers will get False.
     - *readFrameAnnotated*: Boolean. True if the reading frame was appearing in the annotation file provided under `--ann-path`. The flag value will the False if the reading frame was obtained with the immunopepper tool.
-6. **\[mut_mode\]_graph_kmer_JuncExpr**: Folder containing a file with the expression levels of kmers located across exon junctions.
-#TODO: check this and add a better example. Format: [kmer, coord, isCrossJunction, junctionAnnotated, readFrameAnnotated]
+
+```
+_________________________________________________________________________________________________________________________________________________________________
+kmer       |  coord                                  |  isCrossJunction   |  junctionAnnotated  |    readFrameAnnotated   |   sample 1  |     ...  |   sample n |
+_________________________________________________________________________________________________________________________________________________________________
+SDFQLIFVF  |    47970995:47971022:nan:nan:None:None  |      False         |        False        |           True          |       0.0   |     ...  |      0.0   |
+
+TLIPEELEP  |    47948807:47948834:nan:nan:None:None  |      False         |        False        |           False         |       0.0   |     ...  |      0.25  |
+_________________________________________________________________________________________________________________________________________________________________
+```
+6. **\[mut_mode\]_graph_kmer_JuncExpr**: Folder containing a file with the expression levels of kmers located across exon junctions. Format: [kmer, coord, isCrossJunction, junctionAnnotated, readFrameAnnotated]
     - *kmer*: str. The kmer sequence
     - *coord*: str. The genomic coordinates of the kmer. Format: start_e1:end_e1:start_e2:end_e2:start_e3:end_e3. If the kmer is only crossing one junction, start_e3 and end_e3 will be `None`.
     - *isCrossJunction*: Boolean. True if the kmer is located in an exon junction. In this case, all the kmers will get True.
     - *junctionAnnotated*: Boolean. True if the junction kmer is appearing in the annotation file provided under `--ann-path`. If this flag is False, it means that it is a novel kmer.
     - *readFrameAnnotated*: Boolean. True if the reading frame was appearing in the annotation file provided under `--ann-path`. The flag value will the False if the reading frame was obtained with the immunopepper tool.
 
+```
+___________________________________________________________________________________________________________________________________________________________________________
+kmer       |  coord                                            |  isCrossJunction   |  junctionAnnotated  |    readFrameAnnotated   |   sample 1  |     ...  |   sample n |
+___________________________________________________________________________________________________________________________________________________________________________
+KKEKKSQMI  |    47943370:47943387:47943274:47943284:None:None  |      True          |        False        |           False         |       0.0   |     ...  |      1.0   |
+
+REPEEKKKK  |    47952582:47952584:47943387:47943412:None:None  |      True          |        False        |           True          |       0.0   |     ...  |      0.25  |
+_________________________________________________________________________________________________________________________________________________________________
+```
+
 7. **expression_counts.libsize.tsv**: File containing 75% of expression and total expression for each sample. Format: sample_id, 75% expression, total expression.
 Generated only if `--disable-libsize` is set to False and if `--count-path` file is provided.
+
+```
+_______________________________________________________________
+sample     |   libsize_75percent    |     libsize_total_count
+_______________________________________________________________
+sample 1   |       309287.0         |          6256400944.0
+sample 2   |       197045.0         |          4167429408.0
+_______________________________________________________________
+```
+
 8. **Annot_IS_SUCCESS**: Empty file indicating that background generation was successful. Generated only if `--skip-annotation` is set to False.
 9. **Output_sample_IS_SUCCESS**: Empty file created if the foreground generation was successful.
 10. **\[mut_mode\]_sample_peptides_meta**: File containing details for each peptide generated from an exon pair.
@@ -202,23 +260,28 @@ somatic mutation or that it is the first case of all somatic mutation combinatio
 - **geneChr**: str. The Chromosome id where the gene is located.
 - **geneStrand**: str ('+', '_'). The strand of gene.
 - **mutationMode**: str ('ref', 'somatic', 'germline', 'somatic_and_germline'). Mutation mode
-- **junctionAnnotated**: #TODO: Remove. Not appearing in metadata
-- **hasStopCodon**: Boolean. Indicate if there is stop codon in the junction pair.
+- **hasStopCodon**: int. Indicate if there is stop codon in the junction pair.
 - **isJunctionList**: (np.nan, 1, 0). Indicate if the junction pair appear in the given junction whitelist provided under `--gtex-junction-path`.
-- **isIsolated**: Boolean. Indicate if the output peptide is actually translated from a single exon instead of two.
-- **variantComb**: If mutation files are provided, it shows the somatic mutation combination used in this line of output. Separated by ';' #TODO: is this still separated like this?
-    eg. 5;25 means the somatic mutation of position 5 and 25 take effect in this output.
-- **variantSegExpr**: If mutation file and count file are provided, this field shows the expression of segments where the somatic mutation is in.
-    eg. 257.0;123.2 means the segment where the somatic mutation in position 5 is in has counts 257.0 #TODO: check if this is still like this
+- **isIsolated**: int. Indicate if the output peptide is actually translated from a single exon instead of two.
+- **variantComb**: If mutation files are provided, it shows the somatic mutation combination used in this line of output.
+    eg. 5;25 means the somatic mutation of position 5 and 25 take effect in this output. # TODO: include this or just the example down?
+- **variantSegExpr**: If mutation file and count file are provided, this field shows the expression of segments where the somatic mutation is in.  If mutation files are not provided the value is set to nan.
+    eg. 257.0;123.2 means the segment where the somatic mutation in position 5 is in has counts 257.0 #TODO: include this example?
 - **modifiedExonsCoord**: Coordinates for the exons forming the junction. Usually we have 4 number start_v1;stop_v1;start_v2;stop_v2. It is obtained taking into account the CDS reading frame.
 - **originalExonsCoord**: Shows the original exon coordinates obtained from splice graph without taking into account the CDS.
 - **vertexIdx**: shows the vertex id of the given junction. Eg: 5,6 means this junction pair consists of the fifth and
     sixth vertex.
-- **junctionExpr**: float. The expression of the junction. #TODO: Remove. Not appearing in metadata
-- **segment_expr**: float. The weighted sum of segment expression. We split the junction into segments and compute the segment
-    expression with the length-weighted-sum expression. #TODO: Remove. Not appearing in metadata
 - **kmerType**: str. Shows whether the peptide was translated from 2 or 3 exons.
 
+```
+_______________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+peptide                                 |  id                                          |    readFrame    |   readFrameAnnotated   |       geneName        |     geneChr   |   geneStrand  |  mutationMode |  hasStopCodon  |  isJunctionList |   isIsolated  |    variantComb |    variantSegExpr     |       modifiedExonsCoord                  |            originalExonsCoord              |     vertexIdx  |  kmerType   |
+_______________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+MKLSMKNNIINTQQSFVTMPNVIVPDIEKEIRRMENGA  | ENSG00000198515.13:18_15:0:47952701:2-exons  |       2         |          True          |   ENSG00000198515.13  |      chr4     |       -       |      ref      |       0        |       nan       |       0       |       nan      |         nan           |   47952582;47952701;47951354;47951469     |     47952582;47952807;47951352;47951469    |        18;15   |   2-exons   |
+KSDDKNENKNDPEKKKKKKDKEKKKKEEKSKDKKEEEK  | ENSG00000198515.13:7_4:0:47943287:2-exons    |       2         |          False         |   ENSG00000198515.13  |      chr8     |       +       |      ref      |       0        |       nan       |       0       |       nan      |         nan           |   47943180;47943287;47942042;47942148     |      47943180;47943288;47942040;47942148   |         7;4    |   2-exons   |
+_______________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+```
 # Mode `samplespecif`
 
 The output of this mode is a modified version of the files in **\[mut_mode\]_graph_kmer_JuncExpr** and **\[mut_mode\]_graph_kmer_SegmExpr**. #TODO: check if this last folder too.
