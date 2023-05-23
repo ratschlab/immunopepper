@@ -452,18 +452,20 @@ BBBBBBBKP       900
 
 
 2. **Output files**
-    1. **{tag_prefix}_{id_cancer_sample}_{mutation_mode}_SampleLim{`--sample-expr-support-cancer`}_CohortLim{`--cohort-expr-support-cancer`}_Across{`--n-samples-lim-cancer`}_FiltNormals{`--tag_normals`}_CohortLim{`--cohort-expr-support-normal`}_Across{`--n-samples-lim-normal`}_batch{`--batch-id`}_{`--tot-batches`}.tsv**: #TODO: describe this files
-    One example of how the output name for this file could look is the following (withou: *breast_TCGA-OR-A5J1-01A-11R-A29R-07_somatic_SampleLim3.0_CohortLim0.0Across10_FiltNormalsGtexcoreCohort_ExceptTCGA-OR-A5J1-01A-11R-A29R-07_CohortLim0.0_Across1_batch0_1.tsv.gz*.
-    #TODO: check if this output is still like this
+    1. **{tag_prefix}_{id_cancer_sample}_{mutation_mode}_SampleLim{`--sample-expr-support-cancer`}_CohortLim{`--cohort-expr-support-cancer`}_Across{`--n-samples-lim-cancer`}_FiltNormals{`--tag_normals`}_CohortLim{`--cohort-expr-support-normal`}_Across{`--n-samples-lim-normal`}_batch{`--batch-id`}_{`--tot-batches`}.tsv**: This file is obtained after the differential filtering step. It is a file containing the kmers that passed the cancer filter based on expression and minimum number of samples, without the common kmers to the normal files. The kmers found in both normal and cancer are deleted from this file, since we are looking for cancer specific kmers.
+    One example of how the output name for this file could look is the following: *breast_TCGA-OR-A5J1-01A-11R-A29R-07_somatic_SampleLim3.0_CohortLim0.0Across10_FiltNormalsGtexcoreCohort_ExceptTCGA-OR-A5J1-01A-11R-A29R-07_CohortLim0.0_Across1_batch0_1.tsv.gz*.
+
+   #TODO: check if this output is still like this
    ````
     kmer    TCGAA2A0SX01A12RA08407all
     AAGDDENHN       244.0
     AAMGIKSCA       4252.0
     AAPGQHLQA       38.0
     ````
-    2. **{tag_prefix}_{id_cancer_sample}_{mutation_mode}_SampleLim{`--sample-expr-support-cancer`}_CohortLim{`--cohort-expr-support-cancer`}_Across{`--n-samples-lim-cancer`}_FiltNormals{`--tag_normals`}_CohortLim{`--cohort-expr-support-normal`}_Across{`--n-samples-lim-normal`}_FiltUniprot_batch{`--batch-id`}_{`--tot-batches`}.tsv**:
-    One example of how the output name for this file could look is the following (withou: *breast_TCGA-OR-A5J1-01A-11R-A29R-07_somatic_SampleLim3.0_CohortLim0.0Across10_FiltNormalsGtexcoreCohort_ExceptTCGA-OR-A5J1-01A-11R-A29R-07_CohortLim0.0_Across1_FiltUniprot_batch0_1.tsv.gz*.
-    #TODO: Check if the output is still like this
+    2. **{tag_prefix}_{id_cancer_sample}_{mutation_mode}_SampleLim{`--sample-expr-support-cancer`}_CohortLim{`--cohort-expr-support-cancer`}_Across{`--n-samples-lim-cancer`}_FiltNormals{`--tag_normals`}_CohortLim{`--cohort-expr-support-normal`}_Across{`--n-samples-lim-normal`}_FiltUniprot_batch{`--batch-id`}_{`--tot-batches`}.tsv**: This file is obtained after the differential filtering step. It futher reduces the previous file by deleting from it some kmers that are present in the uniprot database. This is an optional step, and it will only be performed if `--uniprot` is provided. The output file will have the cancer specific kmers that are not find in the uniprot database.
+    One example of how the output name for this file could look is the following: *breast_TCGA-OR-A5J1-01A-11R-A29R-07_somatic_SampleLim3.0_CohortLim0.0Across10_FiltNormalsGtexcoreCohort_ExceptTCGA-OR-A5J1-01A-11R-A29R-07_CohortLim0.0_Across1_FiltUniprot_batch0_1.tsv.gz*.
+
+   #TODO: Check if the output is still like this
     ````
     kmer    TCGAA2A0SX01A12RA08407all       kmer_IL_eq
     AAGDDENHN       244.0   AAGDDENHN
@@ -477,6 +479,7 @@ BBBBBBBKP       900
     - Number (#) of cohort samples: Number of samples threshold for cancer cohort filtering (step 2b of cancer pipeline). It is the threshold provided under `--n-samples-lim-cancer`.
     - Reads per cohort sample: Expression threshold for expression cancer cohort filtering (step 2b of cancer pipeline). It is the threshold provided under `--cohort-expr-support-cancer`.
     - Number (#) of normal samples allowed: Number of samples threshold for normal cohort filtering (step 2b of normal pipeline). It is the threshold provided under `--n-samples-lim-normal`.
+    - Normal cohort id: The normal cohort id.
     - Reads per normal sample: Expression threshold for expression normal cohort filtering (step 2a of normal pipeline). It is the threshold provided under `--cohort-expr-support-normal`.
     - Init_cancer: Number of kmers before any filtering step.
     - Filter_sample: Number of kmers remaining after sample filtering (step 2a of cancer pipeline).
@@ -485,10 +488,14 @@ BBBBBBBKP       900
     - Filter_sample_cohort_cohortnormal_uniprot: Number of kmers after filtering with uniprot selected database.
     - Info: If a `--tag-normals` is provided, it will be indicated here.
 ```
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-sample     |    mutation_mode   | min_sample_reads   | # of cohort samples   |   reads per cohort sample  |   # of normal samples allowed   |   reads per normal sample   |   init_cancer   |   filter_sample   |   filter_sample_cohort   |   filter_sample_cohort_cohortnormal   |   filter_sample_cohort_cohortnormal_uniprot   |   info
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+sample                         |    mutation_mode   | min_sample_reads   | # of cohort samples   |   reads per cohort sample  |   # of normal samples allowed   |   normal_cohort_id   |    reads per normal sample   |   init_cancer   |   filter_sample   |   filter_sample_cohort   |   filter_sample_cohort_cohortnormal   |   filter_sample_cohort_cohortnormal_uniprot   |   info              |
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+TCGA-OR-A5J1-01A-11R-A29R-07   |    somatic         |      3.0           |     10                |      0.0                   |             1                   |         GtexCore     |            0.0               |      1865044    |      1661806      |      1661432             |                  21399                |                    21378                      |    GtexcoreCore     |
+TCGA-A2-BCRT-01A-11R-A084-07   |       ref          |      2.0           |      1                |      0.0                   |             2                   |         GtexCore     |            10.0              |      1865044    |      1661806      |      1661432             |                  21401                |                    21380                      |    GtexcoreCore     |
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ```
-#TODO: add example of output
+
 
 
 ### Outputs mode `mhcbind`
