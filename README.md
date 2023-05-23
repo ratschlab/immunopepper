@@ -217,12 +217,6 @@ The following parameters are **optional**:
 - `--tag-normals`: Default = ''. Name for the normal cohort used for filtering. Needed when there are various normal cohorts. It will be added to the final output name in order to identify against what normal cohort were the samples filtered.
 - `--tag-prefix`: Default = ''. Prefix used for the output files. It is recommended when there are different conditions being studied.
 
-*Optional normal samples statistical filter parameters*: Parameters to fit a negative binomial distribution on normal kmers and use a probabilistic threshold for normal background inclusion.
-- `--statistical`: #TODO: not used in the code
-- `--expr-high-limit-normal`: #TODO: not used in the code
-- `--threshold-noise-normal`: #TODO: not used in the code
-- `--tissue-grp-files`: #TODO: not used in the code
-
 *Optional parameters for normal samples filtering*: Parameters to perform the step 2 of the normal filtering pipeline.
 - `--path-normal-matrix-segm`: Default = None. Path to the matrix of segment expression of kmers in normal samples. This corresponds to output 5 of [output, mode build](#output-files)
 - `--path-normal-matrix-edge`: Default = None. Path to the matrix of junction expression of kmers in normal samples. This corresponds to output 6 of [output, mode build](#output-files)
@@ -233,9 +227,8 @@ The following parameters are **optional**:
 - `--sample-expr-support-cancer`: #TODO: doesn't have a default. Errors if not provided? This parameter corresponds with the sample specific filtering in the cancer pipeline. The value will correspond to the normalized expression threshold that needs to be reached by each kmer in order to be considered a kmer candidate. Kmers with an expression higher than this threshold in at least one sample will be considered as cancer candidates. #TODO: are samples provided under `--ids_cancer_samples` included in this filtering?
 - `--cohort-expr-support-cancer`: Default = None. This parameter corresponds to the expression threshold in cohort specific filtering. It indicates the normalized expression value that needs to be observed in at least `--n-samples-lim-cancer` in order to consider a kmer as a cancer candidate. Kmers with an expression higher than this threshold in at least `--n-samples-lim-cancer` samples will be considered as cancer candidates. The samples provided under `--ids_cancer_samples` will not be included in cohort filtering.
 - `--n-samples-lim-cancer`: Default = None. This parameter corresponds to the number of samples threshold in cohort specific filtering. It indicated the minimum number of cancer samples in which one should see an expression higher than `--cohort-expr-support-cancer` in order to consider the kmer as a cancer candidate. Kmers with an expression higher than `--cohort-expr-support-cancer` in at least `--n-samples-lim-cancer` samples will be considered as cancer candidates. The samples provided under `--ids_cancer_samples` will not be included in cohort filtering.
-- `--paths-cancer-samples`: Default = ''. #TODO: understand what this is
-- `--path-cancer-matrix-segm`: Default = None. Path to the cancer matrix containing segment expression from samples belonging to a cohort. The matrix will have the following dimensions: [kmers * samples]. However, it is more interesting to find novel junction kmers, so a junction expression matrix provided under `--path-cancer-matrix-edge` is the best expression proxy for that kmers. It is advised to provide only `--path-cancer-matrix-edge` and skip the inclusion of this file. This will be the ouput 5 of [output, mode build](#output-files)
-- `--path-cancer-matrix-edge`: Default = None. Path to the cancer matrix containing junction expression from samples belonging to a cohort. The matrix will have the following dimensions: [kmers * samples]. This is the best expression proxy for junction kmers. It is advised to provide only this file and skip the inclusion of `--path-cancer-matrix-segm`. This will be the ouput 6 of [output, mode build](#output-files).
+- `--path-cancer-matrix-segm`: Default = None. Path to the cancer matrix containing segment expression from samples belonging to a cohort. The matrix will have the following dimensions: [kmers * samples]. However, it is more interesting to find novel junction kmers, so a junction expression matrix provided under `--path-cancer-matrix-edge` is the best expression proxy for that kmers. It is advised to provide only `--path-cancer-matrix-edge` and skip the inclusion of this file. If both matrices are provided, junction expression will be chosen in case there is expression information for the same kmer in both matrices. This will be the output 5 of [output, mode build](#output-files)
+- `--path-cancer-matrix-edge`: Default = None. Path to the cancer matrix containing junction expression from samples belonging to a cohort. The matrix will have the following dimensions: [kmers * samples]. This is the best expression proxy for junction kmers. It is advised to provide only this file and skip the inclusion of `--path-cancer-matrix-segm`. If both matrices are provided, junction expression will be chosen in case there is expression information for the same kmer in both matrices. This will be the ouput 6 of [output, mode build](#output-files).
 - `--cancer-support-union`: Default = False. Parameter to choose how the sample specific filtering and the cohort specific filtering are combined. By default, they are combined by choosing the common kmers to both filtering steps, i.e. performing an intersection. If this parameter is set to True, the union of both filtering steps will be performed, i.e. the kmers that pass either the sample specific filtering or the cohort specific filtering will be kept.
 
 *Optional parameters for the addition of additional backgrounds*: Parameters to add additional backgrounds that will be removed.
@@ -249,6 +242,7 @@ The following parameters are **optional**:
 *Optional development parameters*
 - `--tot-batches`: Default = None. If selected, the filtering of the background and foreground will be based on hash functions. This parameter will set the total number of batches in which we will divide the foreground and background files to filter, and each of those batches will be assigned a hash value. If `--batch-id` is specified, `--tot-batches` should also be specified.
 - `--batch-id`: Default = None. If selected, the filtering of the background and foreground will be based on hash functions. This parameter will set the batch id of the current batch that is being filtered. The batch id should be an integer between 0 and `--tot-batches`. It shows the specific batch that we want to process, out of the `--tot-batches`. If `--batch-id` is specified, `--tot-batches` should also be specified.
+- `--on-the-fly`: Default = False. If set to true, all the filtering steps will be done on the fly, without the creation of intermediate files. This will slow down the computations if there is a re-run of the program, as filtering is an expensive operation. However, it will save space in the disk.
 
 ### Mode `mhcbind`
 
@@ -257,8 +251,8 @@ The following parameters are *mandatory*:
 - `mhc-software-path`: Path for the MHC prediction software. Currently supported: netmhc3, netmhc4, netmhcpan, mhcflurry.
 - `--argstring`: Complete command line for the MHC prediction tool passed as a string. One should include here the command that will be directly passed to the selected MHC tool. The two *mandatory* arguments are:
   1.`--mhc-predictor`: This argument will specify the name of the software tool that will be used. The name should be in the format accepted by the library [mhc_tools](https://github.com/openvax/mhctools)
-  1. `--output-csv`: This argument will contain the path where the MHC prediction tool will save the results.
-  2. `--input-peptides-file`: This argument will have the path to the file containing the set of kmers on which MHC binding affinity prediction will be performed. If `--partitioned-tsv`files are provided, an intermediate file will be created and stored under the path `--input-peptides-file`. This intermediate file will contain the set of all unique kmers present in the partitioned files obtained from `cancerspecif` mode. If one does not want to use the output of `cancerspecif` mode for prediction, the path to the file that will be used for prediction will be directly provided under `--input-peptides-list`.
+  2.`--output-csv`: This argument will contain the path where the MHC prediction tool will save the results.
+  3.`--input-peptides-file`: This argument will have the path to the file containing the set of kmers on which MHC binding affinity prediction will be performed. If `--partitioned-tsv`files are provided, an intermediate file will be created and stored under the path `--input-peptides-file`. This intermediate file will contain the set of all unique kmers present in the partitioned files obtained from `cancerspecif` mode. If one does not want to use the output of `cancerspecif` mode for prediction, the path to the file that will be used for prediction will be directly provided under `--input-peptides-list`.
 
 The following parameters are *optional*:
 - `--partitioned-tsv`: Default = None. The input to this command is the path to the folder containing the partitioned tsv files from `cancerspecif` mode (output number #TODO:set number of [output section](#output-files)). If this parameter is set the tool will directly accept the files from cancerspecif mode as input.
@@ -397,6 +391,54 @@ If `--remove-bg` is set to False, the files will contain a new column called `is
 If `--remove-bg` is set to True, the mode will return the files without the kmers that are common with the background data.
 
 ### Outputs mode `cancer_specific`
+
+In this mode, if the argument `--on-the-fly` is set to False, there will be intermediate files generated for cancer samples and for normal samples. These intermediate files will help speed up re-runs, as filtering steps are very computationally expensive.
+
+**Output files for normal samples**
+For normal samples, only the intermediate files will be generated. These files will be later used to exclude some kmers as cancer candidates. These files will be stored in the scratch directory if `--scratch-dir` is provided, in the directory specified by the user under `--interm-dir-norm` or in the output directory specified under `--output-dir` if the previous arguments are not provided.
+1. **kmers_derived_solely_from_annotation.csv**: This is a file containing the kmers that are derived from the annotation and not present in any normal sample. If the expression data is taken from junctions, provided under `--path-cancer-matrix-edge`, the kmers selected in this file will be the ones with *JunctionAnnotated = True* and zero expression across all normal samples. If the expression data is taken from segments, provided under `--path-cancer-matrix-segm`, the kmers selected in this file will be the ones with *ReadFrameAnnotated = True* and zero expression across all normal samples. The kmers present in this file will be skipped, and they will not be further processed. They will also be removed from the foreground matrix. #TODO: check they are removed from the foreground matrix.
+
+````
+#TODO: Check format
+````
+
+2. **interm_normal_combiExprCohortLim{`--cohort-expr-support-normal`}Across1_batch{`--batch_id`}_{`--tot-batches`}.tsv**:This folder contains intermediate calculations for the filtering of normals. As the filtering data is usually large, it is divided in different parts or batches and analyzed separately. In this directory one can obtain the intermediate information for each part. It will show the kmers present with an expression bigger than `--cohort-expr-support-normal` in at least one normal sample. This file will be helpful to perform the expression filtering step 2a). The file is a tab seperated file with two columns, with the first column showing the kmer and the second column showing the number of samples in which that kmer appears with more expression than the expression threshold. Therefore, the kmers present in this file will be the ones passing the expression filter for normal samples and will be excluded as cancer candidates.
+
+The directory also contains an empty file '_SUCCESS' that indicates that the filtering was successful.
+
+````
+AAAAAAAGD      7868
+AAAAAAAKN      7876
+AAAAAAAKP       2
+````
+
+3. **interm_normal_combiExprCohortLim0.0Across1_batch{`--batch_id`}_{`--tot-batches`}.tsv**: This folder contains intermediate calculations for the filtering of normals. As the filtering data is usually large, it is divided in different parts or batches and analyzed separately. In this directory one can obtain the intermediate information for each part. It will show the kmers present with an expression bigger than 0 in at least one normal sample. This file will be helpful to perform the filtering step 2b). The filtering step 2b), in which it is checked how many of the kmers are expressed with an expression bigger than 0 in `--n-samples-lim-normal`, will be performed on the fly using this file as input. The operation can be performed on the fly because it requires less computational power. The files obtained in this folder will be tab separated, and they will have two columns, with the first column showing the kmer and the second column showing the number of samples in which that kmer appears with more expression than 0.
+
+The directory also contains an empty file '_SUCCESS' that indicates that the filtering was successful.
+
+````
+AAAAAAAGD      7868
+AAAAAAAKN      7876
+AAAAAAAKP       50
+````
+
+**Output files for cancer samples**
+For cancer samples, there will be both intermediate and output files generated. The intermediate files will be later used to exclude some kmers as cancer candidates. These files will be stored in the scratch directory if `--scratch-dir` is provided, in the directory specified by the user under `--interm-dir-cancer` or in the output directory specified under `--output-dir` if the previous arguments are not provided.
+
+1. **Intermediate files**
+   1. **interm_cancer_{mutation_mode}_combiExprCohortLim{`--cohort-expr-support-cancer`}Across1Except{`--ids-cancer-sample`}_batch{`--batch_id`}_{`--tot-batches`}.tsv**:This folder contains intermediate calculations for the filtering of cancer samples. As the filtering data is usually large, it is divided in different parts or batches and analyzed separately. In this directory one can obtain the intermediate information for each part. It will show the kmers present with an expression bigger than `--cohort-expr-support-cancer` in at least one normal sample. It will also include in the name an indication of the cancer files that were not used for the filtering, provided under #TODO:check where exactly. This file will be helpful to perform the expression filtering of step. The file is a tab seperated file with two columns, with the first column showing the kmer and the second column showing the number of samples in which that kmer appears with more expression than the expression threshold. Therefore, the kmers present in this file will be the ones passing the expression filter for cancer samples. However, this expression filter needs to be combined with the number of samples filter, so this file will not directly show the kmers that will be selected as cancer candidates.
+# TODO: check if it contains _SUCCESS file. Check the specific format of the file.
+   2. **interm_cancer_{mutation_mode}_combiExprCohortLim0.0Across1Except{`--ids-cancer-sample`}_batch{`--batch_id`}_{`--tot-batches`}.tsv**: This folder contains intermediate calculations for the filtering of cancer samples. As the filtering data is usually large, it is divided in different parts or batches and analyzed separately. In this directory one can obtain the intermediate information for each part. It will show the kmers present with an expression bigger than 0 in at least one cancer sample. This file will be helpful to perform the number of samples filtering in step 2. This filtering step checks how many of the kmers are expressed with an expression bigger than 0 in `--n-samples-lim-normal`, and it will be performed on the fly using this file as input. The operation can be performed on the fly because it requires less computational power. The files obtained in this folder will be tab separated, and they will have two columns, with the first column showing the kmer and the second column showing the number of samples in which that kmer appears with more expression than 0. Therefore, the kmers present in this file are not yet the ones passing the filter on number of samples.
+#TODO: check if it contains _SUCCESS file. Check specific file format
+#TODO: add example of how a full name would look?
+
+2. **Output files**
+    1. **{tag_prefix}_{id_cancer_sample}_{mutation_mode}_SampleLim{`--sample-expr-support-cancer`}_CohortLim{`--cohort-expr-support-cancer`}_Across{`--n-samples-lim-cancer`}_FiltNormals{`--tag_normals`}_CohortLim{`--cohort-expr-support-normal`}_Across{`--n-samples-lim-normal`}_batch{`--batch-id`}_{`--tot-batches`}.tsv**:
+    2. **{tag_prefix}_{id_cancer_sample}_{mutation_mode}_SampleLim{`--sample-expr-support-cancer`}_CohortLim{`--cohort-expr-support-cancer`}_Across{`--n-samples-lim-cancer`}_FiltNormals{`--tag_normals`}_CohortLim{`--cohort-expr-support-normal`}_Across{`--n-samples-lim-normal`}_FiltUniprot_batch{`--batch-id`}_{`--tot-batches`}.tsv**:
+    3. #TODO: add count file and check what name they give to it
+
+#TODO: add example of how a full name would look? for 1 and 2
+
 
 ### Outputs mode `mhcbind`
 
