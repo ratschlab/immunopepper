@@ -1,8 +1,14 @@
 # ImmunoPepper
-ImmunoPepper is a software tool for the detection of neoantigens from a splicing graph (possibly derived from RNA-Seq
-samples). It generates the set of all theoretically feasible peptide sequences (or kmers) through
-direct translation of all walks along the graph. This peptide set can be personalized with germline
-and somatic variants and takes all exon-exon junctions present in the splicing graph (even the ones not
+ImmunoPepper is a software tool for the detection of neoantigens from a splicing graph. It generates the set of all theoretically feasible peptide sequences (or kmers) through
+direct translation of all walks along the graph.
+
+The splice graph is generated using the SplAdder pipeline. SplAdder is a software tool for the detection of alternative splicing events
+from RNA-Seq data. This splicing graph is generated from one or several alignment files derived from RNA-Seq data in *bam* format,
+as well as from a reference annotation file. *Note: The bam file should be accompanied by a bam index file (.bai).*
+For more information on how to incorporate this data to generate the input splice graph check out the [build mode of SplAdder](https://spladder.readthedocs.io/en/latest/spladder_modes.html)
+
+This peptide set obtained by using this software tool can be personalized with germline
+and somatic variants, and takes all exon-exon junctions present in the splicing graph (even the ones not
 part of the reference annotation, but present in the given RNA-Seq sample) into account. The
 comprehensive set of peptides can be used subsequently for further downstream analyses, such as
 domain annotation or computational immunology.
@@ -191,26 +197,26 @@ The following parameters are **mandatory**:
 The following parameters are **optional**:
 
 *Optional technical parameters:* Due to the heavy amount of data, this mode uses spark. These are parameters to control spark processing
-- `--out-partitions`: Default = None.
-- `--scratch-dir`: Default = ''.
-- `--interm-dir-norm`: Default = ''.
-- `--interm-dir-cancer`: Default = ''.
+- `--out-partitions`: Default = None. This argument is used to select the number of partitions in which the final output file will be saved. If not provided, #TODO: what happens?
+- `--scratch-dir`: Default = ''. Os environment variable name containing the cluster scratch directory path. If specified, all the intermediate files will be saved to this directory. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`. If the scratch directory is provided, `--interm-dir-norm` and `--interm-dir-cancer` are ignored.
+- `--interm-dir-norm`: Default = ''. Custom scratch directory path to save the intermediate files for the normal samples. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`.
+- `--interm-dir-cancer`: Default = ''. Custom scratch directory path to save the intermediate files for the cancer samples. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`.
 
 *Optional input helper parameters*: These parameters are used for a better understanding of the input files.
-- `--expression-fields-c`: Default = ['segment_expr', 'junction_expr']
+- `--expression-fields-c`: Default = ['segment_expr', 'junction_expr']. This argument is used to provide the name of the segment and junction expression field in the cancer file. #TODO: check exactly to which files this is looking at.
 
 *Optional general input files parameters*: Parameters for the input files that are used regardless of the filtering method.
-- `--whitelist-normal`: Default = None.
-- `--whitelist-cancer`: Default = None.
-- `--path-cancer-libsize`: Default = None.
-- `--path-normal-libsize`: Default = None.
-- `--normalizer-cancer-libsize`: Default = None.
-- `--normalizer-normal-libsize`: Default = None.
+- `--whitelist-normal`: Default = None. File containing the whitelist of normal samples. If provided, only the samples in the whitelist will be retrieved and further studied.Format: Tab separated file without a header, with a single column containing sample names.
+- `--whitelist-cancer`: Default = None. File containing the whitelist of cancer samples. If provided, only the samples in the whitelist will be retrieved and further studied.Format: Tab separated file without a header, with a single column containing sample names.
+- `--path-cancer-libsize`: Default = None. Path for the libsize file of the selected cancer samples. It corresponds with the output 7 of [output, mode build](#output-files)
+- `--path-normal-libsize`: Default = None. Path for the libsize of the selected normal samples. It corresponds with the output 7 of [output, mode build](#output-files)
+- `--normalizer-cancer-libsize`: Default = median of the libsize. Custom normalization factor for the cancer libsize. Normalization is used to make all the samples comparable and correct for possible biases in data acquisition. #TODO: explain formula?
+- `--normalizer-normal-libsize`: Default = median of the libsize. Custom normalization factor for the normal libsize. Normalization is used to make all the samples comparable and correct for possible biases in data acquisition. #TODO: explain formula?
 
 *Optional general output files parameters*: Parameters for the files that are outputted by the software regardless of the filtering method.
-- `--output-count`: Default = ''.
-- `--tag-normals`: Default = ''.
-- `--tag-prefix`: Default = ''.
+- `--output-count`: Default = ''. Path where the intermediate numbers of kmers remaining after each filtering step will be written. If selected, a file will be written containing the number of kmers present after each filtering step. It might slow down the computations. However, it is useful if there is an interest on intermediate filtering steps. The output can be seen in number ### of output section. #TODO: add number and output link
+- `--tag-normals`: Default = ''. Name for the normal cohort used for filtering. Needed when there are various normal cohorts. It will be added to the final output name in order to identify against what normal cohort were the samples filtered.
+- `--tag-prefix`: Default = ''. Prefix used for the output files. It is recommended when there are different conditions being studied.
 
 *Optional normal samples statistical filter parameters*: Parameters to fit a negative binomial distribution on normal kmers and use a probabilistic threshold for normal background inclusion.
 - `--statistical`: #TODO: not used in the code
