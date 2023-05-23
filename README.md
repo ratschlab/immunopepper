@@ -397,7 +397,10 @@ In this mode, if the argument `--on-the-fly` is set to False, there will be inte
 **Output files for normal samples**
 For normal samples, only the intermediate files will be generated. These files will be later used to exclude some kmers as cancer candidates. These files will be stored in the scratch directory if `--scratch-dir` is provided, in the directory specified by the user under `--interm-dir-norm` or in the output directory specified under `--output-dir` if the previous arguments are not provided.
 1. **kmers_derived_solely_from_annotation.csv**: This is a file containing the kmers that are derived from the annotation and not present in any normal sample. If the expression data is taken from junctions, provided under `--path-cancer-matrix-edge`, the kmers selected in this file will be the ones with *JunctionAnnotated = True* and zero expression across all normal samples. If the expression data is taken from segments, provided under `--path-cancer-matrix-segm`, the kmers selected in this file will be the ones with *ReadFrameAnnotated = True* and zero expression across all normal samples. The kmers present in this file will be skipped, and they will not be further processed. They will also be removed from the foreground matrix. #TODO: check they are removed from the foreground matrix.
-#TODO: not a thing anymore? Delete from outputs
+
+````
+#TODO: Check format
+````
 
 2. **interm_normal_combiExprCohortLim{`--cohort-expr-support-normal`}Across1_batch{`--batch_id`}_{`--tot-batches`}.tsv**:This folder contains intermediate calculations for the filtering of normals. As the filtering data is usually large, it is divided in different parts or batches and analyzed separately. In this directory one can obtain the intermediate information for each part. It will show the kmers present with an expression bigger than `--cohort-expr-support-normal` in at least one normal sample. This file will be helpful to perform the expression filtering step 2a). The file is a tab seperated file with two columns, with the first column showing the kmer and the second column showing the number of samples in which that kmer appears with more expression than the expression threshold. Therefore, the kmers present in this file will be the ones passing the expression filter for normal samples and will be excluded as cancer candidates.
 
