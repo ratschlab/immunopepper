@@ -49,7 +49,7 @@ def get_build_parser(parser):
     required.add_argument("--ref-path", help="absolute path of the reference genome file in FASTA format. Reference Please ensure that the reference genome is compatible with the gene annotation file being used. For example, if the annotation file is based on GRCh38, the reference genome should also be based on GRCh38. You can check `here <https://www.gencodegenes.org/human/releases.html>`_ gencode annotation releases and their corresponding major genome assembly releases. For example, if you decide to use genome assembly version GRCh38.p13, you need to use its compatible annotation file from release 43 in GENCODE.", required=True)
     required.add_argument("--kmer", type=int, help="length of the kmers for kmer output.", required=True, default=9)
 
-    submodes = parser.add_argument_group('Submodes process: Commands for conceptual information about the processing.')
+    submodes = parser.add_argument_group('Submodes parameters: Commands for conceptual information about the processing.')
     submodes.add_argument("--libsize-extract",help="Set this parameter to True to generate library sizes and gene quantifications and skip neontigen generation. **Note:** *If set to True, the program will only output files 3 and 7 of the [output section](#output-files).*",action="store_true", required=False, default=False)
     submodes.add_argument("--all-read-frames", help="Set this parameter to True to switch to exhaustive translation and study all possible reading frames instead of just the annotated ones in the annotation file.", action="store_true", required=False, default=False)
     submodes.add_argument("--count-path", help="Absolute path for the second output of `SplAdder <https://github.com/ratschlab/spladder>`_ containing the graph expression quantification. If provided, expression quantification of genes will take place. **Format:** hdf5.", required=False, default=None)
@@ -63,7 +63,7 @@ def get_build_parser(parser):
                             help="List of samples to be pickled. Needed if `--use-mut-pickle` is set to True. It will create intermediate files containing mutation information of the selected samples. This command is useful because mutation/variant information needs to be parsed in every run of the software, which is a time-consuming operation. By pickling the mutations, when mutation information is needed, it will be directly loaded from the intermediate pickled files instead than from the original mutation files provided under `--somatic` and `--germline`. This will speed up software re-runs. When dealing with large cohorts, this command is useful to select exactly what files should be pickled. If not provided, all the samples passed in `--mutation-sample` will be pickled. Names should match the sample names of the graph/counts files but an equivalence can be set using `--sample-name-map` from mutation parameters.",
                             required=False, default=[])
 
-    subset = parser.add_argument_group('Subset: Commands to select a subset of the genes to be processed.')
+    subset = parser.add_argument_group('Subset parameters: Commands to select a subset of the genes to be processed.')
     subset.add_argument("--process-chr", nargs='+',help="List of chromosomes to be processed. If not provided all chromosomes are processed. The chromosomes names should be provided in the same format as in FASTA and annotation files. For annotations downloaded from GENCODE, this format is **chrX**, X being the chromosome number.", required=False, default=None)
     subset.add_argument("--complexity-cap", type=int, help="Maximum edge complexity of the graph to be processed. If not provided all graphs are processed.", required=False, default=None)
     subset.add_argument("--genes-interest", help="Genes to be processed. **Format:** Input is a csv file containing a gencode gene id per line, with no header. **Technical note:** The gencode gene id must match the gencode gene ids of the splice graph. Therefore, the format for this argument must match the format of the *gene_id* field of the annotation file used in the build mode of SplAdder and passed under `--ann-path` in immunopepper. If not provided all genes are processed.", required=False, default=None)
@@ -106,6 +106,32 @@ def get_samplespecif_parser(parser):
     return parser
 
 def get_cancerspecif_parser(parser):
+    mandatory = parser.add_argument_group('Mandatory arguments', 'These arguments belong to three main groups: \n\n**Technical parameters:** Due to the heavy amount of data, this mode uses spark. These are parameters to control spark processing \n\n**Input helper parameters:** These parameters are used for a better understanding of the input files \n\n**General output files:** Parameters for the files that are output by the software regardless of the filtering method.')
+
+    mandatory.add_argument("--cores", type=int, help="Technical parameter. Number of cores to use", required=True, default='')
+    mandatory.add_argument("--mem-per-core", type=int, help="Technical parameter. Memory required per core", required=True)
+    mandatory.add_argument("--parallelism", type=int, help="Technical parameter. Parallelism parameter for Spark Java Virtual Machine (JVM). It is the default number of partitions in RDDs returned by certain transformations. Check `--spark.default.parallelism` `here <https://spark.apache.org/docs/latest/configuration.html>`_ for more information.", required=True, default='3')
+
+    mandatory.add_argument("--kmer", help='Input helper parameter. Kmer length', required=True)
+    mandatory.add_argument("--ids-cancer-samples", nargs='+', help="Input helper parameter. List of all cancer samples on which to apply filtering. It is a list with the cancer sample id as provided in the expression matrix. #TODO: Is this correct?. If `--paths-cancer-samples` are provided they should be given in the same order.", required=False, default='')
+    mandatory.add_argument("--mut-cancer-samples", nargs='+', help="List of mutation modes corresponding to each cancer sample. The list should have the same number of entries as `--ids-cancer-samples`. If `--paths-cancer-samples` are provided they should be given in the same order.", choices = ['ref', 'somatic', 'germline', 'somatic_and_germline'], required=False, default='')
+
+    mandatory.add_argument("--output-dir", help="General output file. Absolute path to the output directory to save the filtered data.", required=True, default='')
+
+    technical = parser.add_argument_group('Optional technical parameters: Due to the heavy amount of data, this mode uses spark. These are parameters to control spark processing')
+    technical.add_argument("--out-partitions", type=int,
+                       help="This argument is used to select the number of partitions in which the final output file will be saved. If not provided, #TODO: what happens?",
+                       required=False, default=None)
+    technical.add_argument("--scratch-dir",
+                       help="Os environment variable name containing the cluster scratch directory path. If specified, all the intermediate files will be saved to this directory. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`. If the scratch directory is provided, `--interm-dir-norm` and `--interm-dir-cancer` are ignored.",
+                       required=False, default='')
+    technical.add_argument("--interm-dir-norm", help="Custom scratch directory path to save the intermediate files for the normal samples. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`.",
+                       required=False, default='')
+    technical.add_argument("--interm-dir-canc", help="Custom scratch directory path to save the intermediate files for the cancer samples. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`.",
+                       required=False, default='')
+
+    input_help = parser.add_argument_group('Optional input helper parameters: These parameters are used for a better understanding of the input files')
+    
     return parser
 
 def get_mhcbind_parser(parser):
