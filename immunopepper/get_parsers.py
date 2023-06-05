@@ -6,11 +6,11 @@ import os
 import sys
 
 from datetime import datetime
-from mhctools.cli.args import make_mhc_arg_parser
+#from mhctools.cli.args import make_mhc_arg_parser
 
-from immunopepper.mode_build import mode_build
-from immunopepper.mode_samplespecif import mode_samplespecif
-from immunopepper.mode_cancerspecif import mode_cancerspecif
+#from immunopepper.mode_build import mode_build
+#from immunopepper.mode_samplespecif import mode_samplespecif
+#from immunopepper.mode_cancerspecif import mode_cancerspecif
 
 def _add_general_args(parser):
     general = parser.add_argument_group('GENERAL')
@@ -60,9 +60,7 @@ def get_build_parser(parser):
     parameters.add_argument("--compressed", help="Compress output files", action="store_true", default=True)
     parameters.add_argument("--parallel", type=int, help="Number of cores to be used.", required=False, default=1)
     parameters.add_argument("--batch-size", type=int, help="Number of genes to be processed in each batch. If bigger batches are selected, the program will be faster, but it will require more memory.", default=1000)
-    parameters.add_argument("--pickle-samples", nargs='+',
-                            help="List of samples to be pickled. Needed if `--use-mut-pickle` is set to True. It will create intermediate files containing mutation information of the selected samples. This command is useful because mutation/variant information needs to be parsed in every run of the software, which is a time-consuming operation. By pickling the mutations, when mutation information is needed, it will be directly loaded from the intermediate pickled files instead than from the original mutation files provided under `--somatic` and `--germline`. This will speed up software re-runs. When dealing with large cohorts, this command is useful to select exactly what files should be pickled. If not provided, all the samples passed in `--mutation-sample` will be pickled. Names should match the sample names of the graph/counts files but an equivalence can be set using `--sample-name-map` from mutation parameters.",
-                            required=False, default=[])
+    parameters.add_argument("--pickle-samples", nargs='+', help="List of samples to be pickled. Needed if `--use-mut-pickle` is set to True. It will create intermediate files containing mutation information of the selected samples. This command is useful because mutation/variant information needs to be parsed in every run of the software, which is a time-consuming operation. By pickling the mutations, when mutation information is needed, it will be directly loaded from the intermediate pickled files instead than from the original mutation files provided under `--somatic` and `--germline`. This will speed up software re-runs. When dealing with large cohorts, this command is useful to select exactly what files should be pickled. If not provided, all the samples passed in `--mutation-sample` will be pickled. Names should match the sample names of the graph/counts files but an equivalence can be set using `--sample-name-map` from mutation parameters.", required=False, default=[])
 
     subset = parser.add_argument_group('Subset parameters', 'Commands to select a subset of the genes to be processed.')
     subset.add_argument("--process-chr", nargs='+',help="List of chromosomes to be processed. If not provided all chromosomes are processed. The chromosomes names should be provided in the same format as in FASTA and annotation files. For annotations downloaded from GENCODE, this format is **chrX**, X being the chromosome number.", required=False, default=None)
@@ -139,7 +137,7 @@ def get_cancerspecif_parser(parser):
 
     outputs = parser.add_argument_group('Optional general output files', 'Parameters for the files that are output by the software regardless of the filtering method.')
 
-    outputs.add_argument("--output-count", help="Path and name where the intermediate numbers of kmers remaining after each filtering step will be written. If selected, a file will be written containing the number of kmers present after each filtering step. It might slow down the computations. However, it is useful if there is an interest on intermediate filtering steps. The output can be seen in number ### of output section. #TODO: add number and output link", required=False, default='')
+    outputs.add_argument("--output-count", help="Path and name where the intermediate numbers of kmers remaining after each filtering step will be written. If selected, a file will be written containing the number of kmers present after each filtering step. It might slow down the computations. However, it is useful if there is an interest on intermediate filtering steps. The output can be seen :ref:`here <output-count-cancerspecif>` in the output section.", required=False, default='')
     outputs.add_argument("--tag-normals", help="Name for the normal cohort used for filtering. Needed when there are various normal cohorts. It will be added to the final output name in order to identify against what normal cohort were the samples filtered.", required=False, default='')
     outputs.add_argument("--tag-prefix", help="Prefix used for the output files. It is recommended when there are different conditions being studied.", required=False, default='')
 
@@ -181,7 +179,7 @@ def get_mhcbind_parser(parser):
     required.add_argument("--argstring", help="Complete command line for the MHC prediction tool passed as a string. One should include here the command that will be directly passed to the selected MHC tool. The three **mandatory** arguments are: \n 1.--mhc-predictor: This argument will specify the name of the software tool that will be used. The name should be in the format accepted by the library `mhc_tools <https://github.com/openvax/mhctools>`_ \n \n 2.--output-csv: This argument will contain the path where the MHC prediction tool will save the results.\n \n 3.--input-peptides-file: This argument will have the path to the file containing the set of kmers on which MHC binding affinity prediction will be performed. If `--partitioned-tsv`files are provided, an intermediate file will be created and stored under the path `--input-peptides-file`. This intermediate file will contain the set of all unique kmers present in the partitioned files obtained from `cancerspecif` mode. If one does not want to use the output of `cancerspecif` mode for prediction, the path to the file that will be used for prediction will be directly provided under `--input-peptides-list`.", required=True, default='')
 
     optional = parser.add_argument_group('Optional argument')
-    optional.add_argument("--partitioned-tsv", help="The input to this command is the path to the folder containing the partitioned tsv files from `cancerspecif` mode (output number #TODO:set number of [output section](#output-files)). If this parameter is set the tool will directly accept the files from cancerspecif mode as input.", required=False, default=None)
+    optional.add_argument("--partitioned-tsv", help="The input to this command is the path to the folder containing the partitioned tsv files from `cancerspecif` mode. This corresponds to the files 1 and 2 found in the :ref:`output section <output-tsv-cancerspecif>`. If this parameter is set the tool will directly accept the files from cancerspecif mode as input.", required=False, default=None)
     optional.add_argument("--bind-score-method", help="Scoring method to filter the MHC tools predictions. E.g. score, affinity, percentile_rank (this last one is only for netmhcpan).", required=False, default=None)
     optional.add_argument("--bind-score-threshold", type=float, help="Threshold to filter the MHC tools predictions.All the peptides with a score lower than the threshold will be filtered out and only the ones with a score higher than the threshold will be kept.", required=False, default=None)
     optional.add_argument("--less-than", help="If set to True the `--bind-score-threshold` will be considered as an upper bound instead of a lower bound. This means that peptides with a score higher than this threshold will be filtered out.", action="store_true", required=False, default=False)
@@ -215,8 +213,8 @@ def parse_arguments(argv):
             sys.stdout.write("------------------------------ MHCBIND IMMUNOPEPPER USAGE ------------------------------ \n \n ")
             parser_mhcbind.print_help()
             sys.stdout.write("\n------------------------------ MHCTOOLS AVAILABLE COMMAND LINE OPTIONS ------------------------------ \n \n ")
-            parser_mhc = make_mhc_arg_parser(prog="mhctools",description=("Predict MHC ligands from protein sequences")) #TODO: uncmment this line
-            parser_mhc.print_help()
+            #parser_mhc = make_mhc_arg_parser(prog="mhctools",description=("Predict MHC ligands from protein sequences")) #TODO: uncmment this line
+            #parser_mhc.print_help()
         else:
             parser.print_help()
 
@@ -250,13 +248,13 @@ def split_mode(options):
     logging.info("Command line"+str(arg))
     if mode == 'build':
         pass
-        mode_build(arg)
+        #mode_build(arg)
     if mode == 'samplespecif':
         pass
-        mode_samplespecif(arg)
+        #mode_samplespecif(arg)
     if mode == "cancerspecif":
         pass
-        mode_cancerspecif(arg)
+        #mode_cancerspecif(arg)
     if mode == "mhcbind":
         pass
         from .mode_mhcbind import mode_mhcbind #import here due to logging conflict

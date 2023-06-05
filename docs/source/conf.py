@@ -8,7 +8,7 @@ import sys
 
 # Source code directory, relative to this file
 
-sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("/home/pballesteros/immunopepper"))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -21,7 +21,6 @@ release = '0.1'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'myst_parser',
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.doctest',
@@ -32,6 +31,7 @@ extensions = [
 
 templates_path = ['_templates']
 exclude_patterns = []
+source_suffix = ['.rst', '.md']
 
 todo_include_todos = True
 
