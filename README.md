@@ -188,8 +188,6 @@ The following parameters are **mandatory**:
 
 *Mandatory input helper parameters*: These parameters are used for a better understanding of the input files.
 - `--kmer`: Kmer length
-- `--ids-cancer-samples`: List of all cancer samples on which to apply filtering. It is a list with the cancer sample id as provided in the expression matrix. #TODO: Is this correct?. If `--paths-cancer-samples` are provided they should be given in the same order.
-- `--mut-cancer-samples`: List of mutation modes corresponding to each cancer sample. The list should have the same number of entries as `--ids-cancer-samples`. The possible values are: ['ref', 'somatic','germline', 'somatic_and_germline']. If `--paths-cancer-samples` are provided they should be given in the same order.
 
 *Mandatory general output files*: Parameters for the files that are output by the software regardless of the filtering method.
 - `output-dir`: Absolute path to the output directory to save the filtered data.
@@ -203,7 +201,9 @@ The following parameters are **optional**:
 - `--interm-dir-cancer`: Default = ''. Custom scratch directory path to save the intermediate files for the cancer samples. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`.
 
 *Optional input helper parameters*: These parameters are used for a better understanding of the input files.
-- `--expression-fields-c`: Default = ['segment_expr', 'junction_expr']. This argument is used to provide the name of the segment and junction expression field in the cancer file. #TODO: check exactly to which files this is looking at.
+- `--ids-cancer-samples`: List of all cancer samples on which to apply filtering. It is a list with the cancer sample id as provided in the expression matrix. #TODO: Is this correct?. If `--paths-cancer-samples` are provided they should be given in the same order.
+- `--mut-cancer-samples`: List of mutation modes corresponding to each cancer sample. The list should have the same number of entries as `--ids-cancer-samples`. The possible values are: ['ref', 'somatic','germline', 'somatic_and_germline']. If `--paths-cancer-samples` are provided they should be given in the same order.
+- `--expression-fields-c`: Default = ['segment_expr', 'junction_expr']. This argument is used to provide the name of the segment and junction expression field in the cancer file. #TODO: check exactly to which files this is looking at. #TODO: remove? Not existing anymore in development
 
 *Optional general input files parameters*: Parameters for the input files that are used regardless of the filtering method.
 - `--whitelist-normal`: Default = None. File containing the whitelist of normal samples. If provided, only the samples in the whitelist will be retrieved and further studied.Format: Tab separated file without a header, with a single column containing sample names.

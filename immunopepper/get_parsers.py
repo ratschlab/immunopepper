@@ -6,11 +6,11 @@ import os
 import sys
 
 from datetime import datetime
-#from mhctools.cli.args import make_mhc_arg_parser
+from mhctools.cli.args import make_mhc_arg_parser
 
-#from immunopepper.mode_build import mode_build
-#from immunopepper.mode_samplespecif import mode_samplespecif
-#from immunopepper.mode_cancerspecif import mode_cancerspecif
+from immunopepper.mode_build import mode_build
+from immunopepper.mode_samplespecif import mode_samplespecif
+from immunopepper.mode_cancerspecif import mode_cancerspecif
 
 def _add_general_args(parser):
     general = parser.add_argument_group('GENERAL')
@@ -49,38 +49,41 @@ def get_build_parser(parser):
     required.add_argument("--ref-path", help="absolute path of the reference genome file in FASTA format. Reference Please ensure that the reference genome is compatible with the gene annotation file being used. For example, if the annotation file is based on GRCh38, the reference genome should also be based on GRCh38. You can check `here <https://www.gencodegenes.org/human/releases.html>`_ gencode annotation releases and their corresponding major genome assembly releases. For example, if you decide to use genome assembly version GRCh38.p13, you need to use its compatible annotation file from release 43 in GENCODE.", required=True)
     required.add_argument("--kmer", type=int, help="length of the kmers for kmer output.", required=True, default=9)
 
-    submodes = parser.add_argument_group('Submodes parameters: Commands for conceptual information about the processing.')
+    submodes = parser.add_argument_group('Submodes parameters', 'Commands for conceptual information about the processing.')
     submodes.add_argument("--libsize-extract",help="Set this parameter to True to generate library sizes and gene quantifications and skip neontigen generation. **Note:** *If set to True, the program will only output files 3 and 7 of the [output section](#output-files).*",action="store_true", required=False, default=False)
     submodes.add_argument("--all-read-frames", help="Set this parameter to True to switch to exhaustive translation and study all possible reading frames instead of just the annotated ones in the annotation file.", action="store_true", required=False, default=False)
     submodes.add_argument("--count-path", help="Absolute path for the second output of `SplAdder <https://github.com/ratschlab/spladder>`_ containing the graph expression quantification. If provided, expression quantification of genes will take place. **Format:** hdf5.", required=False, default=None)
     submodes.add_argument("--output-samples", nargs='+', help="List of sample names to output. **Note:** *Names should match the file name of the splice graphs. If not provided all samples are processed and program runs faster.*", required=False, default=[])
     submodes.add_argument("--heter-code", type=int, help="It specifies the heterozygous allele.", default=0, choices = ['0', '2'])  #TODO: Add more info about this parameter?
 
-    parameters = parser.add_argument_group('Technical parameters: Commands for optimization of the software.')
+    parameters = parser.add_argument_group('Technical parameters' , 'Commands for optimization of the software.')
+    parameters.add_argument("--compressed", help="Compress output files", action="store_true", default=True)
     parameters.add_argument("--parallel", type=int, help="Number of cores to be used.", required=False, default=1)
     parameters.add_argument("--batch-size", type=int, help="Number of genes to be processed in each batch. If bigger batches are selected, the program will be faster, but it will require more memory.", default=1000)
     parameters.add_argument("--pickle-samples", nargs='+',
                             help="List of samples to be pickled. Needed if `--use-mut-pickle` is set to True. It will create intermediate files containing mutation information of the selected samples. This command is useful because mutation/variant information needs to be parsed in every run of the software, which is a time-consuming operation. By pickling the mutations, when mutation information is needed, it will be directly loaded from the intermediate pickled files instead than from the original mutation files provided under `--somatic` and `--germline`. This will speed up software re-runs. When dealing with large cohorts, this command is useful to select exactly what files should be pickled. If not provided, all the samples passed in `--mutation-sample` will be pickled. Names should match the sample names of the graph/counts files but an equivalence can be set using `--sample-name-map` from mutation parameters.",
                             required=False, default=[])
 
-    subset = parser.add_argument_group('Subset parameters: Commands to select a subset of the genes to be processed.')
+    subset = parser.add_argument_group('Subset parameters', 'Commands to select a subset of the genes to be processed.')
     subset.add_argument("--process-chr", nargs='+',help="List of chromosomes to be processed. If not provided all chromosomes are processed. The chromosomes names should be provided in the same format as in FASTA and annotation files. For annotations downloaded from GENCODE, this format is **chrX**, X being the chromosome number.", required=False, default=None)
     subset.add_argument("--complexity-cap", type=int, help="Maximum edge complexity of the graph to be processed. If not provided all graphs are processed.", required=False, default=None)
     subset.add_argument("--genes-interest", help="Genes to be processed. **Format:** Input is a csv file containing a gencode gene id per line, with no header. **Technical note:** The gencode gene id must match the gencode gene ids of the splice graph. Therefore, the format for this argument must match the format of the *gene_id* field of the annotation file used in the build mode of SplAdder and passed under `--ann-path` in immunopepper. If not provided all genes are processed.", required=False, default=None)
     subset.add_argument("--start-id", type=int, help="Id of the first gene in the splice graph to be processed. If not provided all genes are processed.", required=False, default=0)
     subset.add_argument("--process-num", metavar='N', type=int, help="Number of genes to be processed. If provided, the first process-num genes are processed.", required=False, default=0)
 
-    outputs = parser.add_argument_group('Output parameters: Commands to select output formatting and filtering.')
+    outputs = parser.add_argument_group('Output parameters',  'Commands to select output formatting and filtering.')
     outputs.add_argument("--skip-annotation", help='Set this parameter to True to skip the generation of a background kmer and peptide files.', action="store_true", default=False)
+    outputs.add_argument("--keep-tmpfiles", help='If set to True, we will keep the intermediate directories and temporal files generated in paralell mode', action="store_true", default=False)
     outputs.add_argument("--output-fasta", help="Set this parameter to True to output the foreground peptides in fasta format. If set to True output number 4 from the [Output files, mode build](#outputs-mode-build) will be generated. If set to False only the kmers will be output.",  action="store_true", required=False, default=False)
     outputs.add_argument("--force-ref-peptides", help="Set this parameter to True to output mutated peptides even if they are the same as the ones in the reference. The reference in this case are the peptides without any mutations or variants application.", action="store_true", default=False)
+    outputs.add_argument("--filter-redundant", help="If set to true, a redundancy filter will be applied to the exon list. If two or more exons span the same juction, their coordinates will be combined so that the longest spanning combination is kept.", action="store_true", required=False, default=False)
     outputs.add_argument("--kmer-database", help="Absolute path of a file containing kmers in one column, without header. If the kmers contained in this database contain the aminoacid isoleucine (I), it will be converted into leucine (L). A file from uniprot or any other standard library can be provided. The kmers provided in this file will not be output if found in the foreground peptides. Please note that is a standard proteome is downloaded from an online resource the proteins should be cut into the kmers length selected under `--kmer`.", required=False, default=None)
     outputs.add_argument("--gtex-junction-path", help="Absolute path of whitelist junction path. The junctions of this file will be the only ones output from the tool. **Format:** hdf5. The hdf5 file should have a key `chrms` indicating the chromosome where the junction is located, a key `pos` containing the starting and ending position of the junction in genomic coordinates, and a key `strand` with information on whether the junction is in the '+' or '-' strand.", required=False, default=None)
     parameters.add_argument("--disable-concat", help="Disable the generation of kmers from combinations of more than 2 exons. In this mode, any kmer shorter than `--kmer` will be discarded. By setting this command to False, the generation of kmers from 3 exons is allowed. This might ensure that kmers generated from shorter exons are kept, but one should take into account that kmers translated from 3 exons might have lower confidence. By setting the argument to True the generation of kmers is faster.", action="store_true", default=False)
     parameters.add_argument("--disable-process-libsize", help="Set to True to generate the libsize file (file 7 from the [output section, mode build](#output-mode-build)).", action="store_true", default=False)
+    #TODO: libsize-path: not used. Need to add it?
 
-    mutation = parser.add_argument_group(
-        'Mutation parameters: Commands to add somatic and germline mutation information.')
+    mutation = parser.add_argument_group('Mutation parameters',  'Commands to add somatic and germline mutation information.')
     mutation.add_argument("--mutation-sample", help="Sample id of the files to which mutations are added. The ids should match the graphs/counts names, but an equivalence can be set with --sample-name-map.", required=False, default=None)
     mutation.add_argument("--germline", help="Absolute path of the germline mutation file. **Format:** VCF, MAF or h5.", required=False, default='')
     mutation.add_argument("--somatic", help="Absolute path of the somatic mutation file. **Format:** VCF, MAF or h5.", required=False, default='')
@@ -113,33 +116,69 @@ def get_cancerspecif_parser(parser):
     mandatory.add_argument("--parallelism", type=int, help="Technical parameter. Parallelism parameter for Spark Java Virtual Machine (JVM). It is the default number of partitions in RDDs returned by certain transformations. Check `--spark.default.parallelism` `here <https://spark.apache.org/docs/latest/configuration.html>`_ for more information.", required=True, default='3')
 
     mandatory.add_argument("--kmer", help='Input helper parameter. Kmer length', required=True)
-    mandatory.add_argument("--ids-cancer-samples", nargs='+', help="Input helper parameter. List of all cancer samples on which to apply filtering. It is a list with the cancer sample id as provided in the expression matrix. #TODO: Is this correct?. If `--paths-cancer-samples` are provided they should be given in the same order.", required=False, default='')
-    mandatory.add_argument("--mut-cancer-samples", nargs='+', help="List of mutation modes corresponding to each cancer sample. The list should have the same number of entries as `--ids-cancer-samples`. If `--paths-cancer-samples` are provided they should be given in the same order.", choices = ['ref', 'somatic', 'germline', 'somatic_and_germline'], required=False, default='')
 
     mandatory.add_argument("--output-dir", help="General output file. Absolute path to the output directory to save the filtered data.", required=True, default='')
 
-    technical = parser.add_argument_group('Optional technical parameters: Due to the heavy amount of data, this mode uses spark. These are parameters to control spark processing')
-    technical.add_argument("--out-partitions", type=int,
-                       help="This argument is used to select the number of partitions in which the final output file will be saved. If not provided, #TODO: what happens?",
-                       required=False, default=None)
-    technical.add_argument("--scratch-dir",
-                       help="Os environment variable name containing the cluster scratch directory path. If specified, all the intermediate files will be saved to this directory. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`. If the scratch directory is provided, `--interm-dir-norm` and `--interm-dir-cancer` are ignored.",
-                       required=False, default='')
-    technical.add_argument("--interm-dir-norm", help="Custom scratch directory path to save the intermediate files for the normal samples. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`.",
-                       required=False, default='')
-    technical.add_argument("--interm-dir-canc", help="Custom scratch directory path to save the intermediate files for the cancer samples. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`.",
-                       required=False, default='')
+    technical = parser.add_argument_group('Optional technical parameters', 'Due to the heavy amount of data, this mode uses spark. These are parameters to control spark processing')
+    technical.add_argument("--out-partitions", type=int, help="This argument is used to select the number of partitions in which the final output file will be saved. If not provided, #TODO: what happens?", required=False, default=None)
+    technical.add_argument("--scratch-dir", help="Os environment variable name containing the cluster scratch directory path. If specified, all the intermediate files will be saved to this directory. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`. If the scratch directory is provided, `--interm-dir-norm` and `--interm-dir-cancer` are ignored.", required=False, default='')
+    technical.add_argument("--interm-dir-norm", help="Custom scratch directory path to save the intermediate files for the normal samples. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`.", required=False, default='')
+    technical.add_argument("--interm-dir-canc", help="Custom scratch directory path to save the intermediate files for the cancer samples. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`.", required=False, default='')
 
-    input_help = parser.add_argument_group('Optional input helper parameters: These parameters are used for a better understanding of the input files')
-    
+    input_help = parser.add_argument_group('Optional input helper parameters' , 'These parameters are used for a better understanding of the input files')
+    input_help.add_argument("--ids-cancer-samples", nargs='+', help="Input helper parameter. List of all cancer samples on which to apply filtering. It is a list with the cancer sample id as provided in the expression matrix. #TODO: Is this correct?. If `--paths-cancer-samples` are provided they should be given in the same order.", required=False, default='')
+    input_help.add_argument("--mut-cancer-samples", nargs='+', help="List of mutation modes corresponding to each cancer sample. The list should have the same number of entries as `--ids-cancer-samples`. If `--paths-cancer-samples` are provided they should be given in the same order.", choices=['ref', 'somatic', 'germline', 'somatic_and_germline'], required=False, default='')
+
+    inputs = parser.add_argument_group('Optional general input files' , 'Parameters for the input files that are used regardless of the filtering method.')
+    inputs.add_argument("--whitelist-normal", help="File containing the whitelist of normal samples. If provided, only the samples in the whitelist will be retrieved and further studied. **Format:** Tab separated file without a header, with a single column containing sample names.", required=False, default=None)
+    inputs.add_argument("--whitelist-cancer", help="File containing the whitelist of cancer samples. If provided, only the samples in the whitelist will be retrieved and further studied. **Format:** Tab separated file without a header, with a single column containing sample names.", required=False, default=None)
+    inputs.add_argument("--path-cancer-libsize", help="Path for the libsize file of the selected cancer samples. It corresponds with the output 7 of [output, mode build](#output-files)", required=False, default=None)
+    inputs.add_argument("--path-normal-libsize", help="Path for the libsize of the selected normal samples. It corresponds with the output 7 of [output, mode build](#output-files)", required=False, default=None)
+    inputs.add_argument("--normalizer-cancer-libsize", type=float, help="**Default =** median of the libsize. Custom normalization factor for the cancer libsize. Normalization is used to make all the samples comparable and correct for possible biases in data acquisition. #TODO: explain formula?", required=False, default=None)
+    inputs.add_argument("--normalizer-normal-libsize", type=float, help="**Default =** median of the libsize. Custom normalization factor for the normal libsize. Normalization is used to make all the samples comparable and correct for possible biases in data acquisition. #TODO: explain formula?", required=False, default=None)
+
+    outputs = parser.add_argument_group('Optional general output files', 'Parameters for the files that are output by the software regardless of the filtering method.')
+
+    outputs.add_argument("--output-count", help="Path and name where the intermediate numbers of kmers remaining after each filtering step will be written. If selected, a file will be written containing the number of kmers present after each filtering step. It might slow down the computations. However, it is useful if there is an interest on intermediate filtering steps. The output can be seen in number ### of output section. #TODO: add number and output link", required=False, default='')
+    outputs.add_argument("--tag-normals", help="Name for the normal cohort used for filtering. Needed when there are various normal cohorts. It will be added to the final output name in order to identify against what normal cohort were the samples filtered.", required=False, default='')
+    outputs.add_argument("--tag-prefix", help="Prefix used for the output files. It is recommended when there are different conditions being studied.", required=False, default='')
+
+    nrf = parser.add_argument_group('Optional parameters for normal samples filtering', 'Parameters to perform the step 2 of the normal filtering pipeline.')
+    nrf.add_argument("--path-normal-matrix-segm", nargs='+', help="Path to the matrix of segment expression of kmers in normal samples. This corresponds to output 5 of [output, mode build](#output-files)", required=False, default=None)
+    nrf.add_argument("--path-normal-matrix-edge", nargs='+', help="Path to the matrix of junction expression of kmers in normal samples. This corresponds to output 6 of [output, mode build](#output-files)", required=False, default=None)
+    nrf.add_argument("--n-samples-lim-normal", type=int, help="This is the value for threshold b) in step 2 of normal filtering pipeline. This number will set the number of samples in which we need to see any expression of a specific kmer, i.e. expression > 0, to consider it a normal kmer and exclude it as cancer candidate.", required=False, default=None)
+    nrf.add_argument("--cohort-expr-support-normal", type=float, help="This is the value for threshold a) in step 2 of normal filtering pipeline. This number corresponds to the normalized expression we need to see in at least one sample in order to consider a kmer as a normal kmer. If a kmer is found with an expression level higher than this threshold in one or more normal samples it will be considered a normal kmer and excluded as cancer candidate.", required=False, default=None)
+
+    crf = parser.add_argument_group('Optional parameters for cancer samples filtering',  'Parameters to perform the step 2 of the cancer filtering pipeline.')
+    crf.add_argument("--sample-expr-support-cancer", type=float, help="#TODO: doesn't have a default. Errors if not provided? This parameter corresponds with the sample specific filtering in the cancer pipeline. The value will correspond to the normalized expression threshold that needs to be reached by each kmer in order to be considered a kmer candidate. Kmers with an expression higher than this threshold in at least one sample will be considered as cancer candidates. #TODO: are samples provided under `--ids_cancer_samples` included in this filtering?")
+    crf.add_argument("--cohort-expr-support-cancer", type=float, help="This parameter corresponds to the expression threshold in cohort specific filtering. It indicates the normalized expression value that needs to be observed in at least `--n-samples-lim-cancer` in order to consider a kmer as a cancer candidate. Kmers with an expression higher than this threshold in at least `--n-samples-lim-cancer` samples will be considered as cancer candidates. The samples provided under `--ids_cancer_samples` will not be included in cohort filtering.", required=False, default=None)
+    crf.add_argument("--n-samples-lim-cancer", type=int, help="This parameter corresponds to the number of samples threshold in cohort specific filtering. It indicated the minimum number of cancer samples in which one should see an expression higher than `--cohort-expr-support-cancer` in order to consider the kmer as a cancer candidate. Kmers with an expression higher than `--cohort-expr-support-cancer` in at least `--n-samples-lim-cancer` samples will be considered as cancer candidates. The samples provided under `--ids_cancer_samples` will not be included in cohort filtering.", required=False, default=None)
+    crf.add_argument("--path-cancer-matrix-segm", nargs='+', help="Path to the cancer matrix containing segment expression from samples belonging to a cohort. The matrix will have the following dimensions: [kmers * samples]. However, it is more interesting to find novel junction kmers, so a junction expression matrix provided under `--path-cancer-matrix-edge` is the best expression proxy for that kmers. It is advised to provide only `--path-cancer-matrix-edge` and skip the inclusion of this file. If both matrices are provided, junction expression will be chosen in case there is expression information for the same kmer in both matrices. This will be the output 5 of [output, mode build](#output-files)", required=False, default=None)
+    crf.add_argument("--path-cancer-matrix-edge", nargs='+', help="Path to the cancer matrix containing junction expression from samples belonging to a cohort. The matrix will have the following dimensions: [kmers * samples]. This is the best expression proxy for junction kmers. It is advised to provide only this file and skip the inclusion of `--path-cancer-matrix-segm`. If both matrices are provided, junction expression will be chosen in case there is expression information for the same kmer in both matrices. This will be the ouput 6 of [output, mode build](#output-files).", required=False, default=None)
+    crf.add_argument("--cancer-support-union", help="Parameter to choose how the sample specific filtering and the cohort specific filtering are combined. By default, they are combined by choosing the common kmers to both filtering steps, i.e. performing an intersection. If this parameter is set to True, the union of both filtering steps will be performed, i.e. the kmers that pass either the sample specific filtering or the cohort specific filtering will be kept.", action="store_true", required=False, default=False)
+
+    more_backgrounds = parser.add_argument_group('Optional parameters for the addition of additional backgrounds' , 'Parameters to add additional backgrounds that will be removed.')
+    more_backgrounds.add_argument("--path-normal-kmer-list", nargs='+', help="List of kmers to be added as part of the normal samples. The kmers provided in this list will be included in the normal background, without having to pass any of the filtering steps for the normal data. Format: It can be either a *tsv* or *parquet* file. If *parquet* is the used format, the file should contain kmer in the first column.", required=False, default=None)
+    more_backgrounds.add_argument("--uniprot", help="Path to file containing uniprot kmers. The kmers contained in this databased will be assumed to be not novel peptides, and they will be removed from the cancer filtering output. *Note: It is important to kmerize the peptides downloaded from uniprot database into the length specified in `--kmer`*.", required=False, default=None)
+
+    more_filters = parser.add_argument_group('Optional parameters to add additional filters' , 'Parameters to add the additional filters shown in step 1 of both pipelines.')
+    more_filters.add_argument("--filterNeojuncCoord", choices=['C', 'N', 'A'], required=False, default='', help=" This argument will filter the neojunctions, and it will retain only the kmers that are generated from neojunctions. These are peptides whose junction coordinates were not part of the annotation files. Selecting this option means that only those kmers with junctionAnnotated = False will be considered for further filtering. This filter is used in the preprocessing (step 1 of cancer and normal pipelines). If 'C' is selected, the filter is only applied to the cancer sample. If 'N' is selected, the filter is only applied to the normal samples. If 'A' is selected, the filter is applied to both cancer and normal samples.")
+    more_filters.add_argument("--filterAnnotatedRF", choices=['C', 'N', 'A'], required=False, default='', help="This argument will only retrieve kmers that were generated from annotated reading frames and discard those that were obtained by reading frame propagation through the graph. By selecting this option, only kmers generated from reading frames present in the annotation are kept. This means that selecting this option means that only those kmers with ReadFrameAnnotated = True will be selected. This filter is used in the preprocessing (step 1 of cancer and normal pipelines). If 'C' is selected, the filter is only applied to the cancer sample. If 'N' is selected, the filter is only applied to the normal samples. If 'A' is selected, the filter is applied to both cancer and normal samples.")
+
+    development = parser.add_argument_group('Optional development parameters')
+    development.add_argument("--tot-batches", type=int, help="If selected, the filtering of the background and foreground will be based on hash functions. This parameter will set the total number of batches in which we will divide the foreground and background files to filter, and each of those batches will be assigned a hash value. If `--batch-id` is specified, `--tot-batches` should also be specified.", required=False, default=None)
+    development.add_argument("--batch-id", type=int, help="If selected, the filtering of the background and foreground will be based on hash functions. This parameter will set the batch id of the current batch that is being filtered. The batch id should be an integer between 0 and `--tot-batches`. It shows the specific batch that we want to process, out of the `--tot-batches`. If `--batch-id` is specified, `--tot-batches` should also be specified.", required=False, default=None)
+    development.add_argument("--on-the-fly", help="If set to true, all the filtering steps will be done on the fly, without the creation of intermediate files. This will slow down the computations if there is a re-run of the program, as filtering is an expensive operation. However, it will save space in the disk.", action="store_true", default=False)
+
+    _add_general_args(parser)
+
     return parser
 
 def get_mhcbind_parser(parser):
     required = parser.add_argument_group('Mandatory arguments')
 
     required.add_argument("--mhc-software-path", help="Path for the MHC prediction software.", required=True, default=None)
-    required.add_argument("--argstring",
-                                help="Complete command line for the MHC prediction tool passed as a string. One should include here the command that will be directly passed to the selected MHC tool. The three **mandatory** arguments are: \n 1.--mhc-predictor: This argument will specify the name of the software tool that will be used. The name should be in the format accepted by the library `mhc_tools <https://github.com/openvax/mhctools>`_ \n \n 2.--output-csv: This argument will contain the path where the MHC prediction tool will save the results.\n \n 3.--input-peptides-file: This argument will have the path to the file containing the set of kmers on which MHC binding affinity prediction will be performed. If `--partitioned-tsv`files are provided, an intermediate file will be created and stored under the path `--input-peptides-file`. This intermediate file will contain the set of all unique kmers present in the partitioned files obtained from `cancerspecif` mode. If one does not want to use the output of `cancerspecif` mode for prediction, the path to the file that will be used for prediction will be directly provided under `--input-peptides-list`.", required=True, default='')
+    required.add_argument("--argstring", help="Complete command line for the MHC prediction tool passed as a string. One should include here the command that will be directly passed to the selected MHC tool. The three **mandatory** arguments are: \n 1.--mhc-predictor: This argument will specify the name of the software tool that will be used. The name should be in the format accepted by the library `mhc_tools <https://github.com/openvax/mhctools>`_ \n \n 2.--output-csv: This argument will contain the path where the MHC prediction tool will save the results.\n \n 3.--input-peptides-file: This argument will have the path to the file containing the set of kmers on which MHC binding affinity prediction will be performed. If `--partitioned-tsv`files are provided, an intermediate file will be created and stored under the path `--input-peptides-file`. This intermediate file will contain the set of all unique kmers present in the partitioned files obtained from `cancerspecif` mode. If one does not want to use the output of `cancerspecif` mode for prediction, the path to the file that will be used for prediction will be directly provided under `--input-peptides-list`.", required=True, default='')
 
     optional = parser.add_argument_group('Optional argument')
     optional.add_argument("--partitioned-tsv", help="The input to this command is the path to the folder containing the partitioned tsv files from `cancerspecif` mode (output number #TODO:set number of [output section](#output-files)). If this parameter is set the tool will directly accept the files from cancerspecif mode as input.", required=False, default=None)
@@ -176,8 +215,8 @@ def parse_arguments(argv):
             sys.stdout.write("------------------------------ MHCBIND IMMUNOPEPPER USAGE ------------------------------ \n \n ")
             parser_mhcbind.print_help()
             sys.stdout.write("\n------------------------------ MHCTOOLS AVAILABLE COMMAND LINE OPTIONS ------------------------------ \n \n ")
-            #parser_mhc = make_mhc_arg_parser(prog="mhctools",description=("Predict MHC ligands from protein sequences")) #TODO: uncmment this line
-            #parser_mhc.print_help()
+            parser_mhc = make_mhc_arg_parser(prog="mhctools",description=("Predict MHC ligands from protein sequences")) #TODO: uncmment this line
+            parser_mhc.print_help()
         else:
             parser.print_help()
 
@@ -211,17 +250,17 @@ def split_mode(options):
     logging.info("Command line"+str(arg))
     if mode == 'build':
         pass
-        #mode_build(arg)
+        mode_build(arg)
     if mode == 'samplespecif':
         pass
-        #mode_samplespecif(arg)
+        mode_samplespecif(arg)
     if mode == "cancerspecif":
         pass
-        #mode_cancerspecif(arg)
+        mode_cancerspecif(arg)
     if mode == "mhcbind":
         pass
-        #from .mode_mhcbind import mode_mhcbind #import here due to logging conflict
-        #mode_mhcbind(arg)
+        from .mode_mhcbind import mode_mhcbind #import here due to logging conflict
+        mode_mhcbind(arg)
 
 def cmd_entry():
     #pr = cProfile.Profile()
