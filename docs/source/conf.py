@@ -8,7 +8,7 @@ import sys
 
 # Source code directory, relative to this file
 
-sys.path.insert(0, os.path.abspath("/home/pballesteros/immunopepper"))
+sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -33,12 +33,13 @@ templates_path = ['_templates']
 exclude_patterns = []
 source_suffix = ['.rst', '.md']
 
+
 todo_include_todos = True
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
 #.path.insert(0, os.path.abspath('/home/pballesteros/immunopepper'))
