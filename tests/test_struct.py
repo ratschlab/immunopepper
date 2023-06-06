@@ -112,13 +112,13 @@ tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
 mutation_mode ='germline'
 #pr = cProfile.Profile()
 #pr.enable()
-#test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False) #TODO add back
+test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False) #TODO add back
 #test_end_to_end_samplespecif('ERR2130621', tmpdir, "9", mutation_mode) # TEST DEPRECATED
 #for mutation_mode in ['ref', 'germline', 'somatic', 'somatic_and_germline']:
 #     test_end_to_end_makebg('ERR2130621', tmpdir, "9")
 #     test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
 outdir_filter = os.path.join(tmpdir, "filter_test")
-test_end_to_end_cancerspecif_mx(outdir_filter)
+#test_end_to_end_cancerspecif_mx(outdir_filter)
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 

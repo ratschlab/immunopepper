@@ -232,11 +232,8 @@ def initialize_fp(output_path: str, mutation_mode: str, output_fasta: bool):
     cols_annot_kmer_file = ['kmer']
     cols_gene_expr_file = ['gene']
     cols_metadata_file = ['peptide', 'id', 'readFrame', 'readFrameAnnotated', 'geneName', 'geneChr', 'geneStrand',
-                                'mutationMode',
-                                'junctionAnnotated', 'hasStopCodon', 'isInJunctionList',
-                                'isIsolated', 'variantComb', 'variantSegExpr', 'modifiedExonsCoord',
-                                'originalExonsCoord', 'vertexIdx', 'junctionExpr', 'segmentExpr',
-                                'kmerType']
+                          'mutationMode', 'hasStopCodon', 'isInJunctionList', 'isIsolated', 'variantComb',
+                          'variantSegExpr', 'modifiedExonsCoord', 'originalExonsCoord', 'vertexIdx', 'kmerType']
     cols_pep_file = ['fasta']
     metacols_kmers_expr_file = ['kmer', 'coord', 'isCrossJunction', 'junctionAnnotated', 'readFrameAnnotated']
 
