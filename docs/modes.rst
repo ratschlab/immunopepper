@@ -14,7 +14,7 @@ Immunopepper provides four different command-line basic modes:
 
 Build mode
 ~~~~~~~~~~
-    .. todo:: Check how we call the immunopepper mode and place it in prog. Add internal reference to output section
+    .. todo:: Check how we call the immunopepper mode and place it in prog. Add internal references to output section (about filtering steps in cancerspecif)
 
     .. argparse::
         :module: immunopepper.get_parsers
@@ -26,7 +26,7 @@ Build mode
 
         Throughout the description of the different parameters we will use two terms worth describing:
 
-        - *Background*: This refers to the baseline set of full transcripts found in the organism as described by the annotation file provided under `--ann-path`. In this mode, the complete sequence of exons for each given transcript will be obtained from the annotation file. The regions corresponding to this exons will be taken from the reference genome file provided under `--ref-path`, and they will be translated to create the set of *background* peptides or kmers. In the output, background files are referred to as *annot*. If the user chooses to provide #TODO: add mutation part.
+        - *Background*: This refers to the baseline set of full transcripts found in the organism as described by the annotation file provided under --ann-path. In this mode, the complete sequence of exons for each given transcript will be obtained from the annotation file. The regions corresponding to this exons will be taken from the reference genome file provided under `--ref-path`, and they will be translated to create the set of *background* peptides or kmers. In the output, background files are referred to as *annot*. If the user chooses to provide #TODO: add mutation part.
 
         - *Foreground*: It aims at representing the novelty found in the organism. The software focuses on *short-range* novelty, as it only extracts pairs of two exons. In the case where the two exons are not enough to create a kmer of length `--kmer`, the software will use an exon triplet (unless `--disable-concat` is set to True). This mode will extract the exon pairs, or triplets, belonging to each transcript by traversing the splicing graph provided under `--splice-path`. Then, it will extract the sequence corresponding to the exon coordinates from `--ref-path`, and it will be translated to generate *foreground* peptides or kmers. If the user chooses to provide germline variants under `--germline` or somatic mutations under `--somatic`, the nucleotide variations will be applied to the sequence, and they will therefore be reflected in the set of *foreground* peptides and kmers. In the output, foreground files are referred to as *sample*. Moreover, the sample names will contain a prefix indicating the mutation mode that was applied, namely 'ref' (if no mutations were applied), "germline", "somatic" or "somatic_and_germline".
 
@@ -58,26 +58,42 @@ Cancerspecif mode
 
         - *Normal samples*: These are the files that contain the kmers from the control sample, i.e. the normal tissue. These files correspond to the :ref:`output 5 <output-5-build>` and :ref:`output 6 <output-6-build>` of the build mode :doc:`output section <outputs>`. The user can choose whether to do the filtering in the kmers derived from segments (output 5) or in the kmers derived from junctions (output 6).
 
+        The steps for the filtering pipeline implemented in this mode will be explained in the following sections. *Note: The operations performed for normal and cancer samples explained separately, reason why some parameters appear several times.*
+
         .. _filt-normal:
 
-        **Pipeline for filtering normal samples:**
+        **Pipeline for filtering normal samples (Optional):**
 
         1. Preprocessing steps: Before the filtering steps, the kmers from the normal samples are preprocessed throughout different steps.
 
-            a. NaNs removal: The entries containing NaNs in the expression matrix are set to zero
-            b. Remove the kmers appearing only in the annotation file but not in the samples: The kmers that are present in the annotation file (either `junctionAnnotated` or `ReadFrameAnnotated` are True) but have expression equal to zero across all samples are removed.
-            c. Filter for neo-junctions: If the argument `--filterNeojuncCoord` is set to 'A' or 'N', only the kmers belonging to novel junctions are selected. This means that only the kmers with `junctionAnnotated = False` will be selected.
-            d. Filter for annotated reading frames: If the argument `--filterAnnotatedRF` is set to 'A' or 'N', only the kmers with a reading frame present in the annotation file are selected. This means that only the kmers with `ReadFrameAnnotated = True` will be selected, discarding the kmers that were obtained by propagating the reading frame along the splice graph.
-            e. Filter for whitelist samples: If `--whitelist-normal` is provided, only the selected samples will be retrieved and further studied.
+            a. (Obligatory) **NaNs removal:** The entries containing NaNs in the expression matrix are set to zero
+            b. (Obligatory) **Remove the kmers appearing only in the annotation file but not in the samples:** The kmers that are present in the annotation file (either `junctionAnnotated` or `ReadFrameAnnotated` are True) but have expression equal to zero across all samples are removed.
+            c. (Optional) **Filter for neo-junctions:** If the argument `--filterNeojuncCoord` is set, only the kmers belonging to novel junctions are selected. This means that only the kmers with junctionAnnotated = False will be selected. The parameter takes different input vales indicating in which dataset this filter will be applied. Filtering only on the normal cohort can be obtained by setting the parameter to 'N', while filtering on both normal and cancer datasets can be obtained by setting the parameter to 'A' ('A': all). *Note:* This is an advanced parameter. It might change in future versions of the software.
+            d. (Optional) **Filter for annotated reading frames:** If the argument `--filterAnnotatedRF` is set, only the kmers with a reading frame present in the annotation file are selected. This means that only the kmers with ReadFrameAnnotated = True will be selected, discarding the kmers that were obtained by propagating the reading frame along the splice graph. The parameter takes different input vales indicating in which dataset this filter will be applied. Filtering only on the normal cohort can be obtained by setting the parameter to 'N', while filtering on both normal and cancer datasets can be obtained by setting the parameter to 'A' ('A': all). *Note:* This is an advanced parameter. It might change in future versions of the software.
+            e. (Optional) **Filter for whitelist samples:** If `--whitelist-normal` is provided, only the selected samples will be retrieved and further studied.
 
-        2. Filtering steps: The filtering for normal samples consist on two different criteria. The two criteria below are applied independently, but only the kmers that fulfill both criteria are selected for further study. However, one can decide to apply only one of the two filters or no filter if normal files are not available.
+        2. Filtering steps:
 
-            a. Filter for expression: If any kmer, i.e. at least 1 kmer, has expression above the threshold `--cohort-expr-support-normal`, the kmer is selected. As it has expression higher than the threshold in a normal sample, it cannot be considered as a cancer-specific kmer. Therefore, it is saved as a normal kmer, and it will be removed from the cancer samples.
-            b. Filter for number of samples: If a kmer is expressed, i.e. Expression >0, in more than `--n-samples-lim-normal` samples, it is selected. As it is expressed in more than the threshold in a normal sample, it cannot be considered as a cancer-specific kmer. Therefore, it is saved as a normal kmer, and it will be removed from the cancer samples.
+            **Pipeline relevance:** This mode aims at removing a set of normal kmers from a set of cancer kmers. The software supports flexibility in the definition of the normal cohort to remove. Normal kmers "sufficiently expressed" or "sufficiently recurrent" are included in the normal cohort and will be subsequently removed. All kmers below these thresholds will not be filtered out from the cancer kmers.
 
-        3. Combination of the two filtering steps into a single normal database: The kmers that are selected in the two filtering steps are combined into a single database. This database will be used to filter the cancer samples.
+            **Technical use**: The inclusion of normal kmers is based on two different criteria. The first one aims at setting the minimum expression in any normal sample (a), and the second aims at setting the minimum recurrence at any read level in the normal cohort (b). The two criteria below can be set independently. The user can apply (a), (b), (a) and (b), or choose not to filter on a normal cohort.
 
-        4. Filtering with external resources: If `--path-normal-kmer-list` is provided, the kmers in the file will be removed from the normal database. If `--path-normal-kmer-list` is not provided, the normal database will be used as it is.
+            **Details on the filtering steps:**
+
+                a. (Optional) **Filter for expression:** If a normal kmer has expression above or equal to the threshold `--cohort-expr-support-normal`, the kmer is selected. As it has expression higher than the given threshold in at least one sample from the normal cohort, it cannot be considered as a cancer-specific kmer. Therefore, it is saved as a "sufficiently expressed" normal kmer, and it will be removed from the cancer samples.
+                b. (Optional) **Filter for number of samples:** If a kmer is expressed with any read level, i.e. Expression >0, in more than `--n-samples-lim-normal` samples, it is selected. As it is found in a number of samples higher than the given threshold, it cannot be considered as a cancer-specific kmer. Therefore, it is saved as a "sufficiently recurrent" normal kmer, and it will be removed from the cancer samples.
+
+        3. Combination of the two filtering steps into a single normal database: The kmers that are selected in the two filtering steps (a) and (b) are combined into a single database. This database will be used to filter the cancer samples.
+
+        4. (Optional) Filtering with external resources:
+
+            **Pipeline relevance**: In addition to the "threshold filtering" described above, the user may input a database of normal kmers which will be strictly subtracted from the cancer kmers. These normal kmers can be provided with the argument --path-normal-kmer-list.
+
+            **Technical use:**
+
+                - --path-normal-kmer-list can be provided in addition to the normal database (3) obtained from the two "threshold filtering" steps described above. Both will be removed from the cancer set.
+                - The parameter can also be provided alone. In this case, only a strict filtering of normal kmers against cancer kmers will be performed, without any "threshold filtering".
+                - If the parameter is not provided, the other filtering steps requested by the user will be performed.
 
         .. _filt-cancer:
 
@@ -85,19 +101,25 @@ Cancerspecif mode
 
         1. Preprocessing steps: Before the filtering steps, the kmers from the cancer samples are preprocessed throughout different steps.
 
-            a. NaNs removal: The entries containing NaNs in the expression matrix are set to zero
-            b. Filter for neo-junctions: If the argument `--filterNeojuncCoord` is set to 'A' or 'C', only the kmers belonging to novel junctions are selected. This means that only the kmers with `junctionAnnotated = False` will be selected.
-            c. Filter for annotated reading frames: If the argument `--filterAnnotatedRF` is set to 'A' or 'C', only the kmers with a reading frame present in the annotation file are selected. This means that only the kmers with `ReadFrameAnnotated = True` will be selected, discarding the kmers that were obtained by propagating the reading frame along the splice graph.
-            d. Filter for whitelist samples: If `--whitelist-cancer` is provided, only the selected samples will be retrieved and further studied.
+            a. (Obligatory) **NaNs removal:** The entries containing NaNs in the expression matrix are set to zero
+            b. (Optional) **Filter for neo-junctions:** If the argument `--filterNeojuncCoord` is set, only the kmers belonging to novel junctions are selected. This means that only the kmers with junctionAnnotated = False will be selected. The parameter takes different input vales indicating in which dataset this filter will be applied. Filtering only on the cancer cohort can be obtained by setting the parameter to 'C', while filtering on both normal and cancer datasets can be obtained by setting the parameter to 'A' ('A': all). *Note:* This is an advanced parameter. It might change in future versions of the software.
+            c. (Optional) **Filter for annotated reading frames:** If the argument `--filterAnnotatedRF` is set, only the kmers with a reading frame present in the annotation file are selected. This means that only the kmers with ReadFrameAnnotated = True will be selected, discarding the kmers that were obtained by propagating the reading frame along the splice graph. The parameter takes different input vales indicating in which dataset this filter will be applied. Filtering only on the cancer cohort can be obtained by setting the parameter to 'C', while filtering on both normal and cancer datasets can be obtained by setting the parameter to 'A' ('A': all). *Note:* This is an advanced parameter. It might change in future versions of the software.
+            d. (Optional) **Filter for whitelist samples:** If `--whitelist-cancer` is provided, only the selected samples will be retrieved and further studied.
 
-        2. Filtering steps: The filtering for cancer samples has two different steps. One can request each of the steps independently, and just apply one filtering criteria. If cohort filtering wants to be performed (step b), expression needs to be provided in the form of a matrix.
+        2. Filtering steps:
 
-            a. Sample specific filtering: Following the preprocessing, a sample specific filtering is performed. Each sample is filtered according to an expression threshold set by `--sample-expr-support-cancer`. For each individual sample, only the kmers with an expression level >= `--sample-expr-support-cancer` are selected. If `--sample-expr-support-cancer` is set to 0, only the kmers > `--sample-expr-support-cancer` are selected.
-            b. Cohort filtering: After the sample specific filtering, if the cancer files are part of a cohort of patients one can do cross sample filtering. This means that the kmers that are present in more than n samples, n being the value of `--n-samples-lim-cancer`, with an expression higher or equal than `--sample-expr-support-cancer` will be selected. If `--n-samples-lim-cancer` is set to 0, only the kmers with an expression level > `--cohort-expr-support-cancer` will be selected.
+            **Pipeline relevance**: This mode aims at removing a set of normal kmers from a set of cancer kmers. The software enables the user to decide at which confidence level the cancer kmers should be included. Cancer kmers can be requested to pass a user-defined expression level in one cancer sample of interest (a). Besides, if additional cancer samples are available, the user can request a kmer to be recurrent with a certain number of reads in the other cohort samples (b). All kmers below these thresholds will be filtered out.
 
-        3. Combination of the two filtering steps into a single cancer database. Kmers will be selected as cancer specific kmers if they pass both filtering steps, i.e. an intersection of the two filtering steps. By setting `--cancer-support-union`, one can select the kmers that passed either one of them or both of them, i.e. a union of the two filtering steps.
+            **Technical use**: The user can request the "expression in a sample of interest" (a) and "cancer cohort filtering" (b) level independently, or just apply one filtering criteria. If "cancer cohort filtering" is performed (step b), expression needs to be provided in the form of a matrix.
 
-        4. Differential filtering: The kmers appearing in the normal database will be removed from the cancerous kmers. This step is performed to remove the kmers that are not specific to the cancer samples.
+            **Details on the filtering steps:**
+
+                a. (Obligatory) **Sample specific filtering:** Following the preprocessing, sample-specific filtering is performed. Each sample of interest is filtered according to an expression threshold set by `--sample-expr-support-cancer`. The IDs of the samples of interest need to be provided with --ids-cancer-samples. For each individual sample, only the kmers with an expression level >= `--sample-expr-support-cancer` are selected. If `--sample-expr-support-cancer` is set to 0, only the kmers > `--sample-expr-support-cancer` are selected.
+                b. (Obligatory) **Cohort filtering:** After the sample specific filtering, if the cancer files are part of a cohort of patients one can do cross sample filtering. This means that the kmers that are present in more than n samples, n being the value of `--n-samples-lim-cancer`, with an expression higher or equal than `--sample-expr-support-cancer` will be selected. If `--n-samples-lim-cancer` is set to 0, only the kmers with an expression level > `--cohort-expr-support-cancer` will be selected.
+
+        3. Combination of the two filtering steps into a single cancer database. Kmers will be selected as cancer specific kmers if they pass both filtering steps (a) and (b), i.e. an intersection of the two filtering steps. By setting `--cancer-support-union`, one can select the kmers that passed either one of them or both of them, i.e. a union of the two filtering steps.
+
+        4. Differential filtering: The kmers appearing in the normal database will be removed from the cancer kmers. This step is performed to remove the kmers that are not specific to the cancer samples.
 
         5. Filtering with external resources: If `--uniprot` is provided, the kmers in the file will be removed from the cancer database. If `--uniprot` is not provided, the cancer database will be used as it is.
 
