@@ -6,6 +6,7 @@
 Immunopepper - Personalized neoantigen discovery
 ==================================================
 
+
 **ImmunoPepper** is a software tool for the detection of neoantigens from a splicing graph. It generates the set of all theoretically feasible peptide sequences (or kmers) through
 direct translation of all walks along the graph.
 
@@ -26,14 +27,13 @@ Check out the :doc:`installation` section for more information on how to install
 .. note::
     The software tool is currently under development.
 
+.. include:: _key_Contributors.rst
+
 .. toctree::
     installation
     modes
     outputs
-
-
-
-
+    _key_Contributors
 
 
 Indices and tables

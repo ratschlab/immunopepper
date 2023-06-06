@@ -5,7 +5,7 @@
 
 import os
 import sys
-
+from datetime import datetime
 # Source code directory, relative to this file
 
 sys.path.insert(0, os.path.abspath("../"))
@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath("../"))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'Immunopepper'
-copyright = '2023, BMI lab, ETHZ'
+copyright = f'{datetime.now():%Y}, BMI lab, ETHZ'
 author = 'Laurie Prélot, Matthias Hüser, Jiayu Chen, Andre Kahles, Gunnar Rätsch'
 release = '0.1'
 
