@@ -13,8 +13,8 @@ sys.path.insert(0, os.path.abspath("../"))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'Immunopepper'
-copyright = '2023, Laurie Prélot + (?)'
-author = 'Laurie Prélot + (?)'
+copyright = '2023, BMI lab, ETHZ'
+author = 'Laurie Prélot, Matthias Hüser, Jiayu Chen, Andre Kahles, Gunnar Rätsch'
 release = '0.1'
 
 # -- General configuration ---------------------------------------------------
