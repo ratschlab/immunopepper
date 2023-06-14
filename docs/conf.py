@@ -6,6 +6,10 @@
 import os
 import sys
 from datetime import datetime
+import importlib.metadata
+importlib.metadata.distribution("sphinx-argparse")
+
+
 # Source code directory, relative to this file
 
 sys.path.insert(0, os.path.abspath("../"))
