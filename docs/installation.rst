@@ -1,29 +1,50 @@
 Installation
 ===============
 
-.. todo::
-    Update these commands for installation
+Installation from source
+------------------------
 
-It is recommended to set up a separate virtual or conda environment to install and immunopepper.
+.. note::
+    For the installation from source, the user needs to clone the git repository of immunopepper.
+    This can be done by running the following command:
 
-The basic ImmunoPepper package can be installed using pip:
+    .. code-block:: console
 
-.. code-block:: console
+        git clone https://github.com/ratschlab/immunopepper.git
 
-    pip install immunopepper
 
-Alternatively, ImmunoPepper can also be installed from source using:
+It is recommended to set up a separate virtual or conda environment to install immunopepper.
 
-.. code-block:: console
+**The python version in the environment should be >= 3.9**
 
-    pip install -r requirements.txt -r requirements_dev.txt
+.. code-block::
+
+        conda create -n immunopepper python=3.9
+        conda activate immunopepper
+
+The user should also check if *gcc* is installed on the system, as it is required for the installation of the tool.
+This can be checked by running the following command:
+
+.. code-block::
+
+    gcc --version
+
+
+The rest of the installation can be performed by running:
+
+.. code-block::
+
+    conda install cython
+    conda install -c bioconda 'pyvcf3==1.0.3'
     make install
+
 
 After installation, please consult the help screen for further usage options:
 
-.. code-block:: console
+.. code-block::
 
     immunopepper -h
+
 
 Prerequisites
 -------------
@@ -33,8 +54,19 @@ SplAdder pipeline. Further information about SplAdder is available on its `GitHu
 page <https://github.com/ratschlab/spladder>`_ or the `Online
 documentation <https://spladder.readthedocs.io/en/latest/>`_.
 
+Mode mhcbind
+------------
 
+If the mode :ref:`mhcbind <mhcbind>` wants to be run  , the user needs to clone the mhcbind github repository inside the main immunopepper folder.
 
+This can be done by running the following command:
+
+.. code-block::
+
+    git clone https://github.com/openvax/mhctools.git
+
+.. todo::
+    Check if this is done like this
 
 
 
