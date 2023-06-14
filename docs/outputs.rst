@@ -126,6 +126,8 @@ In the output files name, **mut_mode** refers to *ref*, *somatic*, *germline* an
 
 9. **Output_sample_IS_SUCCESS**: Empty file created if the foreground generation was successful.
 
+.. _output-10-build:
+
 10. **\[mut_mode\]_sample_peptides_meta**: File containing details for each peptide generated from an exon pair.
 
     Detailed explanation for columns in **\[mut_mode\]_sample_peptides_meta**:

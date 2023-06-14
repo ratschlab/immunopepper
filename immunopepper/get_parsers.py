@@ -6,11 +6,10 @@ import os
 import sys
 
 from datetime import datetime
-#from mhctools.cli.args import make_mhc_arg_parser
 
-#from immunopepper.mode_build import mode_build
-#from immunopepper.mode_samplespecif import mode_samplespecif
-#from immunopepper.mode_cancerspecif import mode_cancerspecif
+from immunopepper.mode_build import mode_build
+from immunopepper.mode_samplespecif import mode_samplespecif
+from immunopepper.mode_cancerspecif import mode_cancerspecif
 
 def _add_general_args(parser):
     general = parser.add_argument_group('GENERAL')
@@ -76,8 +75,8 @@ def get_build_parser(parser):
     outputs.add_argument("--force-ref-peptides", help="Set this parameter to True to output mutated peptides even if they are the same as the ones in the reference. The reference in this case are the peptides without any mutations or variants application.", action="store_true", default=False)
     outputs.add_argument("--filter-redundant", help="If set to true, a redundancy filter will be applied to the exon list. If two or more exons span the same juction, their coordinates will be combined so that the longest spanning combination is kept.", action="store_true", required=False, default=False)
     outputs.add_argument("--kmer-database", help="Absolute path of a file containing kmers in one column, without header. If the kmers contained in this database contain the aminoacid isoleucine (I), it will be converted into leucine (L). A file from uniprot or any other standard library can be provided. The kmers provided in this file will not be output if found in the foreground peptides. Please note that is a standard proteome is downloaded from an online resource the proteins should be cut into the kmers length selected under `--kmer`.", required=False, default=None)
-    outputs.add_argument("--gtex-junction-path", help="Absolute path of whitelist junction path. The junctions of this file will be the only ones output from the tool. **Format:** hdf5. The hdf5 file should have a key `chrms` indicating the chromosome where the junction is located, a key `pos` containing the starting and ending position of the junction in genomic coordinates, and a key `strand` with information on whether the junction is in the '+' or '-' strand.", required=False, default=None)
-    parameters.add_argument("--disable-concat", help="Disable the generation of kmers from combinations of more than 2 exons. In this mode, any kmer shorter than `--kmer` will be discarded. By setting this command to False, the generation of kmers from 3 exons is allowed. This might ensure that kmers generated from shorter exons are kept, but one should take into account that kmers translated from 3 exons might have lower confidence. By setting the argument to True the generation of kmers is faster.", action="store_true", default=False)
+    outputs.add_argument("--gtex-junction-path", help="Absolute path of whitelist junction path. The junctions of this file will be the only ones output from the tool. **Format:** hdf5 file with 'chrm', 'pos' and 'strand' as keys. *'Chrm'* contains the chromosome name in the same format as in the annotation. *'pos'* contains coordinates. The coordinates are end_e1 and start_e2. This means that end_e1 > start_e2 if strand is '-' and end_e1 < start_e2 if strand '+'. *strand* will be either '-' or '+'. **Pipeline relevance**: When a whitelist file is provided, the field 'isJunctionList' in the :ref:`metadata output file <output-10-build>` will contain a 1 if the junction is contained in this list, and 0 otherwise.", required=False, default=None)
+    parameters.add_argument("--disable-concat", help="Disable the generation of kmers from combinations of more than 2 exons. In this mode, any kmer shorter than `--kmer` will be discarded. By setting this command to False, the generation of kmers from 3 exons is allowed. This might ensure that kmers generated from shorter exons are kept, but one should take into account that kmers translated from 3 exons might have lower confidence. By setting the argument to True the generation of kmers is faster. " , action="store_true", default=False)
     parameters.add_argument("--disable-process-libsize", help="Set to True to generate the libsize file (file 7 from the :ref:`build output section <build_out>`).", action="store_true", default=False)
 
 
@@ -213,8 +212,9 @@ def parse_arguments(argv):
             sys.stdout.write("------------------------------ MHCBIND IMMUNOPEPPER USAGE ------------------------------ \n \n ")
             parser_mhcbind.print_help()
             sys.stdout.write("\n------------------------------ MHCTOOLS AVAILABLE COMMAND LINE OPTIONS ------------------------------ \n \n ")
-            #parser_mhc = make_mhc_arg_parser(prog="mhctools",description=("Predict MHC ligands from protein sequences")) #TODO: uncmment this line
-            #parser_mhc.print_help()
+            from mhctools.mhctools.cli.args import make_mhc_arg_parser
+            parser_mhc = make_mhc_arg_parser(prog="mhctools",description=("Predict MHC ligands from protein sequences")) #TODO: uncmment this line
+            parser_mhc.print_help()
         else:
             parser.print_help()
 
@@ -248,13 +248,13 @@ def split_mode(options):
     logging.info("Command line"+str(arg))
     if mode == 'build':
         pass
-        #mode_build(arg)
+        mode_build(arg)
     if mode == 'samplespecif':
         pass
-        #mode_samplespecif(arg)
+        mode_samplespecif(arg)
     if mode == "cancerspecif":
         pass
-        #mode_cancerspecif(arg)
+        mode_cancerspecif(arg)
     if mode == "mhcbind":
         pass
         from .mode_mhcbind import mode_mhcbind #import here due to logging conflict
