@@ -308,7 +308,7 @@ def save_to_gzip(path, data_iterable, columns, verbose=False, filepointer=None, 
             logging.info(f'Issue saving {path} to file system: sleeping {sleep_time} sec. and retry')
             sleep(sleep_time)
             error_encountered = 1
- 
+
     if error_encountered:
         raise OSError('Issue with saving device')
 

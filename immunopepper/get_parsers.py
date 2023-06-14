@@ -7,9 +7,9 @@ import sys
 
 from datetime import datetime
 
-#from immunopepper.mode_build import mode_build
-#from immunopepper.mode_samplespecif import mode_samplespecif
-#from immunopepper.mode_cancerspecif import mode_cancerspecif
+from immunopepper.mode_build import mode_build
+from immunopepper.mode_samplespecif import mode_samplespecif
+from immunopepper.mode_cancerspecif import mode_cancerspecif
 
 def _add_general_args(parser):
     general = parser.add_argument_group('GENERAL')
@@ -248,13 +248,13 @@ def split_mode(options):
     logging.info("Command line"+str(arg))
     if mode == 'build':
         pass
-        #mode_build(arg)
+        mode_build(arg)
     if mode == 'samplespecif':
         pass
-        #mode_samplespecif(arg)
+        mode_samplespecif(arg)
     if mode == "cancerspecif":
         pass
-        #mode_cancerspecif(arg)
+        mode_cancerspecif(arg)
     if mode == "mhcbind":
         pass
         from .mode_mhcbind import mode_mhcbind #import here due to logging conflict
