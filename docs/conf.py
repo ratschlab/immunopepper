@@ -8,7 +8,7 @@ import sys
 from datetime import datetime
 import importlib.metadata
 importlib.metadata.distribution("sphinx-argparse")
-
+print(importlib.metadata.distribution("sphinx-argparse").version)
 
 # Source code directory, relative to this file
 
