@@ -1,54 +1,40 @@
-.. highlight:: shell
-
-============
 Installation
-============
+===============
 
-..
-   Stable release
-   --------------
+.. todo::
+    Update these commands for installation
 
-   To install ImmunoPepper, run this command in your terminal:
+It is recommended to set up a separate virtual or conda environment to install and immunopepper.
 
-   .. code-block:: console
-
-       $ pip install immunopepper
-
-   This is the preferred method to install ImmunoPepper, as it will always install the most recent stable release.
-
-   If you don't have `pip`_ installed, this `Python installation guide`_ can guide
-   you through the process.
-
-   .. _pip: https://pip.pypa.io
-   .. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
-
-
-From sources
-------------
-
-The sources for ImmunoPepper can be downloaded from the `Github repo`_.
-
-You can clone the repository:
+The basic ImmunoPepper package can be installed using pip:
 
 .. code-block:: console
 
-    $ git clone git://github.com/ratschlab/immunopepper
+    pip install immunopepper
 
-..
-   Or download the `tarball`_:
-
-   .. code-block:: console
-
-       $ curl  -OL https://github.com/ratschlab/immunopepper/tarball/master
-
-Once you have a copy of the source, you can install it with:
+Alternatively, ImmunoPepper can also be installed from source using:
 
 .. code-block:: console
 
-    $ python setup.py install
+    pip install -r requirements.txt -r requirements_dev.txt
+    make install
+
+After installation, please consult the help screen for further usage options:
+
+.. code-block:: console
+
+    immunopepper -h
+
+Prerequisites
+-------------
+
+ImmunoPepper takes a splicing graph as input. This splicing graph has to be generated using the
+SplAdder pipeline. Further information about SplAdder is available on its `GitHub
+page <https://github.com/ratschlab/spladder>`_ or the `Online
+documentation <https://spladder.readthedocs.io/en/latest/>`_.
 
 
-.. _Github repo: https://github.com/ratschlab/immunopepper
-..
 
-   .. _tarball: https://github.com/ratschlab/immunopepper/tarball/master
+
+
+
