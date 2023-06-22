@@ -7,6 +7,7 @@ from immunopepper.filter import filter_redundant_junctions
 from immunopepper.filter import junctions_annotated
 from immunopepper.filter import is_intron_in_junction_list
 from immunopepper.io_ import namedtuple_to_str
+from immunopepper.io_ import save_fg_peptide_set
 from immunopepper.io_ import save_kmer_matrix
 from immunopepper.mutations import get_mutated_sequence
 from immunopepper.mutations import exon_to_mutations
@@ -224,7 +225,7 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                          filepointer=None,
                          force_ref_peptides=False, kmer=None,
                         all_read_frames=None, graph_output_samples_ids=None,
-                         graph_samples=None,out_dir=None, verbose_save=None):
+                         graph_samples=None,out_dir=None, verbose_save=None, fasta_save=None):
     """
 
     Parameters
@@ -250,9 +251,11 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
     kmer: list containing the length of the kmers requested
     out_dir: str, base direactory used for temporary files
     graph_samples: list, samples contained in the splicing graph object
+    fasta_save: bool. whether to save a fasta file with the peptides
     """
     # check whether the junction (specific combination of vertices) also is annotated
     # as a  junction of a protein coding transcript
+    len_pep_save = 9999
     gene_annot_jx = junctions_annotated(gene, table.gene_to_ts, table.ts_to_cds)
     som_exp_dict = exon_to_expression(gene, list(mutation.somatic_dict.keys()), countinfo, seg_counts, mut_count_id)
     gene_kmer_coord = set()
@@ -322,6 +325,11 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                     ### kmers
                     create_kmer(output_peptide, kmer, gene_kmer_coord, kmer_database)
 
+                    if len(peptide_set) > len_pep_save:
+                        save_fg_peptide_set(peptide_set, filepointer, out_dir, fasta_save,
+                                            verbose=False, id=f'{kmer_type}{ii}')
+                        peptide_set.clear()
+
         if not gene.splicegraph.edges is None:
             gene.to_sparse()
 
@@ -330,7 +338,8 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
                         graph_output_samples_ids,
                         graph_samples, filepointer, out_dir, verbose=verbose_save)
 
-
+    save_fg_peptide_set(peptide_set, filepointer, out_dir, fasta_save,
+                        verbose=False, id=f'{kmer_type}{ii}')
 
 def get_spanning_index(coord, k):
     """
@@ -632,11 +641,11 @@ def prepare_output_kmer(gene, idx, countinfo, seg_counts, edge_idxs, edge_counts
         else:
             kmer_matrix_segm.append(row_metadata + sublist_seg)
 
-        # save output data per batch #TODO check feasibility of less batches for memory
-        if len(kmer_matrix_segm) > 1000: # small but dense
+        # save output data per batch
+        if len(kmer_matrix_segm) > 1000:
             save_kmer_matrix(None, kmer_matrix_segm, graph_samples, filepointer, out_dir, verbose=False)
             kmer_matrix_segm.clear()
-        if len(kmer_matrix_edge) > 1000: # big but relatively sparse
+        if len(kmer_matrix_edge) > 1000:
             save_kmer_matrix(kmer_matrix_edge, None, graph_samples, filepointer, out_dir, verbose)
             kmer_matrix_edge.clear()
 
