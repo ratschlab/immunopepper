@@ -1,0 +1,142 @@
+STAR version=2.7.10b
+STAR compilation time,server,dir=2022-11-01T09:53:26-04:00 :/home/dobin/data/STAR/STARcode/STAR.master/source
+STAR git: On branch master ; commit c6f8efc2c7043ef83bf8b0d9bed36bbb6b9b1133 ; diff files: CHANGES.md 
+##### Command Line:
+STAR --runThreadN 3 --genomeDir /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx --readFilesIn /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/simulated_Ipp_1_sample10.fq --outSAMtype BAM SortedByCoordinate --outFileNamePrefix /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/align/simulated_Ipp_1_sample10/ --outSAMattributes NH HI NM MD AS XS
+##### Initial USER parameters from Command Line:
+outFileNamePrefix                 /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/align/simulated_Ipp_1_sample10/
+###### All USER parameters from Command Line:
+runThreadN                    3     ~RE-DEFINED
+genomeDir                     /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx     ~RE-DEFINED
+readFilesIn                   /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/simulated_Ipp_1_sample10.fq        ~RE-DEFINED
+outSAMtype                    BAM   SortedByCoordinate        ~RE-DEFINED
+outFileNamePrefix             /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/align/simulated_Ipp_1_sample10/     ~RE-DEFINED
+outSAMattributes              NH   HI   NM   MD   AS   XS        ~RE-DEFINED
+##### Finished reading parameters from all sources
+
+##### Final user re-defined parameters-----------------:
+runThreadN                        3
+genomeDir                         /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx
+readFilesIn                       /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/simulated_Ipp_1_sample10.fq   
+outFileNamePrefix                 /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/align/simulated_Ipp_1_sample10/
+outSAMtype                        BAM   SortedByCoordinate   
+outSAMattributes                  NH   HI   NM   MD   AS   XS   
+
+-------------------------------
+##### Final effective command line:
+STAR   --runThreadN 3   --genomeDir /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx   --readFilesIn /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/simulated_Ipp_1_sample10.fq      --outFileNamePrefix /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/align/simulated_Ipp_1_sample10/   --outSAMtype BAM   SortedByCoordinate      --outSAMattributes NH   HI   NM   MD   AS   XS   
+----------------------------------------
+
+Number of fastq files for each mate = 1
+WARNING --outSAMattributes contains XS, therefore STAR will use --outSAMstrandField intronMotif
+ParametersSolo: --soloCellFilterType CellRanger2.2 filtering parameters:  3000 0.99 10
+WARNING: --limitBAMsortRAM=0, will use genome size as RAM limit for BAM sorting
+Finished loading and checking parameters
+Reading genome generation parameters:
+### STAR   --runMode genomeGenerate      --runThreadN 3   --genomeDir /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx   --genomeFastaFiles /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome.fa      --genomeSAindexNbases 5   --sjdbGTFfile /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/simulated_Ipp.gtf   --sjdbOverhang 25   --sjdbInsertSave Basic
+### GstrandBit=32
+versionGenome                 2.7.4a     ~RE-DEFINED
+genomeType                    Full     ~RE-DEFINED
+genomeFastaFiles              /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome.fa        ~RE-DEFINED
+genomeSAindexNbases           5     ~RE-DEFINED
+genomeChrBinNbits             18     ~RE-DEFINED
+genomeSAsparseD               1     ~RE-DEFINED
+genomeTransformType           None     ~RE-DEFINED
+genomeTransformVCF            -     ~RE-DEFINED
+sjdbOverhang                  25     ~RE-DEFINED
+sjdbFileChrStartEnd           -        ~RE-DEFINED
+sjdbGTFfile                   /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/simulated_Ipp.gtf     ~RE-DEFINED
+sjdbGTFchrPrefix              -     ~RE-DEFINED
+sjdbGTFfeatureExon            exon     ~RE-DEFINED
+sjdbGTFtagExonParentTranscripttranscript_id     ~RE-DEFINED
+sjdbGTFtagExonParentGene      gene_id     ~RE-DEFINED
+sjdbInsertSave                Basic     ~RE-DEFINED
+genomeFileSizes               263776   95703        ~RE-DEFINED
+Genome version is compatible with current STAR
+Number of real (reference) chromosomes= 1
+1	1	10000	0
+--sjdbOverhang = 25 taken from the generated genome
+Started loading the genome: Thu Jun 15 12:45:32 2023
+
+Genome: size given as a parameter = 263776
+SA: size given as a parameter = 95703
+SAindex: size given as a parameter = 1
+Read from SAindex: pGe.gSAindexNbases=5  nSAi=1364
+nGenome=263776;  nSAbyte=95703
+GstrandBit=32   SA number of indices=23200
+Shared memory is not used for genomes. Allocated a private copy of the genome.
+Genome file size: 263776 bytes; state: good=1 eof=0 fail=0 bad=0
+Loading Genome ... done! state: good=1 eof=0 fail=0 bad=0; loaded 263776 bytes
+SA file size: 95703 bytes; state: good=1 eof=0 fail=0 bad=0
+Loading SA ... done! state: good=1 eof=0 fail=0 bad=0; loaded 95703 bytes
+Loading SAindex ... done: 6027 bytes
+Finished loading the genome: Thu Jun 15 12:45:32 2023
+
+Processing splice junctions database sjdbN=32,   pGe.sjdbOverhang=25 
+alignIntronMax=alignMatesGapMax=0, the max intron size will be approximately determined by (2^winBinNbits)*winAnchorDistNbins=589824
+Created thread # 1
+Created thread # 2
+Thread #1 end of input stream, nextChar=-1
+Completed: thread #0
+Completed: thread #2
+BAM sorting: 3604 mapped reads
+BAM sorting bins genomic start loci:
+1	0	144
+2	0	353
+3	0	649
+4	0	1072
+5	0	1127
+6	0	1325
+7	0	1372
+8	0	1445
+9	0	1525
+10	0	2131
+11	0	2177
+12	0	2374
+13	0	2628
+14	0	4052
+15	0	4105
+16	0	4160
+17	0	4281
+18	0	4335
+19	0	4431
+20	0	4576
+21	0	4626
+22	0	4738
+23	0	4782
+24	0	4913
+25	0	5071
+26	0	5131
+27	0	5236
+28	0	5297
+29	0	5431
+30	0	5589
+31	0	5644
+32	0	5771
+33	0	5820
+34	0	5925
+35	0	6100
+36	0	6141
+37	0	6179
+38	0	6243
+39	0	6408
+40	0	6451
+41	0	6559
+42	0	6623
+43	0	6673
+44	0	6902
+45	0	9066
+46	0	9110
+47	0	9205
+48	0	9290
+Completed: thread #1
+Joined thread # 1
+Joined thread # 2
+Jun 15 12:45:33 ..... finished mapping
+RAM after mapping:
+VmPeak:	  671932 kB; VmSize:	  606396 kB; VmHWM:	  353776 kB; VmRSS:	  353156 kB; 
+RAM after freeing genome index memory:
+VmPeak:	  671932 kB; VmSize:	  606136 kB; VmHWM:	  353776 kB; VmRSS:	  352980 kB; 
+Jun 15 12:45:33 ..... started sorting BAM
+Max memory needed for sorting = 19403
+ALL DONE!

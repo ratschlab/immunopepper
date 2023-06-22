@@ -31,6 +31,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.autosummary',
     'sphinxarg.ext',
+
 ]
 
 templates_path = ['_templates']

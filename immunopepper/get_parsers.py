@@ -95,8 +95,8 @@ def get_samplespecif_parser(parser):
     required = parser.add_argument_group('Mandatory arguments')
     required.add_argument("--annot-kmer-files", nargs='+', help="List of absolute paths to the annotation kmer files. The files should have the name **\[mut_mode\]_annot_peptides.fa** (Files 1 from the :ref:`build output section <build_out>`)", required=True, default='')
     required.add_argument("--output-dir", help=' Path to the output directory.', required=True)
-    required.add_argument("--junction-kmer-files", nargs='+', help="List of absolute paths to the sample kmer files. The files are the ones inside the folders **\[mut_mode\]_graph_kmer_JuncExpr** (Files 6 from the :ref:`build output section <build_out>`)",required=True, default='') #TODO: explain that we can also use segm_expr but it's not really useful
-    required.add_argument("--bg-file-path", help="Absolute path to the intermediate pooled annotation file. This file is the set of unique kmers in `--annot-kmer-files` files. If the file is not provided it will be generated. Format: One column with header 'kmer'.", required=True, default='')
+    required.add_argument("--junction-kmer-files", nargs='+', help="List of absolute paths to the sample kmer files. The files are the ones inside the folders **\[mut_mode\]_graph_kmer_JuncExpr** or **\[mut_mode\]_graph_kmer_SegmExpr** (Files 5 and 6 from the :ref:`build output section <build_out>`)",required=True, default='')
+    required.add_argument("--bg-file-path", help="Absolute path to the intermediate pooled annotation file. This file is the set of unique kmers in `--annot-kmer-files` files. If the file is not provided it will be generated. In order to be generated one needs to provide the folder where the file will be saved. **Note:** It should be a non existent folder. Format: One column with header 'kmer'.", required=True, default='')
     required.add_argument("--output-suffix", help="Suffix to be appended to the filtered `--junction-kmer-files`", required=True, default='no-annot')
 
     optional = parser.add_argument_group('Optional argument')

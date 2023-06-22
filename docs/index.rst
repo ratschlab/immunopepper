@@ -34,6 +34,7 @@ Check out the :doc:`installation` section for more information on how to install
     modes
     outputs
     _key_Contributors
+    tutorials
 
 
 Indices and tables
