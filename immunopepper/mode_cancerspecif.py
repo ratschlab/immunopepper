@@ -117,6 +117,7 @@ def mode_cancerspecif(arg):
                                                            path_normal_for_sample_threshold,
                                                            inter_matrix_expr, inter_matrix_sample,
                                                            arg.n_samples_lim_normal, index_name)
+
             # Add back kmer annot
             normal_matrix = remove_external_kmer_list(spark, path_interm_kmers_annotOnly,
                                                       normal_matrix, index_name, header=True)
@@ -124,8 +125,6 @@ def mode_cancerspecif(arg):
         # Additional kmer backgrounds filtering
         if arg.path_normal_kmer_list is not None:
             normal_matrix = remove_external_kmer_list(spark, arg.path_normal_kmer_list, normal_matrix, index_name)
-
-
 
         ### Apply filtering to foreground
         for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
@@ -162,14 +161,14 @@ def mode_cancerspecif(arg):
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
                                                                              or (arg.filterNeojuncCoord == 'A')
                                                                              else False,
-                                                  filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'C')
-                                                                            or (arg.filterNeojuncCoord == 'A')
+                                                  filterAnnotatedRF=True if (arg.filterAnnotatedRF == 'C')
+                                                                            or (arg.filterAnnotatedRF == 'A')
                                                                             else False,
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
 
-
                 # cancer sample-specific filter
+
                 cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample, jct_annot_col, rf_annot_col])
                 cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0) #Keep kmers expressed
                 # Counting step: Retrieve initial number of kmers in sample
@@ -178,12 +177,14 @@ def mode_cancerspecif(arg):
                 if arg.output_count and (arg.sample_expr_support_cancer != 0):
                     cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample,
                                                             arg.sample_expr_support_cancer, libsize_c) #Keep kmers expressed >= threshold
+
                     # Counting step: Retrieve number of kmers in sample after filtering on cancer expression
                     output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
                 else:
                     output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
+                save_spark(cancer_sample_filter, arg.output_dir, os.path.join(arg.output_dir, "condition2"),outpartitions=arg.out_partitions )
                 # cancer cross-cohort filter
                 if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
                     inter_matrix_expr_c, inter_matrix_sample_c = filter_hard_threshold(cancer_matrix, index_name,

@@ -98,18 +98,17 @@ def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_co
         # Filter on junction status depending on the content on the matrix
         matrix = matrix.drop(jct_col)
 
-
         # Separate kmers only present in the backbone annotation from the ones supported by the reads of any sample
-#        partitions_ = matrix.rdd.getNumPartitions()
-#        logging.info(f'...partitions: {partitions_}')
-#        if separate_back_annot:
-#            logging.info("Isolating kmers only in backbone annotation")
-#            matrix = split_only_found_annotation_backbone(separate_back_annot, output_dir, matrix, index_name,
-#                                                          jct_annot_col, rf_annot_col)
+        partitions_ = matrix.rdd.getNumPartitions()
+        logging.info(f'...partitions: {partitions_}')
+        if separate_back_annot:
+            logging.info("Isolating kmers only in backbone annotation")
+            matrix = split_only_found_annotation_backbone(separate_back_annot, output_dir, matrix, index_name,
+                                                          jct_annot_col, rf_annot_col)
 
         # Filter according to annotation flag
         matrix = filter_on_junction_kmer_annotated_flag(matrix, jct_annot_col, rf_annot_col,
-                                                        filterNeojuncCoord, filterAnnotatedRF)
+                                                      filterNeojuncCoord, filterAnnotatedRF)
 
         # Reduce samples (columns) to whitelist
         logging.info("Cast types")
@@ -288,7 +287,7 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
     if libsize is not None:
         matrix = matrix.select(index_name, *[
             sf.round(sf.col(name_) / libsize.loc[name_, "libsize_75percent"], 2).alias(name_)
-            for name_ in matrix.schema.names if name_ not in [index_name, jct_annot_col, rf_annot_col]])
+            for name_ in matrix.schema.names if name_ not in [index_name, 'coord', jct_annot_col, rf_annot_col]])
 
     # Expression filtering, take k-mers with >= X reads in >= 1 sample
     if expr_limit and (not os.path.isfile(os.path.join(path_e, '_SUCCESS'))):
@@ -355,6 +354,7 @@ def combine_hard_threshold_normals(spark, path_normal_kmers_e, path_normal_kmers
     #  Convert or re-load matrix expression threshold (Counts >= X reads in >= 1 sample)
     if normal_matrix_e:
         normal_matrix_e = normal_matrix_e.toDF(['kmer', 'n_samples'])
+        normal_matrix_e = normal_matrix_e.select(sf.col(index_name))
     elif path_normal_kmers_e:
         if (path_normal_kmers_s != path_normal_kmers_e):
             normal_matrix_e = spark.read.csv(path_normal_kmers_e, sep=r'\t', header=False)

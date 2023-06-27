@@ -187,7 +187,7 @@ For normal samples, only the intermediate files will be generated. These files w
 
 In the filtering pipeline, kmers are filtered based on their expression level and on the number of samples in which they are expressed. However, the building of the splicegraph includes kmers never seen in the RNA-samples and solely present in the annotation. These kmers will be processed separately and will be removed from the foreground set. The kmers will be stored in the file **kmers_derived_solely_from_annotation.csv**.
 
-1. **kmers_derived_solely_from_annotation.csv**: This is a file containing the kmers that are derived from the annotation and not present in any normal sample. The kmers present in this file will be skipped, and they will not be further processed. They will also be removed from the foreground matrix.
+1. **kmers_derived_solely_from_annotation.csv**: This is a folder containing the kmers that are derived from the annotation and not present in any normal sample. The kmers present in this file will be skipped, and they will not be further processed. They will also be removed from the foreground matrix.
 
     **Technical note:** If the expression data is taken from junctions, provided under --path-cancer-matrix-edge, the kmers selected in this file will be the ones with *JunctionAnnotated = True* and zero expression across all normal samples. If the expression data is taken from segments, provided under --path-cancer-matrix-segm, the kmers selected in this file will be the ones with *ReadFrameAnnotated = True* and zero expression across all normal samples.
 
@@ -290,14 +290,12 @@ For cancer samples, there will be both intermediate and output files generated. 
 
        One example of how the output name for this file could look is the following: *breast_TCGA-OR-A5J1-01A-11R-A29R-07_somatic_SampleLim3.0_CohortLim0.0Across10_FiltNormalsGtexcoreCohort_ExceptTCGA-OR-A5J1-01A-11R-A29R-07_CohortLim0.0_Across1_batch0_1.tsv.gz*.
 
-       .. todo:: check if this output is still like this
-
        .. code-block::
 
-           kmer    TCGAA2A0SX01A12RA08407all
-           AAGDDENHN       244.0
-           AAMGIKSCA       4252.0
-           AAPGQHLQA       38.0
+           kmer            TCGAA2A0SX01A12RA08407all       JunctionAnnotated   readFrameAnnotated
+          AAGDDENHN                244.0                        True                 True
+          AAPGQHLQA                38.0                         False                False
+          ACSNFIFKH                114.0                        False                True
 
     b. **{tag_prefix}_{id_cancer_sample}_{mutation_mode}_SampleLim{--sample-expr-support-cancer}_CohortLim{--cohort-expr-support-cancer}_Across{--n-samples-lim-cancer}_FiltNormals{--tag_normals}_CohortLim{--cohort-expr-support-normal}_Across{--n-samples-lim-normal}_FiltUniprot_batch{--batch-id}_{--tot-batches}.tsv**: This file will only be generated if the user provides an Uniprot database, under `--uniprot`, containing kmers that should not appear in the output of the foreground kmers.
 
@@ -305,14 +303,13 @@ For cancer samples, there will be both intermediate and output files generated. 
 
        One example of how the output name for this file could look is the following: *breast_TCGA-OR-A5J1-01A-11R-A29R-07_somatic_SampleLim3.0_CohortLim0.0Across10_FiltNormalsGtexcoreCohort_ExceptTCGA-OR-A5J1-01A-11R-A29R-07_CohortLim0.0_Across1_FiltUniprot_batch0_1.tsv.gz*.
 
-       .. todo:: Check if the output is still like this
 
        .. code-block::
 
-          kmer            TCGAA2A0SX01A12RA08407all       kmer_IL_eq
-          AAGDDENHN                244.0                  AAGDDENHN
-          AAPGQHLQA                38.0                   AAPGQHLQA
-          ACSNFIFKH                114.0                  ACSNFLFKH
+          kmer            TCGAA2A0SX01A12RA08407all       JunctionAnnotated   readFrameAnnotated
+          AAGDDENHN                244.0                        True                 True
+          AAPGQHLQA                38.0                         False                False
+          ACSNFIFKH                114.0                        False                True
 
 
     .. _output-count-cancerspecif:

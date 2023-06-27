@@ -52,6 +52,8 @@ Cancerspecif mode
         :prog: immunopepper cancerspecif
         :passparser:
 
+        .. note:: This mode uses JAVA. In order to run it, the user needs to have JAVA installed in the system.
+
         This mode performs different filtering steps to keep only the kmers that are specific to a cancer sample or a cancer cohort. The user can provide different cancer and normal samples to this filtering step.
 
         - *Cancer samples*: These are the files that contain the kmers from the cancer sample. These files correspond to the :ref:`output 5 <output-5-build>` and :ref:`output 6 <output-6-build>` of the build mode :doc:`output section <outputs>`. The user can choose whether to do the filtering in the kmers derived from segments (output 5) or in the kmers derived from junctions (output 6).

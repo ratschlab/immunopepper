@@ -316,6 +316,8 @@ Build mode *with* mutations
 
 In the second part of the example, we introduce somatic and germline mutations in the analysis. The command used in this tutorial to run the *build* mode is:
 
+Command
+~~~~~~~
 .. code-block:: console
 
     immunopepper  build --output-dir immunopepper_usecase/ --ann-path  immunopepper/tests/data_simulated/data/simulated_Ipp.gtf --splice-path  immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.pickle --ref-path  immunopepper/tests/data_simulated/data/genome.fa --kmer 9 --count-path immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.count.hdf5 --parallel 1 --batch-size 1  --start-id 0 --process-num 0 --output-fasta --somatic immunopepper/tests/data_simulated/data/variants_somatic.vcf --germline immunopepper/tests/data_simulated/data/variants_germline.vcf --mutation-sample simulated_Ipp_1_sample3 --verbose 2
@@ -325,7 +327,8 @@ In the second part of the example, we introduce somatic and germline mutations i
 In this command, the build mode of immunopepper is run on the :ref:`input_data` described in the section above. Moreover, the output directory is set to a folder called *immunopepper_usecase/cohort_mutsimulated_Ipp_1_sample3*, located on the directory where the command is executed. The kmer length is set to 9, as it is a common kmer length selected in clinical applications. Finally, there are also two mutation files provided, a somatic and a germline file. These files will apply the existing mutations and take them into account when computing the output.
 One important thing to note is that, if mutations are provided, an extra filter layer is included. This layer will ensure that only peptides different to the reference (base genome + germline) are included in the output.
 
-**Terminal output:**
+Terminal output
+~~~~~~~~~~~~~~~
 
 The output displayed in the terminal is the following:
 
@@ -361,8 +364,8 @@ The output displayed in the terminal is the following:
     2023-06-20 19:21:51,633 DEBUG    ....cohort: output_sample graph from batch all/9 processed, max time cost: 0.01, memory cost: 0.15 GB
     2023-06-20 19:21:51,645 INFO     Saved library size results to immunopepper_usecase/expression_counts.libsize.tsv
 
-**Output files:**
-
+Output files
+~~~~~~~~~~~~
 
 1. **somatic_and_germline_annot_peptides.fa.gz**: This is a fasta file containing the background peptides for each gene transcript. The file contains a header that is the transcript id and the sequence of the corresponding peptide. The name also shows the mutation mode, which in this case is somatic and germline. *Note*: As this genome is simulated, there is a higher frequency of stop codons than in nature, that explains the existence of some short peptides.
 
@@ -542,3 +545,325 @@ The output displayed in the terminal is the following:
 
 Running samplespecif mode
 --------------------------
+
+.. _tutorial_cancerspecif:
+
+Running cancerspecif mode
+--------------------------
+
+Simulating normal data
+^^^^^^^^^^^^^^^^^^^^^^
+
+The *cancerspecif* mode takes as input the kmer files derived from the normal and cancer samples. As this example is based on simulated data, we compute the build mode on our splice graph and count information, which will correspond to the cancer data.
+
+Therefore, we will then simulate the normal data from the cancer data. This can be done by running the code *generate_normal_data.py*. The intuition behind the simulation is as follows:
+
+1. Drop some kmers appearing in the cancer data. These dropped kmers will be present in the cancer files but not in the normal files, the first condition for a kmer to be considered a neopeptide. Each kmer is dropped with a probability of 30%.
+2. Once the kmers are dropped, we will have the full set of normal peptides. The next thing to do is to change the expression level of the kmers.
+
+    - For some of the kmers, the expression across all the samples will be set to 0. If this is the case, the kmer will be considered as part of the annotation only and it will be removed from the final normal kmer set.
+    - For the rest of the kmers, the expression is set to a random number between 0 and 105 for every sample.
+
+3. Once the expression is set, we will have the full set of normal peptides that will be used for the filtering.
+
+Running cancerspecif mode
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+In this mode, the user can perform different filtering steps to keep only the kmers that are specific to a cancer sample or a cancer cohort.
+
+For this example, the filtering will be performed in the files generated *without* mutations. Moreover, junction kmers of both cancer and normal samples will be used. There are different thresholds and filters used in this example. The different options selected will be explained below:
+
+1. **Normal filtering:** For the normal filtering, three filters were used:
+
+    - Filter on presence in sample: The kmers that are only present in the annotation but not in the samples are removed from the normal kmer set.
+    - Filter on the number of samples: *--n-samples-lim-normal* = 15. This filter checks in how many samples (out of 20) each kmer is expressed. If it is expressed in 15 or more samples, it will be considered as a normal kmer and it will be added to the final normal kmer set.
+    - Filter on the expression: *--cohort-expr-support-normal* = 100. This filter checks the expression of the kmer across all the samples. If the expression is higher than 100 in at least one sample, the kmer will be considered as a normal kmer and it will be added to the final normal kmer set.
+
+2. **Cancer filtering:** For the cancer filtering, three types of filtering were used:
+
+    - NeoJunctions filtering: By setting *--filterNeojuncCoord* = C, the cancer kmers are first filtered by JunctionAnnotated. Only those kmers where JunctionAnnotated = False will be considered, since we are interested in kmers resulting from novel splicing junctions.
+    - Sample based filtering: We select a sample of interest *--ids-cancer-samples** = simulated_Ipp_1_sample3. This sample will be subjected to an individual filtering on its expression. The filter is set with the argument *--sample-expr-support-cancer* = 20. This filter checks the expression of the kmer in the sample of interest. If the expression is higher than 20, the kmer will be considered as a cancer kmer and it will be added as a possible cancer kmer.
+    - Cohort based filtering: For the rest of the samples, excluding the sample of interest, we will perform a number of samples and expession filtering. The values are set with *--n-samples-lim-cancer* = 2 and *--cohort-expr-support-cancer* = 110. This filter checks in how many samples (out of 20) each kmer is expressed with an expression level higher than 110. Those kmers expressed in 2 or more samples with an expression level >= 110 will be considered as cancer kmers and they will be added as a possible cancer kmer.
+
+Finally, a differential filtering between cancer kmers and normal kmers is performed. We will consider cancer kmers the ones fulfilling all the conditions (intersection of the three filters) and normal kmers the ones fulfilling at least one of the normal conditions (union of the two last filters). In the end, only the kmers belonging to the cancer set, and not present in the normal set, will be kept.
+
+Command
+~~~~~~~
+
+The command to run the *cancerspecif* mode is:
+
+.. code-block:: console
+
+    immunopepper cancerspecif --cores 2 --mem-per-core 2048 --parallelism 3 --kmer 9 --output-dir immunopepper_usecase/filter_case/ --interm-dir-norm immunopepper_usecase/filter_case --interm-dir-canc immunopepper_usecase/filter_case --ids-cancer-samples simulated_Ipp_1_sample3 --mut-cancer-samples ref --output-count immunopepper_usecase/filter_case/output-count.txt --path-normal-matrix-edge immunopepper_usecase/filter_case/ref_graph_kmer_NormalExpr/normal_junctions.gz --n-samples-lim-normal 15 --cohort-expr-support-normal 100 --sample-expr-support-cancer 20 --cohort-expr-support-cancer 110 --n-samples-lim-cancer 2 --path-cancer-matrix-edge immunopepper_usecase/filter_case/ref_graph_kmer_CancerExpr/cancer_junctions.gz --filterNeojuncCoord C --verbose 1
+
+Terminal output
+~~~~~~~~~~~~~~~
+
+The terminal output for this mode is:
+
+.. code-block:: console
+
+    2023-06-26 12:20:51,722 INFO     Command lineNamespace(cores=2, mem_per_core=2048, parallelism=3, out_partitions=None, scratch_dir='', interm_dir_norm='immunopepper_usecase/filter_case', interm_dir_canc='immunopepper_usecase/filter_case', kmer='9', ids_cancer_samples=['simulated_Ipp_1_sample3'], mut_cancer_samples=['ref'], whitelist_normal=None, whitelist_cancer=None, path_cancer_libsize=None, path_normal_libsize=None, normalizer_cancer_libsize=None, normalizer_normal_libsize=None, output_dir='immunopepper_usecase/filter_case/', output_count='immunopepper_usecase/filter_case/output-count.txt', tag_normals='', tag_prefix='', path_normal_matrix_segm=None, path_normal_matrix_edge=['immunopepper_usecase/filter_case/ref_graph_kmer_NormalExpr/normal_junctions.gz'], n_samples_lim_normal=15, cohort_expr_support_normal=100.0, sample_expr_support_cancer=20.0, cohort_expr_support_cancer=110.0, n_samples_lim_cancer=2, path_cancer_matrix_segm=None, path_cancer_matrix_edge=['immunopepper_usecase/filter_case/ref_graph_kmer_CancerExpr/cancer_junctions.gz'], cancer_support_union=False, path_normal_kmer_list=None, uniprot=None, filterNeojuncCoord='C', filterAnnotatedRF='', tot_batches=None, batch_id=None, on_the_fly=False, verbose=1)
+    driver_mem 3072
+    memory_per_executor_mb 80% 1638
+    parallelism_ 3
+    shuffle_partitions 3
+    permsize 1024M
+    2023-06-26 12:21:06,642 INFO
+
+     >>>>>>>> Preprocessing libsizes
+    2023-06-26 12:21:06,642 INFO     At least one intermediate normals filtering file is missing.
+    2023-06-26 12:21:06,642 INFO     Will compute full filtering steps according to user input parameters
+    2023-06-26 12:21:06,642 INFO
+
+     >>>>>>>> Preprocessing Normal samples
+    2023-06-26 12:21:06,642 INFO     Load input ['immunopepper_usecase/filter_case/ref_graph_kmer_NormalExpr/normal_junctions.gz']
+    2023-06-26 12:21:12,558 INFO     ...partitions: 1
+    2023-06-26 12:21:12,698 INFO     ...partitions: 1
+    2023-06-26 12:21:12,698 INFO     Isolating kmers only in backbone annotation
+    2023-06-26 12:21:13,043 INFO     >>>> Save to immunopepper_usecase/filter_case/kmers_derived_solely_from_annotation.tsv.gz
+    2023-06-26 12:21:13,880 INFO     Cast types
+    2023-06-26 12:21:14,101 INFO     ...partitions: 1
+    2023-06-26 12:21:14,101 INFO
+
+     >>>>>>>> Normals: Perform Hard Filtering
+     (expressed in 15 samples with 100.0 normalized counts
+    2023-06-26 12:21:14,102 INFO     expression filter
+    2023-06-26 12:21:14,102 INFO     Filter matrix with cohort expression support >= 100.0 in 1 sample
+    2023-06-26 12:21:14,540 INFO     Save intermediate 1/2 normals filtering file to immunopepper_usecase/filter_case/interm_normals_combiExprCohortLim100.0Across1.tsv.gz
+    2023-06-26 12:21:15,655 INFO     Filter matrix with cohort expression support > 0.0 in 1 sample
+    2023-06-26 12:21:16,001 INFO     Save intermediate 2/2 normals filtering file to immunopepper_usecase/filter_case/interm_normals_combiExprCohortLim0.0Across1.tsv.gz
+    2023-06-26 12:21:16,615 INFO     Filter matrix with cohort expression support > 0 in 15 sample(s)
+    2023-06-26 12:21:16,665 INFO     Load input immunopepper_usecase/filter_case/kmers_derived_solely_from_annotation.tsv.gz
+    2023-06-26 12:21:16,976 INFO     At least one intermediate cancer_ref filtering file is missing.
+    2023-06-26 12:21:16,977 INFO     Will compute full filtering steps according to user input parameters
+    2023-06-26 12:21:16,977 INFO
+
+     >>>>>>>> Preprocessing Cancer sample simulated_Ipp_1_sample3
+    2023-06-26 12:21:16,977 INFO     Load input ['immunopepper_usecase/filter_case/ref_graph_kmer_CancerExpr/cancer_junctions.gz']
+    2023-06-26 12:21:17,263 INFO     ...partitions: 1
+    2023-06-26 12:21:17,311 INFO     ...partitions: 1
+    2023-06-26 12:21:17,341 INFO     Cast types
+    2023-06-26 12:21:17,473 INFO     ...partitions: 1
+    2023-06-26 12:21:17,609 INFO     ...partitions: 1
+    2023-06-26 12:21:17,609 INFO     Filter with simulatedIpp1sample3 > 0
+    2023-06-26 12:21:18,270 INFO     # Init_cancer n = 59 kmers
+    2023-06-26 12:21:18,348 INFO     ...partitions: 1
+    2023-06-26 12:21:18,348 INFO     Filter with simulatedIpp1sample3 >= 20.0
+    2023-06-26 12:21:18,660 INFO     # Filter_Sample n = 59 kmers
+    2023-06-26 12:21:18,660 INFO     >>>> Save to immunopepper_usecase/filter_case/condition2
+    2023-06-26 12:21:18,931 INFO     Target sample simulatedIpp1sample3 not included in the cohort filtering
+    2023-06-26 12:21:18,931 INFO     Filter matrix with cohort expression support >= 110.0 in 1 sample
+    2023-06-26 12:21:19,196 INFO     Save intermediate 1/2 cancer_ref filtering file to immunopepper_usecase/filter_case/interm_cancer_ref_combiExprCohortLim110.0Across1ExceptsimulatedIpp1sample3.tsv.gz
+    2023-06-26 12:21:19,375 INFO     Filter matrix with cohort expression support > 0.0 in 1 sample
+    2023-06-26 12:21:19,650 INFO     Save intermediate 2/2 cancer_ref filtering file to immunopepper_usecase/filter_case/interm_cancer_ref_combiExprCohortLim0.0Across1ExceptsimulatedIpp1sample3.tsv.gz
+    2023-06-26 12:21:19,889 INFO     Filter matrix with cohort expression support >= 110.0 in 2 sample(s)
+    2023-06-26 12:21:19,994 INFO     support intersect
+    2023-06-26 12:21:20,778 INFO     # Filter_Sample_Cohort n = 13 kmers
+    2023-06-26 12:21:20,778 INFO
+
+     >>>>>>>> Cancers: Perform differential filtering
+    2023-06-26 12:21:21,071 INFO     partitions: 1
+    2023-06-26 12:21:21,071 INFO     Filtering normal background
+    2023-06-26 12:21:21,822 INFO     partitions: 1
+    2023-06-26 12:21:21,822 INFO     >>>> Save to immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz
+    2023-06-26 12:21:23,072 INFO     # Filter_Sample_Cohort_CohortNormal n = 3 kmers
+    2023-06-26 12:21:23,072 INFO     Filtering kmers in uniprot
+    2023-06-26 12:21:23,072 INFO     >>>> Save to immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15_FiltUniprot.tsv.gz
+    2023-06-26 12:21:24,043 INFO     # Filter_Sample_Cohort_CohortNormal_Uniprot n = 3 kmers
+    2023-06-26 12:21:24,044 INFO     Save intermediate info to immunopepper_usecase/filter_case/output-count.txt
+    2023-06-26 12:21:24,879 INFO     Closing down clientserver connection
+
+Output files
+~~~~~~~~~~~~~
+
+In this mode, there are intermediate files generated for cancer and normal samples. These intermediate files will help speed up re-runs, as filtering steps can be computationally expensive for large cohorts.
+
+**Normal samples**
+
+For normal samples, only the intermediate files will be generated. These files will be later used to exclude some kmers as cancer candidates, as they will not be cancer-specific kmers.
+
+1. **kmers_derived_solely_from_annotation.tsv.gz**: This is a folder containing the kmers that are only present in the annotation and not in the samples. This means that these kmers have a zero expression in all the samples, and therefore will be excluded from the normal dataset.
+
+
+    **Format:** The files contain a header, "kmer", and then a kmer in each row.
+
+    .. code-block:: console
+
+        kmer
+        FLGVLPNAY
+        LPFRVLIIL
+        GVCTLGILR
+        NCRKGFLGV
+        GFLGVLPNA
+        SSSLVSDGW
+
+2. **interm_normals_combiExprCohortLim0.0Across1.tsv.gz:** This folder contains the kmers that are present with an expression bigger than zero in at least one sample. It is an intermediate file that will be later used for the filter based on the number of samples. The rest of the filtering, in which *--n-lim-samples-normal* threshold is applied will be performed on the fly.
+
+    **Format:** The files obtained in this folder will be tab-separated, and they will have two columns, with the first column showing the kmer and the second column showing the number of samples in which that kmer appears with more expression than 0.
+
+    .. code-block:: console
+
+        KGFLGVCTL       19
+        LEPATSLDF       20
+        GFLGVCTLG       19
+        RKGFLGVCT       20
+        VLPNAYALI       19
+        PFRVLIILE       20
+        NCRKGFLGV       19
+        KGFLGVLPN       20
+
+3. **interm_normals_combiExprCohortLim100.0Across1.tsv.gz:** This folder contains the kmers that appear with an expression >= 100 in at least one sample. This is the file that will be directly used for the expression based filtering. The kmers passing the threshold will be marked as normal kmers and will be removed from the possible cancer kmers.
+
+    **Format:** The file is a tab seperated file with two columns, with the first column showing the kmer and the second column showing the number of samples in which that kmer appears with more or equal expression than 100.
+
+    .. code-block:: console
+
+        LEPATSLDF       1
+        GFLGVCTLG       3
+        RKGFLGVCT       2
+        VLPNAYALI       3
+        PFRVLIILE       1
+        NCRKGFLGV       1
+
+**Cancer samples**
+
+1. **interm_cancer_ref_combiExprCohortLim0.0Across1ExceptsimulatedIpp1sample3.tsv.gz:** This folder will contain the intermediate files showing the kmers having an expression bigger than 0.0 in at least 1 sample, without taking into account the target sample.
+
+    **Format:** The files obtained in this folder will be tab separated, and they will have two columns, with the first column showing the kmer and the second column showing the number of samples in which that kmer appears with more expression than 0.
+
+    .. code-block:: console
+
+        KGFLGVCTL       19
+        VCTLGILRV       19
+        FLGVCTLGI       19
+        LEPATSLDF       19
+        GFLGVCTLG       19
+        FLGVLPNAY       19
+
+2. **interm_cancer_ref_combiExprCohortLim110.0Across1ExceptsimulatedIpp1sample3.tsv.gz:** This folder will contain the intermediate files showing the kmers that have an expression level higher than the expression threshold, 110 in this case, in at least one sample, without taking into account the target sample.
+
+    **Format:** The files obtained in this folder will be tab separated, and they will have two columns, with the first column showing the kmer and the second column showing the number of samples in which that kmer appears with more expression than 110.
+
+    .. code-block::
+
+        SSSLVSDGW       6
+        EPTYGRPSV       2
+        RESSSLVSD       6
+        SRHRESSSL       6
+
+3. **simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz:** This is the file containing the cancer specific kmers, after application of the different thresholds and differential filtering against normal kmers. If an external database is not provided under *--uniprot*, this is the final output of the cancerspecif mode.
+
+    **Format**: The output is a tab separated file made up of 4 different columns. The first column contains the cancer kmer, the second column contains the expression level of the kmer in the sample of interest, the third column shows whether the junction is annotated or if it is a novel junction, and the last column shows whether the read frame is annotated or not.
+
+    +---------------+-----------------------+--------------------+-------------------------+
+    | kmer          |  simulatedIpp1sample3 |   junctionAnnotated|     readFrameAnnotated  |
+    +===============+=======================+====================+=========================+
+    | HRESSSLVS     |  175.0                |  False             |     True                |
+    +---------------+-----------------------+--------------------+-------------------------+
+    | ESSSLVSDG     |  175.0                |  False             |     True                |
+    +---------------+-----------------------+--------------------+-------------------------+
+    | SLVSDGWAC     |  175.0                |  False             |     True                |
+    +---------------+-----------------------+--------------------+-------------------------+
+
+
+4. **output-count.txt:** This file will be generated because *--output-count* was provided in the arguments. It contains the number of remaining kmers after each filtering step for each sample of interest.
+
+    +------------------------+-----------------+--------------------+--------------------------+----------------------------+-----------------------------+----------------------+--------------------------------+---------------+-------------------+-----------------------+------------------------------------+
+    |sample                  |    mutation_mode|   min_sample_reads |       #_of_cohort_samples|     reads_per_cohort_sample|   #_normal_samples_allowed  |      normal_cohort_id|        reads_per_normal_sample |   Init_cancer |    Filter_Sample  | Filter_Sample_Cohort  |   Filter_Sample_Cohort_CohortNormal|
+    +========================+=================+====================+==========================+============================+=============================+======================+================================+===============+===================+=======================+====================================+
+    |simulated_Ipp_1_sample3 |    ref          |   20.0             |       2                  |     110.0                  |   15                        |                      |        100                     |   59          |    59             | 13                    |   3                                |
+    +------------------------+-----------------+--------------------+--------------------------+----------------------------+-----------------------------+----------------------+--------------------------------+---------------+-------------------+-----------------------+------------------------------------+
+
+
+.. _tutorial_mhcbind:
+
+Running mhcbind mode
+---------------------
+
+This mode is a wrapper tool for the mhctools package. It allows to do mhc binding predictions on the output kmers from *cancerspecif* mode. Therefore, there are some input parameters specific to this software and some input parameters that will depend on the mhc prediction tool that the user chooses to use.
+
+In this example, a binding affinity prediction on the three kmers given as output from the *cancerspecif* mode will be done. The affinity prediction will be done using the tool *mhcflurry*, and a threshold for affinity >=1000 is set to select the final kmers.
+
+.. note:: The mhctools package requires the mhc binding affinity tools to be locally installed in the user's computer. For more information on how to install the mhc binding affinity tools, please refer to the mhctools documentation.
+
+Command
+~~~~~~~
+
+The command to run the *mhcbind* mode is the following:
+
+.. code-block::
+
+    immunopepper mhcbind --mhc-software-path ./immunopepper/mhctools/ --argstring "--mhc-predictor mhcflurry --mhc-alleles HLA-A*02:01 --output-csv immunopepper_usecase/mhc_bind/predictions.csv --input-peptides-file immunopepper_usecase/mhc_bind/input_peptides.csv" --partitioned-tsv immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz --output-dir immunopepper_usecase/mhc_bind --bind-score-method affinity --bind-score-threshold 1000 --verbose 1
+
+All the arguments *outside* the --argstring belong to the immunopepper software, while the ones inside the argstring are used by the mhctools.
+
+**Immunopepper arguments:**
+
+- *--mhc-software-path*: Path to the mhctools package. This is a required argument.
+- *--partitioned-tsv*: Path to the output folder of the *cancerspecif* mode. If the user wants to run the *mhcbind* mode on the output of the *cancerspecif* mode, this argument is required.
+- *output-dir*: Path to the output folder. This is a required argument. It should match the directory given under *--output-csv* in the *--argstring* argument.
+- *--bind-score-method*: Metric used for filtering. The filtering will be done on the results of the mhc binding prediction, so the score method should be an output of the selected mhc binding prediction tool.
+- *--bind-score-threshold*: Threshold for the filtering. The filtering will be done on the results of the selected metric in the previous argument. The threshold should be a number.
+- *--verbose*: Verbosity level. This is an optional argument. The default value is 1.
+
+**Mhctools arguments:**
+
+The arguments for mhctools are the ones contained in the *--argstring*:
+
+- *--mhc-predictor*: Name of the mhc binding prediction tool to use.
+- *--output-csv*: Path to the output file and name of the output file. The format should be *.csv*.
+- *--input-peptides-file*: Path to the input file containing the kmers to predict. The kmers are derived from the file provided under *--partitioned-tsv*. The format should be *.csv*.
+- *--mhc-alleles*: Alleles to use for the prediction.
+
+Terminal output
+~~~~~~~~~~~~~~~
+
+.. todo:: Add once the logging issue is solved
+
+
+Output files
+~~~~~~~~~~~~
+
+This mode creates files that are unique to *immunopepper* or files that are created by the mhctools package. This will be indicated in the output file description.
+
+1. **input_peptides.csv**: This is the file created from *--partitioned-tsv*. The name is given by the user, when setting the argument *--input-peptides-file* in the argstring. It is a file unique to *immunopepper*, as it is the intermediate file that makes compatible the output of *cancerspecif* mode and the input to mhctools.
+
+    **Format**: *.csv* file with one column and without header. It contains a kmer per row. The kmers are the ones that passed the filtering steps in the *cancerspecif* mode.
+
+    .. code-block::
+
+        HRESSSLVS
+        ESSSLVSDG
+        SLVSDGWAC
+
+2. **predictions.csv**: This is the output of the *mhc binding tool* selected. In this case, the selected tool was *mhcflurry*. This is the file generated by the *mhctools* package. The name is selected by the user when setting *--output-csv* in the argstring.
+
+    **Format**: The format will depend on the prediction tool selected. The different prediction scores are the ones that can be used in *--bind-score-method*. In this case the options would be: score, affinity, percentile_rank.
+
+    +---------------------+--------+-------------+--------------+-----------------+--------------------+-----------------------+-------------------------------+----------+
+    |source_sequence_name |  offset|   peptide   |       allele |   score         |         affinity   |       percentile_rank |        prediction_method_name |   length |
+    +=====================+========+=============+==============+=================+====================+=======================+===============================+==========+
+    | None                |       0| HRESSSLVS   | HLA-A*02:01  | 0.0446471281349 | 30844.2694544      | 49.96275              | mhcflurry                     |        9 |
+    +---------------------+--------+-------------+--------------+-----------------+--------------------+-----------------------+-------------------------------+----------+
+    |None                 |       0| ESSSLVSDG   | HLA-A*02:01  | 0.0493709236383 | 29307.415067       | 36.933125             | mhcflurry                     |        9 |
+    +---------------------+--------+-------------+--------------+-----------------+--------------------+-----------------------+-------------------------------+----------+
+    |None                 |       0| SLVSDGWAC   | HLA-A*02:01  | 0.367525291443  | 937.518149464      | 1.700125              | mhcflurry                     |        9 |
+    +---------------------+--------+-------------+--------------+-----------------+--------------------+-----------------------+-------------------------------+----------+
+
+3. **predictions_WithaffinityMoreLim1000.0.tsv:** This is the output of the *mhcbind* mode. This output combines the mhc binding predictions of *mhctools* with the output of *cancerspecif* mode. Moreover, it performs filteirng if selected. In this case, filtering was selected, so the name of the file reflects the metric and the threshold used. By looking at *predictions.csv* one can see that the affinity of the last kmer is 937.518149464. This is below the threshold of 1000, so this kmer is not included in the output file.
+
+    **Format**: The file will be in *.tsv* format. It will contain the columns of *predictions.csv*, merged with the output of *cancerspecif* mode.
+
+
+   +------------+------------------------+----------------------+------------------------+--------------------------+----------+------------+---------------+---------------+---------------------+-------------------------+--------+
+   | kmer       |   simulatedIpp1sample3 |   junctionAnnotated  |     readFrameAnnotated |     source_sequence_name |   offset | allele     |  score        |    affinity   |     percentile_rank |   prediction_method_name|  length|
+   +============+========================+======================+========================+==========================+==========+============+===============+===============+=====================+=========================+========+
+   | HRESSSLVS  |                    175 | False                | True                   | None                     |        0 | HLA-A*02:01| 0.0446471     | 30844.3       | 49.9628             | mhcflurry               |      9 |
+   +------------+------------------------+----------------------+------------------------+--------------------------+----------+------------+---------------+---------------+---------------------+-------------------------+--------+
+   | ESSSLVSDG  |                    175 | False                | True                   | None                     |        0 | HLA-A*02:01| 0.0493709     | 29307.4       | 36.9331             | mhcflurry               |      9 |
+   +------------+------------------------+----------------------+------------------------+--------------------------+----------+------------+---------------+---------------+---------------------+-------------------------+--------+
+
+
+
+
+
