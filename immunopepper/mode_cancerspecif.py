@@ -184,7 +184,6 @@ def mode_cancerspecif(arg):
                 else:
                     output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
-                save_spark(cancer_sample_filter, arg.output_dir, os.path.join(arg.output_dir, "condition2"),outpartitions=arg.out_partitions )
                 # cancer cross-cohort filter
                 if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
                     inter_matrix_expr_c, inter_matrix_sample_c = filter_hard_threshold(cancer_matrix, index_name,

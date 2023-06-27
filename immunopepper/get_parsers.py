@@ -175,7 +175,7 @@ def get_mhcbind_parser(parser):
     required = parser.add_argument_group('Mandatory arguments')
 
     required.add_argument("--mhc-software-path", help="Path for the MHC prediction software.", required=True, default=None)
-    required.add_argument("--argstring", help="Complete command line for the MHC prediction tool passed as a string. One should include here the command that will be directly passed to the selected MHC tool. The four mandatory arguments are: \n 1.--mhc-predictor: This argument will specify the name of the software tool that will be used. The name should be in the format accepted by the library `mhc_tools <https://github.com/openvax/mhctools>`_ \n \n 2.--output-csv: This argument will contain the path and filename where the MHC prediction tool will save the results. The format of the file should be *.csv*.\n \n 3.--input-peptides-file: This argument will have the path and filename to the file containing the set of kmers on which MHC binding affinity prediction will be performed. The format of the file should be *.csv*.\n \n 4. --mhc-alleles or --mhc-alleles-file: This argument should contain the alleles that will be used for the analysis of mhc binding affinity. If `--partitioned-tsv`files are provided, an intermediate file will be created and stored under the path `--input-peptides-file`. This intermediate file will contain the set of all unique kmers present in the partitioned files obtained from `cancerspecif` mode. If one does not want to use the output of `cancerspecif` mode for prediction, the path to the file that will be used for prediction will be directly provided under `--input-peptides-list`.", required=True, default='')
+    required.add_argument("--argstring", help="Complete command line for the MHC prediction tool passed as a string. One should include here the command that will be directly passed to the selected MHC tool. The four mandatory arguments are: \n 1.--mhc-predictor: This argument will specify the name of the software tool that will be used. The name should be in the format accepted by the library `mhc_tools <https://github.com/openvax/mhctools>`_ \n \n 2.--output-csv: This argument will contain the path and filename where the MHC prediction tool will save the results. The format of the file should be *.csv*.\n \n 3.--input-peptides-file: This argument will have the path and filename to the file containing the set of kmers on which MHC binding affinity prediction will be performed. The format of the file should be *.csv*.\n \n 4. --mhc-alleles or --mhc-alleles-file: This argument should contain the alleles that will be used for the analysis of mhc binding affinity.\n \n If `--partitioned-tsv`files are provided, an intermediate file will be created and stored under the path `--input-peptides-file`. This intermediate file will contain the set of all unique kmers present in the partitioned files obtained from `cancerspecif` mode. If one does not want to use the output of `cancerspecif` mode for prediction, the path to the file that will be used for prediction will be directly provided under `--input-peptides-list`.", required=True, default='')
     required.add_argument("--output-dir", help="General output file. Absolute path to the output directory to save the MHC predictions. It should match the directory provided in --output-csv of the argstring, but without the file name.", required=True, default='')
 
     optional = parser.add_argument_group('Optional argument')
@@ -243,9 +243,14 @@ def split_mode(options):
         log_level = logging.DEBUG
 
     logging.basicConfig(
-                        level=log_level,
-                        handlers=handlers,
-                        format="%(asctime)-15s %(levelname)-8s %(message)s")
+                         level=log_level,
+                         handlers=handlers,
+                         format="%(asctime)-15s %(levelname)-8s %(message)s")
+
+    #stdout_handler.setFormatter(logging.Formatter("%(asctime)-15s %(levelname)-8s %(message)s"))
+    #stdout_handler.setLevel(log_level)
+    #logging.getLogger().addHandler(stdout_handler)
+
     logging.info("Command line"+str(arg))
     if mode == 'build':
         pass

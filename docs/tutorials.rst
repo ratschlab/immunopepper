@@ -787,7 +787,7 @@ In this example, a binding affinity prediction on the three kmers given as outpu
 .. note:: The mhctools package requires the mhc binding affinity tools to be locally installed in the user's computer. For more information on how to install the mhc binding affinity tools, please refer to the mhctools documentation.
 
 Command
-~~~~~~~
+^^^^^^^^
 
 The command to run the *mhcbind* mode is the following:
 
@@ -816,13 +816,43 @@ The arguments for mhctools are the ones contained in the *--argstring*:
 - *--mhc-alleles*: Alleles to use for the prediction.
 
 Terminal output
-~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^
 
-.. todo:: Add once the logging issue is solved
+The output displayed in the terminal for the *mhcbind* mode is the following:
+
+2023-06-27 15:53:05,501 INFO     Command lineNamespace(mhc_software_path='./immunopepper/mhctools/', argstring='--mhc-predictor mhcflurry --mhc-alleles HLA-A*02:01 --output-csv immunopepper_usecase/mhc_bind/predictions.csv --input-peptides-file immunopepper_usecase/mhc_bind/input_peptides.csv', output_dir='immunopepper_usecase/mhc_bind', partitioned_tsv='immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz', bind_score_method='affinity', bind_score_threshold=1000.0, less_than=False, verbose=2)
+2023-06-27 15:53:05,892 INFO     Process the outputs from cancerspecif mode
+2023-06-27 15:53:05,905 INFO     Launch MHC Tools with command --mhc-predictor mhcflurry --mhc-alleles HLA-A*02:01 --output-csv immunopepper_usecase/mhc_bind/predictions.csv --input-peptides-file immunopepper_usecase/mhc_bind/input_peptides.csv
+2023-06-27 15:53:05,906 - mhctools.cli.args - INFO - Building MHC binding prediction type for alleles ['HLA-A*02:01'] and epitope lengths None
+2023-06-27 15:53:05,906 INFO     Building MHC binding prediction type for alleles ['HLA-A*02:01'] and epitope lengths None
+2023-06-27 15:53:11,257 INFO     Loaded 10 class1 pan allele predictors, 14839 allele sequences, 6308 percent rank distributions, and 0 allele specific models:
+2023-06-27 15:53:21,920 - mhctools.cli.script - INFO -
+  source_sequence_name  offset    peptide       allele     score  \
+0                 None       0  HRESSSLVS  HLA-A*02:01  0.044647
+1                 None       0  ESSSLVSDG  HLA-A*02:01  0.049371
+2                 None       0  SLVSDGWAC  HLA-A*02:01  0.367525
+
+       affinity  percentile_rank prediction_method_name  length
+0  30844.269454        49.962750              mhcflurry       9
+1  29307.415067        36.933125              mhcflurry       9
+2    937.518149         1.700125              mhcflurry       9
+2023-06-27 15:53:21,920 INFO
+  source_sequence_name  offset    peptide       allele     score  \
+0                 None       0  HRESSSLVS  HLA-A*02:01  0.044647
+1                 None       0  ESSSLVSDG  HLA-A*02:01  0.049371
+2                 None       0  SLVSDGWAC  HLA-A*02:01  0.367525
+
+       affinity  percentile_rank prediction_method_name  length
+0  30844.269454        49.962750              mhcflurry       9
+1  29307.415067        36.933125              mhcflurry       9
+2    937.518149         1.700125              mhcflurry       9
+Wrote: immunopepper_usecase/mhc_bind/predictions.csv
+2023-06-27 15:53:21,936 INFO     Perform filtering with affinity >= 1000.0
+2023-06-27 15:53:21,938 INFO     Saving to immunopepper_usecase/mhc_bind/predictions_WithaffinityMoreLim1000.0.tsv
 
 
 Output files
-~~~~~~~~~~~~
+^^^^^^^^^^^^
 
 This mode creates files that are unique to *immunopepper* or files that are created by the mhctools package. This will be indicated in the output file description.
 

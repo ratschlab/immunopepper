@@ -8,6 +8,19 @@ import sys
 from mhctools.cli.script import main as mhctools_main
 
 def mode_mhcbind(arg):
+    #Configure the logger
+    if arg.verbose == 0:
+        log_level = logging.WARNING
+    elif arg.verbose == 1:
+        log_level = logging.INFO
+    else:
+        log_level = logging.DEBUG
+
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setFormatter(logging.Formatter("%(asctime)-15s %(levelname)-8s %(message)s"))
+    stdout_handler.setLevel(log_level)
+    logging.getLogger().addHandler(stdout_handler)
+
     args_list=shlex.split(arg.argstring)
     if '--output-csv' not in args_list:
         logging.error('output-csv was not provided in --arg.argstring')
