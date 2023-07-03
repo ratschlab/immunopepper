@@ -80,8 +80,8 @@ def mode_cancerspecif(arg):
                                                   cross_junction=0,
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
                                                                               or (arg.filterNeojuncCoord == 'A') else False,
-                                                  filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
-                                                                             or (arg.filterNeojuncCoord == 'A') else False,
+                                                  filterAnnotatedRF=True if (arg.filterAnnotatedRF == 'N')
+                                                                             or (arg.filterAnnotatedRF == 'A') else False,
                                                   output_dir=normal_out,
                                                   separate_back_annot=path_interm_kmers_annotOnly,
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
@@ -92,8 +92,8 @@ def mode_cancerspecif(arg):
                                                   cross_junction=1,
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
                                                                               or (arg.filterNeojuncCoord == 'A') else False,
-                                                  filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
-                                                                             or (arg.filterNeojuncCoord == 'A') else False,
+                                                  filterAnnotatedRF=True if (arg.filterAnnotatedRF == 'N')
+                                                                             or (arg.filterAnnotatedRF == 'A') else False,
                                                   output_dir=normal_out,
                                                   separate_back_annot=path_interm_kmers_annotOnly if not normal_segm else None, # The kmer only from the annotation need be extracted only once. Ideally from the segment expression matrix
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
@@ -150,8 +150,8 @@ def mode_cancerspecif(arg):
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
                                                                              or (arg.filterNeojuncCoord == 'A')
                                                                              else False,
-                                                  filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'C')
-                                                                            or (arg.filterNeojuncCoord == 'A')
+                                                  filterAnnotatedRF=True if (arg.filterAnnotatedRF == 'C')
+                                                                            or (arg.filterAnnotatedRF == 'A')
                                                                             else False,
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
                 cancer_junc = process_build_outputs(spark, index_name, jct_col,
@@ -162,8 +162,8 @@ def mode_cancerspecif(arg):
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
                                                                              or (arg.filterNeojuncCoord == 'A')
                                                                              else False,
-                                                  filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'C')
-                                                                            or (arg.filterNeojuncCoord == 'A')
+                                                  filterAnnotatedRF=True if (arg.filterAnnotatedRF == 'C')
+                                                                            or (arg.filterAnnotatedRF == 'A')
                                                                             else False,
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
@@ -249,10 +249,11 @@ def mode_cancerspecif(arg):
                          'Filter_Sample_Cohort_CohortNormal')
 
             # Remove Uniprot
-            logging.info("Filtering kmers in uniprot")
-            cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
-            save_spark(cancer_kmers, arg.output_dir, path_filter_final_uniprot, outpartitions=arg.out_partitions)
-            output_count(arg.output_count, cancer_kmers, report_count, report_steps,
+            if arg.uniprot is not None:
+                logging.info("Filtering kmers in uniprot")
+                cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
+                save_spark(cancer_kmers, arg.output_dir, path_filter_final_uniprot, outpartitions=arg.out_partitions)
+                output_count(arg.output_count, cancer_kmers, report_count, report_steps,
                          'Filter_Sample_Cohort_CohortNormal_Uniprot')
 
             save_output_count(arg.output_count, report_count, report_steps, arg.tag_normals,
