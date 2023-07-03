@@ -249,10 +249,11 @@ def mode_cancerspecif(arg):
                          'Filter_Sample_Cohort_CohortNormal')
 
             # Remove Uniprot
-            logging.info("Filtering kmers in uniprot")
-            cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
-            save_spark(cancer_kmers, arg.output_dir, path_filter_final_uniprot, outpartitions=arg.out_partitions)
-            output_count(arg.output_count, cancer_kmers, report_count, report_steps,
+            if arg.uniprot is not None:
+                logging.info("Filtering kmers in uniprot")
+                cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
+                save_spark(cancer_kmers, arg.output_dir, path_filter_final_uniprot, outpartitions=arg.out_partitions)
+                output_count(arg.output_count, cancer_kmers, report_count, report_steps,
                          'Filter_Sample_Cohort_CohortNormal_Uniprot')
 
             save_output_count(arg.output_count, report_count, report_steps, arg.tag_normals,
