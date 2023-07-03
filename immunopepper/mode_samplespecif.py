@@ -40,8 +40,7 @@ def mode_samplespecif(arg):
     else:
         f = open_gz_or_normal(arg.bg_file_path, 'r')
         bg_kmer_set = set(pd.read_csv(f, delimiter='\t')['kmer'])
-        logging.info("reading  unique background kmer file in {} \n ".format(arg.bg_file_path)
-                )
+        logging.info("reading  unique background kmer file in {} \n ".format(arg.bg_file_path))
     for junction_kmer_file in arg.junction_kmer_files:
         if os.path.exists(junction_kmer_file):
             input_list = glob.glob('{}/*part*'.format(junction_kmer_file))
@@ -56,6 +55,7 @@ def mode_samplespecif(arg):
                 kmer_df['is_neo_flag'] = bg_flag
 
             output_file_path = os.path.join(arg.output_dir, junction_kmer_file.split('/')[-1].replace('.gz',
+                                                                                                      '') + '_' + arg.output_suffix + '.gz')
 
             kmer_df.to_csv(output_file_path, sep='\t', compression='gzip', index=False)
             logging.info("output bg-removed kmer file : {} \n ".format(output_file_path))
@@ -64,3 +64,5 @@ def mode_samplespecif(arg):
 
 
     logging.info(">>>>>>>>> Remove annotation: Finish\n")
+
+
