@@ -826,26 +826,6 @@ The output displayed in the terminal for the *mhcbind* mode is the following:
 2023-06-27 15:53:05,906 - mhctools.cli.args - INFO - Building MHC binding prediction type for alleles ['HLA-A*02:01'] and epitope lengths None
 2023-06-27 15:53:05,906 INFO     Building MHC binding prediction type for alleles ['HLA-A*02:01'] and epitope lengths None
 2023-06-27 15:53:11,257 INFO     Loaded 10 class1 pan allele predictors, 14839 allele sequences, 6308 percent rank distributions, and 0 allele specific models:
-2023-06-27 15:53:21,920 - mhctools.cli.script - INFO -
-  source_sequence_name  offset    peptide       allele     score  \
-0                 None       0  HRESSSLVS  HLA-A*02:01  0.044647
-1                 None       0  ESSSLVSDG  HLA-A*02:01  0.049371
-2                 None       0  SLVSDGWAC  HLA-A*02:01  0.367525
-
-       affinity  percentile_rank prediction_method_name  length
-0  30844.269454        49.962750              mhcflurry       9
-1  29307.415067        36.933125              mhcflurry       9
-2    937.518149         1.700125              mhcflurry       9
-2023-06-27 15:53:21,920 INFO
-  source_sequence_name  offset    peptide       allele     score  \
-0                 None       0  HRESSSLVS  HLA-A*02:01  0.044647
-1                 None       0  ESSSLVSDG  HLA-A*02:01  0.049371
-2                 None       0  SLVSDGWAC  HLA-A*02:01  0.367525
-
-       affinity  percentile_rank prediction_method_name  length
-0  30844.269454        49.962750              mhcflurry       9
-1  29307.415067        36.933125              mhcflurry       9
-2    937.518149         1.700125              mhcflurry       9
 Wrote: immunopepper_usecase/mhc_bind/predictions.csv
 2023-06-27 15:53:21,936 INFO     Perform filtering with affinity >= 1000.0
 2023-06-27 15:53:21,938 INFO     Saving to immunopepper_usecase/mhc_bind/predictions_WithaffinityMoreLim1000.0.tsv

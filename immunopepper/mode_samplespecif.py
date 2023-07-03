@@ -11,7 +11,8 @@ import sys
 
 from immunopepper.io_ import read_pq_with_dict
 from immunopepper.io_ import save_to_gzip
-
+from immunopepper.io_ import open_gz_or_normal
+import glob
 
 
 def mode_samplespecif(arg):
@@ -30,21 +31,30 @@ def mode_samplespecif(arg):
         for kmer_file in arg.annot_kmer_files:
             if os.path.exists(kmer_file):
                 logging.info("...consider annotation file:{}".format(kmer_file))
-                f = read_pq_with_dict(kmer_file, ['kmer'])
-                bg_kmer_set.update(f['kmer'])
+                f = open_gz_or_normal(kmer_file, 'r')
+                df = pd.read_csv(f, delimiter='\t')
+                #f = read_pq_with_dict(kmer_file, ['kmer'])
+                bg_kmer_set.update(df['kmer'])
             else:
                 logging.info("WARNING annotation file: {} does not exist".format(kmer_file))
-        save_to_gzip(arg.bg_file_path , pd.DataFrame(bg_kmer_set, columns = ['kmer'],  dtype='str'),
-                  compression='SNAPPY', verbose=True)
+        df_annot = pd.DataFrame(bg_kmer_set, columns = ['kmer'],  dtype='str')
+        df_annot.to_csv(arg.bg_file_path, sep='\t', compression='gzip', index=False)
+        #save_to_gzip(arg.bg_file_path , pd.DataFrame(bg_kmer_set, columns = ['kmer'],  dtype='str'), ['kmer'], verbose=True)
         logging.info("generated unique background kmer file in {} \n ".format(arg.bg_file_path))
     else:
-        bg_kmer_set = set(read_pq_with_dict(arg.bg_file_path, ['kmer'])['kmer'])
+        f = open_gz_or_normal(arg.bg_file_path, 'r')
+        bg_kmer_set = set(pd.read_csv(f, delimiter='\t')['kmer'])
+        #bg_kmer_set = set(read_pq_with_dict(arg.bg_file_path, ['kmer'])['kmer'])
         logging.info("reading  unique background kmer file in {} \n ".format(arg.bg_file_path)
                 )
     for junction_kmer_file in arg.junction_kmer_files:
         if os.path.exists(junction_kmer_file):
-            logging.info("...consider foreground file:{}".format(junction_kmer_file))
-            kmer_df = read_pq_with_dict(junction_kmer_file, ['kmer']).to_pandas()
+            input_list = glob.glob('{}/*part*'.format(junction_kmer_file))
+            logging.info("...consider foreground file:{}".format(input_list))
+            #kmer_df = read_pq_with_dict(junction_kmer_file, ['kmer']).to_pandas()
+            kmer_df = pd.concat(map(lambda file: pd.read_csv(open_gz_or_normal(file, 'r'), delimiter='\t'), input_list))
+            #kmer_f = open_gz_or_normal(junction_kmer_file, 'r')
+            #kmer_df = pd.read_csv(kmer_f, delimiter='\t')
 
             uniq_ref_kmer_set = set(kmer_df['kmer']).difference(bg_kmer_set)
             bg_flag = kmer_df['kmer'].apply(lambda x: x in uniq_ref_kmer_set)
@@ -53,9 +63,12 @@ def mode_samplespecif(arg):
             else:
                 kmer_df['is_neo_flag'] = bg_flag
 
-            output_file_path = os.path.join(arg.output_dir, junction_kmer_file.split('/')[-1].replace('.pq', '') + '_' + arg.output_suffix + '.pq')
-            save_to_gzip(output_file_path, kmer_df,
-                  compression='SNAPPY', verbose=True)
+            #output_file_path = os.path.join(arg.output_dir, junction_kmer_file.split('/')[-1].replace('.pq', '') + '_' + arg.output_suffix + '.pq')
+            output_file_path = os.path.join(arg.output_dir, junction_kmer_file.split('/')[-1].replace('.gz',
+                                                                                                      '') + '_' + arg.output_suffix + '.gz')
+            #save_to_gzip(output_file_path, kmer_df,
+            #      compression='SNAPPY', verbose=True)
+            kmer_df.to_csv(output_file_path, sep='\t', compression='gzip', index=False)
             logging.info("output bg-removed kmer file : {} \n ".format(output_file_path))
         else:
             logging.info("WARNING foreground file: {} does not exist".format(junction_kmer_file))
