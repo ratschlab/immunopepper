@@ -93,11 +93,11 @@ def get_build_parser(parser):
 
 def get_samplespecif_parser(parser):
     required = parser.add_argument_group('Mandatory arguments')
-    required.add_argument("--annot-kmer-files", nargs='+', help="List of absolute paths to the annotation kmer files. The files should have the name **\[mut_mode\]_annot_peptides.fa** (Files 1 from the :ref:`build output section <build_out>`)", required=True, default='')
+    required.add_argument("--annot-kmer-files", nargs='+', help="List of absolute paths to the annotation kmer files. The files should have the name **\[mut_mode\]_annot_kmer.gz** (Files 2 from the :ref:`build output section <build_out>`)", required=True, default='')
     required.add_argument("--output-dir", help=' Path to the output directory.', required=True)
-    required.add_argument("--junction-kmer-files", nargs='+', help="List of absolute paths to the sample kmer files. The files are the ones inside the folders **\[mut_mode\]_graph_kmer_JuncExpr** or **\[mut_mode\]_graph_kmer_SegmExpr** (Files 5 and 6 from the :ref:`build output section <build_out>`)",required=True, default='')
-    required.add_argument("--bg-file-path", help="Absolute path to the intermediate pooled annotation file. This file is the set of unique kmers in `--annot-kmer-files` files. If the file is not provided it will be generated. In order to be generated one needs to provide the folder where the file will be saved. **Note:** It should be a non existent folder. Format: One column with header 'kmer'.", required=True, default='')
-    required.add_argument("--output-suffix", help="Suffix to be appended to the filtered `--junction-kmer-files`", required=True, default='no-annot')
+    required.add_argument("--junction-kmer-files", nargs='+', help="Absolute path to the folder containing the foreground kmers. The possible folders one can use for this mode are: **\[mut_mode\]_graph_kmer_JuncExpr** or **\[mut_mode\]_graph_kmer_SegmExpr** (Files 5 and 6 from the :ref:`build output section <build_out>`)",required=True, default='')
+    required.add_argument("--bg-file-path", help="Absolute path to the intermediate pooled annotation file. This file is the set of unique kmers in `--annot-kmer-files` files. If the file is not provided it will be generated. In order to be generated one needs to provide the folder and the file name where the file will be saved. **Note:** It should be a non existent folder. Format: One column with header 'kmer'.", required=True, default='')
+    required.add_argument("--output-suffix", help="Suffix to be appended to the filtered `--junction-kmer-files`, e.g. samplespecif", required=True, default='no-annot')
 
     optional = parser.add_argument_group('Optional argument')
     optional.add_argument("--remove-bg", help="Set to True to remove from `--junction-kmer-files` the kmers in `--bg-file-path` . If set to False, a new column `is_neo_flag` will be added to the `--junction-kmer-files` files. The column will contain False if the kmer is in `--bg-file-path` and True otherwise.", action="store_true", required=False, default=False)
