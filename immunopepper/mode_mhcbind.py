@@ -8,6 +8,7 @@ import sys
 from mhctools.cli.script import main as mhctools_main
 
 def mode_mhcbind(arg):
+
     #Configure the logger
     if arg.verbose == 0:
         log_level = logging.WARNING
