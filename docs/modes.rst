@@ -14,7 +14,6 @@ Immunopepper provides four different command-line basic modes:
 
 Build mode
 ~~~~~~~~~~
-    .. todo:: Check how we call the immunopepper mode and place it in prog. Add internal references to output section (about filtering steps in cancerspecif)
 
     .. argparse::
         :module: immunopepper.get_parsers
@@ -52,7 +51,11 @@ Cancerspecif mode
         :prog: immunopepper cancerspecif
         :passparser:
 
-        .. note:: This mode uses JAVA. In order to run it, the user needs to have JAVA installed in the system.
+        .. note:: This mode uses JAVA. In order to run it, the user needs to have JAVA installed in the system. This can be checked by running:
+
+            .. code-block:: bash
+
+                java -version
 
         This mode performs different filtering steps to keep only the kmers that are specific to a cancer sample or a cancer cohort. The user can provide different cancer and normal samples to this filtering step.
 

@@ -10,6 +10,7 @@ from datetime import datetime
 from immunopepper.mode_build import mode_build
 from immunopepper.mode_samplespecif import mode_samplespecif
 from immunopepper.mode_cancerspecif import mode_cancerspecif
+from immunopepper.mode_pepQuery import mode_pepquery
 
 def _add_general_args(parser):
     general = parser.add_argument_group('GENERAL')
@@ -26,14 +27,15 @@ def get_subparsers(parser):
 
     """
 
-    subparsers = parser.add_subparsers(help='Running modes', metavar='{build, samplespecif, cancerspecif, mhcbind}')
+    subparsers = parser.add_subparsers(help='Running modes', metavar='{build, samplespecif, cancerspecif, mhcbind, pepquery}')
 
     #I will create the different subparsers
     parser_build = subparsers.add_parser('build', help='Core part of ImmunoPepper. Traverses the input splice graph and generates all possible peptides/kmers.')
     parser_samplespecif = subparsers.add_parser('samplespecif', help='Performs removal of the annotation to make the kmer list sample specific')
     parser_cancerspecif = subparsers.add_parser('cancerspecif', help='Performs differential filtering against a panel of normal samples')
     parser_mhcbind = subparsers.add_parser('mhcbind', help='Perform MHC binding prediction with a wrapper for MHCtools')
-    return parser_build, parser_samplespecif, parser_cancerspecif, parser_mhcbind
+    parser_pepquery = subparsers.add_parser("pepquery", help="Perform peptide validation with a wrapper for the tool PepQuery")
+    return parser_build, parser_samplespecif, parser_cancerspecif, parser_mhcbind, parser_pepquery
 
 def get_build_parser(parser):
 
@@ -186,10 +188,20 @@ def get_mhcbind_parser(parser):
     _add_general_args(parser)
     return parser
 
+def get_pepquery_parser(parser):
+    required = parser.add_argument_group('Mandatory arguments')
+    required.add_argument("--output-dir", help="Absolute path to the output directory to save the results of the validation.", required=True, default=None)
+    #required.add_argument("--argstring", help="Complete command line for the pepQuery MS based validation software")
 
+    optional = parser.add_argument_group('Optional argument')
+    optional.add_argument("--partitioned-tsv", help="The input to this command is the path to the folder containing the partitioned tsv files from `cancerspecif` mode. This corresponds to the files 1 and 2 found in the :ref:`output section <output-tsv-cancerspecif>`. If this parameter is set the tool will directly accept the files from cancerspecif mode as input. An intermediate file will be saved in the output directory containing the kmers in a bigger peptide context, saved in FASTA format.", required=False, default=None)
+    optional.add_argument("--partitioned-coords-tsv", help= "Absolute path to the folder containing the junctions/segments identified during build mode. This corresponds to the output 5 or 6 of :ref:`build mode <output-build>`. This file will be used to match the kmers of interest to their genomic coordinates ..note: This is a temporary parameter.", required = False, default=None)
+    optional.add_argument("--metadata-path", help="Absolute path to the metadata file created in build mode.", required=False, default=None)
+    _add_general_args(parser)
+    return parser
 def parse_arguments(argv):
     parser = argparse.ArgumentParser(prog='immunopepper')
-    parser_build, parser_samplespecif, parser_cancerspecif, parser_mhcbind = get_subparsers(parser)
+    parser_build, parser_samplespecif, parser_cancerspecif, parser_mhcbind, parser_pepquery = get_subparsers(parser)
 
     #Now I will fill the different parsers with the arguments. I will create a function for each parser, and that will be the function displayed in the documentation part.
 
@@ -197,6 +209,7 @@ def parse_arguments(argv):
     parser_samplespecif = get_samplespecif_parser(parser_samplespecif)
     parser_cancerspecif = get_cancerspecif_parser(parser_cancerspecif)
     parser_mhcbind = get_mhcbind_parser(parser_mhcbind)
+    parser_pepquery = get_pepquery_parser(parser_pepquery)
 
     if len(argv) < 1:
         parser.print_help()
@@ -216,6 +229,9 @@ def parse_arguments(argv):
             from mhctools.mhctools.cli.args import make_mhc_arg_parser
             parser_mhc = make_mhc_arg_parser(prog="mhctools",description=("Predict MHC ligands from protein sequences")) #TODO: uncmment this line
             parser_mhc.print_help()
+        elif argv[0] == 'pepQuery':
+            sys.stdout.write("------------------------------ PEPQUERY IMMUNOPEPPER USAGE ------------------------------ \n \n ")
+            parser_pepquery.print_help()
         else:
             parser.print_help()
 
@@ -265,6 +281,8 @@ def split_mode(options):
         pass
         from immunopepper.mode_mhcbind import mode_mhcbind #import here due to logging conflict
         mode_mhcbind(arg)
+    if mode == 'pepquery':
+        mode_pepquery(arg)
 
 def cmd_entry():
     #pr = cProfile.Profile()

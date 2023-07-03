@@ -54,6 +54,15 @@ SplAdder pipeline. Further information about SplAdder is available on its `GitHu
 page <https://github.com/ratschlab/spladder>`_ or the `Online
 documentation <https://spladder.readthedocs.io/en/latest/>`_.
 
+Mode cancerspecif
+-----------------
+
+In this mode Java needs to be installed. The user can check if Java is installed by running the following command:
+
+.. code-block::
+
+    java -version
+
 Mode mhcbind
 ------------
 
