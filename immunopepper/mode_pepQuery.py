@@ -4,6 +4,8 @@ import glob
 import logging
 import sys
 import os
+import shlex
+import subprocess
 
 #TODO: add this function to the utils.py?
 def explode_immunopepper_coord(mx, coord_col='coord', sep=';'):
@@ -47,11 +49,28 @@ def explode_immunopepper_coord(mx, coord_col='coord', sep=';'):
 
 def mode_pepquery(arg):
 
-    if arg.partitioned_tsv and arg.metadata_path and arg.partitioned_coords_tsv:
+    args_list = shlex.split(arg.argstring)
+    if '-o' not in args_list:
+        logging.error('Output directory was not provided in --arg.argstring')
+        sys.exit(1)
+
+    if '-i' not in args_list:
+        logging.error('Input file was not provided in --arg.argstring')
+        sys.exit(1)
+
+    if '-ms' not in args_list:
+        logging.error('MS/MS spectra was not provided in --arg.argstring')
+        sys.exit(1)
+
+    if '-db' not in args_list:
+        logging.error('Reference database was not provided in --arg.argstring')
+        sys.exit(1)
+
+    if '-i' in args_list and arg.partitioned_tsv:
         logging.info(">>>>> Extracting whole peptides from the filtered kmers file obtained in cancerspecif mode, and "
                      "provided under {} \n".format(arg.partitioned_tsv))
         if not os.path.exists(arg.metadata_path):
-            logging.error("Metadata file {} does not exist. Please check --metadata-path".format(arg.metadata_path))
+            logging.error("Metadata file {} does not exist or was not provided. Please check --metadata-path".format(arg.metadata_path))
             sys.exit(1)
 
         if arg.kmer_type == None:
@@ -69,37 +88,38 @@ def mode_pepquery(arg):
             sys.exit(1)
         kmers_filt = pd.concat(map(lambda file: pd.read_csv(file , sep ='\t'), input_kmers))
 
-        input_jx_files= glob.glob('{}/*part*'.format(arg.partitioned_coords_tsv))
-        if len(input_jx_files) == 0:
-            logging.error("No file partitions in {}. Please check --kmers-coord-path".format(arg.partitioned_coords_tsv))
-            sys.exit(1)
-
-        input_jx= pd.concat(map(lambda file: pd.read_csv(file , sep ='\t'), input_jx_files))
-        input_jx = input_jx[input_jx['kmer'].isin(kmers_filt['kmer'])]
-
         if arg.kmer_type == 'junctions':
             meta_coord = explode_immunopepper_coord(meta, coord_col='modifiedExonsCoord', sep=';')
             meta = pd.concat([meta, meta_coord[['junction_coordinate1', 'junction_coordinate2']]], axis=1)
             meta = meta[meta['isIsolated'] == 0]
-            input_jx_coord= explode_immunopepper_coord(input_jx, coord_col='coord', sep=':')
-            kmers_filt = pd.concat([kmers_filt.reset_index(), input_jx_coord[['strand', 'junction_coordinate1', 'junction_coordinate2']].reset_index()], axis = 1)
+            kmers_coord= explode_immunopepper_coord(kmers_filt, coord_col='coord', sep=':')
+            kmers_filt = pd.concat([kmers_filt.reset_index(), kmers_coord[['strand', 'junction_coordinate1', 'junction_coordinate2']].reset_index()], axis = 1)
             meta_filt = meta[(meta['junction_coordinate1'].isin(kmers_filt['junction_coordinate1'])) & (meta['junction_coordinate2'].isin(kmers_filt['junction_coordinate2']))]
             peptides = meta_filt['peptide'].unique()
 
         elif arg.kmer_type == 'segments':
-            peptides = meta[meta['kmer']]
+            peptides = meta['peptide'].unique()
 
         #Remove the peptides that do not contain any of the kmers
         peptides = [pep for pep in peptides if any(kmer in pep for kmer in kmers_filt['kmer'].unique())]
         #Save the peptides in the output directory
-        with open('{}/peptides.fa'.format(arg.output_dir), 'w') as f:
+
+        input_peptides_file_idx = [i + 1 for i, j in enumerate(args_list) if j == '-i']
+        input_peptides_file = args_list[input_peptides_file_idx[0]]
+
+        with open(input_peptides_file, 'w') as f:
             for i, pep in enumerate(peptides):
                 f.write('{}\n'.format(pep))
 
         logging.info(">>>>> Extracted peptides. Saved to {}/peptides.fa \n".format(arg.output_dir))
 
-    #NOTE: After this point, the peptides are in the input format necessary for the pepQuery prediction
-
+    logging.info(">>>>> Launching PepQuery with command {} \n".format(arg.argstring))
+    command = 'java '+ '-jar '+ arg.pepquery_software_path + ' '+ arg.argstring
+    try:
+        subprocess.run(command, check= True, shell=True)
+    except subprocess.CalledProcessError as e:
+        logging.error(">>>>> PepQuery failed with error: {} \n".format(e))
+        sys.exit(1)
 
 
 
