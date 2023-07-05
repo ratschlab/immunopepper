@@ -28,7 +28,7 @@ def process_libsize(path_lib, custom_normalizer):
     return lib
 
 
-def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_col,
+def process_build_outputs(spark, index_name, coord_name, jct_col, jct_annot_col, rf_annot_col,
                         path_matrix=None, whitelist=None, cross_junction=None,
                         filterNeojuncCoord=None, filterAnnotatedRF=None,
                         output_dir=None, separate_back_annot=None, tot_batches=None, batch_id=None):
@@ -71,8 +71,8 @@ def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_co
         return df
 
 
-    def filter_whitelist(matrix, name_list, index_name, jct_annot_col, rf_annot_col):
-        name_list.extend([index_name, jct_annot_col, rf_annot_col])
+    def filter_whitelist(matrix, name_list, index_name, coord_name, jct_annot_col, rf_annot_col):
+        name_list.extend([index_name, coord_name, jct_annot_col, rf_annot_col])
         return matrix.select([sf.col(name_) for name_ in name_list])
 
 
@@ -116,7 +116,7 @@ def process_build_outputs(spark, index_name, jct_col, jct_annot_col, rf_annot_co
         if whitelist is not None:
             whitelist = pd.read_csv(whitelist, sep='\t', header=None)[0].to_list()
             whitelist = [name_.replace('-', '').replace('.', '').replace('_', '') for name_ in whitelist]
-            matrix = filter_whitelist(matrix, whitelist, index_name, jct_annot_col, rf_annot_col)
+            matrix = filter_whitelist(matrix, whitelist, index_name, coord_name, jct_annot_col, rf_annot_col)
 
         partitions_ = matrix.rdd.getNumPartitions()
         logging.info(f'...partitions: {partitions_}')
@@ -250,7 +250,7 @@ def check_interm_files(out_dir, expr_limit, n_samples_lim, target_sample='', tag
            path_interm_kmers_annotOnly
 
 
-def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsize,
+def filter_hard_threshold(matrix, index_name, coord_name, jct_annot_col, rf_annot_col, libsize,
                           expr_limit, n_samples_lim, path_e, path_s, target_sample='',
                           tag='normals', on_the_fly=False):
     '''
@@ -288,7 +288,7 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
     if libsize is not None:
         matrix = matrix.select(index_name, *[
             sf.round(sf.col(name_) / libsize.loc[name_, "libsize_75percent"], 2).alias(name_)
-            for name_ in matrix.schema.names if name_ not in [index_name, 'coord', jct_annot_col, rf_annot_col]])
+            for name_ in matrix.schema.names if name_ not in [index_name, coord_name, jct_annot_col, rf_annot_col]])
 
     # Expression filtering, take k-mers with >= X reads in >= 1 sample
     if expr_limit and (not os.path.isfile(os.path.join(path_e, '_SUCCESS'))):
@@ -298,7 +298,7 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
         matrix_e = matrix.select(index_name, *[
             sf.when(sf.col(name_) >= expr_limit, 1).otherwise(0).alias(name_)
             for name_ in matrix.schema.names if name_
-            not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
+            not in [target_sample, index_name, coord_name, jct_annot_col, rf_annot_col]])
         # Map each kmer: x[0] to the number of samples where the expression threshold is met: sum(x[1:])
         # Get a tuple (kmer, number of samples where expression >= threshold)
         # Then filter kmers based on the number of samples
@@ -318,7 +318,7 @@ def filter_hard_threshold(matrix, index_name, jct_annot_col, rf_annot_col, libsi
         matrix_s = matrix.select(index_name, *[
             sf.when(sf.col(name_) > base_expr, 1).otherwise(0).alias(name_)
             for name_ in matrix.schema.names if name_
-            not in [target_sample, index_name, jct_annot_col, rf_annot_col]])
+            not in [target_sample, index_name, coord_name, jct_annot_col, rf_annot_col]])
         # Map each kmer: x[0] to the number of samples where the expression threshold is met: sum(x[1:])
         # Get a tuple (kmer, number of samples where expression >= threshold)
         # Then filter kmers based on the number of samples
