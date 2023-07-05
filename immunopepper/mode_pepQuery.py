@@ -54,11 +54,13 @@ def mode_pepquery(arg):
             logging.error("Metadata file {} does not exist. Please check --metadata-path".format(arg.metadata_path))
             sys.exit(1)
 
+        if arg.kmer_type == None:
+            logging.error("Please specify the type of kmers provided. Please check --kmer-type")
+            sys.exit(1)
+
         meta = pd.read_csv(arg.metadata_path, sep = '\t')
         meta = meta[~meta['peptide'].isna()]
         meta = meta.set_index(np.arange(len(meta)))
-        meta_coord = explode_immunopepper_coord(meta, coord_col='modifiedExonsCoord', sep=';')
-        meta = pd.concat([meta, meta_coord[['junction_coordinate1', 'junction_coordinate2']]], axis = 1)
 
         #Load the filtered kmer file
         input_kmers = glob.glob('{}/*part*'.format(arg.partitioned_tsv))
@@ -74,16 +76,24 @@ def mode_pepquery(arg):
 
         input_jx= pd.concat(map(lambda file: pd.read_csv(file , sep ='\t'), input_jx_files))
         input_jx = input_jx[input_jx['kmer'].isin(kmers_filt['kmer'])]
-        input_jx_coord= explode_immunopepper_coord(input_jx, coord_col='coord', sep=':')
-        kmers_filt = pd.concat([kmers_filt.reset_index(), input_jx_coord[['strand', 'junction_coordinate1', 'junction_coordinate2']].reset_index()], axis = 1)
 
-        meta_filt = meta[(meta['junction_coordinate1'].isin(kmers_filt['junction_coordinate1'])) & (meta['junction_coordinate2'].isin(kmers_filt['junction_coordinate2']))]
-        peptides = meta_filt['peptide'].unique()
+        if arg.kmer_type == 'junctions':
+            meta_coord = explode_immunopepper_coord(meta, coord_col='modifiedExonsCoord', sep=';')
+            meta = pd.concat([meta, meta_coord[['junction_coordinate1', 'junction_coordinate2']]], axis=1)
+            meta = meta[meta['isIsolated'] == 0]
+            input_jx_coord= explode_immunopepper_coord(input_jx, coord_col='coord', sep=':')
+            kmers_filt = pd.concat([kmers_filt.reset_index(), input_jx_coord[['strand', 'junction_coordinate1', 'junction_coordinate2']].reset_index()], axis = 1)
+            meta_filt = meta[(meta['junction_coordinate1'].isin(kmers_filt['junction_coordinate1'])) & (meta['junction_coordinate2'].isin(kmers_filt['junction_coordinate2']))]
+            peptides = meta_filt['peptide'].unique()
 
-        #Save the peptides in the output directory in FASTA format
+        elif arg.kmer_type == 'segments':
+            peptides = meta[meta['kmer']]
+
+        #Remove the peptides that do not contain any of the kmers
+        peptides = [pep for pep in peptides if any(kmer in pep for kmer in kmers_filt['kmer'].unique())]
+        #Save the peptides in the output directory
         with open('{}/peptides.fa'.format(arg.output_dir), 'w') as f:
             for i, pep in enumerate(peptides):
-                f.write('>peptide {}\n'.format(i + 1))
                 f.write('{}\n'.format(pep))
 
         logging.info(">>>>> Extracted peptides. Saved to {}/peptides.fa \n".format(arg.output_dir))

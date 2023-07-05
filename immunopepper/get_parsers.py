@@ -195,8 +195,10 @@ def get_pepquery_parser(parser):
 
     optional = parser.add_argument_group('Optional argument')
     optional.add_argument("--partitioned-tsv", help="The input to this command is the path to the folder containing the partitioned tsv files from `cancerspecif` mode. This corresponds to the files 1 and 2 found in the :ref:`output section <output-tsv-cancerspecif>`. If this parameter is set the tool will directly accept the files from cancerspecif mode as input. An intermediate file will be saved in the output directory containing the kmers in a bigger peptide context, saved in FASTA format.", required=False, default=None)
+    #TODO: add the coordinates to the output of cancerspecif mode. Then, input argument will not be needed anymore.
     optional.add_argument("--partitioned-coords-tsv", help= "Absolute path to the folder containing the junctions/segments identified during build mode. This corresponds to the output 5 or 6 of :ref:`build mode <output-build>`. This file will be used to match the kmers of interest to their genomic coordinates ..note: This is a temporary parameter.", required = False, default=None)
-    optional.add_argument("--metadata-path", help="Absolute path to the metadata file created in build mode.", required=False, default=None)
+    optional.add_argument("--metadata-path", help="Absolute path to the metadata file created in build mode. This file is required whether the user chooses to work with junctions of with kmers.", required=False, default=None)
+    optional.add_argument("--kmer-type", help="Type of the kmers introduced under --partitioned-tsv. This will show whether the user chooses to work with junctions or with segments. The peptide retrieval strategy will vary depending on the input type.", choices=['junctions', 'segments'], required=False, default=None)
     _add_general_args(parser)
     return parser
 def parse_arguments(argv):
