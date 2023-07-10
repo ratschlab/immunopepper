@@ -546,6 +546,59 @@ Output files
 Running samplespecif mode
 --------------------------
 
+In this case, we will apply this mode to the output of build mode, in order to remove the background kmers from the foreground samples.
+
+Command
+^^^^^^^
+
+.. code-block:: console
+
+    immunopepper samplespecif --annot-kmer-files immunopepper_usecase/cohort_mutNone/ref_annot_kmer.gz --output-dir immunopepper_usecase/samplespecif --junction-kmer-files immunopepper_usecase/cohort_mutNone/ref_graph_kmer_JuncExpr --bg-file-path immunopepper_usecase/samplespecif/bg-file.gz --output-suffix trial
+
+Terminal output
+^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    immunopepper_usecase/cohort_mutNone/ref_graph_kmer_JuncExpr --bg-file-path immunopepper_usecase/samplespecif/bg-file.gz --output-suffix trial
+    2023-07-10 22:05:57,679 INFO     Command lineNamespace(annot_kmer_files=['immunopepper_usecase/cohort_mutNone/ref_annot_kmer.gz'], output_dir='immunopepper_usecase/samplespecif', junction_kmer_files=['immunopepper_usecase/cohort_mutNone/ref_graph_kmer_JuncExpr'], bg_file_path='immunopepper_usecase/samplespecif/bg-file.gz', output_suffix='trial', remove_bg=False, verbose=1)
+    2023-07-10 22:05:57,679 INFO     >>>>>>>>> Remove annotation: Start
+    2023-07-10 22:05:57,679 INFO     ...consider annotation file:immunopepper_usecase/cohort_mutNone/ref_annot_kmer.gz
+    2023-07-10 22:05:57,709 INFO     generated unique background kmer file in immunopepper_usecase/samplespecif/bg-file.gz
+
+    2023-07-10 22:05:57,710 INFO     ...consider foreground file:['immunopepper_usecase/cohort_mutNone/ref_graph_kmer_JuncExpr/part-b7a3198e-37eb-453b-8d92-b2dd5b855d58.gz', 'immunopepper_usecase/cohort_mutNone/ref_graph_kmer_JuncExpr/part-83795625-497b-4cf8-be61-cc363197f88d.gz', 'immunopepper_usecase/cohort_mutNone/ref_graph_kmer_JuncExpr/part-ac0ec9d0-6599-4ff6-a066-7b4538007680.gz']
+    2023-07-10 22:05:57,731 INFO     output bg-removed kmer file : immunopepper_usecase/samplespecif/ref_graph_kmer_JuncExpr_trial.gz
+
+    2023-07-10 22:05:57,731 INFO     >>>>>>>>> Remove annotation: Finish
+
+Output files
+^^^^^^^^^^^^
+
+For the purpose of this example, we provided an empty path in `--bg-file-path` option. Therefore, this mode will also generate the intermediate file containing the unique set of background peptides. Moreover, as `--remove-bg` is set to False, the mode will generate a file identical to **ref_graph_kmer_JuncExpr** from build mode, but with an extra column *is_neo_flag* indicating whether the kmer is a neoantigen or not i.e. If the kmer was present in the background set. Finally, as we set the suffix to be *trial*, the output file will be named **ref_graph_kmer_JuncExpr_trial.gz**.
+
+1. **ref_graph_kmer_JuncExpr_trial.gz**: This file contains the kmers from the splice graph, with an extra column *is_neo_flag* indicating whether the kmer is a neoantigen or not.
+
+       +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-------------+
+       | kmer      | coord                           | isCrossJunction | junctionAnnotated | readFrameAnnotated | simulatedIpp1sample1 | simulatedIpp1sample2 | simulatedIpp1sample3 | simulatedIpp1sample4 | simulatedIpp1sample5 | simulatedIpp1sample6 | simulatedIpp1sample7 | simulatedIpp1sample8 | simulatedIpp1sample9 | simulatedIpp1sample10 | simulatedIpp1sample11 | simulatedIpp1sample12 | simulatedIpp1sample13 | simulatedIpp1sample14 | simulatedIpp1sample15 | simulatedIpp1sample16 | simulatedIpp1sample17 | simulatedIpp1sample18 | simulatedIpp1sample19 | simulatedIpp1sample20 | is_neo_flag |
+       +===========+=================================+=================+===================+====================+======================+======================+======================+======================+======================+======================+======================+======================+======================+=======================+=======================+=======================+=======================+=======================+=======================+=======================+=======================+=======================+=======================+=======================+=============+
+       | SSSLVSDGW | 1140:1150:1300:1317:None:None   |   True          |  False            |      True          |    92.0              |  183.0               |  175.0               |  119.0               | 285.0                | 153.0                | 85.0                 | 170.0                |  40.0                |  54.0                 |  95.0                 |  99.0                 | 10.0                  |  93.0                 |  24.0                 |  87.0                 |  41.0                 |  172.0                |  69.0                 | 32.0                  | True        |
+       +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-------------+
+       | EPPTYGRPSV| 1383:1400:1500:1510:None:None   |   True          |  False            |      False         |    54.0              |  117.0               |  75.0                |  77.0                | 138.0                | 70.0                 | 33.0                 | 93.0                 |  23.0                |  31.0                 |  46.0                 |  75.0                 | 6.0                   |  42.0                 |  4.0                  |  61.0                 |  26.0                 |  83.0                 |  30.0                 | 6.0                   | True        |
+       +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-------------+
+       |RESSSLVSD  | 1134:1150:1300:1311:None:None   |   True          |  False            |      True          |    92.0              |  183.0               |  175.0               |  119.0               | 285.0                | 153.0                | 85.0                 | 170.0                |  40.0                |  54.0                 |  95.0                 |  99.0                 | 10.0                  |  93.0                 |  24.0                 |  87.0                 |  41.0                 |  172.0                |  69.0                 | 32.0                  | True        |
+       +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-------------+
+
+2. **bg-file.gz**: This file contains the set of unique kmers found in the background file provided.
+
+.. code-block:: console
+
+    kmer
+    VRSSGTSKW
+    GYKFPLSSD
+    RRVTNSLIM
+    RHYTLGIIA
+    ...
+
 .. _tutorial_cancerspecif:
 
 Running cancerspecif mode
@@ -820,15 +873,17 @@ Terminal output
 
 The output displayed in the terminal for the *mhcbind* mode is the following:
 
-2023-06-27 15:53:05,501 INFO     Command lineNamespace(mhc_software_path='./immunopepper/mhctools/', argstring='--mhc-predictor mhcflurry --mhc-alleles HLA-A*02:01 --output-csv immunopepper_usecase/mhc_bind/predictions.csv --input-peptides-file immunopepper_usecase/mhc_bind/input_peptides.csv', output_dir='immunopepper_usecase/mhc_bind', partitioned_tsv='immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz', bind_score_method='affinity', bind_score_threshold=1000.0, less_than=False, verbose=2)
-2023-06-27 15:53:05,892 INFO     Process the outputs from cancerspecif mode
-2023-06-27 15:53:05,905 INFO     Launch MHC Tools with command --mhc-predictor mhcflurry --mhc-alleles HLA-A*02:01 --output-csv immunopepper_usecase/mhc_bind/predictions.csv --input-peptides-file immunopepper_usecase/mhc_bind/input_peptides.csv
-2023-06-27 15:53:05,906 - mhctools.cli.args - INFO - Building MHC binding prediction type for alleles ['HLA-A*02:01'] and epitope lengths None
-2023-06-27 15:53:05,906 INFO     Building MHC binding prediction type for alleles ['HLA-A*02:01'] and epitope lengths None
-2023-06-27 15:53:11,257 INFO     Loaded 10 class1 pan allele predictors, 14839 allele sequences, 6308 percent rank distributions, and 0 allele specific models:
-Wrote: immunopepper_usecase/mhc_bind/predictions.csv
-2023-06-27 15:53:21,936 INFO     Perform filtering with affinity >= 1000.0
-2023-06-27 15:53:21,938 INFO     Saving to immunopepper_usecase/mhc_bind/predictions_WithaffinityMoreLim1000.0.tsv
+.. code-block:: console
+
+    2023-06-27 15:53:05,501 INFO     Command lineNamespace(mhc_software_path='./immunopepper/mhctools/', argstring='--mhc-predictor mhcflurry --mhc-alleles HLA-A*02:01 --output-csv immunopepper_usecase/mhc_bind/predictions.csv --input-peptides-file immunopepper_usecase/mhc_bind/input_peptides.csv', output_dir='immunopepper_usecase/mhc_bind', partitioned_tsv='immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz', bind_score_method='affinity', bind_score_threshold=1000.0, less_than=False, verbose=2)
+    2023-06-27 15:53:05,892 INFO     Process the outputs from cancerspecif mode
+    2023-06-27 15:53:05,905 INFO     Launch MHC Tools with command --mhc-predictor mhcflurry --mhc-alleles HLA-A*02:01 --output-csv immunopepper_usecase/mhc_bind/predictions.csv --input-peptides-file immunopepper_usecase/mhc_bind/input_peptides.csv
+    2023-06-27 15:53:05,906 - mhctools.cli.args - INFO - Building MHC binding prediction type for alleles ['HLA-A*02:01'] and epitope lengths None
+    2023-06-27 15:53:05,906 INFO     Building MHC binding prediction type for alleles ['HLA-A*02:01'] and epitope lengths None
+    2023-06-27 15:53:11,257 INFO     Loaded 10 class1 pan allele predictors, 14839 allele sequences, 6308 percent rank distributions, and 0 allele specific models:
+    Wrote: immunopepper_usecase/mhc_bind/predictions.csv
+    2023-06-27 15:53:21,936 INFO     Perform filtering with affinity >= 1000.0
+    2023-06-27 15:53:21,938 INFO     Saving to immunopepper_usecase/mhc_bind/predictions_WithaffinityMoreLim1000.0.tsv
 
 
 Output files

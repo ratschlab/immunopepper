@@ -166,15 +166,31 @@ In the output files name, **mut_mode** refers to *ref*, *somatic*, *germline* an
 Outputs mode `samplespecif`
 ---------------------------
 
-.. todo:: add examples
+This mode can have either one or two outputs. If a file containing unique background kmers is provided under `--bg-file-path`, the mode will just return the main output file. On the other hand, if this file is not provided it will be generated and returned as a mode output.
 
-The output of this mode is a modified version of the files in **\[mut_mode\]_graph_kmer_JuncExpr** and **\[mut_mode\]_graph_kmer_SegmExpr**.
+1. **\[mut_mode\]_graph_kmer_JuncExpr/SegmExpr_{output-suffix}.gz**: This is a modified version of the files in **\[mut_mode\]_graph_kmer_JuncExpr** or **\[mut_mode\]_graph_kmer_SegmExpr**. If `--remove-bg` is set to False, the files will contain a new column called `is_neo_flag`. This flag will be True if the kmer is unique to the foreground data and False if it is also present in the background data. If `--remove-bg` is set to True, the mode will return the files without the kmers that are common with the background data.
 
-If `--remove-bg` is set to False, the files will contain a new column called `is_neo_flag`. This flag will be True if the kmer is unique to the foreground data and False if it is also present in the background data.
+.. code-block::
 
-If `--remove-bg` is set to True, the mode will return the files without the kmers that are common with the background data.
+        ___________________________________________________________________________________________________________________________________________________________________________________________
+        kmer       |  coord                                            |  isCrossJunction   |  junctionAnnotated  |    readFrameAnnotated   |   sample 1  |     ...  |   sample n   | is_neo_flag |
+        ___________________________________________________________________________________________________________________________________________________________________________________________
+        KKEKKSQMI  |    47943370:47943387:47943274:47943284:None:None  |      True          |        False        |           False         |       0.0   |     ...  |      1.0     |      True   |
+
+        REPEEKKKK  |    47952582:47952584:47943387:47943412:None:None  |      True          |        False        |           True          |       0.0   |     ...  |      0.25    |      False  |
+        ___________________________________________________________________________________________________________________________________________________________________________________________
+
+2. **{bg-file-path}.gz**: This file will be generated only if a non-existent file is provided under `--bg-file-path`. It will contain the unique set of background kmers from all the kmers present in `--annot-kmer-files`. It will contain a kmer per row, with *kmer* as header.
+
+.. code-block::
+
+    kmer
+    WLILDYVSD
+    VIIIHWNAC
+    TEYPDAKTM
 
 .. _cancerspecif_out:
+
 
 Outputs mode `cancerspecif`
 ------------------------------

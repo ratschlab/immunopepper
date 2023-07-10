@@ -152,7 +152,7 @@ Pepquery mode
         :prog: immunopepper pepquery
         :passparser:
 
-        This mode is a wrapper of the software `PepQuery <http://pepquery.org/index.html>`_. This mode allows the user to do MS/MS based validation of the kmers identified using immunopepper.
+        This mode is a wrapper of the software `PepQuery <http://pepquery.org/index.html>`_. It allows the user to do MS/MS based validation of the kmers identified using immunopepper.
 
         By using this mode, the user can identify matches between the kmers of interest and a specific MS/MS spectra of interest. This is useful to perform a validation at the peptide level.
 
