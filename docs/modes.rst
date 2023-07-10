@@ -152,5 +152,18 @@ Pepquery mode
         :prog: immunopepper pepquery
         :passparser:
 
+    The mode `pepquery`is a wrapper of the software `PepQuery <http://pepquery.org/index.html>`_. This mode allows the user to do MS/MS based validation of the kmers identified using immunopepper.
 
+    By using this mode, the user can identify matches between the kmers of interest and a specific MS/MS spectra of interest. This is useful to perform a validation at the peptide level.
 
+    In the output of this software, several steps are referenced. The steps correspond to the filtering steps used in the PepQuery software. The different steps are:
+
+    1. Peptide sequence preparation and initial filtering: In this case, as the input is already a peptide or a list of peptides, there is not preparation needed. The peptide sequence input is used directly
+    2. Candidate spectra retrieval and peptide spectra match (PSM) scoring: Each peptide is searched against the provided MS/MS dataset. The candidate spectra are studied by looking at the mass difference between the peptide and each spectrum. It uses a user-specified mass tolerance, that can be set using "-tol" in the pepQuery software. The scoring is done according to one of the available metrics, which can be chosen by setting "-m" in the pepQuery software.
+    3. Competitive filtering based on reference sequences: The spectra identified in step 2 are searched against the reference database provided by the user. The spectra that have a better match with a reference peptide are removed.
+    4. Statistical evaluation: If no better match was found in the reference database, a statistical evaluation is performed. The peptides are random shuffled and the statistical significance of the match is assessed by computing the pvalue. Matches with a pvalue <0.01 are considered significant.
+    5. Competitive filtering based on unrestricted modification searching: The remaining significant matches are scored against the proteins of the reference database, but modified by several post translational modifications. If a spectra matches better a modified protein than the peptide of interest it is removed.
+
+    The PSM that pass all the filters are retrieved as confident.
+
+    More information can be obtained in the PepQuery paper: Wen, Bo, Xiaojing Wang, and Bing Zhang. "PepQuery enables fast, accurate, and convenient proteomic validation of novel genomic alterations." Genome research 29.3 (2019): 485-493.

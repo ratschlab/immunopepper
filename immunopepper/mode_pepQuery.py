@@ -9,7 +9,7 @@ import subprocess
 
 #TODO: add this function to the utils.py?
 def explode_immunopepper_coord(mx, coord_col='coord', sep=';'):
-    coord_mx = mx[coord_col].str.split(sep, expand=True)  # 7 min
+    coord_mx = mx[coord_col].str.split(sep, expand=True)
 
     dummy_fill = -9999
 
@@ -134,42 +134,55 @@ def mode_pepquery(arg):
         sys.exit(1)
     else:
         psm_rank = pd.read_csv(f'{output_peptides_file}/psm_rank.txt', sep = '\t')
-        ip_out = pd.DataFrame(columns=['peptide', 'modification', 'spectrum', 'score', 'confident', 'filtering'])
+        ip_out = pd.DataFrame(columns=['peptide', 'modification', 'spectrum', 'score', 'confident', 'pvalue', 'peptides in the reference database that match better the matched MS/MS spectrum', 'random shuffled peptides that obtained better score than the peptide under study', 'total number of random shuffled peptides studied', 'modified reference proteins that match better the spectra', 'filtering summary'])
 
         for i, row in psm_rank.iterrows():
             if row['pvalue'] == 100 and row['n_db'] > 0:
                 new_row = {'peptide': row['peptide'], 'modification': row['modification'],
                            'spectrum': row['spectrum_title'], 'score': row['score'],
-                           'confident': row['confident'],
-                           'filtering': 'The peptide failed the competitive filtering based on reference sequences (step 3). There are {} peptides in the reference database that match better the matched MS/MS spectrum'.format(
-                               row['n_db'])}
+                           'confident': row['confident'], 'pvalue': 'NaN',
+                           'peptides in the reference database that match better the matched MS/MS spectrum': row['n_db'],
+                           'random shuffled peptides that obtained better score than the peptide under study' : 'NaN',
+                           'total number of random shuffled peptides studied' : 'NaN',
+                           'modified reference proteins that match better the spectra': 'NaN',
+                           'filtering summary': 'Failed at competitive filtering based on reference sequences (step 3).'}
                 ip_out.loc[i] = new_row
             elif row['pvalue'] < 100 and row['n_db'] == 0:
                 if row['pvalue'] > 0.01:
                     new_row = {'peptide': row['peptide'], 'modification': row['modification'],
                                'spectrum': row['spectrum_title'], 'score': row['score'],
-                               'confident': row['confident'],
-                               'filtering': 'The peptide failed the statistical evaluation based on random shuffling (step 4). The pvalue is {}, which is >0.01. Out of the {} random shuffled peptides, {} obtained better scores than the peptide under study'.format(
-                                   row['pvalue'], row['total_random'], row['n_random'])}
+                               'confident': row['confident'], 'pvalue': row['pvalue'],
+                               'peptides in the reference database that match better the matched MS/MS spectrum': row['n_db'],
+                               'random shuffled peptides that obtained better score than the peptide under study' : row['n_random'],
+                               'total number of random shuffled peptides studied' : row['total_random'],
+                               'modified reference proteins that match better the spectra': 'NaN',
+                               'filtering summary': 'Failed at the statistical evaluation based on random shuffling (step 4). The pvalue is >0.01.'}
                     ip_out.loc[i] = new_row
                 elif row['pvalue'] <= 0.01 and row['n_ptm'] != 0:
                     new_row = {'peptide': row['peptide'], 'modification': row['modification'],
                                'spectrum': row['spectrum_title'], 'score': row['score'],
-                               'confident': row['confident'],
-                               'filtering': 'The peptide failed the competitive filtering based on reference proteins with post translational modifications (step 5). There is/are {} modified reference proteins that match better the spectra'.format(
-                                   row['n_ptm'])}
+                               'confident': row['confident'], 'pvalue': row['pvalue'],
+                               'peptides in the reference database that match better the matched MS/MS spectrum': row['n_db'],
+                               'random shuffled peptides that obtained better score than the peptide under study' : row['n_random'],
+                               'total number of random shuffled peptides studied': row['total_random'],
+                               'modified reference proteins that match better the spectra': row['n_ptm'],
+                               'filtering summary': 'Failed at the competitive filtering based on reference proteins with post translational modifications (step 5).'}
                     ip_out.loc[i] = new_row
                 elif row['pvalue'] <= 0.01 and row['n_ptm'] == 0 and row['confident'] == 'Yes':
                     new_row = {'peptide': row['peptide'], 'modification': row['modification'],
                                'spectrum': row['spectrum_title'], 'score': row['score'],
-                               'confident': row['confident'],
-                               'filtering': 'The peptide passed all the filters and the identified spectra is considered confident'}
+                               'confident': row['confident'], 'pvalue': row['pvalue'],
+                               'peptides in the reference database that match better the matched MS/MS spectrum': row['n_db'],
+                               'random shuffled peptides that obtained better score than the peptide under study' : row['n_random'],
+                               'total number of random shuffled peptides studied': row['total_random'],
+                               'modified reference proteins that match better the spectra': row['n_ptm'],
+                               'filtering summary': 'The peptide passed all the filters and the identified spectra is considered confident'}
                     ip_out.loc[i] = new_row
 
         confident_categories = ["Yes", "No"]
         ip_out["confident"] = pd.Categorical(ip_out["confident"], categories=confident_categories)
         ip_out.sort_values(by=["confident", "score"], ascending=[True, False], inplace=True)
-        ip_out.to_csv(f'{arg.output_dir}/peptides_validated.txt', sep='\t', index=False)
+        ip_out.to_csv(f'{arg.output_dir}/peptides_validated.tsv.gz', sep='\t', index=False, compression='gzip')
         logging.info(">>>>> Processed output file saved to {}/peptides_validated.txt \n".format(arg.output_dir))
         logging.info(">>>>> Finished running immunopepper in pepquery mode  \n")
 
