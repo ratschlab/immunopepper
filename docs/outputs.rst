@@ -191,7 +191,6 @@ In the filtering pipeline, kmers are filtered based on their expression level an
 
     **Technical note:** If the expression data is taken from junctions, provided under --path-cancer-matrix-edge, the kmers selected in this file will be the ones with *JunctionAnnotated = True* and zero expression across all normal samples. If the expression data is taken from segments, provided under --path-cancer-matrix-segm, the kmers selected in this file will be the ones with *ReadFrameAnnotated = True* and zero expression across all normal samples.
 
-.. todo:: not present anymore. Delete file 1 here?
 
 2. **interm_normal_combiExprCohortLim{--cohort-expr-support-normal}Across1_batch{--batch_id}_{--tot-batches}.tsv.gz**: This folder contains intermediate calculations for the filtering of normals. It will show the kmers present with an expression bigger than --cohort-expr-support-normal in at least one normal sample.
 
