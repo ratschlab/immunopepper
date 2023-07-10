@@ -49,6 +49,7 @@ def explode_immunopepper_coord(mx, coord_col='coord', sep=';'):
 
 def mode_pepquery(arg):
 
+    logging.info(">>>>> Running immunopepper in pepquery mode \n")
     args_list = shlex.split(arg.argstring)
     if '-o' not in args_list:
         logging.error('Output directory was not provided in --arg.argstring')
@@ -69,6 +70,7 @@ def mode_pepquery(arg):
     if '-i' in args_list and arg.partitioned_tsv:
         logging.info(">>>>> Extracting whole peptides from the filtered kmers file obtained in cancerspecif mode, and "
                      "provided under {} \n".format(arg.partitioned_tsv))
+
         if not os.path.exists(arg.metadata_path):
             logging.error("Metadata file {} does not exist or was not provided. Please check --metadata-path".format(arg.metadata_path))
             sys.exit(1)
@@ -120,6 +122,56 @@ def mode_pepquery(arg):
     except subprocess.CalledProcessError as e:
         logging.error(">>>>> PepQuery failed with error: {} \n".format(e))
         sys.exit(1)
+    logging.info(">>>>> PepQuery finished successfully \n")
+
+    #Now we preprocess the output files to add the filtering information
+
+    output_peptides_file_idx = [i + 1 for i, j in enumerate(args_list) if j == '-o']
+    output_peptides_file = args_list[output_peptides_file_idx[0]]
+
+    if f'{output_peptides_file}/psm_rank.txt' not in glob.glob(f'{output_peptides_file}/*'):
+        logging.error(">>>>> PepQuery failed to generate the psm_rank.txt file. Please check the output directory")
+        sys.exit(1)
+    else:
+        psm_rank = pd.read_csv(f'{output_peptides_file}/psm_rank.txt', sep = '\t')
+        ip_out = pd.DataFrame(columns=['peptide', 'modification', 'spectrum', 'score', 'confident', 'filtering'])
+
+        for i, row in psm_rank.iterrows():
+            if row['pvalue'] == 100 and row['n_db'] > 0:
+                new_row = {'peptide': row['peptide'], 'modification': row['modification'],
+                           'spectrum': row['spectrum_title'], 'score': row['score'],
+                           'confident': row['confident'],
+                           'filtering': 'The peptide failed the competitive filtering based on reference sequences (step 3). There are {} peptides in the reference database that match better the matched MS/MS spectrum'.format(
+                               row['n_db'])}
+                ip_out.loc[i] = new_row
+            elif row['pvalue'] < 100 and row['n_db'] == 0:
+                if row['pvalue'] > 0.01:
+                    new_row = {'peptide': row['peptide'], 'modification': row['modification'],
+                               'spectrum': row['spectrum_title'], 'score': row['score'],
+                               'confident': row['confident'],
+                               'filtering': 'The peptide failed the statistical evaluation based on random shuffling (step 4). The pvalue is {}, which is >0.01. Out of the {} random shuffled peptides, {} obtained better scores than the peptide under study'.format(
+                                   row['pvalue'], row['total_random'], row['n_random'])}
+                    ip_out.loc[i] = new_row
+                elif row['pvalue'] <= 0.01 and row['n_ptm'] != 0:
+                    new_row = {'peptide': row['peptide'], 'modification': row['modification'],
+                               'spectrum': row['spectrum_title'], 'score': row['score'],
+                               'confident': row['confident'],
+                               'filtering': 'The peptide failed the competitive filtering based on reference proteins with post translational modifications (step 5). There is/are {} modified reference proteins that match better the spectra'.format(
+                                   row['n_ptm'])}
+                    ip_out.loc[i] = new_row
+                elif row['pvalue'] <= 0.01 and row['n_ptm'] == 0 and row['confident'] == 'Yes':
+                    new_row = {'peptide': row['peptide'], 'modification': row['modification'],
+                               'spectrum': row['spectrum_title'], 'score': row['score'],
+                               'confident': row['confident'],
+                               'filtering': 'The peptide passed all the filters and the identified spectra is considered confident'}
+                    ip_out.loc[i] = new_row
+
+        confident_categories = ["Yes", "No"]
+        ip_out["confident"] = pd.Categorical(ip_out["confident"], categories=confident_categories)
+        ip_out.sort_values(by=["confident", "score"], ascending=[True, False], inplace=True)
+        ip_out.to_csv(f'{arg.output_dir}/peptides_validated.txt', sep='\t', index=False)
+        logging.info(">>>>> Processed output file saved to {}/peptides_validated.txt \n".format(arg.output_dir))
+        logging.info(">>>>> Finished running immunopepper in pepquery mode  \n")
 
 
 
