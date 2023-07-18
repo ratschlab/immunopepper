@@ -7,6 +7,7 @@ In this section, the output files of the different modes are described.
 - :ref:`samplespecif_out`: Output files generated in the *samplespecific* mode.
 - :ref:`cancerspecif_out`: Output files generated in the *cancerspecific* mode.
 - :ref:`mhcbind_out`: Output files generated in the *mhcbind* mode.
+- :ref:`pepquery_out`: Output files generated in the *pepquery* mode.
 
 .. _build_out:
 
@@ -170,24 +171,24 @@ This mode can have either one or two outputs. If a file containing unique backgr
 
 1. **\[mut_mode\]_graph_kmer_JuncExpr/SegmExpr_{output-suffix}.gz**: This is a modified version of the files in **\[mut_mode\]_graph_kmer_JuncExpr** or **\[mut_mode\]_graph_kmer_SegmExpr**. If `--remove-bg` is set to False, the files will contain a new column called `is_neo_flag`. This flag will be True if the kmer is unique to the foreground data and False if it is also present in the background data. If `--remove-bg` is set to True, the mode will return the files without the kmers that are common with the background data.
 
-.. code-block::
+    .. code-block::
 
-        ___________________________________________________________________________________________________________________________________________________________________________________________
-        kmer       |  coord                                            |  isCrossJunction   |  junctionAnnotated  |    readFrameAnnotated   |   sample 1  |     ...  |   sample n   | is_neo_flag |
-        ___________________________________________________________________________________________________________________________________________________________________________________________
-        KKEKKSQMI  |    47943370:47943387:47943274:47943284:None:None  |      True          |        False        |           False         |       0.0   |     ...  |      1.0     |      True   |
+            ___________________________________________________________________________________________________________________________________________________________________________________________
+            kmer       |  coord                                            |  isCrossJunction   |  junctionAnnotated  |    readFrameAnnotated   |   sample 1  |     ...  |   sample n   | is_neo_flag |
+            ___________________________________________________________________________________________________________________________________________________________________________________________
+            KKEKKSQMI  |    47943370:47943387:47943274:47943284:None:None  |      True          |        False        |           False         |       0.0   |     ...  |      1.0     |      True   |
 
-        REPEEKKKK  |    47952582:47952584:47943387:47943412:None:None  |      True          |        False        |           True          |       0.0   |     ...  |      0.25    |      False  |
-        ___________________________________________________________________________________________________________________________________________________________________________________________
+            REPEEKKKK  |    47952582:47952584:47943387:47943412:None:None  |      True          |        False        |           True          |       0.0   |     ...  |      0.25    |      False  |
+            ___________________________________________________________________________________________________________________________________________________________________________________________
 
 2. **{bg-file-path}.gz**: This file will be generated only if a non-existent file is provided under `--bg-file-path`. It will contain the unique set of background kmers from all the kmers present in `--annot-kmer-files`. It will contain a kmer per row, with *kmer* as header.
 
-.. code-block::
+    .. code-block::
 
-    kmer
-    WLILDYVSD
-    VIIIHWNAC
-    TEYPDAKTM
+        kmer
+        WLILDYVSD
+        VIIIHWNAC
+        TEYPDAKTM
 
 .. _cancerspecif_out:
 
@@ -306,10 +307,10 @@ For cancer samples, there will be both intermediate and output files generated. 
 
        .. code-block::
 
-           kmer            TCGAA2A0SX01A12RA08407all       JunctionAnnotated   readFrameAnnotated
-          AAGDDENHN                244.0                        True                 True
-          AAPGQHLQA                38.0                         False                False
-          ACSNFIFKH                114.0                        False                True
+           kmer            coord                                  TCGAA2A0SX01A12RA08407all       JunctionAnnotated   readFrameAnnotated
+          AAGDDENHN        970:990:1000:1008:None:None                   244.0                        True                 True
+          AAPGQHLQA        1300:1304:1500:1567:None:None                 38.0                         False                False
+          ACSNFIFKH        2045:2050:2078:2090:None:None                 114.0                        False                True
 
     b. **{tag_prefix}_{id_cancer_sample}_{mutation_mode}_SampleLim{--sample-expr-support-cancer}_CohortLim{--cohort-expr-support-cancer}_Across{--n-samples-lim-cancer}_FiltNormals{--tag_normals}_CohortLim{--cohort-expr-support-normal}_Across{--n-samples-lim-normal}_FiltUniprot_batch{--batch-id}_{--tot-batches}.tsv**: This file will only be generated if the user provides an Uniprot database, under `--uniprot`, containing kmers that should not appear in the output of the foreground kmers.
 
@@ -320,10 +321,10 @@ For cancer samples, there will be both intermediate and output files generated. 
 
        .. code-block::
 
-          kmer            TCGAA2A0SX01A12RA08407all       JunctionAnnotated   readFrameAnnotated
-          AAGDDENHN                244.0                        True                 True
-          AAPGQHLQA                38.0                         False                False
-          ACSNFIFKH                114.0                        False                True
+          kmer            coord                                  TCGAA2A0SX01A12RA08407all       JunctionAnnotated   readFrameAnnotated
+          AAGDDENHN        970:990:1000:1008:None:None                   244.0                        True                 True
+          AAPGQHLQA        1300:1304:1500:1567:None:None                 38.0                         False                False
+          ACSNFIFKH        2045:2050:2078:2090:None:None                 114.0                        False                True
 
 
     .. _output-count-cancerspecif:
@@ -360,21 +361,87 @@ For cancer samples, there will be both intermediate and output files generated. 
 Outputs mode `mhcbind`
 ----------------------
 
-.. todo:: add examples?
-
 1. **[--input-peptides-file]**: Intermediate file created if *--partitioned-tsv* is provided. It contains the unique set of kmers for which the user wants to predict binding to the MHC complex.
 
     **Format:** It will be a csv file, and it will contain a column with the unique kmers, without a header or index.
 
     **Pipeline relevance:** It contains the unique set of kmers present in the partitioned tsv files provided under --partitioned-tsv. This corresponds to the files 1 and 2 found in the :ref:`output section <output-tsv-cancerspecif>`.
 
-    **Technical note:** The intermediate file will be stored in the path provided under *--input-peptides-file* in *--argstring*. The partitioned files `$file_path` provided by the user will be passed to the mhcbind tool argument *--input-peptides-file*. The input seen by mhcbind will be `--argstring --input-peptides-file $file_path`.
+    **Technical note:** The intermediate file will be stored in the path provided under *--input-peptides-file* in *--argstring*. This file will be passed to the mhcbind tool argument *--input-peptides-file*.
+
+    .. code-block::
+
+        AAGDDENHN
+        AAPGQHLQA
+        ACSNFIFKH
+
 
 2. **[--output-csv]**:  Output file generated by the selected MHC tool.
 
     **Format:** csv file, and the exact format will depend on the MHC tool selected.
 
-    **Technical note:** The `$file_path`provided as *--output-csv* by the user in the *--argstring* will be passed to the mhcbind tool argument *--output-csv*. The input seen by mhcbind will be `--argstring --output-csv $file_path`.
+    **Technical note:** The path provided as *--output-csv* by the user in the *--argstring* will be passed to the mhcbind tool argument *--output-csv*.
+
+    **Note**: The following example has the format of mhcflurry tool.
+
+    .. code-block::
+
+       +----------------------+--------+----------+-------------+---------------------+--------------------+-------------------+------------------------+-------+
+       | source_sequence_name | offset | peptide  | allele      | score               | affinity           |percentile_rank    | prediction_method_name |length |
+       +----------------------+--------+----------+-------------+---------------------+--------------------+-------------------+------------------------+-------+
+       | Na                   | 0      | AAGDDENH | HLA-A*02:01 | 0.078546            | 30000.4500000      | 37.000003         | mhcflurry              | 9     |
+       | Na                   | 0      | AAPGQHLQ | HLA-A*02:01 | 0.314567            | 900.89675          | 2.08654           | mhcflurry              | 9     |
+       | Na                   | 0      | ACSNFIFK | HLA-A*02:01 | 0.000044            | 234.567345         | 50.05467392       | mhcflurry              | 9     |
+       +----------------------+--------+----------+-------------+---------------------+--------------------+-------------------+------------------------+-------+
 
 3. **[--output-csv]_With{--bind-score-method}LessLim{--bind-score-threshold}.tsv**: File containing the filtered version of **[--output-csv]**. It is generated if filtering options are provided, and *--less-than* is set to True. It will contain kmers that have a score *--bind-score-method* smaller than *--bind-score-threshold*.
-4. **[--output-csv]_With{--bind-score-method}MoreLim{--bind-score-threshold}.tsv**: File containing the filtered version of **[--output-csv]**. It is generated if filtering options are provided, and *--less-than* is set to False. It will contain kmers that have a score *--bind-score-method* bigger than *--bind-score-threshold*.
+
+    .. code-block::
+
+       +----------------------+--------+----------+-------------+---------------------+--------------------+-------------------+------------------------+-------+
+       | source_sequence_name | offset | peptide  | allele      | score               | affinity           |percentile_rank    | prediction_method_name |length |
+       +----------------------+--------+----------+-------------+---------------------+--------------------+-------------------+------------------------+-------+
+       | Na                   | 0      | AAGDDENH | HLA-A*02:01 | 0.078546            | 30000.4500000      | 37.000003         | mhcflurry              | 9     |
+       +----------------------+--------+----------+-------------+---------------------+--------------------+-------------------+------------------------+-------+
+
+4. **[--output-csv]_With{--bind-score-method}MoreLim{--bind-score-threshold}.tsv**: File containing the filtered version of **[--output-csv]**. It is generated if filtering options are provided, and *--less-than* is set to False. It will contain kmers that have a score *--bind-score-method* bigger than *--bind-score-threshold*. **Format:** Same format as the file **[--output-csv]_With{--bind-score-method}LessLim{--bind-score-threshold}.tsv**
+
+.. _pepquery_out:
+
+Outputs mode `pepquery`
+------------------------
+
+1. **[-i]**: This file is created if *--partitioned-tsv* is provided. It contains the expanded peptides generated from the kmers obtained in the cancerspecif mode. This will be the file introduced as an input to the PepQuery validation tool. The name and saving path will correspond with the information introduced under -i in the --argstring. **Format**: File with a peptide per row, no header.
+
+    .. code-block::
+
+            LSLVHPGTRRITKRRRQYPYVIASCQREAGCRGIICS
+            NEVIGECIACSASFDATTIGRSRHRESSSLVSDGWACRGSATARPPNPRRAVLCKSIEPTYG
+            YPYVIASCQREAGCRGIICS
+
+2. **[-o]**: This is a folder containing the raw results of the pepQuery software tool. If the user is interested in accessing the results directly generated from the software, one can look in this folder. The name and saving directory correspond to the directory introduced under -o in the --argstring. A more detailed description of the contents can be found in the `PepQuery documentation <http://pepquery.org/document.html#saoutput>`_.
+
+3. **[--output_dir]/peptides_validated.tsv.gz**: This file contains the main results of pepQuery formatted in a more interpretable way. In the file, the user will encounter different columns:
+
+    - **peptide**: The peptide sequence under study. If --partitioned-tsv was provided this peptide sequence corresponds to the expanded kmer sequence from cancerspecif output kmers.
+    - **modification**: The modification present on the peptide.
+    - **spectrum**: MS/MS spectrum that the peptide matched with a sufficiently high score.
+    - **score**: The score of the peptide-spectrum match.
+    - **confident**: Whether the match is confident or not. In order for a match to be considered confident it has to pass the filtering steps described in the modes section.
+    - **pvalue**: pvalue of the statistical evaluation step.
+    - **# of reference DB peptides matching spectrum better than study peptide**: Number of peptides in the reference database that match the spectrum better than the study peptide. If there is one reference peptide matching better, the match will be considered non-confident. The following criteria will not be assessed and a NaN will appear in the next columns.
+    - **# random shuffled peptides matching spectrum better that study peptide**:Number of random shuffled peptides matching the spectrum better than the study peptide. If there is a number of random shuffled peptides that match the spectra better, such that the pvalue > 0.01, the match will be considered non-confident. The following criteria will not be assessed and a NaN will appear in the next columns.
+    - **# ptm-modified proteins matching better the spectra filtering summary that study peptide**: Number of post translational modified proteins of the reference databse that match better the spectrum than the study peptide. If there is one post translationally modified reference peptide matching better, the match will be considered non-confident.
+    - **filtering summary**: Summary of the filtering steps. It will show whether the peptide passed all the filters or in which specific filtering step it failed.
+
+    .. code-block::
+
+       +--------------------------------------------+------------------------------------------------------------------------------------------------------------------+-------------------------------------------+--------------------+---------------------+--------------+-------------------------------------------------------------------------+------------------------------------------------------------------------+--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------+
+       | peptide                                    | modification                                                                                                     | spectrum                                  | score              | confident           | pvalue       |# of reference DB peptides matching spectrum better than study peptide   | # random shuffled peptides matching spectrum better that study peptide |  # ptm-modified proteins matching better the spectra filtering summary that study peptide  |      filtering summary                                                                      |
+       +--------------------------------------------+------------------------------------------------------------------------------------------------------------------+-------------------------------------------+--------------------+---------------------+--------------+-------------------------------------------------------------------------+------------------------------------------------------------------------+--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------+
+       | VPEPGCTKVPEPGCTKFPEPGYTKVPVPGYTKVPEPCPSTVT | Carbamidomethylation of C@6[57.0215];Carbamidomethylation of C@14[57.0215];Carbamidomethylation of C@37[57.0215] | 03CPTAC_LUAD_W_BI_20180521_KR_f13:25749:2 |  25.64554920977335 |  Yes                | 0.005        |                       0                                                 |                              20                                        |                        0                                                                   | The peptide passed all the filters and the identified spectra is considered confident       |
+       | LELMSVLSSGSLVHSRSSMLRRDH                   | Oxidation of M@4[15.9949];Oxidation of M@19[15.9949]                                                             | 03CPTAC_LUAD_W_BI_20180521_KR_f13:25749:2 |  14.44877947689417 |  No                 | 0.5566       |                       1                                                 |                              NaN                                       |                        NaN                                                                 | Failed at competitive filtering based on reference sequences (step 3).                      |
+       | MSSQQQKQPCIPPPQLQQQQVKQPCQPPPQ             | Carbamidomethylation of C@13[57.0215]                                                                            | 03CPTAC_LUAD_W_BI_20180521_KR_f13:25749:2 |  12.510356427561199|  No                 | 0.12333      |                       0                                                 |                              146                                       |                        NaN                                                                 | Failed at the statistical evaluation based on random shuffling (step 4). The pvalue is >0.01|
+       +--------------------------------------------+------------------------------------------------------------------------------------------------------------------+-------------------------------------------+--------------------+---------------------+--------------+-------------------------------------------------------------------------+------------------------------------------------------------------------+--------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------+
+
+
