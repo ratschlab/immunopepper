@@ -166,4 +166,6 @@ Pepquery mode
 
         The PSM that pass all the filters are retrieved as confident.
 
+        .. note:: The user should make sure that the spectra provided contains the sample that was used to derive the input peptides.
+
         More information can be obtained in the PepQuery paper: *Wen, Bo, Xiaojing Wang, and Bing Zhang. "PepQuery enables fast, accurate, and convenient proteomic validation of novel genomic alterations." Genome research 29.3 (2019): 485-493.*
