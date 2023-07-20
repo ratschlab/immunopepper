@@ -9,6 +9,8 @@ In this page, a list of tutorials is provided to learn how to use the software. 
 4. :ref:`tutorial_cancerspecif`: Tutorial for the *cancerspecif* mode.
 5. :ref:`tutorial_mhcbind`: Tutorial for the *mhcbind* mode.
 
+.. note:: The folder with the tutorial results will be generated in the directory where immunopepper is run, not inside the immunopepper folder.
+
 .. _input_data:
 
 Input data
@@ -72,6 +74,8 @@ Build mode *without* mutations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The main mode of immunopepper is the *build* mode. This mode traverses the splice graph and generates all possible peptides/kmers. It is the base of the other modes. The build mode accepts many different arguments, which add different functionalities to the mode.
 
+Command
+~~~~~~~~~~
 First of all, we will show an example with the basic commands, without any additional functionalities such as mutations. The command used for this part of the tutorial is:
 
 .. code-block::
@@ -80,7 +84,8 @@ First of all, we will show an example with the basic commands, without any addit
 
 By calling this command, the software will generate the possible kmers/peptides for each of the 9 genes in the splice graph. It will take into account the reference genome and the annotation file, and it will generate an output for both the background and foreground peptides. The command is run on the :ref:`input_data` described in the section above. Moreover, the output directory is set to a folder called *immunopepper_usecase*, located on the directory where the command is executed. The kmer length is set to 9, as it is a common kmer length selected in clinical applications.
 
-**Terminal output:**
+Terminal output:
+~~~~~~~~~~~~~~~~~~
 
 The output displayed in the command line is the following:
 
@@ -116,7 +121,8 @@ The output displayed in the command line is the following:
     2023-06-22 12:48:54,177 DEBUG    ....cohort: output_sample graph from batch all/9 processed, max time cost: 0.02, memory cost: 0.16 GB
     2023-06-22 12:48:54,188 INFO     Saved library size results to immunopepper_usecase/expression_counts.libsize.tsv
 
-**Output files:**
+Output files
+~~~~~~~~~~~~~
 
 The output files are saved in the directory *immunopepper_usecase/cohort_mutNone*. The output files are:
 
@@ -332,8 +338,6 @@ Command
 .. code-block:: console
 
     immunopepper  build --output-dir immunopepper_usecase/ --ann-path  immunopepper/tests/data_simulated/data/build_mode/simulated_Ipp.gtf --splice-path  immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.pickle --ref-path  immunopepper/tests/data_simulated/data/build_mode/genome.fa --kmer 9 --count-path immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.count.hdf5 --parallel 1 --batch-size 1  --start-id 0 --process-num 0 --output-fasta --somatic immunopepper/tests/data_simulated/data/build_mode/variants_somatic.vcf --germline immunopepper/tests/data_simulated/data/build_mode/variants_germline.vcf --mutation-sample simulated_Ipp_1_sample3 --verbose 2
-
-#TODO: save the results in the github so that users can look at them without running the example?
 
 In this command, the build mode of immunopepper is run on the :ref:`input_data` described in the section above. Moreover, the output directory is set to a folder called *immunopepper_usecase/cohort_mutsimulated_Ipp_1_sample3*, located on the directory where the command is executed. The kmer length is set to 9, as it is a common kmer length selected in clinical applications. Finally, there are also two mutation files provided, a somatic and a germline file. These files will apply the existing mutations and take them into account when computing the output.
 One important thing to note is that, if mutations are provided, an extra filter layer is included. This layer will ensure that only peptides different to the reference (base genome + germline) are included in the output.
@@ -870,6 +874,8 @@ Command
 ^^^^^^^^
 
 The command to run the *mhcbind* mode is the following:
+
+.. note:: In this case you need to set the --mhc-software-path argument to the path where your cloned "mhctools" repository is.
 
 .. code-block::
 
