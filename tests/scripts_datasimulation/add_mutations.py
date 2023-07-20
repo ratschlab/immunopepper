@@ -4,7 +4,7 @@ nucleotides_dict = {"C": '0', "G": '1', "A": '2', "T": '3'}
 mut_options = {"0|0": '0', "0|1": '1', "1|0": '2', "1|1": '3'}
 
 file = '../data_simulated/simulated_Ipp/variants.vcf'
-new_file = '../data_simulated/data/variants.vcf'
+new_file = '../../..//immunopepper_usecase/variants.vcf'
 #Read the vcf file
 
 with open(file, 'r') as f:
@@ -47,10 +47,9 @@ with open(file, 'r') as f:
                  line_new = '\t'.join(line)
 
                 # #Write the new line to the file overwriting the old line
-                 prob = npr.random()
-                 if prob < 0.005:
-                    f_new.write(line_new)
-                    f_new.write('\n')
+
+                 f_new.write(line_new)
+                 f_new.write('\n')
 
 
 

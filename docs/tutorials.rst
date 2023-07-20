@@ -14,7 +14,7 @@ In this page, a list of tutorials is provided to learn how to use the software. 
 Input data
 --------------
 
-The input data used for this tutorial can be found in the folder *'tests/data_simulated/data'*. The data is composed of the following files:
+The input data used for this tutorial can be found in the folder *'tests/data_simulated/data/build_mode'*. The data is composed of the following files:
 
 1. **genes_graph_conf3.merge_graphs.pickle:** Splice graphs obtained from SplAdder. The file will contain one splice graph per gene.
 
@@ -76,7 +76,7 @@ First of all, we will show an example with the basic commands, without any addit
 
 .. code-block::
 
-    immunopepper  build --output-dir immunopepper_usecase/ --ann-path  immunopepper/tests/data_simulated/data/simulated_Ipp.gtf --splice-path  immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.pickle --ref-path  immunopepper/tests/data_simulated/data/genome.fa --kmer 9 --count-path immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.count.hdf5 --parallel 1 --batch-size 1  --start-id 0 --process-num 0 --output-fasta --verbose 2
+    immunopepper  build --output-dir immunopepper_usecase/ --ann-path  immunopepper/tests/data_simulated/data/build_mode/simulated_Ipp.gtf --splice-path  immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.pickle --ref-path  immunopepper/tests/data_simulated/data/build_mode/genome.fa --kmer 9 --count-path immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.count.hdf5 --parallel 1 --batch-size 1  --start-id 0 --process-num 0 --output-fasta --verbose 2
 
 By calling this command, the software will generate the possible kmers/peptides for each of the 9 genes in the splice graph. It will take into account the reference genome and the annotation file, and it will generate an output for both the background and foreground peptides. The command is run on the :ref:`input_data` described in the section above. Moreover, the output directory is set to a folder called *immunopepper_usecase*, located on the directory where the command is executed. The kmer length is set to 9, as it is a common kmer length selected in clinical applications.
 
@@ -86,7 +86,7 @@ The output displayed in the command line is the following:
 
 .. code-block:: console
 
-    2023-06-22 12:48:54,100 INFO     Command lineNamespace(output_dir='immunopepper_usecase/', ann_path='immunopepper/tests/data_simulated/data/simulated_Ipp.gtf', splice_path='immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.pickle', ref_path='immunopepper/tests/data_simulated/data/genome.fa', kmer=9, libsize_extract=False, all_read_frames=False, count_path='immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.count.hdf5', output_samples=[], heter_code=0, compressed=True, parallel=1, batch_size=1, pickle_samples=[], process_chr=None, complexity_cap=None, genes_interest=None, start_id=0, process_num=0, skip_annotation=False, libsize_path=None, output_fasta=True, force_ref_peptides=False, filter_redundant=False, kmer_database=None, gtex_junction_path=None, disable_concat=False, disable_process_libsize=False, mutation_sample=None, germline='', somatic='', sample_name_map=None, use_mut_pickle=False, verbose=2)
+    2023-06-22 12:48:54,100 INFO     Command lineNamespace(output_dir='immunopepper_usecase/', ann_path='immunopepper/tests/data_simulated/data/build_mode/simulated_Ipp.gtf', splice_path='immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.pickle', ref_path='immunopepper/tests/data_simulated/data/build_mode/genome.fa', kmer=9, libsize_extract=False, all_read_frames=False, count_path='immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.count.hdf5', output_samples=[], heter_code=0, compressed=True, parallel=1, batch_size=1, pickle_samples=[], process_chr=None, complexity_cap=None, genes_interest=None, start_id=0, process_num=0, skip_annotation=False, libsize_path=None, output_fasta=True, force_ref_peptides=False, filter_redundant=False, kmer_database=None, gtex_junction_path=None, disable_concat=False, disable_process_libsize=False, mutation_sample=None, germline='', somatic='', sample_name_map=None, use_mut_pickle=False, verbose=2)
     2023-06-22 12:48:54,100 INFO     >>>>>>>>> Build: Start Preprocessing
     2023-06-22 12:48:54,100 INFO     Building lookup structure ...
     2023-06-22 12:48:54,101 INFO            Time spent: 0.000 seconds
@@ -331,7 +331,7 @@ Command
 ~~~~~~~
 .. code-block:: console
 
-    immunopepper  build --output-dir immunopepper_usecase/ --ann-path  immunopepper/tests/data_simulated/data/simulated_Ipp.gtf --splice-path  immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.pickle --ref-path  immunopepper/tests/data_simulated/data/genome.fa --kmer 9 --count-path immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.count.hdf5 --parallel 1 --batch-size 1  --start-id 0 --process-num 0 --output-fasta --somatic immunopepper/tests/data_simulated/data/variants_somatic.vcf --germline immunopepper/tests/data_simulated/data/variants_germline.vcf --mutation-sample simulated_Ipp_1_sample3 --verbose 2
+    immunopepper  build --output-dir immunopepper_usecase/ --ann-path  immunopepper/tests/data_simulated/data/build_mode/simulated_Ipp.gtf --splice-path  immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.pickle --ref-path  immunopepper/tests/data_simulated/data/build_mode/genome.fa --kmer 9 --count-path immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.count.hdf5 --parallel 1 --batch-size 1  --start-id 0 --process-num 0 --output-fasta --somatic immunopepper/tests/data_simulated/data/build_mode/variants_somatic.vcf --germline immunopepper/tests/data_simulated/data/build_mode/variants_germline.vcf --mutation-sample simulated_Ipp_1_sample3 --verbose 2
 
 #TODO: save the results in the github so that users can look at them without running the example?
 
@@ -345,7 +345,7 @@ The output displayed in the terminal is the following:
 
 .. code-block:: console
 
-    2023-06-20 19:21:51,580 INFO     Command lineNamespace(output_dir='immunopepper_usecase/', ann_path='immunopepper/tests/data_simulated/data/simulated_Ipp.gtf', splice_path='immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.pickle', ref_path='immunopepper/tests/data_simulated/data/genome.fa', kmer=9, libsize_extract=False, all_read_frames=False, count_path='immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.count.hdf5', output_samples=[], heter_code=0, compressed=True, parallel=1, batch_size=1, pickle_samples=[], process_chr=None, complexity_cap=None, genes_interest=None, start_id=0, process_num=0, skip_annotation=False, keep_tmpfiles=False, libsize_path=None, output_fasta=True, force_ref_peptides=False, filter_redundant=False, kmer_database=None, gtex_junction_path=None, disable_concat=False, disable_process_libsize=False, mutation_sample='simulated_Ipp_1_sample3', germline='immunopepper/tests/data_simulated/data/variants_germline.vcf', somatic='immunopepper/tests/data_simulated/data/variants_somatic.vcf', sample_name_map=None, use_mut_pickle=False, verbose=2)
+    2023-06-20 19:21:51,580 INFO     Command lineNamespace(output_dir='immunopepper_usecase/', ann_path='immunopepper/tests/data_simulated/data/build_mode/simulated_Ipp.gtf', splice_path='immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.pickle', ref_path='immunopepper/tests/data_simulated/data/build_mode/genome.fa', kmer=9, libsize_extract=False, all_read_frames=False, count_path='immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.count.hdf5', output_samples=[], heter_code=0, compressed=True, parallel=1, batch_size=1, pickle_samples=[], process_chr=None, complexity_cap=None, genes_interest=None, start_id=0, process_num=0, skip_annotation=False, keep_tmpfiles=False, libsize_path=None, output_fasta=True, force_ref_peptides=False, filter_redundant=False, kmer_database=None, gtex_junction_path=None, disable_concat=False, disable_process_libsize=False, mutation_sample='simulated_Ipp_1_sample3', germline='immunopepper/tests/data_simulated/data/build_mode/variants_germline.vcf', somatic='immunopepper/tests/data_simulated/data/build_mode/variants_somatic.vcf', sample_name_map=None, use_mut_pickle=False, verbose=2)
     2023-06-20 19:21:51,580 INFO     >>>>>>>>> Build: Start Preprocessing
     2023-06-20 19:21:51,580 INFO     Building lookup structure ...
     2023-06-20 19:21:51,581 INFO            Time spent: 0.000 seconds
@@ -670,7 +670,7 @@ The command to run the *cancerspecif* mode is:
 
 .. code-block:: console
 
-    immunopepper cancerspecif --cores 2 --mem-per-core 2048 --parallelism 3 --kmer 9 --output-dir immunopepper_usecase/filter_case/ --interm-dir-norm immunopepper_usecase/filter_case --interm-dir-canc immunopepper_usecase/filter_case --ids-cancer-samples simulated_Ipp_1_sample3 --mut-cancer-samples ref --output-count immunopepper_usecase/filter_case/output-count.txt --path-normal-matrix-edge immunopepper_usecase/filter_case/ref_graph_kmer_NormalExpr/normal_junctions.gz --n-samples-lim-normal 15 --cohort-expr-support-normal 100 --sample-expr-support-cancer 20 --cohort-expr-support-cancer 110 --n-samples-lim-cancer 2 --path-cancer-matrix-edge immunopepper_usecase/filter_case/ref_graph_kmer_CancerExpr/cancer_junctions.gz --filterNeojuncCoord C --verbose 1
+    immunopepper cancerspecif --cores 2 --mem-per-core 2048 --parallelism 3 --kmer 9 --output-dir immunopepper_usecase/filter_case/ --interm-dir-norm immunopepper_usecase/filter_case --interm-dir-canc immunopepper_usecase/filter_case --ids-cancer-samples simulated_Ipp_1_sample3 --mut-cancer-samples ref --output-count immunopepper_usecase/filter_case/output-count.txt --path-normal-matrix-edge immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_NormalExpr/normal_junctions.gz --n-samples-lim-normal 15 --cohort-expr-support-normal 100 --sample-expr-support-cancer 20 --cohort-expr-support-cancer 110 --n-samples-lim-cancer 2 --path-cancer-matrix-edge immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_CancerExpr/cancer_junctions.gz --filterNeojuncCoord C --verbose 1
 
 Terminal output
 ~~~~~~~~~~~~~~~
@@ -679,7 +679,7 @@ The terminal output for this mode is:
 
 .. code-block:: console
 
-    2023-06-26 12:20:51,722 INFO     Command lineNamespace(cores=2, mem_per_core=2048, parallelism=3, out_partitions=None, scratch_dir='', interm_dir_norm='immunopepper_usecase/filter_case', interm_dir_canc='immunopepper_usecase/filter_case', kmer='9', ids_cancer_samples=['simulated_Ipp_1_sample3'], mut_cancer_samples=['ref'], whitelist_normal=None, whitelist_cancer=None, path_cancer_libsize=None, path_normal_libsize=None, normalizer_cancer_libsize=None, normalizer_normal_libsize=None, output_dir='immunopepper_usecase/filter_case/', output_count='immunopepper_usecase/filter_case/output-count.txt', tag_normals='', tag_prefix='', path_normal_matrix_segm=None, path_normal_matrix_edge=['immunopepper_usecase/filter_case/ref_graph_kmer_NormalExpr/normal_junctions.gz'], n_samples_lim_normal=15, cohort_expr_support_normal=100.0, sample_expr_support_cancer=20.0, cohort_expr_support_cancer=110.0, n_samples_lim_cancer=2, path_cancer_matrix_segm=None, path_cancer_matrix_edge=['immunopepper_usecase/filter_case/ref_graph_kmer_CancerExpr/cancer_junctions.gz'], cancer_support_union=False, path_normal_kmer_list=None, uniprot=None, filterNeojuncCoord='C', filterAnnotatedRF='', tot_batches=None, batch_id=None, on_the_fly=False, verbose=1)
+    2023-06-26 12:20:51,722 INFO     Command lineNamespace(cores=2, mem_per_core=2048, parallelism=3, out_partitions=None, scratch_dir='', interm_dir_norm='immunopepper_usecase/filter_case', interm_dir_canc='immunopepper_usecase/filter_case', kmer='9', ids_cancer_samples=['simulated_Ipp_1_sample3'], mut_cancer_samples=['ref'], whitelist_normal=None, whitelist_cancer=None, path_cancer_libsize=None, path_normal_libsize=None, normalizer_cancer_libsize=None, normalizer_normal_libsize=None, output_dir='immunopepper_usecase/filter_case/', output_count='immunopepper_usecase/filter_case/output-count.txt', tag_normals='', tag_prefix='', path_normal_matrix_segm=None, path_normal_matrix_edge=['immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_NormalExpr/normal_junctions.gz'], n_samples_lim_normal=15, cohort_expr_support_normal=100.0, sample_expr_support_cancer=20.0, cohort_expr_support_cancer=110.0, n_samples_lim_cancer=2, path_cancer_matrix_segm=None, path_cancer_matrix_edge=['immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_CancerExpr/cancer_junctions.gz'], cancer_support_union=False, path_normal_kmer_list=None, uniprot=None, filterNeojuncCoord='C', filterAnnotatedRF='', tot_batches=None, batch_id=None, on_the_fly=False, verbose=1)
     driver_mem 3072
     memory_per_executor_mb 80% 1638
     parallelism_ 3
@@ -693,7 +693,7 @@ The terminal output for this mode is:
     2023-06-26 12:21:06,642 INFO
 
      >>>>>>>> Preprocessing Normal samples
-    2023-06-26 12:21:06,642 INFO     Load input ['immunopepper_usecase/filter_case/ref_graph_kmer_NormalExpr/normal_junctions.gz']
+    2023-06-26 12:21:06,642 INFO     Load input ['immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_NormalExpr/normal_junctions.gz']
     2023-06-26 12:21:12,558 INFO     ...partitions: 1
     2023-06-26 12:21:12,698 INFO     ...partitions: 1
     2023-06-26 12:21:12,698 INFO     Isolating kmers only in backbone annotation
@@ -716,7 +716,7 @@ The terminal output for this mode is:
     2023-06-26 12:21:16,977 INFO
 
      >>>>>>>> Preprocessing Cancer sample simulated_Ipp_1_sample3
-    2023-06-26 12:21:16,977 INFO     Load input ['immunopepper_usecase/filter_case/ref_graph_kmer_CancerExpr/cancer_junctions.gz']
+    2023-06-26 12:21:16,977 INFO     Load input ['immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_CancerExpr/cancer_junctions.gz']
     2023-06-26 12:21:17,263 INFO     ...partitions: 1
     2023-06-26 12:21:17,311 INFO     ...partitions: 1
     2023-06-26 12:21:17,341 INFO     Cast types
@@ -744,9 +744,6 @@ The terminal output for this mode is:
     2023-06-26 12:21:21,822 INFO     partitions: 1
     2023-06-26 12:21:21,822 INFO     >>>> Save to immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz
     2023-06-26 12:21:23,072 INFO     # Filter_Sample_Cohort_CohortNormal n = 3 kmers
-    2023-06-26 12:21:23,072 INFO     Filtering kmers in uniprot
-    2023-06-26 12:21:23,072 INFO     >>>> Save to immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15_FiltUniprot.tsv.gz
-    2023-06-26 12:21:24,043 INFO     # Filter_Sample_Cohort_CohortNormal_Uniprot n = 3 kmers
     2023-06-26 12:21:24,044 INFO     Save intermediate info to immunopepper_usecase/filter_case/output-count.txt
     2023-06-26 12:21:24,879 INFO     Closing down clientserver connection
 

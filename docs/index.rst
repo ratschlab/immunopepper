@@ -20,7 +20,7 @@ For more information on how to incorporate this data to generate the input splic
     :align: center
     :alt: Image showing splice graph generation from transcripts
 
-This peptide set obtained by using this software tool can be personalized with germline
+The peptide set obtained by using this software tool can be personalized with germline
 and somatic variants, and takes all exon-exon junctions present in the splicing graph (even the ones not
 part of the reference annotation, but present in the given RNA-Seq sample) into account. The
 comprehensive set of peptides can be used subsequently for further downstream analyses, such as domain annotation or computational immunology.
@@ -34,6 +34,7 @@ Check out the :doc:`installation` section for more information on how to install
 
 .. toctree::
     installation
+    quickstart
     modes
     outputs
     _key_Contributors

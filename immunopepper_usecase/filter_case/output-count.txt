@@ -1,0 +1,6 @@
+sample	mutation_mode	min_sample_reads	#_of_cohort_samples	reads_per_cohort_sample	#_normal_samples_allowed	normal_cohort_id	reads_per_normal_sample	Init_cancer	Filter_Sample	Filter_Sample_Cohort	Filter_Sample_Cohort_CohortNormal	Filter_Sample_Cohort_CohortNormal_Uniprot
+simulated_Ipp_1_sample3	ref	20.0	2	110.0	15		100.0	59	59	13	3	3
+simulated_Ipp_1_sample3	ref	20.0	2	110.0	15		100.0	59	59	13	3	3
+simulated_Ipp_1_sample3	ref	20.0	2	110.0	15		100.0	59	59	13	3	3
+simulated_Ipp_1_sample3	ref	20.0	2	110.0	15		100.0	59	59	13	3
+simulated_Ipp_1_sample3	ref	20.0	2	110.0	15		100.0	59	59	13	3
