@@ -10,6 +10,7 @@ from datetime import datetime
 from immunopepper.mode_build import mode_build
 from immunopepper.mode_samplespecif import mode_samplespecif
 from immunopepper.mode_cancerspecif import mode_cancerspecif
+from immunopepper.mode_pepQuery import mode_pepquery
 
 def _add_general_args(parser):
     general = parser.add_argument_group('GENERAL')
@@ -26,14 +27,15 @@ def get_subparsers(parser):
 
     """
 
-    subparsers = parser.add_subparsers(help='Running modes', metavar='{build, samplespecif, cancerspecif, mhcbind}')
+    subparsers = parser.add_subparsers(help='Running modes', metavar='{build, samplespecif, cancerspecif, mhcbind, pepquery}')
 
     #I will create the different subparsers
     parser_build = subparsers.add_parser('build', help='Core part of ImmunoPepper. Traverses the input splice graph and generates all possible peptides/kmers.')
     parser_samplespecif = subparsers.add_parser('samplespecif', help='Performs removal of the annotation to make the kmer list sample specific')
     parser_cancerspecif = subparsers.add_parser('cancerspecif', help='Performs differential filtering against a panel of normal samples')
     parser_mhcbind = subparsers.add_parser('mhcbind', help='Perform MHC binding prediction with a wrapper for MHCtools')
-    return parser_build, parser_samplespecif, parser_cancerspecif, parser_mhcbind
+    parser_pepquery = subparsers.add_parser("pepquery", help="Perform peptide validation with a wrapper for the tool PepQuery")
+    return parser_build, parser_samplespecif, parser_cancerspecif, parser_mhcbind, parser_pepquery
 
 def get_build_parser(parser):
 
@@ -49,7 +51,7 @@ def get_build_parser(parser):
     required.add_argument("--kmer", type=int, help="length of the kmers for kmer output.", required=True, default=9)
 
     submodes = parser.add_argument_group('Submodes parameters', 'Commands for conceptual information about the processing.')
-    submodes.add_argument("--libsize-extract",help="Set this parameter to True to generate library sizes and gene quantifications and skip neontigen generation. **Note:** *If set to True, the program will only output files 3 and 7 of the :ref:`build output section <build_out>`.*",action="store_true", required=False, default=False)
+    submodes.add_argument("--libsize-extract",help="Set this parameter to True to generate library sizes and gene quantifications and skip neontigen generation. **Note:** If set to True, the program will only output files 3 and 7 of the :ref:`build output section <build_out>`.",action="store_true", required=False, default=False)
     submodes.add_argument("--all-read-frames", help="Set this parameter to True to switch to exhaustive translation and study all possible reading frames instead of just the annotated ones in the annotation file.", action="store_true", required=False, default=False)
     submodes.add_argument("--count-path", help="Absolute path for the second output of `SplAdder <https://github.com/ratschlab/spladder>`_ containing the graph expression quantification. If provided, expression quantification of genes will take place. **Format:** hdf5.", required=False, default=None)
     submodes.add_argument("--output-samples", nargs='+', help="List of sample names to output. **Note:** *Names should match the file name of the splice graphs. If not provided all samples are processed and program runs faster.*", required=False, default=[])
@@ -75,7 +77,7 @@ def get_build_parser(parser):
     outputs.add_argument("--force-ref-peptides", help="Set this parameter to True to output mutated peptides even if they are the same as the ones in the reference. The reference in this case are the peptides without any mutations or variants application.", action="store_true", default=False)
     outputs.add_argument("--filter-redundant", help="If set to true, a redundancy filter will be applied to the exon list. If two or more exons span the same juction, their coordinates will be combined so that the longest spanning combination is kept.", action="store_true", required=False, default=False)
     outputs.add_argument("--kmer-database", help="Absolute path of a file containing kmers in one column, without header. If the kmers contained in this database contain the aminoacid isoleucine (I), it will be converted into leucine (L). A file from uniprot or any other standard library can be provided. The kmers provided in this file will not be output if found in the foreground peptides. Please note that is a standard proteome is downloaded from an online resource the proteins should be cut into the kmers length selected under `--kmer`.", required=False, default=None)
-    outputs.add_argument("--gtex-junction-path", help="Absolute path of whitelist junction path. The junctions of this file will be the only ones output from the tool. **Format:** hdf5 file with 'chrm', 'pos' and 'strand' as keys. *'Chrm'* contains the chromosome name in the same format as in the annotation. *'pos'* contains coordinates. The coordinates are end_e1 and start_e2. This means that end_e1 > start_e2 if strand is '-' and end_e1 < start_e2 if strand '+'. *strand* will be either '-' or '+'. **Pipeline relevance**: When a whitelist file is provided, the field 'isJunctionList' in the :ref:`metadata output file <output-10-build>` will contain a 1 if the junction is contained in this list, and 0 otherwise.", required=False, default=None)
+    outputs.add_argument("--gtex-junction-path", help="Absolute path of whitelist junction path. The junctions of this file will be the only ones output from the tool. \n **Format:** hdf5 file with 'chrm', 'pos' and 'strand' as keys. *'Chrm'* contains the chromosome name in the same format as in the annotation. *'pos'* contains coordinates. The coordinates are end_e1 and start_e2. This means that end_e1 > start_e2 if strand is '-' and end_e1 < start_e2 if strand '+'. *strand* will be either '-' or '+'. \n \n **Pipeline relevance**: When a whitelist file is provided, the field 'isJunctionList' in the :ref:`metadata output file <output-10-build>` will contain a 1 if the junction is contained in this list, and 0 otherwise.", required=False, default=None)
     parameters.add_argument("--disable-concat", help="Disable the generation of kmers from combinations of more than 2 exons. In this mode, any kmer shorter than `--kmer` will be discarded. By setting this command to False, the generation of kmers from 3 exons is allowed. This might ensure that kmers generated from shorter exons are kept, but one should take into account that kmers translated from 3 exons might have lower confidence. By setting the argument to True the generation of kmers is faster. " , action="store_true", default=False)
     parameters.add_argument("--disable-process-libsize", help="Set to True to generate the libsize file (file 7 from the :ref:`build output section <build_out>`).", action="store_true", default=False)
 
@@ -117,7 +119,7 @@ def get_cancerspecif_parser(parser):
     mandatory.add_argument("--output-dir", help="General output file. Absolute path to the output directory to save the filtered data.", required=True, default='')
 
     technical = parser.add_argument_group('Optional technical parameters', 'Due to the heavy amount of data, this mode uses spark. These are parameters to control spark processing')
-    technical.add_argument("--out-partitions", type=int, help="This argument is used to select the number of partitions in which the final output file will be saved. If not provided, #TODO: what happens?", required=False, default=None)
+    technical.add_argument("--out-partitions", type=int, help="This argument is used to select the number of partitions in which the final output file will be saved. If not provided, the results are saved in a single file", required=False, default=None)
     technical.add_argument("--scratch-dir", help="Os environment variable name containing the cluster scratch directory path. If specified, all the intermediate files will be saved to this directory. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`. If the scratch directory is provided, `--interm-dir-norm` and `--interm-dir-cancer` are ignored.", required=False, default='')
     technical.add_argument("--interm-dir-norm", help="Custom scratch directory path to save the intermediate files for the normal samples. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`.", required=False, default='')
     technical.add_argument("--interm-dir-canc", help="Custom scratch directory path to save the intermediate files for the cancer samples. If not specified, the intermediate files will be saved to the output directory, specified under `--output-dir`.", required=False, default='')
@@ -175,21 +177,32 @@ def get_mhcbind_parser(parser):
     required = parser.add_argument_group('Mandatory arguments')
 
     required.add_argument("--mhc-software-path", help="Path for the MHC prediction software.", required=True, default=None)
-    required.add_argument("--argstring", help="Complete command line for the MHC prediction tool passed as a string. One should include here the command that will be directly passed to the selected MHC tool. The four mandatory arguments are: \n 1.--mhc-predictor: This argument will specify the name of the software tool that will be used. The name should be in the format accepted by the library `mhc_tools <https://github.com/openvax/mhctools>`_ \n \n 2.--output-csv: This argument will contain the path and filename where the MHC prediction tool will save the results. The format of the file should be *.csv*.\n \n 3.--input-peptides-file: This argument will have the path and filename to the file containing the set of kmers on which MHC binding affinity prediction will be performed. The format of the file should be *.csv*.\n \n 4. --mhc-alleles or --mhc-alleles-file: This argument should contain the alleles that will be used for the analysis of mhc binding affinity.\n \n If `--partitioned-tsv`files are provided, an intermediate file will be created and stored under the path `--input-peptides-file`. This intermediate file will contain the set of all unique kmers present in the partitioned files obtained from `cancerspecif` mode. If one does not want to use the output of `cancerspecif` mode for prediction, the path to the file that will be used for prediction will be directly provided under `--input-peptides-list`.", required=True, default='')
+    required.add_argument("--argstring", help="Complete command line for the MHC prediction tool passed as a string. One should include here the command that will be directly passed to the selected MHC tool. The four mandatory arguments are: \n 1.--mhc-predictor: This argument will specify the name of the software tool that will be used. The name should be in the format accepted by the library `mhc_tools <https://github.com/openvax/mhctools>`_ \n \n 2.--output-csv: This argument will contain the path and filename where the MHC prediction tool will save the results. The format of the file should be *.csv*.\n \n 3.--input-peptides-file: This argument will have the path and filename to the file containing the set of kmers on which MHC binding affinity prediction will be performed. The format of the file should be *.csv*.\n \n 4. --mhc-alleles or --mhc-alleles-file: This argument should contain the alleles that will be used for the analysis of mhc binding affinity.\n \n If `--partitioned-tsv` files are provided, an intermediate file will be created and stored under the path `--input-peptides-file` . This intermediate file will contain the set of all unique kmers present in the partitioned files obtained from `cancerspecif` mode. If one does not want to use the output of `cancerspecif` mode for prediction, the path to the file that will be used for prediction will be directly provided under `--input-peptides-list`.", required=True, default='')
     required.add_argument("--output-dir", help="General output file. Absolute path to the output directory to save the MHC predictions. It should match the directory provided in --output-csv of the argstring, but without the file name.", required=True, default='')
 
     optional = parser.add_argument_group('Optional argument')
     optional.add_argument("--partitioned-tsv", help="The input to this command is the path to the folder containing the partitioned tsv files from `cancerspecif` mode. This corresponds to the files 1 and 2 found in the :ref:`output section <output-tsv-cancerspecif>`. If this parameter is set the tool will directly accept the files from cancerspecif mode as input.", required=False, default=None)
     optional.add_argument("--bind-score-method", help="Scoring method to filter the MHC tools predictions. E.g. score, affinity, percentile_rank (this last one is only for netmhcpan).", required=False, default=None)
-    optional.add_argument("--bind-score-threshold", type=float, help="Threshold to filter the MHC tools predictions.All the peptides with a score lower than the threshold will be filtered out and only the ones with a score higher than the threshold will be kept.", required=False, default=None)
+    optional.add_argument("--bind-score-threshold", type=float, help="Threshold to filter the MHC tools predictions. All the peptides with a score lower than the threshold will be filtered out and only the ones with a score higher than the threshold will be kept.", required=False, default=None)
     optional.add_argument("--less-than", help="If set to True the `--bind-score-threshold` will be considered as an upper bound instead of a lower bound. This means that peptides with a score higher than this threshold will be filtered out.", action="store_true", required=False, default=False)
     _add_general_args(parser)
     return parser
 
+def get_pepquery_parser(parser):
+    required = parser.add_argument_group('Mandatory arguments')
+    required.add_argument("--output-dir", help="Absolute path to the output directory to save the results of the validation.", required=True, default=None)
+    required.add_argument("--argstring", help="Complete command line for the pepQuery MS based validation software passed as a string. The command provided here will be directly passed to the pepQuery software. It must contain several mandatory arguments: \n 1. -o: Output directory. The results from pepQuery will be saved in this folder. \n 2. -i: Input peptides for the validation. The user can either provide their own peptides or take the expanded peptides from the kmers provided in --partitioned-tsv. If --partitioned-tsv is provided, the expanded peptides will be saved under the path and filename provided in this argument, and they will be taken as the input of pepQuery.\n 3. -db: Path to the reference database used in the analysis. This reference database will be used to identify those MS/MS spectra that match better a reference peptide than the query peptides. \n 4. -ms: Path to the MS/MS spectra file.", required=True, default=None)
+    required.add_argument("--pepquery-software-path", help="Path for the pepQuery software. It must include the path to the directory with the software and the software name itself. eg. pepquery/pepquery.jar", required=True, default=None)
 
+    optional = parser.add_argument_group('Optional argument')
+    optional.add_argument("--partitioned-tsv", help="The input to this command is the path to the folder containing the partitioned tsv files from `cancerspecif` mode. This corresponds to the files 1 and 2 found in the :ref:`output section <output-tsv-cancerspecif>`. If this parameter is set the tool will directly accept the files from cancerspecif mode as input. An intermediate file will be saved in the output directory containing the kmers in a bigger peptide context. This argument accepts files generated from junctions and from segments.", required=False, default=None)
+    optional.add_argument("--metadata-path", help="Absolute path to the metadata file created in build mode. This file is required whether the user chooses to work with junctions of with kmers.", required=False, default=None)
+    optional.add_argument("--kmer-type", help="Type of the kmers introduced under --partitioned-tsv. This will show whether the user chooses to work with junctions or with segments. The peptide retrieval strategy will vary depending on the input type.", choices=['junctions', 'segments'], required=False, default=None)
+    _add_general_args(parser)
+    return parser
 def parse_arguments(argv):
     parser = argparse.ArgumentParser(prog='immunopepper')
-    parser_build, parser_samplespecif, parser_cancerspecif, parser_mhcbind = get_subparsers(parser)
+    parser_build, parser_samplespecif, parser_cancerspecif, parser_mhcbind, parser_pepquery = get_subparsers(parser)
 
     #Now I will fill the different parsers with the arguments. I will create a function for each parser, and that will be the function displayed in the documentation part.
 
@@ -197,6 +210,7 @@ def parse_arguments(argv):
     parser_samplespecif = get_samplespecif_parser(parser_samplespecif)
     parser_cancerspecif = get_cancerspecif_parser(parser_cancerspecif)
     parser_mhcbind = get_mhcbind_parser(parser_mhcbind)
+    parser_pepquery = get_pepquery_parser(parser_pepquery)
 
     if len(argv) < 1:
         parser.print_help()
@@ -216,6 +230,9 @@ def parse_arguments(argv):
             from mhctools.mhctools.cli.args import make_mhc_arg_parser
             parser_mhc = make_mhc_arg_parser(prog="mhctools",description=("Predict MHC ligands from protein sequences")) #TODO: uncmment this line
             parser_mhc.print_help()
+        elif argv[0] == 'pepQuery':
+            sys.stdout.write("------------------------------ PEPQUERY IMMUNOPEPPER USAGE ------------------------------ \n \n ")
+            parser_pepquery.print_help()
         else:
             parser.print_help()
 
@@ -265,6 +282,8 @@ def split_mode(options):
         pass
         from immunopepper.mode_mhcbind import mode_mhcbind #import here due to logging conflict
         mode_mhcbind(arg)
+    if mode == 'pepquery':
+        mode_pepquery(arg)
 
 def cmd_entry():
     #pr = cProfile.Profile()

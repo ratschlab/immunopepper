@@ -15,9 +15,12 @@ from RNA-Seq data. This splicing graph is generated from one or several alignmen
 as well as from a reference annotation file. *Note: The bam file should be accompanied by a bam index file (.bai).*
 For more information on how to incorporate this data to generate the input splice graph check out the `build mode of SplAdder <https://spladder.readthedocs.io/en/latest/spladder_modes.html>`_.
 
-#TODO: Introduce image of a splicing graph?
+.. image:: imgs/spladder_form_splicegraph.jpg
+    :width: 600
+    :align: center
+    :alt: Image showing splice graph generation from transcripts
 
-This peptide set obtained by using this software tool can be personalized with germline
+The peptide set obtained by using this software tool can be personalized with germline
 and somatic variants, and takes all exon-exon junctions present in the splicing graph (even the ones not
 part of the reference annotation, but present in the given RNA-Seq sample) into account. The
 comprehensive set of peptides can be used subsequently for further downstream analyses, such as domain annotation or computational immunology.
@@ -31,6 +34,7 @@ Check out the :doc:`installation` section for more information on how to install
 
 .. toctree::
     installation
+    quickstart
     modes
     outputs
     _key_Contributors

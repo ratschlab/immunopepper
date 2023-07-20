@@ -9,12 +9,14 @@ In this page, a list of tutorials is provided to learn how to use the software. 
 4. :ref:`tutorial_cancerspecif`: Tutorial for the *cancerspecif* mode.
 5. :ref:`tutorial_mhcbind`: Tutorial for the *mhcbind* mode.
 
+.. note:: The folder with the tutorial results will be generated in the directory where immunopepper is run, not inside the immunopepper folder.
+
 .. _input_data:
 
 Input data
 --------------
 
-The input data used for this tutorial can be found in the folder *'tests/data_simulated/data'*. The data is composed of the following files:
+The input data used for this tutorial can be found in the folder *'tests/data_simulated/data/build_mode'*. The data is composed of the following files:
 
 1. **genes_graph_conf3.merge_graphs.pickle:** Splice graphs obtained from SplAdder. The file will contain one splice graph per gene.
 
@@ -72,21 +74,24 @@ Build mode *without* mutations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The main mode of immunopepper is the *build* mode. This mode traverses the splice graph and generates all possible peptides/kmers. It is the base of the other modes. The build mode accepts many different arguments, which add different functionalities to the mode.
 
+Command
+~~~~~~~~~~
 First of all, we will show an example with the basic commands, without any additional functionalities such as mutations. The command used for this part of the tutorial is:
 
 .. code-block::
 
-    immunopepper  build --output-dir immunopepper_usecase/ --ann-path  immunopepper/tests/data_simulated/data/simulated_Ipp.gtf --splice-path  immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.pickle --ref-path  immunopepper/tests/data_simulated/data/genome.fa --kmer 9 --count-path immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.count.hdf5 --parallel 1 --batch-size 1  --start-id 0 --process-num 0 --output-fasta --verbose 2
+    immunopepper  build --output-dir immunopepper_usecase/ --ann-path  immunopepper/tests/data_simulated/data/build_mode/simulated_Ipp.gtf --splice-path  immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.pickle --ref-path  immunopepper/tests/data_simulated/data/build_mode/genome.fa --kmer 9 --count-path immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.count.hdf5 --parallel 1 --batch-size 1  --start-id 0 --process-num 0 --output-fasta --verbose 2
 
 By calling this command, the software will generate the possible kmers/peptides for each of the 9 genes in the splice graph. It will take into account the reference genome and the annotation file, and it will generate an output for both the background and foreground peptides. The command is run on the :ref:`input_data` described in the section above. Moreover, the output directory is set to a folder called *immunopepper_usecase*, located on the directory where the command is executed. The kmer length is set to 9, as it is a common kmer length selected in clinical applications.
 
-**Terminal output:**
+Terminal output:
+~~~~~~~~~~~~~~~~~~
 
 The output displayed in the command line is the following:
 
 .. code-block:: console
 
-    2023-06-22 12:48:54,100 INFO     Command lineNamespace(output_dir='immunopepper_usecase/', ann_path='immunopepper/tests/data_simulated/data/simulated_Ipp.gtf', splice_path='immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.pickle', ref_path='immunopepper/tests/data_simulated/data/genome.fa', kmer=9, libsize_extract=False, all_read_frames=False, count_path='immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.count.hdf5', output_samples=[], heter_code=0, compressed=True, parallel=1, batch_size=1, pickle_samples=[], process_chr=None, complexity_cap=None, genes_interest=None, start_id=0, process_num=0, skip_annotation=False, libsize_path=None, output_fasta=True, force_ref_peptides=False, filter_redundant=False, kmer_database=None, gtex_junction_path=None, disable_concat=False, disable_process_libsize=False, mutation_sample=None, germline='', somatic='', sample_name_map=None, use_mut_pickle=False, verbose=2)
+    2023-06-22 12:48:54,100 INFO     Command lineNamespace(output_dir='immunopepper_usecase/', ann_path='immunopepper/tests/data_simulated/data/build_mode/simulated_Ipp.gtf', splice_path='immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.pickle', ref_path='immunopepper/tests/data_simulated/data/build_mode/genome.fa', kmer=9, libsize_extract=False, all_read_frames=False, count_path='immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.count.hdf5', output_samples=[], heter_code=0, compressed=True, parallel=1, batch_size=1, pickle_samples=[], process_chr=None, complexity_cap=None, genes_interest=None, start_id=0, process_num=0, skip_annotation=False, libsize_path=None, output_fasta=True, force_ref_peptides=False, filter_redundant=False, kmer_database=None, gtex_junction_path=None, disable_concat=False, disable_process_libsize=False, mutation_sample=None, germline='', somatic='', sample_name_map=None, use_mut_pickle=False, verbose=2)
     2023-06-22 12:48:54,100 INFO     >>>>>>>>> Build: Start Preprocessing
     2023-06-22 12:48:54,100 INFO     Building lookup structure ...
     2023-06-22 12:48:54,101 INFO            Time spent: 0.000 seconds
@@ -116,7 +121,8 @@ The output displayed in the command line is the following:
     2023-06-22 12:48:54,177 DEBUG    ....cohort: output_sample graph from batch all/9 processed, max time cost: 0.02, memory cost: 0.16 GB
     2023-06-22 12:48:54,188 INFO     Saved library size results to immunopepper_usecase/expression_counts.libsize.tsv
 
-**Output files:**
+Output files
+~~~~~~~~~~~~~
 
 The output files are saved in the directory *immunopepper_usecase/cohort_mutNone*. The output files are:
 
@@ -137,6 +143,7 @@ The output files are saved in the directory *immunopepper_usecase/cohort_mutNone
         LQHNSTRSIFWH
         >gene10.t1
         LSLVHPGTRRITKRRRQYPYVIASCQREAGCRGIICS
+        ...
 
 2. **ref_annot_kmer.gz**: This file contains the kmers of length 9 obtained from the background peptides. The kmers are obtained by passing a sliding window through the peptides contained in ref_annot_peptides.fa.gz. *Note*: For peptides that are shorter than 9 aminoacids, the kmers are not obtained.
 
@@ -150,6 +157,7 @@ The output files are saved in the directory *immunopepper_usecase/cohort_mutNone
         TSSRTMETL
         SSRTMETLV
         SRTMETLVP
+        ...
 
 
 3. **gene_expression_detail.gz**: File containing gene expression information for each gene and sample. The output file is a table containing the coding genes in the rows and the samples in the columns. The gene expresison is displayed for each combination. An output example for this tutorial is:
@@ -164,6 +172,8 @@ The output files are saved in the directory *immunopepper_usecase/cohort_mutNone
     | gene3 |  29585.0                | 58264.0               |         56063.0         | 36978.0                | 85934.0                | 52469.0                | 28083.0                | 51664.0                | 12189.0                |      21579.0             | 33179.0               |    32075.0             |   3496.0               |   31883.0             |  7594.0                | 31576.0                 |16291.0                 | 54973.0                | 23487.0                 |9587.0                 |
     +-------+-------------------------+-----------------------+-------------------------+------------------------+------------------------+------------------------+------------------------+------------------------+------------------------+--------------------------+-----------------------+------------------------+------------------------+-----------------------+------------------------+-------------------------+------------------------+------------------------+-------------------------+-----------------------+
     | gene4 |  13643.0                | 28684.0               |         57713.0         | 46866.0                | 34632.0                | 43720.0                | 22390.0                | 44068.0                | 11195.0                |      16097.0             | 27289.0               |    17843.0             |   5592.0               |   19243.0             |  9098.0                | 51766.0                 |33586.0                 | 12245.0                |  5948.0                 |19243.0                |
+    +-------+-------------------------+-----------------------+-------------------------+------------------------+------------------------+------------------------+------------------------+------------------------+------------------------+--------------------------+-----------------------+------------------------+------------------------+-----------------------+------------------------+-------------------------+------------------------+------------------------+-------------------------+-----------------------+
+    | ...   |  ...                    | ...                   |         ...             | ...                    | ...                    | ...                    | ...                    | ...                    | ...                    |      ...                 | ...                   |    ...                 |   ...                  |   ...                 |  ...                   | ...                     |...                     | ...                    | ...                     |...                    |
     +-------+-------------------------+-----------------------+-------------------------+------------------------+------------------------+------------------------+------------------------+------------------------+------------------------+--------------------------+-----------------------+------------------------+------------------------+-----------------------+------------------------+-------------------------+------------------------+------------------------+-------------------------+-----------------------+
 
 4. **ref_sample_peptides.fa.gz**: Fasta file containing the foreground peptides obtained by traversing the splice graph and identifying "short-range" novelty. This file is obtained as output because the command *--output-fasta* is passed to the program. The file contains a header that is the transcript id and the sequence of the corresponding peptide. The name also shows the mutation mode, which in this case is reference. *Note:* As this genome is simulated, there is a higher frequency of stop codons than in nature, that explains the existence of some short peptides.
@@ -185,6 +195,7 @@ The output files are saved in the directory *immunopepper_usecase/cohort_mutNone
         ISLCDRKLSEGGGLSRYNLLINCRKGFLGVINRTHVHSLPFRVLIILEPATSLDFRQPGTIDARHCFTMLTGIGNRG
         >gene10:0_7:0:6061:2-exons
         LSLVHPGTRRITKRRRQYPYVIASCQREAGCRGIICS
+        ...
 
     This example contains several important things to note.
 
@@ -209,6 +220,8 @@ The output files are saved in the directory *immunopepper_usecase/cohort_mutNone
        +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+
        | HLFSDAIRT | 4060:4087:nan:nan:None:None     | False           | False             | True               | 56.17                | 101.9                | 112.0                | 127.29               | 142.99               | 112.17               | 53.95                | 103.04               | 35.6                 | 54.26                 | 59.72                 | 83.53                 | 10.57                 | 86.79                 | 11.46                 | 51.51                 | 37.02                 | 133.1                 |   73.39               |   28.55               |
        +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+
+       | ...       |  ...                            | ...             |         ...       | ...                | ...                  | ...                  | ...                  | ...                  | ...                  |      ...             | ...                  |    ...               |   ...                |   ...                 |  ...                  | ...                   |...                    | ...                   | ...                   |...                    | ...                   | ...                   | ...                   | ...                   |
+       +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+
 
    This example contains several important things to note.
 
@@ -229,6 +242,8 @@ The output files are saved in the directory *immunopepper_usecase/cohort_mutNone
        | EPPTYGRPSV| 1383:1400:1500:1510:None:None   |   True          |  False            |      False         |    54.0              |  117.0               |  75.0                |  77.0                | 138.0                | 70.0                 | 33.0                 | 93.0                 |  23.0                |  31.0                 |  46.0                 |  75.0                 | 6.0                   |  42.0                 |  4.0                  |  61.0                 |  26.0                 |  83.0                 |  30.0                 | 6.0                   |
        +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+
        |RESSSLVSD  | 1134:1150:1300:1311:None:None   |   True          |  False            |      True          |    92.0              |  183.0               |  175.0               |  119.0               | 285.0                | 153.0                | 85.0                 | 170.0                |  40.0                |  54.0                 |  95.0                 |  99.0                 | 10.0                  |  93.0                 |  24.0                 |  87.0                 |  41.0                 |  172.0                |  69.0                 | 32.0                  |
+       +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+
+       | ...       |  ...                            |   ...           |  ...              |       ...          |    ...               |  ...                 |   ...                |  ...                 | ...                  | ...                  | ...                  | ...                  |   ...                |   ...                 |  ...                  | ...                   |...                    | ...                   | ...                   |...                    | ...                   | ...                   | ...                   | ...                   |
        +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+
 
 
@@ -303,6 +318,8 @@ In this file, all the kmers appearing belong to a junction between exons. Theref
     +--------------------------------------------------------------------------------------------+-------------------------------+---------------------+---------------------+----------+------------+------------+-----------------------+--------------+-------------------+------------+--------------+-----------------+---------------------+---------------------+-----------+--------------+
     | ISLCDRKLSEGGGLSRYNLLINCRKGFLGVINRTHVHSLPFRVLIILEPATSLDFRQPGTIDARHCFTMLTGIGNRG              | gene10:1_5:0:6111:2-exons     | 1                   | True                | gene10   | 1          | +          | ref                   | 1            | nan               | 0          | nan          | nan             | 6111;6250;6400;6498 | 6100;6250;6400;6500 | 1;5       | 2-exons      |
     +--------------------------------------------------------------------------------------------+-------------------------------+---------------------+---------------------+----------+------------+------------+-----------------------+--------------+-------------------+------------+--------------+-----------------+---------------------+---------------------+-----------+--------------+
+    | ...                                                                                        | ...                           | ...                 | ...                 | ...      | ...        | ...        | ...                   | ...          | ...               | ...        | ...          | ...             | ...                 | ...                 | ...       | ...          |
+    +--------------------------------------------------------------------------------------------+-------------------------------+---------------------+---------------------+----------+------------+------------+-----------------------+--------------+-------------------+------------+--------------+-----------------+---------------------+---------------------+-----------+--------------+
 
     Things to note from the table above:
 
@@ -320,9 +337,7 @@ Command
 ~~~~~~~
 .. code-block:: console
 
-    immunopepper  build --output-dir immunopepper_usecase/ --ann-path  immunopepper/tests/data_simulated/data/simulated_Ipp.gtf --splice-path  immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.pickle --ref-path  immunopepper/tests/data_simulated/data/genome.fa --kmer 9 --count-path immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.count.hdf5 --parallel 1 --batch-size 1  --start-id 0 --process-num 0 --output-fasta --somatic immunopepper/tests/data_simulated/data/variants_somatic.vcf --germline immunopepper/tests/data_simulated/data/variants_germline.vcf --mutation-sample simulated_Ipp_1_sample3 --verbose 2
-
-#TODO: save the results in the github so that users can look at them without running the example?
+    immunopepper  build --output-dir immunopepper_usecase/ --ann-path  immunopepper/tests/data_simulated/data/build_mode/simulated_Ipp.gtf --splice-path  immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.pickle --ref-path  immunopepper/tests/data_simulated/data/build_mode/genome.fa --kmer 9 --count-path immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.count.hdf5 --parallel 1 --batch-size 1  --start-id 0 --process-num 0 --output-fasta --somatic immunopepper/tests/data_simulated/data/build_mode/variants_somatic.vcf --germline immunopepper/tests/data_simulated/data/build_mode/variants_germline.vcf --mutation-sample simulated_Ipp_1_sample3 --verbose 2
 
 In this command, the build mode of immunopepper is run on the :ref:`input_data` described in the section above. Moreover, the output directory is set to a folder called *immunopepper_usecase/cohort_mutsimulated_Ipp_1_sample3*, located on the directory where the command is executed. The kmer length is set to 9, as it is a common kmer length selected in clinical applications. Finally, there are also two mutation files provided, a somatic and a germline file. These files will apply the existing mutations and take them into account when computing the output.
 One important thing to note is that, if mutations are provided, an extra filter layer is included. This layer will ensure that only peptides different to the reference (base genome + germline) are included in the output.
@@ -334,7 +349,7 @@ The output displayed in the terminal is the following:
 
 .. code-block:: console
 
-    2023-06-20 19:21:51,580 INFO     Command lineNamespace(output_dir='immunopepper_usecase/', ann_path='immunopepper/tests/data_simulated/data/simulated_Ipp.gtf', splice_path='immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.pickle', ref_path='immunopepper/tests/data_simulated/data/genome.fa', kmer=9, libsize_extract=False, all_read_frames=False, count_path='immunopepper/tests/data_simulated/data/genes_graph_conf3.merge_graphs.count.hdf5', output_samples=[], heter_code=0, compressed=True, parallel=1, batch_size=1, pickle_samples=[], process_chr=None, complexity_cap=None, genes_interest=None, start_id=0, process_num=0, skip_annotation=False, keep_tmpfiles=False, libsize_path=None, output_fasta=True, force_ref_peptides=False, filter_redundant=False, kmer_database=None, gtex_junction_path=None, disable_concat=False, disable_process_libsize=False, mutation_sample='simulated_Ipp_1_sample3', germline='immunopepper/tests/data_simulated/data/variants_germline.vcf', somatic='immunopepper/tests/data_simulated/data/variants_somatic.vcf', sample_name_map=None, use_mut_pickle=False, verbose=2)
+    2023-06-20 19:21:51,580 INFO     Command lineNamespace(output_dir='immunopepper_usecase/', ann_path='immunopepper/tests/data_simulated/data/build_mode/simulated_Ipp.gtf', splice_path='immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.pickle', ref_path='immunopepper/tests/data_simulated/data/build_mode/genome.fa', kmer=9, libsize_extract=False, all_read_frames=False, count_path='immunopepper/tests/data_simulated/data/build_mode/genes_graph_conf3.merge_graphs.count.hdf5', output_samples=[], heter_code=0, compressed=True, parallel=1, batch_size=1, pickle_samples=[], process_chr=None, complexity_cap=None, genes_interest=None, start_id=0, process_num=0, skip_annotation=False, keep_tmpfiles=False, libsize_path=None, output_fasta=True, force_ref_peptides=False, filter_redundant=False, kmer_database=None, gtex_junction_path=None, disable_concat=False, disable_process_libsize=False, mutation_sample='simulated_Ipp_1_sample3', germline='immunopepper/tests/data_simulated/data/build_mode/variants_germline.vcf', somatic='immunopepper/tests/data_simulated/data/build_mode/variants_somatic.vcf', sample_name_map=None, use_mut_pickle=False, verbose=2)
     2023-06-20 19:21:51,580 INFO     >>>>>>>>> Build: Start Preprocessing
     2023-06-20 19:21:51,580 INFO     Building lookup structure ...
     2023-06-20 19:21:51,581 INFO            Time spent: 0.000 seconds
@@ -379,6 +394,7 @@ Output files
         SVRRTPRFRRTAEAPVSRSLIITHLGDGGWEP
         >gene15.t1
         TFLKKSLRLNSI
+        ...
 
     The peptides of the annotation will aready have the germline variants included.
 
@@ -396,6 +412,7 @@ Output files
         SRTMETLVP
         SVRRTPRFR
         VRRTPRFRRT
+        ...
 
 
 3. **gene_expression_detail.gz**: File containing gene expression information for each gene and sample. The output file is a table containing the coding genes in the rows and the samples in the columns. The gene expresison is displayed for each combination. An output example for this tutorial is:
@@ -410,6 +427,8 @@ Output files
     | gene3 |  29585.0                | 58264.0               |         56063.0         | 36978.0                | 85934.0                | 52469.0                | 28083.0                | 51664.0                | 12189.0                |      21579.0             | 33179.0               |    32075.0             |   3496.0               |   31883.0             |  7594.0                | 31576.0                 |16291.0                 | 54973.0                | 23487.0                 |9587.0                 |
     +-------+-------------------------+-----------------------+-------------------------+------------------------+------------------------+------------------------+------------------------+------------------------+------------------------+--------------------------+-----------------------+------------------------+------------------------+-----------------------+------------------------+-------------------------+------------------------+------------------------+-------------------------+-----------------------+
     | gene4 |  13643.0                | 28684.0               |         57713.0         | 46866.0                | 34632.0                | 43720.0                | 22390.0                | 44068.0                | 11195.0                |      16097.0             | 27289.0               |    17843.0             |   5592.0               |   19243.0             |  9098.0                | 51766.0                 |33586.0                 | 12245.0                |  5948.0                 |19243.0                |
+    +-------+-------------------------+-----------------------+-------------------------+------------------------+------------------------+------------------------+------------------------+------------------------+------------------------+--------------------------+-----------------------+------------------------+------------------------+-----------------------+------------------------+-------------------------+------------------------+------------------------+-------------------------+-----------------------+
+    | ...   |  ...                    | ...                   |         ...             | ...                    | ...                    | ...                    | ...                    | ...                    | ...                    |      ...                 | ...                   |    ...                 |   ...                  |   ...                 |  ...                   | ...                     |...                     | ...                    | ...                     |...                    |
     +-------+-------------------------+-----------------------+-------------------------+------------------------+------------------------+------------------------+------------------------+------------------------+------------------------+--------------------------+-----------------------+------------------------+------------------------+-----------------------+------------------------+-------------------------+------------------------+------------------------+-------------------------+-----------------------+
 
 4. **somatic_and_germline_sample_peptides.fa.gz**: Fasta file containing the foreground peptides obtained by traversing the splice graph and taking into account the mutations. This file is obtained as output because the command *--output-fasta* is passed to the program. The file contains a header that is the transcript id and the sequence of the corresponding peptide. The name also shows the mutation mode, which in this case is somatic and germline. *Note:* As this genome is simulated, there is a higher frequency of stop codons than in nature, that explains the existence of some short peptides.
@@ -428,6 +447,7 @@ Output files
         NEVIGECIACSASFDATTIGRSRHRESSSLVSDGWACRGSATARPPNPRRAVLCKSIEPTYA
         >gene3:0_2:3:1062:2-exons
         NEVIGECIACSASFDATTIGRSRHRESSSLVSDGWACRGSATARPPNPRRAVLCKSIEPTYAR
+        ...
 
     Important things to note:
         - When the somatic and germline files are included, only peptides belonging to gene4 and gene3 are given as output. This is because only the peptides that are different to the reference are given as an output. For many of the genes and exons, there are not mutations present, which means that the peptides will be the same as in the reference.
@@ -448,6 +468,8 @@ Output files
        +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+
        | RRTPRFRRT |    2118:2145:nan:nan:None:None  |   False         | False             |  True              |  36.98               |  79.75               | 161.4                | 128.52               | 101.0                |  119.43              | 62.57                | 119.59               | 29.76                | 48.62                 |  77.01                | 51.13                 |  15.85                |  125.49               | 15.11                 | 54.82                 | 23.91                 | 141.25                | 95.49                 | 33.13                 |
        +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+
+       | ...       |  ...                            |   ...           |  ...              |       ...          |    ...               |  ...                 |   ...                |  ...                 | ...                  | ...                  | ...                  | ...                  |   ...                |   ...                 |  ...                  | ...                   |...                    | ...                   | ...                   |...                    | ...                   | ...                   | ...                   | ...                   |
+       +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+
 
 
 
@@ -463,6 +485,8 @@ Output files
        | EPTYARPSV |   1383:1400:1500:1510:None:None |   True          | False             |  True              |  54.0                |  117.0               | 75.0                 | 77.0                 | 138.0                | 70.0                 | 33.0                 | 93.0                 | 23.0                 | 31.0                  | 46.0                  | 75.0                  | 6.0                   | 42.0                  | 4.0                   | 61.0                  | 26.0                  | 83.0                  | 30.0                  | 6.0                   |
        +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+
        | KSIEPTYAR |   1374:1400:1500:1501:None:None |  True           | False             |  False             |  54.0                |  117.0               | 75.0                 | 77.0                 | 138.0                | 70.0                 | 33.0                 | 93.0                 | 23.0                 | 31.0                  | 46.0                  | 75.0                  | 6.0                   | 42.0                  | 4.0                   | 61.0                  | 26.0                  | 83.0                  | 30.0                  | 6.0                   |
+       +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+
+       | ...       |  ...                            |   ...           |  ...              |       ...          |    ...               |  ...                 |   ...                |  ...                 | ...                  | ...                  | ...                  | ...                  |   ...                |   ...                 |  ...                  | ...                   |...                    | ...                   | ...                   |...                    | ...                   | ...                   | ...                   | ...                   |
        +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+
 
 
@@ -533,6 +557,8 @@ Output files
     +--------------------------------------------------------------------------------------------+-------------------------------+-----------+-----------------------+----------+----------+------------+-----------------------+--------------+-------------------+------------+--------------+-----------------+---------------------+---------------------+-----------+--------------+
     | NEVIGECIACSASFDATTIGRSRHRESSSLVSDGWACRGSATARPPNPRRAVLCKSIEPTYAR                            | gene3:0_2:0:1062:2-exons      |         1 |     True              |   gene3  |    1     |      +     | somatic_and_germline  |       1      |        nan        |     0      |     1396     |       177       | 1062;1150;1300;1599 | 1050;1150;1300;1600 |    0;2    |   2-exons    |
     +--------------------------------------------------------------------------------------------+-------------------------------+-----------+-----------------------+----------+----------+------------+-----------------------+--------------+-------------------+------------+--------------+-----------------+---------------------+---------------------+-----------+--------------+
+    | ...                                                                                        | ...                           | ...                 | ...                 | ...      | ...        | ...        | ...                   | ...          | ...               | ...        | ...          | ...             | ...                 | ...                 | ...       | ...          |
+    +--------------------------------------------------------------------------------------------+-------------------------------+---------------------+---------------------+----------+------------+------------+-----------------------+--------------+-------------------+------------+--------------+-----------------+---------------------+---------------------+-----------+--------------+
 
     Important things to note:
 
@@ -545,6 +571,61 @@ Output files
 
 Running samplespecif mode
 --------------------------
+
+In this case, we will apply this mode to the output of build mode, in order to remove the background kmers from the foreground samples.
+
+Command
+^^^^^^^
+
+.. code-block:: console
+
+    immunopepper samplespecif --annot-kmer-files immunopepper_usecase/cohort_mutNone/ref_annot_kmer.gz --output-dir immunopepper_usecase/samplespecif --junction-kmer-files immunopepper_usecase/cohort_mutNone/ref_graph_kmer_JuncExpr --bg-file-path immunopepper_usecase/samplespecif/bg-file.gz --output-suffix trial
+
+Terminal output
+^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    immunopepper_usecase/cohort_mutNone/ref_graph_kmer_JuncExpr --bg-file-path immunopepper_usecase/samplespecif/bg-file.gz --output-suffix trial
+    2023-07-10 22:05:57,679 INFO     Command lineNamespace(annot_kmer_files=['immunopepper_usecase/cohort_mutNone/ref_annot_kmer.gz'], output_dir='immunopepper_usecase/samplespecif', junction_kmer_files=['immunopepper_usecase/cohort_mutNone/ref_graph_kmer_JuncExpr'], bg_file_path='immunopepper_usecase/samplespecif/bg-file.gz', output_suffix='trial', remove_bg=False, verbose=1)
+    2023-07-10 22:05:57,679 INFO     >>>>>>>>> Remove annotation: Start
+    2023-07-10 22:05:57,679 INFO     ...consider annotation file:immunopepper_usecase/cohort_mutNone/ref_annot_kmer.gz
+    2023-07-10 22:05:57,709 INFO     generated unique background kmer file in immunopepper_usecase/samplespecif/bg-file.gz
+
+    2023-07-10 22:05:57,710 INFO     ...consider foreground file:['immunopepper_usecase/cohort_mutNone/ref_graph_kmer_JuncExpr/part-b7a3198e-37eb-453b-8d92-b2dd5b855d58.gz', 'immunopepper_usecase/cohort_mutNone/ref_graph_kmer_JuncExpr/part-83795625-497b-4cf8-be61-cc363197f88d.gz', 'immunopepper_usecase/cohort_mutNone/ref_graph_kmer_JuncExpr/part-ac0ec9d0-6599-4ff6-a066-7b4538007680.gz']
+    2023-07-10 22:05:57,731 INFO     output bg-removed kmer file : immunopepper_usecase/samplespecif/ref_graph_kmer_JuncExpr_trial.gz
+
+    2023-07-10 22:05:57,731 INFO     >>>>>>>>> Remove annotation: Finish
+
+Output files
+^^^^^^^^^^^^
+
+For the purpose of this example, we provided an empty path in `--bg-file-path` option. Therefore, this mode will also generate the intermediate file containing the unique set of background peptides. Moreover, as `--remove-bg` is set to False, the mode will generate a file identical to **ref_graph_kmer_JuncExpr** from build mode, but with an extra column *is_neo_flag* indicating whether the kmer is a neoantigen or not i.e. If the kmer was present in the background set. Finally, as we set the suffix to be *trial*, the output file will be named **ref_graph_kmer_JuncExpr_trial.gz**.
+
+1. **ref_graph_kmer_JuncExpr_trial.gz**: This file contains the kmers from the splice graph, with an extra column *is_neo_flag* indicating whether the kmer is a neoantigen or not.
+
+       +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-------------+
+       | kmer      | coord                           | isCrossJunction | junctionAnnotated | readFrameAnnotated | simulatedIpp1sample1 | simulatedIpp1sample2 | simulatedIpp1sample3 | simulatedIpp1sample4 | simulatedIpp1sample5 | simulatedIpp1sample6 | simulatedIpp1sample7 | simulatedIpp1sample8 | simulatedIpp1sample9 | simulatedIpp1sample10 | simulatedIpp1sample11 | simulatedIpp1sample12 | simulatedIpp1sample13 | simulatedIpp1sample14 | simulatedIpp1sample15 | simulatedIpp1sample16 | simulatedIpp1sample17 | simulatedIpp1sample18 | simulatedIpp1sample19 | simulatedIpp1sample20 | is_neo_flag |
+       +===========+=================================+=================+===================+====================+======================+======================+======================+======================+======================+======================+======================+======================+======================+=======================+=======================+=======================+=======================+=======================+=======================+=======================+=======================+=======================+=======================+=======================+=============+
+       | SSSLVSDGW | 1140:1150:1300:1317:None:None   |   True          |  False            |      True          |    92.0              |  183.0               |  175.0               |  119.0               | 285.0                | 153.0                | 85.0                 | 170.0                |  40.0                |  54.0                 |  95.0                 |  99.0                 | 10.0                  |  93.0                 |  24.0                 |  87.0                 |  41.0                 |  172.0                |  69.0                 | 32.0                  | True        |
+       +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-------------+
+       | EPPTYGRPSV| 1383:1400:1500:1510:None:None   |   True          |  False            |      False         |    54.0              |  117.0               |  75.0                |  77.0                | 138.0                | 70.0                 | 33.0                 | 93.0                 |  23.0                |  31.0                 |  46.0                 |  75.0                 | 6.0                   |  42.0                 |  4.0                  |  61.0                 |  26.0                 |  83.0                 |  30.0                 | 6.0                   | True        |
+       +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-------------+
+       |RESSSLVSD  | 1134:1150:1300:1311:None:None   |   True          |  False            |      True          |    92.0              |  183.0               |  175.0               |  119.0               | 285.0                | 153.0                | 85.0                 | 170.0                |  40.0                |  54.0                 |  95.0                 |  99.0                 | 10.0                  |  93.0                 |  24.0                 |  87.0                 |  41.0                 |  172.0                |  69.0                 | 32.0                  | True        |
+       +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-------------+
+       | ...       |  ...                            |   ...           |  ...              |       ...          |    ...               |  ...                 |   ...                |  ...                 | ...                  | ...                  | ...                  | ...                  |   ...                |   ...                 |  ...                  | ...                   |...                    | ...                   | ...                   |...                    | ...                   | ...                   | ...                   | ...                   | ...         |
+       +-----------+---------------------------------+-----------------+-------------------+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-------------+
+
+2. **bg-file.gz**: This file contains the set of unique kmers found in the background file provided.
+
+    .. code-block:: console
+
+        kmer
+        VRSSGTSKW
+        GYKFPLSSD
+        RRVTNSLIM
+        RHYTLGIIA
+        ...
 
 .. _tutorial_cancerspecif:
 
@@ -593,7 +674,7 @@ The command to run the *cancerspecif* mode is:
 
 .. code-block:: console
 
-    immunopepper cancerspecif --cores 2 --mem-per-core 2048 --parallelism 3 --kmer 9 --output-dir immunopepper_usecase/filter_case/ --interm-dir-norm immunopepper_usecase/filter_case --interm-dir-canc immunopepper_usecase/filter_case --ids-cancer-samples simulated_Ipp_1_sample3 --mut-cancer-samples ref --output-count immunopepper_usecase/filter_case/output-count.txt --path-normal-matrix-edge immunopepper_usecase/filter_case/ref_graph_kmer_NormalExpr/normal_junctions.gz --n-samples-lim-normal 15 --cohort-expr-support-normal 100 --sample-expr-support-cancer 20 --cohort-expr-support-cancer 110 --n-samples-lim-cancer 2 --path-cancer-matrix-edge immunopepper_usecase/filter_case/ref_graph_kmer_CancerExpr/cancer_junctions.gz --filterNeojuncCoord C --verbose 1
+    immunopepper cancerspecif --cores 2 --mem-per-core 2048 --parallelism 3 --kmer 9 --output-dir immunopepper_usecase/filter_case/ --interm-dir-norm immunopepper_usecase/filter_case --interm-dir-canc immunopepper_usecase/filter_case --ids-cancer-samples simulated_Ipp_1_sample3 --mut-cancer-samples ref --output-count immunopepper_usecase/filter_case/output-count.txt --path-normal-matrix-edge immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_NormalExpr/normal_junctions.gz --n-samples-lim-normal 15 --cohort-expr-support-normal 100 --sample-expr-support-cancer 20 --cohort-expr-support-cancer 110 --n-samples-lim-cancer 2 --path-cancer-matrix-edge immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_CancerExpr/cancer_junctions.gz --filterNeojuncCoord C --verbose 1
 
 Terminal output
 ~~~~~~~~~~~~~~~
@@ -602,7 +683,7 @@ The terminal output for this mode is:
 
 .. code-block:: console
 
-    2023-06-26 12:20:51,722 INFO     Command lineNamespace(cores=2, mem_per_core=2048, parallelism=3, out_partitions=None, scratch_dir='', interm_dir_norm='immunopepper_usecase/filter_case', interm_dir_canc='immunopepper_usecase/filter_case', kmer='9', ids_cancer_samples=['simulated_Ipp_1_sample3'], mut_cancer_samples=['ref'], whitelist_normal=None, whitelist_cancer=None, path_cancer_libsize=None, path_normal_libsize=None, normalizer_cancer_libsize=None, normalizer_normal_libsize=None, output_dir='immunopepper_usecase/filter_case/', output_count='immunopepper_usecase/filter_case/output-count.txt', tag_normals='', tag_prefix='', path_normal_matrix_segm=None, path_normal_matrix_edge=['immunopepper_usecase/filter_case/ref_graph_kmer_NormalExpr/normal_junctions.gz'], n_samples_lim_normal=15, cohort_expr_support_normal=100.0, sample_expr_support_cancer=20.0, cohort_expr_support_cancer=110.0, n_samples_lim_cancer=2, path_cancer_matrix_segm=None, path_cancer_matrix_edge=['immunopepper_usecase/filter_case/ref_graph_kmer_CancerExpr/cancer_junctions.gz'], cancer_support_union=False, path_normal_kmer_list=None, uniprot=None, filterNeojuncCoord='C', filterAnnotatedRF='', tot_batches=None, batch_id=None, on_the_fly=False, verbose=1)
+    2023-06-26 12:20:51,722 INFO     Command lineNamespace(cores=2, mem_per_core=2048, parallelism=3, out_partitions=None, scratch_dir='', interm_dir_norm='immunopepper_usecase/filter_case', interm_dir_canc='immunopepper_usecase/filter_case', kmer='9', ids_cancer_samples=['simulated_Ipp_1_sample3'], mut_cancer_samples=['ref'], whitelist_normal=None, whitelist_cancer=None, path_cancer_libsize=None, path_normal_libsize=None, normalizer_cancer_libsize=None, normalizer_normal_libsize=None, output_dir='immunopepper_usecase/filter_case/', output_count='immunopepper_usecase/filter_case/output-count.txt', tag_normals='', tag_prefix='', path_normal_matrix_segm=None, path_normal_matrix_edge=['immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_NormalExpr/normal_junctions.gz'], n_samples_lim_normal=15, cohort_expr_support_normal=100.0, sample_expr_support_cancer=20.0, cohort_expr_support_cancer=110.0, n_samples_lim_cancer=2, path_cancer_matrix_segm=None, path_cancer_matrix_edge=['immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_CancerExpr/cancer_junctions.gz'], cancer_support_union=False, path_normal_kmer_list=None, uniprot=None, filterNeojuncCoord='C', filterAnnotatedRF='', tot_batches=None, batch_id=None, on_the_fly=False, verbose=1)
     driver_mem 3072
     memory_per_executor_mb 80% 1638
     parallelism_ 3
@@ -616,7 +697,7 @@ The terminal output for this mode is:
     2023-06-26 12:21:06,642 INFO
 
      >>>>>>>> Preprocessing Normal samples
-    2023-06-26 12:21:06,642 INFO     Load input ['immunopepper_usecase/filter_case/ref_graph_kmer_NormalExpr/normal_junctions.gz']
+    2023-06-26 12:21:06,642 INFO     Load input ['immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_NormalExpr/normal_junctions.gz']
     2023-06-26 12:21:12,558 INFO     ...partitions: 1
     2023-06-26 12:21:12,698 INFO     ...partitions: 1
     2023-06-26 12:21:12,698 INFO     Isolating kmers only in backbone annotation
@@ -639,7 +720,7 @@ The terminal output for this mode is:
     2023-06-26 12:21:16,977 INFO
 
      >>>>>>>> Preprocessing Cancer sample simulated_Ipp_1_sample3
-    2023-06-26 12:21:16,977 INFO     Load input ['immunopepper_usecase/filter_case/ref_graph_kmer_CancerExpr/cancer_junctions.gz']
+    2023-06-26 12:21:16,977 INFO     Load input ['immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_CancerExpr/cancer_junctions.gz']
     2023-06-26 12:21:17,263 INFO     ...partitions: 1
     2023-06-26 12:21:17,311 INFO     ...partitions: 1
     2023-06-26 12:21:17,341 INFO     Cast types
@@ -667,9 +748,6 @@ The terminal output for this mode is:
     2023-06-26 12:21:21,822 INFO     partitions: 1
     2023-06-26 12:21:21,822 INFO     >>>> Save to immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz
     2023-06-26 12:21:23,072 INFO     # Filter_Sample_Cohort_CohortNormal n = 3 kmers
-    2023-06-26 12:21:23,072 INFO     Filtering kmers in uniprot
-    2023-06-26 12:21:23,072 INFO     >>>> Save to immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15_FiltUniprot.tsv.gz
-    2023-06-26 12:21:24,043 INFO     # Filter_Sample_Cohort_CohortNormal_Uniprot n = 3 kmers
     2023-06-26 12:21:24,044 INFO     Save intermediate info to immunopepper_usecase/filter_case/output-count.txt
     2023-06-26 12:21:24,879 INFO     Closing down clientserver connection
 
@@ -696,6 +774,7 @@ For normal samples, only the intermediate files will be generated. These files w
         NCRKGFLGV
         GFLGVLPNA
         SSSLVSDGW
+        ...
 
 2. **interm_normals_combiExprCohortLim0.0Across1.tsv.gz:** This folder contains the kmers that are present with an expression bigger than zero in at least one sample. It is an intermediate file that will be later used for the filter based on the number of samples. The rest of the filtering, in which *--n-lim-samples-normal* threshold is applied will be performed on the fly.
 
@@ -711,6 +790,7 @@ For normal samples, only the intermediate files will be generated. These files w
         PFRVLIILE       20
         NCRKGFLGV       19
         KGFLGVLPN       20
+        ...
 
 3. **interm_normals_combiExprCohortLim100.0Across1.tsv.gz:** This folder contains the kmers that appear with an expression >= 100 in at least one sample. This is the file that will be directly used for the expression based filtering. The kmers passing the threshold will be marked as normal kmers and will be removed from the possible cancer kmers.
 
@@ -724,6 +804,7 @@ For normal samples, only the intermediate files will be generated. These files w
         VLPNAYALI       3
         PFRVLIILE       1
         NCRKGFLGV       1
+        ...
 
 **Cancer samples**
 
@@ -739,6 +820,7 @@ For normal samples, only the intermediate files will be generated. These files w
         LEPATSLDF       19
         GFLGVCTLG       19
         FLGVLPNAY       19
+        ...
 
 2. **interm_cancer_ref_combiExprCohortLim110.0Across1ExceptsimulatedIpp1sample3.tsv.gz:** This folder will contain the intermediate files showing the kmers that have an expression level higher than the expression threshold, 110 in this case, in at least one sample, without taking into account the target sample.
 
@@ -750,20 +832,22 @@ For normal samples, only the intermediate files will be generated. These files w
         EPTYGRPSV       2
         RESSSLVSD       6
         SRHRESSSL       6
+        ...
 
 3. **simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz:** This is the file containing the cancer specific kmers, after application of the different thresholds and differential filtering against normal kmers. If an external database is not provided under *--uniprot*, this is the final output of the cancerspecif mode.
 
-    **Format**: The output is a tab separated file made up of 4 different columns. The first column contains the cancer kmer, the second column contains the expression level of the kmer in the sample of interest, the third column shows whether the junction is annotated or if it is a novel junction, and the last column shows whether the read frame is annotated or not.
+    **Format**: The output is a tab separated file made up of 5 different columns. The first column contains the cancer kmer, the second column contains the coordinates of the kmer, the third column contains the expression level of the kmer in the sample of interest, the fourth column shows whether the junction is annotated or if it is a novel junction, and the last column shows whether the read frame is annotated or not.
 
-    +---------------+-----------------------+--------------------+-------------------------+
-    | kmer          |  simulatedIpp1sample3 |   junctionAnnotated|     readFrameAnnotated  |
-    +===============+=======================+====================+=========================+
-    | HRESSSLVS     |  175.0                |  False             |     True                |
-    +---------------+-----------------------+--------------------+-------------------------+
-    | ESSSLVSDG     |  175.0                |  False             |     True                |
-    +---------------+-----------------------+--------------------+-------------------------+
-    | SLVSDGWAC     |  175.0                |  False             |     True                |
-    +---------------+-----------------------+--------------------+-------------------------+
+    +---------------+---------------------------------+----------------------+-------------------------+-------------------------+
+    | kmer          |   coord                         | simulatedIpp1sample3 |   junctionAnnotated     |     readFrameAnnotated  |
+    +===============+=================================+======================+=========================+=========================+
+    | HRESSSLVS     |  1131:1150:1300:1308:None:None  |     175.0            |  False                  |     True                |
+    +---------------+---------------------------------+----------------------+-------------------------+-------------------------+
+    | ESSSLVSDG     |   1137:1150:1300:1314:None:None |     175.0            |  False                  |     True                |
+    +---------------+---------------------------------+----------------------+-------------------------+-------------------------+
+    | SLVSDGWAC     |  1146:1150:1300:1323:None:None  |     175.0            |  False                  |     True                |
+    +---------------+---------------------------------+----------------------+-------------------------+-------------------------+
+
 
 
 4. **output-count.txt:** This file will be generated because *--output-count* was provided in the arguments. It contains the number of remaining kmers after each filtering step for each sample of interest.
@@ -790,6 +874,8 @@ Command
 ^^^^^^^^
 
 The command to run the *mhcbind* mode is the following:
+
+.. note:: In this case you need to set the --mhc-software-path argument to the path where your cloned "mhctools" repository is.
 
 .. code-block::
 
@@ -820,15 +906,17 @@ Terminal output
 
 The output displayed in the terminal for the *mhcbind* mode is the following:
 
-2023-06-27 15:53:05,501 INFO     Command lineNamespace(mhc_software_path='./immunopepper/mhctools/', argstring='--mhc-predictor mhcflurry --mhc-alleles HLA-A*02:01 --output-csv immunopepper_usecase/mhc_bind/predictions.csv --input-peptides-file immunopepper_usecase/mhc_bind/input_peptides.csv', output_dir='immunopepper_usecase/mhc_bind', partitioned_tsv='immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz', bind_score_method='affinity', bind_score_threshold=1000.0, less_than=False, verbose=2)
-2023-06-27 15:53:05,892 INFO     Process the outputs from cancerspecif mode
-2023-06-27 15:53:05,905 INFO     Launch MHC Tools with command --mhc-predictor mhcflurry --mhc-alleles HLA-A*02:01 --output-csv immunopepper_usecase/mhc_bind/predictions.csv --input-peptides-file immunopepper_usecase/mhc_bind/input_peptides.csv
-2023-06-27 15:53:05,906 - mhctools.cli.args - INFO - Building MHC binding prediction type for alleles ['HLA-A*02:01'] and epitope lengths None
-2023-06-27 15:53:05,906 INFO     Building MHC binding prediction type for alleles ['HLA-A*02:01'] and epitope lengths None
-2023-06-27 15:53:11,257 INFO     Loaded 10 class1 pan allele predictors, 14839 allele sequences, 6308 percent rank distributions, and 0 allele specific models:
-Wrote: immunopepper_usecase/mhc_bind/predictions.csv
-2023-06-27 15:53:21,936 INFO     Perform filtering with affinity >= 1000.0
-2023-06-27 15:53:21,938 INFO     Saving to immunopepper_usecase/mhc_bind/predictions_WithaffinityMoreLim1000.0.tsv
+.. code-block:: console
+
+    2023-06-27 15:53:05,501 INFO     Command lineNamespace(mhc_software_path='./immunopepper/mhctools/', argstring='--mhc-predictor mhcflurry --mhc-alleles HLA-A*02:01 --output-csv immunopepper_usecase/mhc_bind/predictions.csv --input-peptides-file immunopepper_usecase/mhc_bind/input_peptides.csv', output_dir='immunopepper_usecase/mhc_bind', partitioned_tsv='immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz', bind_score_method='affinity', bind_score_threshold=1000.0, less_than=False, verbose=2)
+    2023-06-27 15:53:05,892 INFO     Process the outputs from cancerspecif mode
+    2023-06-27 15:53:05,905 INFO     Launch MHC Tools with command --mhc-predictor mhcflurry --mhc-alleles HLA-A*02:01 --output-csv immunopepper_usecase/mhc_bind/predictions.csv --input-peptides-file immunopepper_usecase/mhc_bind/input_peptides.csv
+    2023-06-27 15:53:05,906 - mhctools.cli.args - INFO - Building MHC binding prediction type for alleles ['HLA-A*02:01'] and epitope lengths None
+    2023-06-27 15:53:05,906 INFO     Building MHC binding prediction type for alleles ['HLA-A*02:01'] and epitope lengths None
+    2023-06-27 15:53:11,257 INFO     Loaded 10 class1 pan allele predictors, 14839 allele sequences, 6308 percent rank distributions, and 0 allele specific models:
+    Wrote: immunopepper_usecase/mhc_bind/predictions.csv
+    2023-06-27 15:53:21,936 INFO     Perform filtering with affinity >= 1000.0
+    2023-06-27 15:53:21,938 INFO     Saving to immunopepper_usecase/mhc_bind/predictions_WithaffinityMoreLim1000.0.tsv
 
 
 Output files

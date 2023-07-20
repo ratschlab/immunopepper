@@ -54,10 +54,19 @@ SplAdder pipeline. Further information about SplAdder is available on its `GitHu
 page <https://github.com/ratschlab/spladder>`_ or the `Online
 documentation <https://spladder.readthedocs.io/en/latest/>`_.
 
+Mode cancerspecif
+-----------------
+
+In this mode Java needs to be installed. The user can check if Java is installed by running the following command:
+
+.. code-block::
+
+    java -version
+
 Mode mhcbind
 ------------
 
-If the mode :ref:`mhcbind <mhcbind>` wants to be run  , the user needs to clone the mhcbind github repository inside the main immunopepper folder.
+If the mode :ref:`mhcbind <mhcbind>` wants to be run, the user needs to clone the mhcbind github repository inside the main immunopepper folder.
 
 This can be done by running the following command:
 
@@ -65,8 +74,15 @@ This can be done by running the following command:
 
     git clone https://github.com/openvax/mhctools.git
 
-.. todo::
-    Check if this is done like this
+.. _install_pepquery:
+
+Mode pepquery
+-------------
+
+If the mode :ref:`pepquery <pepquery>` wants to be run, the user needs to download and install the PepQuery software in its local computer.
+
+Instructions for the installation of the software can be seen in the `PepQuery documentation <http://pepquery.org/document.html#install>`_.
+
 
 
 
