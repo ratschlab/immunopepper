@@ -151,6 +151,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
     global countinfo
     global genetable
     global kmer_database
+    mut_count_id = None
     if arg.parallel > 1:
         batch_name = int(outbase.split('/')[-1].split('_')[-1])
     else:
@@ -229,9 +230,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             sub_mutation = get_sub_mutations(mutation, mutation_sample, chrm)
             if (arg.mutation_sample is not None):
                 mut_count_id = [idx for idx, sample in enumerate(arg.output_samples)
-                                if arg.mutation_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') == sample][0]
-            else:
-                mut_count_id = None
+                                if arg.mutation_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') == sample]
             junction_list = None
             if not junction_dict is None and chrm in junction_dict:
                 junction_list = junction_dict[chrm]
