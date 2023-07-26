@@ -342,7 +342,7 @@ For cancer samples, there will be both intermediate and output files generated. 
        - Init_cancer: Number of kmers before any filtering step.
        - Filter_sample: Number of kmers remaining after sample filtering (step 2a of :ref:`cancer pipeline <filt-cancer>`).
        - Filter_sample_cohort: Number of kmers remaining after cancer cohort filtering (step 2b of :ref:`cancer pipeline <filt-cancer>`).
-       - Filter_sample_cohort_cohortnormal #TODO: check if this was corrected: Number of kmers after differential filtering with normal samples (i.e. After removing from the foreground the kmers that passed the thresholds for expression *--cohort-expr-support-normal* and number of samples *--n-samples-lim-normal* in the normal cohort).
+       - Filter_sample_cohort_cohortnormal Number of kmers after differential filtering with normal samples (i.e. After removing from the foreground the kmers that passed the thresholds for expression *--cohort-expr-support-normal* and number of samples *--n-samples-lim-normal* in the normal cohort).
        - Filter_sample_cohort_cohortnormal_uniprot: Number of kmers after filtering with uniprot selected database.
        - Info: If a *--tag-normals* is provided, it will be indicated here. **Technical note**: *tag-normals* can be any information specific to the normal cohort that the user wishes to record (e.g. name of the cohort or the total number of samples, etc.)
 

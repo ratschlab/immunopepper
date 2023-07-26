@@ -230,7 +230,7 @@ def parse_arguments(argv):
             from mhctools.mhctools.cli.args import make_mhc_arg_parser
             parser_mhc = make_mhc_arg_parser(prog="mhctools",description=("Predict MHC ligands from protein sequences")) #TODO: uncmment this line
             parser_mhc.print_help()
-        elif argv[0] == 'pepQuery':
+        elif argv[0] == 'pepquery':
             sys.stdout.write("------------------------------ PEPQUERY IMMUNOPEPPER USAGE ------------------------------ \n \n ")
             parser_pepquery.print_help()
         else:

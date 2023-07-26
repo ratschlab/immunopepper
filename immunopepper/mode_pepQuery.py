@@ -129,13 +129,13 @@ def mode_pepquery(arg):
     output_peptides_file_idx = [i + 1 for i, j in enumerate(args_list) if j == '-o']
     output_peptides_file = args_list[output_peptides_file_idx[0]]
 
-    if f'{output_peptides_file}/psm_rank.txt' not in glob.glob(f'{output_peptides_file}/*'):
-        logging.error(">>>>> PepQuery failed to generate the psm_rank.txt file. Please check the output directory.") #TODO: Include explanation of the error
+    if f'{output_peptides_file}psm_rank.txt' not in glob.glob(f'{output_peptides_file}*'):
+        logging.error(">>>>> PepQuery failed to generate the psm_rank.txt file. Please check the output directory. Maybe the provided spectra file does not contain any of the input peptides")
         sys.exit(1)
     else:
 
         psm_rank = pd.read_csv(f'{output_peptides_file}/psm_rank.txt', sep = '\t')
-        ip_out = pd.DataFrame(columns=['peptide', 'modification', 'spectrum', 'score', 'confident', 'pvalue', '# of reference DB peptides matching spectrum better than study peptide', '# random shuffled peptides matching spectrum better that study peptide', '# ptm-modified proteins matching better the spectra filtering summary that study peptide', 'filtering summary'])
+        ip_out = pd.DataFrame(columns=['peptide', 'modification', 'spectrum', 'score', 'confident', 'pvalue', '# of reference DB peptides matching spectrum better than study peptide', '# random shuffled peptides matching spectrum better that study peptide', '# ptm-modified proteins matching better the spectra than study peptide', 'filtering summary'])
 
         for i, row in psm_rank.iterrows():
             if row['pvalue'] == 100 and row['n_db'] > 0:
@@ -144,7 +144,7 @@ def mode_pepquery(arg):
                            'confident': row['confident'], 'pvalue': 'NaN',
                            '# of reference DB peptides matching spectrum better than study peptide': row['n_db'],
                            '# random shuffled peptides matching spectrum better that study peptide' : 'NaN',
-                           '# ptm-modified proteins matching better the spectra filtering summary that study peptide': 'NaN',
+                           '# ptm-modified proteins matching better the spectra than study peptide': 'NaN',
                            'filtering summary': 'Failed at competitive filtering based on reference sequences (step 3).'}
                 ip_out.loc[i] = new_row
             elif row['pvalue'] < 100 and row['n_db'] == 0:
@@ -154,7 +154,7 @@ def mode_pepquery(arg):
                                'confident': row['confident'], 'pvalue': row['pvalue'],
                                '# of reference DB peptides matching spectrum better than study peptide': row['n_db'],
                                '# random shuffled peptides matching spectrum better that study peptide' : row['n_random'],
-                               '# ptm-modified proteins matching better the spectra filtering summary that study peptide': 'NaN',
+                               '# ptm-modified proteins matching better the spectra than study peptide': 'NaN',
                                'filtering summary': 'Failed at the statistical evaluation based on random shuffling (step 4). The pvalue is >0.01.'}
                     ip_out.loc[i] = new_row
                 elif row['pvalue'] <= 0.01 and row['n_ptm'] != 0:
@@ -163,7 +163,7 @@ def mode_pepquery(arg):
                                'confident': row['confident'], 'pvalue': row['pvalue'],
                                '# of reference DB peptides matching spectrum better than study peptide': row['n_db'],
                                '# random shuffled peptides matching spectrum better that study peptide' : row['n_random'],
-                               '# ptm-modified proteins matching better the spectra filtering summary that study peptide': row['n_ptm'],
+                               '# ptm-modified proteins matching better the spectra than study peptide': row['n_ptm'],
                                'filtering summary': 'Failed at the competitive filtering based on reference proteins with post translational modifications (step 5).'}
                     ip_out.loc[i] = new_row
                 elif row['pvalue'] <= 0.01 and row['n_ptm'] == 0 and row['confident'] == 'Yes':
@@ -172,7 +172,7 @@ def mode_pepquery(arg):
                                'confident': row['confident'], 'pvalue': row['pvalue'],
                                '# of reference DB peptides matching spectrum better than study peptide': row['n_db'],
                                '# random shuffled peptides matching spectrum better that study peptide' : row['n_random'],
-                               '# ptm-modified proteins matching better the spectra filtering summary that study peptide': row['n_ptm'],
+                               '# ptm-modified proteins matching better the spectra than study peptide': row['n_ptm'],
                                'filtering summary': 'The peptide passed all the filters and the identified spectra is considered confident'}
                     ip_out.loc[i] = new_row
 
@@ -180,7 +180,7 @@ def mode_pepquery(arg):
         ip_out["confident"] = pd.Categorical(ip_out["confident"], categories=confident_categories)
         ip_out.sort_values(by=["confident", "score"], ascending=[True, False], inplace=True)
         ip_out.to_csv(f'{arg.output_dir}/peptides_validated.tsv.gz', sep='\t', index=False, compression='gzip')
-        logging.info(">>>>> Processed output file saved to {}/peptides_validated.txt \n".format(arg.output_dir))
+        logging.info(">>>>> Processed output file saved to {}peptides_validated.tsv.gz \n".format(arg.output_dir))
         logging.info(">>>>> Finished running immunopepper in pepquery mode  \n")
 
 

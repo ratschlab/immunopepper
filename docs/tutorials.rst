@@ -8,6 +8,7 @@ In this page, a list of tutorials is provided to learn how to use the software. 
 3. :ref:`tutorial_samplespecif`: Tutorial for the *samplespecif* mode.
 4. :ref:`tutorial_cancerspecif`: Tutorial for the *cancerspecif* mode.
 5. :ref:`tutorial_mhcbind`: Tutorial for the *mhcbind* mode.
+6. :ref:`tutorial_pepquery`: Tutorial for the *pepquery* mode.
 
 .. note:: The folder with the tutorial results will be generated in the directory where immunopepper is run, not inside the immunopepper folder.
 
@@ -21,7 +22,7 @@ The input data used for this tutorial can be found in the folder *'tests/data_si
 1. **genes_graph_conf3.merge_graphs.pickle:** Splice graphs obtained from SplAdder. The file will contain one splice graph per gene.
 
     - This file contains information for 9 genes.
-    - The object obtained from SplAdder contains data and metadata. However, in this software, only the data is used, which contains different fields. The whole list of the fields can be explored in the SplAdder documentation #TODO: add link. Here, only the relevant fields for this tutorial are shown.
+    - The object obtained from SplAdder contains data and metadata. However, in this software, only the data is used, which contains different fields. The whole list of the fields can be explored in the `SplAdder documentation <https://spladder.readthedocs.io/en/latest/spladder_modes.html>`_. Here, only the relevant fields for this tutorial are shown.
 
         - **chr:** Chromosome information. In this example all the genes belong to chromosome 1. The chromosomes have the notation "x", x being a valid chromosome number. *Note*: The chromosomes in the reference genome and in the reference annotation file must have the same notation.
         - **name:** Gene ID.
@@ -84,7 +85,7 @@ First of all, we will show an example with the basic commands, without any addit
 
 By calling this command, the software will generate the possible kmers/peptides for each of the 9 genes in the splice graph. It will take into account the reference genome and the annotation file, and it will generate an output for both the background and foreground peptides. The command is run on the :ref:`input_data` described in the section above. Moreover, the output directory is set to a folder called *immunopepper_usecase*, located on the directory where the command is executed. The kmer length is set to 9, as it is a common kmer length selected in clinical applications.
 
-Terminal output:
+Terminal output
 ~~~~~~~~~~~~~~~~~~
 
 The output displayed in the command line is the following:
@@ -961,7 +962,304 @@ This mode creates files that are unique to *immunopepper* or files that are crea
    | ESSSLVSDG  |                    175 | False                | True                   | None                     |        0 | HLA-A*02:01| 0.0493709     | 29307.4       | 36.9331             | mhcflurry               |      9 |
    +------------+------------------------+----------------------+------------------------+--------------------------+----------+------------+---------------+---------------+---------------------+-------------------------+--------+
 
+.. _tutorial_pepquery:
+
+Running pepquery mode
+---------------------
+
+This mode is a wrapper tool for the PepQuery software. It allows to do proteomic validations on the output kmers from *cancerspecif*  or *mhc_bind* mode. Therefore, there are some input parameters specific to this software and some input parameters that are required in the PepQuery software tool.
+
+Pepquery mode starting from kmers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. important:: This tutorial will not generate a full output and it will rise an error. This is because the input peptides are not contained in the spectra file, so no matches are found. To see an example of output go to the tutorial **Pepquery mode starting from peptides** below this one.
+
+This tutorial is created to showcase how the kmers from *cancerspecif* mode can be provided as an input for pepQuery.
+
+.. note:: This mode requires pepQuery to be installed locally on the user's computer.
+
+Command
+~~~~~~~~~~
+
+.. note:: In order to properly run the tutorial, one should change the --pepquery-software-path argument to the location where pepQuery is installed.
+
+The command used to run this tutorial is:
+
+.. code-block:: console
+
+    immunopepper pepquery --output-dir immunopepper_usecase/pepquery/ --partitioned-tsv immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz/ --metadata-path immunopepper_usecase/cohort_mutNone/ref_sample_peptides_meta.gz --kmer-type junctions --verbose 1 --pepquery-software-path pepQuery/pepquery-2.0.2/pepquery-2.0.2.jar --argstring "-o immunopepper_usecase/pepquery/results/ -i immunopepper_usecase/pepquery/pepquery_input.txt -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf"
+
+Terminal output
+~~~~~~~~~~~~~~~~
+
+The terminal output that you will see is:
+
+.. code-block:: console
+
+    2023-07-26 05:19:00,067 INFO     Command lineNamespace(output_dir='immunopepper_usecase/pepquery/', argstring='-o immunopepper_usecase/pepquery/results/ -i immunopepper_usecase/pepquery/pepquery_input.txt -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf', pepquery_software_path='pepQuery/pepquery-2.0.2/pepquery-2.0.2.jar', partitioned_tsv='immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz/', metadata_path='immunopepper_usecase/cohort_mutNone/ref_sample_peptides_meta.gz', kmer_type='junctions', verbose=1)
+    2023-07-26 05:19:00,067 INFO     >>>>> Running immunopepper in pepquery mode
+
+    2023-07-26 05:19:00,067 INFO     >>>>> Extracting whole peptides from the filtered kmers file obtained in cancerspecif mode, and provided under immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz/
+
+    2023-07-26 05:19:00,098 INFO     >>>>> Extracted peptides. Saved to immunopepper_usecase/pepquery/pepquery_input.txt
+
+    2023-07-26 05:19:00,098 INFO     >>>>> Launching PepQuery with command -o immunopepper_usecase/pepquery/results/ -i immunopepper_usecase/pepquery/pepquery_input.txt -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf
+
+    2023-07-26 05:19:01 [INFO ] main.java.pg.CParameter[updateCParameter:873] - Task type: novel peptide identification
+    2023-07-26 05:19:01 [INFO ] uk.ac.ebi.pride.utilities.pridemod.io.unimod.xml.unmarshaller.UnimodUnmarshallerFactory[initializeUnmarshaller:41] - Unmarshaller Initialized
+    2023-07-26 05:19:01 [INFO ] main.java.OpenModificationSearch.ModificationDB[importPTMsFromUnimod:355] - All modifications in unimod:1375
+    2023-07-26 05:19:01 [INFO ] main.java.pg.PeptideSearchMT[search:243] - Start analysis
+    #############################################
+    PepQuery parameter:
+    2023-07-26 05:19:01 [INFO ] main.java.pg.DatabaseInput[getEnzymeByIndex:263] - Use enzyme:Trypsin
+    PepQuery version: 2.0.2
+    PepQuery command line: -o immunopepper_usecase/pepquery/results/ -i immunopepper_usecase/pepquery/pepquery_input.txt -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf
+    Fixed modification: 1 = Carbamidomethylation of C
+    Variable modification: 2 = Oxidation of M
+    Max allowed variable modification: 3
+    Add AA substitution: false
+    Enzyme: 1 = Trypsin
+    Max Missed cleavages: 2
+    Precursor mass tolerance: 10.0
+    Range of allowed isotope peak errors: 0
+    Precursor ion mass tolerance unit: ppm
+    Fragment ion mass tolerance: 0.6
+    Fragment ion mass tolerance unit: Da
+    Scoring algorithm: 1 = Hyperscore
+    Min score: 12.0
+    Min peaks: 10
+    Min peptide length: 7
+    Max peptide length: 45
+    Min peptide mass: 500.0
+    Max peptide mass: 10000.0
+    Random peptide number: 10000
+    Fast mode: false
+    CPU: 16
+    #############################################
+    2023-07-26 05:19:01 [INFO ] main.java.pg.PeptideSearchMT[search:250] - Spectrum ID type:1, use 1-based number as index for a spectrum.
+    2023-07-26 05:19:01 [INFO ] main.java.pg.PeptideSearchMT[search:253] - Step 1: target peptide sequence preparation and initial filtering ...
+    2023-07-26 05:19:01 [INFO ] main.java.pg.PeptideSearchMT[search:330] - Input peptide sequences:2
+    2023-07-26 05:19:01 [INFO ] main.java.pg.InputProcessor[searchRefDB:413] - Don't find indexed database:immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta.sqldb
+    2023-07-26 05:19:01 [INFO ] main.java.pg.InputProcessor[searchRefDB:414] - Use database:immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta
+    2023-07-26 05:19:01 [INFO ] main.java.pg.PepMapping[init:62] - Load db file: immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta
+    2023-07-26 05:19:01 [INFO ] main.java.pg.PepMapping[init:78] - Start indexing fasta file
+    2023-07-26 05:19:04 [INFO ] main.java.pg.PepMapping[init:88] - Indexing took 0.495450139 seconds and consumes 112.873096 MB
+    2023-07-26 05:19:04 [INFO ] main.java.pg.PeptideSearchMT[search:407] - Valid target peptides: 2
+    2023-07-26 05:19:04 [INFO ] main.java.pg.PeptideSearchMT[generatePeptideInputs:1330] - Generate peptide objects ...
+    2023-07-26 05:19:04 [INFO ] main.java.pg.PeptideSearchMT[generatePeptideInputs:1341] - CPU: 2
+    2023-07-26 05:19:04 [INFO ] main.java.pg.PeptideSearchMT[generatePeptideInputs:1359] - Generate peptide objects done.
+    2023-07-26 05:19:04 [INFO ] main.java.pg.PeptideSearchMT[search:413] - Step 1: target peptide sequence preparation and initial filtering done: time elapsed = 0.07 min
+    2023-07-26 05:19:04 [INFO ] main.java.pg.PeptideSearchMT[search:418] - Step 2: candidate spectra retrieval and PSM scoring ...
+    2023-07-26 05:19:04 [INFO ] main.java.pg.SpectraInput[readMSMSfast:111] - Build target peptide index done.
+    2023-07-26 05:19:06 [INFO ] main.java.pg.SpectraInput[readMSMSfast:191] - Finished:10000
+    2023-07-26 05:19:08 [INFO ] main.java.pg.SpectraInput[readMSMSfast:191] - Finished:20000
+    2023-07-26 05:19:08 [INFO ] main.java.pg.SpectraInput[readMSMSfast:220] - Matched spectra: 0
+    2023-07-26 05:19:08 [INFO ] main.java.pg.SpectraInput[readMSMSfast:221] - Matched PSMs: 0
+    2023-07-26 05:19:10 [INFO ] main.java.pg.SpectraInput[readMSMSfast:257] - Finished:10000
+    2023-07-26 05:19:11 [INFO ] main.java.pg.SpectraInput[readMSMSfast:257] - Finished:20000
+    2023-07-26 05:19:12 [INFO ] main.java.pg.SpectraInput[readMSMSfast:272] - Saved spectra: 0
+    2023-07-26 05:19:12 [INFO ] main.java.pg.SpectraInput[readMSMSfast:274] - Get matched spectra done!
+    2023-07-26 05:19:12 [INFO ] main.java.pg.PeptideSearchMT[search:456] - Time elapsed: 0.19 min
+    2023-07-26 05:19:12 [INFO ] main.java.pg.PeptideSearchMT[search:476] - Step 2: candidate spectra retrieval and PSM scoring done: time elapsed = 0.19 min
+    2023-07-26 05:19:12 [INFO ] main.java.pg.PeptideSearchMT[search:480] - Step 3-4: competitive filtering based on reference sequences and statistical evaluation ...
+    2023-07-26 05:19:12 [INFO ] main.java.pg.PeptideSearchMT[search:515] - Don't find indexed database:immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta.sqldb
+    2023-07-26 05:19:12 [INFO ] main.java.pg.PeptideSearchMT[search:522] - Use database:immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta
+    2023-07-26 05:19:12 [INFO ] main.java.pg.DatabaseInput[getEnzymeByIndex:263] - Use enzyme:Trypsin
+    2023-07-26 05:19:20 [INFO ] main.java.pg.DatabaseInput[protein_digest:474] - Protein sequences:96808, total unique peptide sequences:2873094
+    2023-07-26 05:19:20 [INFO ] main.java.pg.DatabaseInput[protein_digest:475] - Time used for protein digestion:8 s.
+    2023-07-26 05:19:30 [INFO ] main.java.pg.DatabaseInput[generate_reference_peptide_index:522] - Generating peptide forms is done!
+    2023-07-26 05:19:31 [INFO ] main.java.pg.DatabaseInput[generate_reference_peptide_index:539] - Sort peptide index ...
+    2023-07-26 05:19:31 [INFO ] main.java.pg.DatabaseInput[generate_reference_peptide_index:543] - Sort peptide index done
+    2023-07-26 05:19:31 [INFO ] main.java.pg.DatabaseInput[generate_reference_peptide_index:548] - Total unique peptide: 2873094, total peptide forms:0
+    2023-07-26 05:19:31 [INFO ] main.java.pg.DatabaseInput[generate_reference_peptide_index:553] - Index block size:0
+    2023-07-26 05:19:31 [INFO ] main.java.pg.DatabaseInput[generate_reference_peptide_index:554] - Time used for building peptide index:19 s.
+    2023-07-26 05:19:31 [INFO ] main.java.pg.DatabaseInput[db_search:694] - Searching reference database for spectra:0
+    2023-07-26 05:19:31 [INFO ] main.java.pg.DatabaseInput[db_search:756] - Time used for searching reference peptides:19 s.
+    2023-07-26 05:19:31 [INFO ] main.java.pg.PeptideSearchMT[search:536] - Time elapsed: 0.51 min
+    2023-07-26 05:19:31 [INFO ] main.java.pg.PeptideSearchMT[search:557] - Peptides with matched spectra: 0
+    2023-07-26 05:19:31 [INFO ] main.java.pg.PeptideSearchMT[search:560] - Done!
+    2023-07-26 05:19:31,220 INFO     >>>>> PepQuery finished successfully
+
+    2023-07-26 05:19:31,227 ERROR    >>>>> PepQuery failed to generate the psm_rank.txt file. Please check the output directory. Maybe the provided spectra file does not contain any of the input peptides
+    ERROR conda.cli.main_run:execute(47): `conda run python /home/pballesteros/immunopepper/immunopepper/get_parsers.py pepquery --output-dir immunopepper_usecase/pepquery/ --partitioned-tsv immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz/ --metadata-path immunopepper_usecase/cohort_mutNone/ref_sample_peptides_meta.gz --kmer-type junctions --verbose 1 --pepquery-software-path pepQuery/pepquery-2.0.2/pepquery-2.0.2.jar --argstring -o immunopepper_usecase/pepquery/results/ -i immunopepper_usecase/pepquery/pepquery_input.txt -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf` failed. (See above for error)
+
+Output files
+~~~~~~~~~~~~
+
+1. **pepquery_input.txt**:
+
+    This is the input file for PepQuery. It is generated by expanding the provided kmers under *--partitioned-tsv* to their peptide context. This is done by matching the coordinates in the output kmers with the peptides coordinates provided in the metadata.
+
+    *Format*: It contains one peptide per line with no header.
+
+    *Output example*:
+
+    .. code-block:: console
+
+        NEVIGECIACSASFDATTIGRSRHRESSSLVSDGWACRGSATARPPNPRRAVLCKSIEPTYG
+        NEVIGECIACSASFDATTIGRSRHRESSSLVSDGWACRGSATARPPNPRRAVLCKSIEPTYGR
+
+2. **results:**
+
+    It is a folder where the raw output of pepQuery should be contained. As the tool was not able to find any PSM, the folder does not contain the result file called **psm_rank.txt**. The folder contains some metadata files. The exact content of those files can be checked in the `PepQuery documentation <http://pepquery.org/document.html#saoutput>`_.
+
+Pepquery mode starting from peptides
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In this tutorial, a list of peptides is provided. The tool will run PepQuery and it will return the raw and formatted output files.
+
+Command
+~~~~~~~
+
+The command needed to run this tutorial is:
+
+.. code-block:: console
+
+    pepquery --output-dir immunopepper_usecase/pepquery_peptides/ --verbose 1 --pepquery-software-path pepQuery/pepquery-2.0.2/pepquery-2.0.2.jar --argstring "-o immunopepper_usecase/pepquery/results_peptides/ -i immunopepper/tests/data_simulated/data/pepquery_mode/targetlist -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf"
+
+Terminal output
+~~~~~~~~~~~~~~~
+
+The output one will see in the terminal is:
+
+.. code-block:: console
+
+    2023-07-26 05:45:18,084 INFO     Command lineNamespace(output_dir='immunopepper_usecase/pepquery_peptides/', argstring='-o immunopepper_usecase/pepquery/results_peptides/ -i immunopepper/tests/data_simulated/data/pepquery_mode/targetlist -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf', pepquery_software_path='pepQuery/pepquery-2.0.2/pepquery-2.0.2.jar', partitioned_tsv=None, metadata_path=None, kmer_type=None, verbose=1)
+    2023-07-26 05:45:18,084 INFO     >>>>> Running immunopepper in pepquery mode
+
+    2023-07-26 05:45:18,085 INFO     >>>>> Launching PepQuery with command -o immunopepper_usecase/pepquery/results_peptides/ -i immunopepper/tests/data_simulated/data/pepquery_mode/targetlist -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf
+
+    2023-07-26 05:45:19 [INFO ] main.java.pg.CParameter[updateCParameter:873] - Task type: novel peptide identification
+    2023-07-26 05:45:19 [INFO ] uk.ac.ebi.pride.utilities.pridemod.io.unimod.xml.unmarshaller.UnimodUnmarshallerFactory[initializeUnmarshaller:41] - Unmarshaller Initialized
+    2023-07-26 05:45:20 [INFO ] main.java.OpenModificationSearch.ModificationDB[importPTMsFromUnimod:355] - All modifications in unimod:1375
+    2023-07-26 05:45:20 [INFO ] main.java.pg.PeptideSearchMT[search:243] - Start analysis
+    #############################################
+    PepQuery parameter:
+    2023-07-26 05:45:20 [INFO ] main.java.pg.DatabaseInput[getEnzymeByIndex:263] - Use enzyme:Trypsin
+    PepQuery version: 2.0.2
+    PepQuery command line: -o immunopepper_usecase/pepquery/results_peptides/ -i immunopepper/tests/data_simulated/data/pepquery_mode/targetlist -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf
+    Fixed modification: 1 = Carbamidomethylation of C
+    Variable modification: 2 = Oxidation of M
+    Max allowed variable modification: 3
+    Add AA substitution: false
+    Enzyme: 1 = Trypsin
+    Max Missed cleavages: 2
+    Precursor mass tolerance: 10.0
+    Range of allowed isotope peak errors: 0
+    Precursor ion mass tolerance unit: ppm
+    Fragment ion mass tolerance: 0.6
+    Fragment ion mass tolerance unit: Da
+    Scoring algorithm: 1 = Hyperscore
+    Min score: 12.0
+    Min peaks: 10
+    Min peptide length: 7
+    Max peptide length: 45
+    Min peptide mass: 500.0
+    Max peptide mass: 10000.0
+    Random peptide number: 10000
+    Fast mode: false
+    CPU: 16
+    #############################################
+    2023-07-26 05:45:20 [INFO ] main.java.pg.PeptideSearchMT[search:250] - Spectrum ID type:1, use 1-based number as index for a spectrum.
+    2023-07-26 05:45:20 [INFO ] main.java.pg.PeptideSearchMT[search:253] - Step 1: target peptide sequence preparation and initial filtering ...
+    2023-07-26 05:45:20 [INFO ] main.java.pg.PeptideSearchMT[search:330] - Input peptide sequences:2000
+    2023-07-26 05:45:20 [INFO ] main.java.pg.InputProcessor[searchRefDB:413] - Don't find indexed database:immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta.sqldb
+    2023-07-26 05:45:20 [INFO ] main.java.pg.InputProcessor[searchRefDB:414] - Use database:immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta
+    2023-07-26 05:45:20 [INFO ] main.java.pg.PepMapping[init:62] - Load db file: immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta
+    2023-07-26 05:45:20 [INFO ] main.java.pg.PepMapping[init:78] - Start indexing fasta file
+    2023-07-26 05:45:22 [INFO ] main.java.pg.PepMapping[init:88] - Indexing took 0.580613138 seconds and consumes 112.873096 MB
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): VDECRERGPALCGSQRCENSPGSYRCVRDCDPGYHAGPEGTCDDVNECETLQGVCGAALCENV
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): VDECQEYGPEICGAQRCENTPGSYRCTPACDPGYQPTPGGGCQDVNECETLQGVCGAALCENV
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): YEGARDGRHCVDVNECETLQGVCGAALCENV
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): VNECETLQGVCGAALCENV
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): EIVVGSNMDKIYIVMNYVEHDLKSLMETMKQPFLPGEVKTLMIQLLRGVKHLHDNWILHRDLKTSNLLLSHAGILKVSPPPSGPSQGDPPGPTHSRPSVVAGG
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): LSPTQPCPEGSGDCRKQCEPDYYLDEAGRCTACVSCSRDDLVEKTPCAWNSSRTCECRPGMICATSATNSCARCVPYPICAAETVTKPQ
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): DLVEKTPCAWNSSRTCECRPGMICATSATNSCARCVPYPICAAETVTKPQDMAEKDTTFEAPPLGTQPDCNPTPENGEAPA
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): LGDDI
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): MIFEKLRICSMPQFFCFMQDLPPLKYDPDVVVTDFRFGTIPVKLYQPKASTCTLKPGIVYYHGGGGVMGSLKTHHGICSRLCKESDSVVLAV
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): GLPYKHLITHHQEPPHRYLISTYDDHYNRHGYNPGLPPLRTWNGQKLLWLPEKSDFPLLAPPTNYGLYEQLKQRQLTPKAGLKQSTYTSSYPRPPLCAMSWREHAVPVPPHRLHPLPHF
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): MSLQAPPRLLELAEQSLLRDRALAIPTLEELPRELFPPLFMEAFTRRCCETLTTMVQAWPFTCLPLGSLMKSCNLEIFRAVLEGLDALLAQKVRPRRWKLQVLDLRNVDENFWGIWSGASALSPEALSKRRTAGNCPRPGGQQPLMVILDLCFKNGTLDECLTHFLEWGKQRKGLLHVCCKELQIFGIAIHRIIEVLNTVELDCIQEVEVCCPWELSILIRFAPYLGQMRNLRKLVLFNIHVSACIPLDRKEQFVIQFTSQFLKLDYFQKLYMHSVSFLEGHLDQLL
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): RWKLQVLDLRNVDENFWGIWSGASALSPEALSKRRTAGNCPRPGGQQPLMVILDLCFKNGTLDECLTHFLEWGKQRKGLLHVCCKELQIFGIAIHRIIEVLNTVELDCIQEVEVCCPWELSILIRFAPYLGQMRNLRKLVLFNIHVSACIPLDRKEQFVIQFTSQFLKLDYFQKLYMHSVSFLEGHLDQLLRCLQAPLETVVMTECLLSESDLKHLSWCPSIRQLKELDLRGITLTHFSPEPLSVLLEQAEATLQTLDLEDCGIVDSQLSAILPALSRCSQLSTFSFCGNLISMAALENLLRHTVGLSKLSLELYPAPLESYDAQGALCWGRFSQLGAELMKTLRDLRQPKIIVFSTVPCPRCGIRASYDLEPSHCLLNACCQGGFI
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): MSIQAPPRLLELAGQSLLRDQALSISAMEELPRVLYLPLFMEAFSRRHFQTLTVMVQAWPFTCLPLGSLMKTLHLETLKALLEGLHMLLTQKDRPRRWKLQVLD
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): GNPISMATLENLLSHTIILKNLCVEVYPAPRESYGADGTLCWSRFAQIRAELMNRVRDLRHPKRIFFCIDNCPDCGNRSFYDLEADQYCC
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): ILLYSSVDTGTQCLVSCRSPGLQPVLCLRHSPFHLLAGLQDGTLAAYPRTSGGVLWDLESPPVCLTVGPGPVRTLLSLEDAVWASCGPRVTVLEATTLQPQ
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): GVLWDLESPPVCLTVGPGPVRTLLSLEDAVWASCGPRVTVLEATTLQPQQSFEAHQDEAVSVTHMVKAGSGVWMAFSSGTSIRLFHTETLEHLQEINIATRTTFLLP
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): VLWDLESPPVCLTVGPGPVRTLLSLEDAVWASCGPRVTVLEATTLQPQQSFEAHQDEAVSVTHMVKAGSGVWMAFSSGTSIRLFHTETLEHLQEINIATRTTFLLP
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): MNLSLSQKTVKIHRLFPMLAFSEPYEFVSLEWLQKWLDESTPTKPIDNHACLCSHDKLHPDKISIMKRISEYAADIFYSRYGGGPRLTVKALCKECVVERCRILRLKNQLNEDYKTVNNLLKAAVK
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): MSSKYPRSVRRCLPLWALTLEAALILLFYFFTHYDASLEDQKGLVASYQVGQDLTVMAALGLGFLTSNFRRHSWSSVAFNLFMLALGVQWAILLDGFLSQFPPGKVVITLF
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): MAQEEEDVRDYNLTEEQKAIKAKYPPVNRKYEYQQTHLLQSPHRIYSHLHSSAIWNPYLHLMGT
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): GGSRVSNPAVMAQEEEDVRDYNLTEEQKAIKAKYPPVNRKYEYQQTHLLQSPHRIYSHLHSSAIWNPYLHLMGT
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): MKGGSRVSNPAVMAQEEEDVRDYNLTEEQKAIKAKYPPVNRKYEYQQTHLLQSPHRIYSHLHSSAIWNPYLHLMGT
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): HSVDPGLAGLLGQRAPRSQQPFVVTFFRASPSPIRTPRAVRPLRRRQPKKSNELPQANRLPGIFDDVHGSHGRQVCRRHELYVSFQDLGWL
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): DVHGSHGRQVCRRHELYVSFQDLGWLDWVIAPQGYSAYYCEGECSFPLDSCMNATNHAILQSL
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): MILGHCSLDLLGSSNPPTSASQAATGFHVRGRWRTEDCHLRTKAIETLRVAGRHQLPDRSFISFGISSLQMVSSQKLEKPI
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): FHVRGRWRTEDCHLRTKAIETLRVAGRHQLPDRSFISFGISSLQMVSSQKLEKPIEMGSSEPLPIADGDRRRKKKRRGRATDSLPGKFE
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): MKRRNLFALETGVPPWGLLWVRS
+    2023-07-26 05:45:23 [WARN ] main.java.pg.PeptideSearchMT[search:342] - Ignore peptide (reason: exist in reference database): TRSSGSGRQPCRMRRCGRRSRTGGTWTSWTFSWVPGMKMTSNCQMQTSGLKWTHSCLKAMTPPPVVSPGFSTA
+    2023-07-26 05:45:23 [INFO ] main.java.pg.PeptideSearchMT[search:407] - Valid target peptides: 1972
+    2023-07-26 05:45:23 [INFO ] main.java.pg.PeptideSearchMT[generatePeptideInputs:1330] - Generate peptide objects ...
+    2023-07-26 05:45:23 [INFO ] main.java.pg.PeptideSearchMT[generatePeptideInputs:1341] - CPU: 16
+    2023-07-26 05:45:24 [INFO ] main.java.pg.PeptideSearchMT[generatePeptideInputs:1359] - Generate peptide objects done.
+    2023-07-26 05:45:24 [INFO ] main.java.pg.PeptideSearchMT[search:413] - Step 1: target peptide sequence preparation and initial filtering done: time elapsed = 0.10 min
+    2023-07-26 05:45:24 [INFO ] main.java.pg.PeptideSearchMT[search:418] - Step 2: candidate spectra retrieval and PSM scoring ...
+    2023-07-26 05:45:29 [INFO ] main.java.pg.SpectraInput[readMSMSfast:111] - Build target peptide index done.
+    2023-07-26 05:45:32 [INFO ] main.java.pg.SpectraInput[readMSMSfast:191] - Finished:10000
+    2023-07-26 05:45:34 [INFO ] main.java.pg.SpectraInput[readMSMSfast:191] - Finished:20000
+    2023-07-26 05:45:34 [INFO ] main.java.pg.SpectraInput[readMSMSfast:220] - Matched spectra: 2
+    2023-07-26 05:45:34 [INFO ] main.java.pg.SpectraInput[readMSMSfast:221] - Matched PSMs: 2
+    2023-07-26 05:45:37 [INFO ] main.java.pg.SpectraInput[readMSMSfast:257] - Finished:10000
+    2023-07-26 05:45:38 [INFO ] main.java.pg.SpectraInput[readMSMSfast:257] - Finished:20000
+    2023-07-26 05:45:38 [INFO ] main.java.pg.SpectraInput[readMSMSfast:272] - Saved spectra: 2
+    2023-07-26 05:45:38 [INFO ] main.java.pg.SpectraInput[readMSMSfast:274] - Get matched spectra done!
+    2023-07-26 05:45:38 [INFO ] main.java.pg.PeptideSearchMT[search:456] - Time elapsed: 0.34 min
+    2023-07-26 05:45:38 [INFO ] main.java.pg.PeptideSearchMT[search:476] - Step 2: candidate spectra retrieval and PSM scoring done: time elapsed = 0.34 min
+    2023-07-26 05:45:38 [INFO ] main.java.pg.PeptideSearchMT[search:480] - Step 3-4: competitive filtering based on reference sequences and statistical evaluation ...
+    2023-07-26 05:45:38 [INFO ] main.java.pg.PeptideSearchMT[search:515] - Don't find indexed database:immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta.sqldb
+    2023-07-26 05:45:38 [INFO ] main.java.pg.PeptideSearchMT[search:522] - Use database:immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta
+    2023-07-26 05:45:38 [INFO ] main.java.pg.DatabaseInput[getEnzymeByIndex:263] - Use enzyme:Trypsin
+    2023-07-26 05:45:47 [INFO ] main.java.pg.DatabaseInput[protein_digest:474] - Protein sequences:96808, total unique peptide sequences:2873094
+    2023-07-26 05:45:47 [INFO ] main.java.pg.DatabaseInput[protein_digest:475] - Time used for protein digestion:9 s.
+    2023-07-26 05:46:04 [INFO ] main.java.pg.DatabaseInput[generate_reference_peptide_index:522] - Generating peptide forms is done!
+    2023-07-26 05:46:04 [INFO ] main.java.pg.DatabaseInput[generate_reference_peptide_index:539] - Sort peptide index ...
+    2023-07-26 05:46:05 [INFO ] main.java.pg.DatabaseInput[generate_reference_peptide_index:543] - Sort peptide index done
+    2023-07-26 05:46:05 [INFO ] main.java.pg.DatabaseInput[generate_reference_peptide_index:548] - Total unique peptide: 2873094, total peptide forms:951099
+    2023-07-26 05:46:05 [INFO ] main.java.pg.DatabaseInput[generate_reference_peptide_index:553] - Index block size:7861
+    2023-07-26 05:46:05 [INFO ] main.java.pg.DatabaseInput[generate_reference_peptide_index:554] - Time used for building peptide index:26 s.
+    2023-07-26 05:46:05 [INFO ] main.java.pg.DatabaseInput[db_search:694] - Searching reference database for spectra:2
+    2023-07-26 05:46:05 [INFO ] main.java.pg.DatabaseInput[db_search:756] - Time used for searching reference peptides:27 s.
+    2023-07-26 05:46:05 [INFO ] main.java.pg.PeptideSearchMT[search:536] - Time elapsed: 0.79 min
+    2023-07-26 05:46:05 [INFO ] main.java.pg.PeptideSearchMT[search:557] - Peptides with matched spectra: 2
+    2023-07-26 05:46:05 [INFO ] main.java.pg.PeptideSearchMT[search:574] - Step 3-4: competitive filtering based on reference sequences and statistical evaluation done: time elapsed = 0.79 min
+    2023-07-26 05:46:05 [INFO ] main.java.pg.PeptideSearchMT[exportMGF:1309] - All spectra have been exported to file: /home/pballesteros/immunopepper_usecase/pepquery/results_peptides//psm_rank.mgf
+    2023-07-26 05:46:05 [INFO ] main.java.pg.PeptideSearchMT[search:580] - Step 5: competitive filtering based on unrestricted post-translational modification searching ...
+    2023-07-26 05:46:05 [INFO ] main.java.OpenModificationSearch.ModificationDB[doPTMValidation:1464] - Time used for PTM validation:0 s.
+    2023-07-26 05:46:05 [INFO ] main.java.pg.PeptideSearchMT[summariseResult:857] - Identified PSMs: 0
+    2023-07-26 05:46:05 [INFO ] main.java.pg.PeptideSearchMT[summariseResult:858] - Identified peptides: 0
+    2023-07-26 05:46:05 [INFO ] main.java.pg.PeptideSearchMT[search:589] - Step 5: competitive filtering based on unrestricted post-translational modification searching done: time elapsed = 0.79 min
+    2023-07-26 05:46:05 [INFO ] main.java.pg.PeptideSearchMT[search:617] - Time elapsed: 0.79 min
+    2023-07-26 05:46:05 [INFO ] main.java.pg.PeptideSearchMT[search:618] - End.
+    2023-07-26 05:46:05,880 INFO     >>>>> PepQuery finished successfully
+
+    2023-07-26 05:46:05,935 INFO     >>>>> Processed output file saved to immunopepper_usecase/pepquery_peptides/peptides_validated.tsv.gz
+
+    2023-07-26 05:46:05,935 INFO     >>>>> Finished running immunopepper in pepquery mode
 
 
+Output files
+~~~~~~~~~~~~
 
+1. **results_peptides**: This is a folder containing the raw output of the PepQuery software. For more information on the different files contained in this folder one can look the  `PepQuery documentation <http://pepquery.org/document.html#saoutput>`_.
 
+2. **peptides_validated.tsv.gz**: This file contains the results obtained from the PepQuery software but formatted. It explains the filtering step at which each peptide-spectra match (PSM) failed. The file will only show the peptides involved in a PSM.
+
+    The output file looks like this:
+
+    +-------------------------------------+---------------------------------------------------------+------------+----------------------+---------------+------------+------------------------------------------------------------------------+------------------------------------------------------------------------+--------------------------------------------------------------------------------------------+------------------------------------------------------------------------------+
+    | peptide                             |      modification                                       |  spectrum  |      score           |    confident  |     pvalue | # of reference DB peptides matching spectrum better than study peptide | # random shuffled peptides matching spectrum better that study peptide |  # ptm-modified proteins matching better the spectra filtering summary than study peptide  |      filtering summary                                                       |
+    +=====================================+= =======================================================+============+======================+===============+============+========================================================================+========================================================================+============================================================================================+==============================================================================+
+    | GSPGIRGPQGITGPKGATGSAGQAGRPGSPGHQGVA|    -                                                    |  20517     |   14.876393794788058 |     No        |   NaN      | 27                                                                     | NaN                                                                    | NaN                                                                                        |  Failed at competitive filtering based on reference sequences (step 3).      |
+    +-------------------------------------+---------------------------------------------------------+------------+----------------------+---------------+------------+------------------------------------------------------------------------+------------------------------------------------------------------------+--------------------------------------------------------------------------------------------+------------------------------------------------------------------------------+
+    | LDGSLPPDSRLENNMLMLPSVQPQD           | Oxidation of M@15[15.9949];Oxidation of M@17[15.9949]   |  2757      |   12.5103564275612   |     No        |     NaN    | 177                                                                    | NaN                                                                    |   NaN                                                                                      |  Failed at competitive filtering based on reference sequences (step 3).      |
+    +-------------------------------------+- -------------------------------------------------------+------------+----------------------+---------------+------------+------------------------------------------------------------------------+------------------------------------------------------------------------+--------------------------------------------------------------------------------------------+------------------------------------------------------------------------------+
+
+    In this result, one can only see two peptides. This is because PSM were only found for these two peptides. The first peptide does not contain any modification, while the second one contains two modifications. Both peptides failed in the filtering step 3: spectra matching against reference peptides. In both cases, there is still at least one reference peptide that match the spectra better. As the peptides fail the filtering step, the identification is not confident, meaning that one cannot assure the identified peptide is expressed in our sample at the protein level.

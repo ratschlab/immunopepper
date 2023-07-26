@@ -1,0 +1,998 @@
+mod_title	mod_name	mono_mass	site	position	classification
+Acetyl of T	Acetylation	42.010565	T	Anywhere	Post-translational
+Acetyl of N-term	Acetylation	42.010565	N-term	Protein N-term	Post-translational
+Acetyl of S	Acetylation	42.010565	S	Anywhere	Post-translational
+Acetyl of C	Acetylation	42.010565	C	Anywhere	Post-translational
+Acetyl of N-term	Acetylation	42.010565	N-term	Any N-term	Multiple
+Acetyl of K	Acetylation	42.010565	K	Anywhere	Multiple
+Acetyl of Y	Acetylation	42.010565	Y	Anywhere	Chemical derivative
+Acetyl of H	Acetylation	42.010565	H	Anywhere	Chemical derivative
+Amidated of C-term	Amidation	-0.984016	C-term	Any C-term	Artefact
+Amidated of C-term	Amidation	-0.984016	C-term	Protein C-term	Post-translational
+Biotin of N-term	Biotinylation	226.077598	N-term	Any N-term	Chemical derivative
+Biotin of K	Biotinylation	226.077598	K	Anywhere	Post-translational
+Carbamidomethyl of Y	Iodoacetamide derivative	57.021464	Y	Anywhere	Artefact
+Carbamidomethyl of T	Iodoacetamide derivative	57.021464	T	Anywhere	Artefact
+Carbamidomethyl of S	Iodoacetamide derivative	57.021464	S	Anywhere	Artefact
+Carbamidomethyl of E	Iodoacetamide derivative	57.021464	E	Anywhere	Artefact
+Carbamidomethyl of H	Iodoacetamide derivative	57.021464	H	Anywhere	Artefact
+Carbamidomethyl of D	Iodoacetamide derivative	57.021464	D	Anywhere	Artefact
+Carbamidomethyl of N-term	Iodoacetamide derivative	57.021464	N-term	Any N-term	Artefact
+Carbamidomethyl of K	Iodoacetamide derivative	57.021464	K	Anywhere	Artefact
+Carbamidomethyl of C	Iodoacetamide derivative	57.021464	C	Anywhere	Chemical derivative
+Carbamidomethyl of U	Iodoacetamide derivative	57.021464	U	Anywhere	Chemical derivative
+Carbamyl of Y	Carbamylation	43.005814	Y	Anywhere	Chemical derivative
+Carbamyl of T	Carbamylation	43.005814	T	Anywhere	Chemical derivative
+Carbamyl of S	Carbamylation	43.005814	S	Anywhere	Chemical derivative
+Carbamyl of M	Carbamylation	43.005814	M	Anywhere	Artefact
+Carbamyl of C	Carbamylation	43.005814	C	Anywhere	Artefact
+Carbamyl of R	Carbamylation	43.005814	R	Anywhere	Artefact
+Carbamyl of N-term	Carbamylation	43.005814	N-term	Any N-term	Multiple
+Carbamyl of K	Carbamylation	43.005814	K	Anywhere	Multiple
+Carbamyl of N-term	Carbamylation	43.005814	N-term	Protein N-term	Post-translational
+Carboxymethyl of N-term	Iodoacetic acid derivative	58.005479	N-term	Any N-term	Artefact
+Carboxymethyl of K	Iodoacetic acid derivative	58.005479	K	Anywhere	Artefact
+Carboxymethyl of C	Iodoacetic acid derivative	58.005479	C	Anywhere	Chemical derivative
+Carboxymethyl of W	Iodoacetic acid derivative	58.005479	W	Anywhere	Chemical derivative
+Carboxymethyl of U	Iodoacetic acid derivative	58.005479	U	Anywhere	Chemical derivative
+Deamidated of Q	Deamidation	0.984016	Q	Anywhere	Artefact
+Deamidated of R	Deamidation	0.984016	R	Anywhere	Post-translational
+Deamidated of N	Deamidation	0.984016	N	Anywhere	Artefact
+Deamidated of F	Deamidation	0.984016	F	Protein N-term	Post-translational
+Met->Hse of M	Homoserine	-29.992806	M	Any C-term	Chemical derivative
+Met->Hsl of M	Homoserine lactone	-48.003371	M	Any C-term	Chemical derivative
+NIPCAM of C	N-isopropylcarboxamidomethyl	99.068414	C	Anywhere	Chemical derivative
+Phospho of C	Phosphorylation	79.966331	C	Anywhere	Post-translational
+Phospho of H	Phosphorylation	79.966331	H	Anywhere	Post-translational
+Phospho of D	Phosphorylation	79.966331	D	Anywhere	Post-translational
+Phospho of Y	Phosphorylation	79.966331	Y	Anywhere	Post-translational
+Phospho of T	Phosphorylation	79.966331	T	Anywhere	Post-translational
+Phospho of S	Phosphorylation	79.966331	S	Anywhere	Post-translational
+Phospho of R	Phosphorylation	79.966331	R	Anywhere	Post-translational
+Phospho of K	Phosphorylation	79.966331	K	Anywhere	Other
+Dehydrated of D	Dehydration	-18.010565	D	Anywhere	Chemical derivative
+Dehydrated of Y	Dehydration	-18.010565	Y	Anywhere	Post-translational
+Dehydrated of T	Dehydration	-18.010565	T	Anywhere	Post-translational
+Dehydrated of S	Dehydration	-18.010565	S	Anywhere	Post-translational
+Dehydrated of N	Dehydration	-18.010565	N	Protein C-term	Post-translational
+Dehydrated of Q	Dehydration	-18.010565	Q	Protein C-term	Post-translational
+Dehydrated of C	Dehydration	-18.010565	C	Any N-term	Artefact
+Propionamide of C	Acrylamide adduct	71.037114	C	Anywhere	Artefact
+Propionamide of K	Acrylamide adduct	71.037114	K	Anywhere	Chemical derivative
+Propionamide of N-term	Acrylamide adduct	71.037114	N-term	Any N-term	Chemical derivative
+Pyridylacetyl of N-term	pyridylacetyl	119.037114	N-term	Any N-term	Chemical derivative
+Pyridylacetyl of K	pyridylacetyl	119.037114	K	Anywhere	Chemical derivative
+Pyro-carbamidomethyl of C	S-carbamoylmethylcysteine cyclization (N-terminus)	39.994915	C	Any N-term	Artefact
+Glu->pyro-Glu of E	Pyro-glu from E	-18.010565	E	Any N-term	Artefact
+Gln->pyro-Glu of Q	Pyro-glu from Q	-17.026549	Q	Any N-term	Artefact
+SMA of N-term	N-Succinimidyl-2-morpholine acetate	127.063329	N-term	Any N-term	Chemical derivative
+SMA of K	N-Succinimidyl-2-morpholine acetate	127.063329	K	Anywhere	Chemical derivative
+Cation:Na of D	Sodium adduct	21.981943	D	Anywhere	Artefact
+Cation:Na of C-term	Sodium adduct	21.981943	C-term	Any C-term	Artefact
+Cation:Na of E	Sodium adduct	21.981943	E	Anywhere	Artefact
+Pyridylethyl of C	S-pyridylethylation	105.057849	C	Anywhere	Chemical derivative
+Methyl of E	Methylation	14.01565	E	Anywhere	Post-translational
+Methyl of D	Methylation	14.01565	D	Anywhere	Post-translational
+Methyl of C-term	Methylation	14.01565	C-term	Any C-term	Multiple
+Methyl of N-term	Methylation	14.01565	N-term	Protein N-term	Post-translational
+Methyl of L	Methylation	14.01565	L	Anywhere	Post-translational
+Methyl of I	Methylation	14.01565	I	Anywhere	Post-translational
+Methyl of R	Methylation	14.01565	R	Anywhere	Post-translational
+Methyl of Q	Methylation	14.01565	Q	Anywhere	Post-translational
+Methyl of N-term	Methylation	14.01565	N-term	Any N-term	Chemical derivative
+Methyl of N	Methylation	14.01565	N	Anywhere	Post-translational
+Methyl of K	Methylation	14.01565	K	Anywhere	Post-translational
+Methyl of H	Methylation	14.01565	H	Anywhere	Post-translational
+Methyl of C	Methylation	14.01565	C	Anywhere	Post-translational
+Methyl of S	Methylation	14.01565	S	Anywhere	Post-translational
+Methyl of T	Methylation	14.01565	T	Anywhere	Post-translational
+Oxidation of W	Oxidation or Hydroxylation	15.994915	W	Anywhere	Artefact
+Oxidation of H	Oxidation or Hydroxylation	15.994915	H	Anywhere	Artefact
+Oxidation of C	Oxidation or Hydroxylation	15.994915	C	Anywhere	Post-translational
+Oxidation of M	Oxidation or Hydroxylation	15.994915	M	Anywhere	Artefact
+Oxidation of R	Oxidation or Hydroxylation	15.994915	R	Anywhere	Post-translational
+Oxidation of Y	Oxidation or Hydroxylation	15.994915	Y	Anywhere	Post-translational
+Oxidation of F	Oxidation or Hydroxylation	15.994915	F	Anywhere	Artefact
+Oxidation of P	Oxidation or Hydroxylation	15.994915	P	Anywhere	Post-translational
+Oxidation of N	Oxidation or Hydroxylation	15.994915	N	Anywhere	Post-translational
+Oxidation of D	Oxidation or Hydroxylation	15.994915	D	Anywhere	Post-translational
+Oxidation of K	Oxidation or Hydroxylation	15.994915	K	Anywhere	Post-translational
+Oxidation of G	Oxidation or Hydroxylation	15.994915	G	Any C-term	Pre-translational
+Oxidation of U	Oxidation or Hydroxylation	15.994915	U	Anywhere	Multiple
+Dimethyl of N-term	di-Methylation	28.0313	N-term	Protein N-term	Isotopic label
+Dimethyl of P	di-Methylation	28.0313	P	Protein N-term	Post-translational
+Dimethyl of N	di-Methylation	28.0313	N	Anywhere	Post-translational
+Dimethyl of N-term	di-Methylation	28.0313	N-term	Any N-term	Isotopic label
+Dimethyl of K	di-Methylation	28.0313	K	Anywhere	Multiple
+Dimethyl of R	di-Methylation	28.0313	R	Anywhere	Post-translational
+Trimethyl of A	tri-Methylation	42.04695	A	Protein N-term	Post-translational
+Trimethyl of R	tri-Methylation	42.04695	R	Anywhere	Chemical derivative
+Trimethyl of K	tri-Methylation	42.04695	K	Anywhere	Post-translational
+Methylthio of C	Beta-methylthiolation	45.987721	C	Anywhere	Multiple
+Methylthio of N	Beta-methylthiolation	45.987721	N	Anywhere	Post-translational
+Methylthio of D	Beta-methylthiolation	45.987721	D	Anywhere	Post-translational
+Methylthio of K	Beta-methylthiolation	45.987721	K	Anywhere	Artefact
+Methylthio of N-term	Beta-methylthiolation	45.987721	N-term	Any N-term	Artefact
+Sulfo of S	O-Sulfonation	79.956815	S	Anywhere	Post-translational
+Sulfo of T	O-Sulfonation	79.956815	T	Anywhere	Post-translational
+Sulfo of Y	O-Sulfonation	79.956815	Y	Anywhere	Post-translational
+Sulfo of C	O-Sulfonation	79.956815	C	Anywhere	Post-translational
+Hex of Y	Hexose	162.052824	Y	Anywhere	O-linked glycosylation
+Hex of R	Hexose	162.052824	R	Anywhere	N-linked glycosylation
+Hex of C	Hexose	162.052824	C	Anywhere	Other glycosylation
+Hex of W	Hexose	162.052824	W	Anywhere	Other glycosylation
+Hex of T	Hexose	162.052824	T	Anywhere	O-linked glycosylation
+Hex of K	Hexose	162.052824	K	Anywhere	Other glycosylation
+Hex of S	Hexose	162.052824	S	Anywhere	O-linked glycosylation
+Hex of N-term	Hexose	162.052824	N-term	Any N-term	Other glycosylation
+Hex of N	Hexose	162.052824	N	Anywhere	N-linked glycosylation
+Lipoyl of K	Lipoyl	188.032956	K	Anywhere	Post-translational
+HexNAc of T	N-Acetylhexosamine	203.079373	T	Anywhere	O-linked glycosylation
+HexNAc of S	N-Acetylhexosamine	203.079373	S	Anywhere	O-linked glycosylation
+HexNAc of N	N-Acetylhexosamine	203.079373	N	Anywhere	N-linked glycosylation
+Farnesyl of C	Farnesylation	204.187801	C	Anywhere	Post-translational
+Myristoyl of C	Myristoylation	210.198366	C	Anywhere	Post-translational
+Myristoyl of K	Myristoylation	210.198366	K	Anywhere	Post-translational
+Myristoyl of G	Myristoylation	210.198366	G	Any N-term	Post-translational
+PyridoxalPhosphate of K	Pyridoxal phosphate	229.014009	K	Anywhere	Post-translational
+Palmitoyl of T	Palmitoylation	238.229666	T	Anywhere	Post-translational
+Palmitoyl of S	Palmitoylation	238.229666	S	Anywhere	Post-translational
+Palmitoyl of K	Palmitoylation	238.229666	K	Anywhere	Post-translational
+Palmitoyl of C	Palmitoylation	238.229666	C	Anywhere	Post-translational
+Palmitoyl of N-term	Palmitoylation	238.229666	N-term	Protein N-term	Post-translational
+Guanidinyl of K	Guanidination	42.021798	K	Anywhere	Chemical derivative
+Guanidinyl of N-term	Guanidination	42.021798	N-term	Any N-term	Chemical derivative
+HNE of K	4-hydroxynonenal (HNE)	156.11503	K	Anywhere	Post-translational
+HNE of H	4-hydroxynonenal (HNE)	156.11503	H	Anywhere	Post-translational
+HNE of C	4-hydroxynonenal (HNE)	156.11503	C	Anywhere	Post-translational
+HNE of A	4-hydroxynonenal (HNE)	156.11503	A	Anywhere	Post-translational
+HNE of L	4-hydroxynonenal (HNE)	156.11503	L	Anywhere	Post-translational
+Glucuronyl of T	hexuronic acid	176.032088	T	Anywhere	O-linked glycosylation
+Glucuronyl of S	hexuronic acid	176.032088	S	Anywhere	O-linked glycosylation
+Glucuronyl of N-term	hexuronic acid	176.032088	N-term	Protein N-term	N-linked glycosylation
+Acetyl:2H(3) of T	Acetate labeling reagent (N-term & K) (heavy form, +3amu)	45.029395	T	Anywhere	Isotopic label
+Acetyl:2H(3) of S	Acetate labeling reagent (N-term & K) (heavy form, +3amu)	45.029395	S	Anywhere	Isotopic label
+Acetyl:2H(3) of H	Acetate labeling reagent (N-term & K) (heavy form, +3amu)	45.029395	H	Anywhere	Isotopic label
+Acetyl:2H(3) of N-term	Acetate labeling reagent (N-term & K) (heavy form, +3amu)	45.029395	N-term	Any N-term	Isotopic label
+Acetyl:2H(3) of K	Acetate labeling reagent (N-term & K) (heavy form, +3amu)	45.029395	K	Anywhere	Isotopic label
+Acetyl:2H(3) of Y	Acetate labeling reagent (N-term & K) (heavy form, +3amu)	45.029395	Y	Anywhere	Isotopic label
+Acetyl:2H(3) of N-term	Acetate labeling reagent (N-term & K) (heavy form, +3amu)	45.029395	N-term	Protein N-term	Isotopic label
+Propionyl of N-term	Propionate labeling reagent light form (N-term & K)	56.026215	N-term	Any N-term	Isotopic label
+Propionyl of K	Propionate labeling reagent light form (N-term & K)	56.026215	K	Anywhere	Isotopic label
+Propionyl of S	Propionate labeling reagent light form (N-term & K)	56.026215	S	Anywhere	Chemical derivative
+Propionyl of T	Propionate labeling reagent light form (N-term & K)	56.026215	T	Anywhere	Isotopic label
+Propionyl of N-term	Propionate labeling reagent light form (N-term & K)	56.026215	N-term	Protein N-term	Multiple
+Propionyl:13C(3) of N-term	Propionate labeling reagent heavy form (+3amu), N-term & K	59.036279	N-term	Any N-term	Isotopic label
+Propionyl:13C(3) of K	Propionate labeling reagent heavy form (+3amu), N-term & K	59.036279	K	Anywhere	Isotopic label
+GIST-Quat of N-term	Quaternary amine labeling reagent light form (N-term & K)	127.099714	N-term	Any N-term	Isotopic label
+GIST-Quat of K	Quaternary amine labeling reagent light form (N-term & K)	127.099714	K	Anywhere	Isotopic label
+GIST-Quat:2H(3) of N-term	Quaternary amine labeling reagent heavy (+3amu) form, N-term & K	130.118544	N-term	Any N-term	Isotopic label
+GIST-Quat:2H(3) of K	Quaternary amine labeling reagent heavy (+3amu) form, N-term & K	130.118544	K	Anywhere	Isotopic label
+GIST-Quat:2H(6) of N-term	Quaternary amine labeling reagent heavy form (+6amu), N-term & K	133.137375	N-term	Any N-term	Isotopic label
+GIST-Quat:2H(6) of K	Quaternary amine labeling reagent heavy form (+6amu), N-term & K	133.137375	K	Anywhere	Isotopic label
+GIST-Quat:2H(9) of N-term	Quaternary amine labeling reagent heavy form (+9amu), N-term & K	136.156205	N-term	Any N-term	Isotopic label
+GIST-Quat:2H(9) of K	Quaternary amine labeling reagent heavy form (+9amu), N-term & K	136.156205	K	Anywhere	Isotopic label
+Succinyl of N-term	Succinic anhydride labeling reagent light form (N-term & K)	100.016044	N-term	Protein N-term	Post-translational
+Succinyl of N-term	Succinic anhydride labeling reagent light form (N-term & K)	100.016044	N-term	Any N-term	Isotopic label
+Succinyl of K	Succinic anhydride labeling reagent light form (N-term & K)	100.016044	K	Anywhere	Isotopic label
+Succinyl:2H(4) of N-term	Succinic anhydride labeling reagent, heavy form (+4amu, 4H2), N-term & K	104.041151	N-term	Any N-term	Isotopic label
+Succinyl:2H(4) of K	Succinic anhydride labeling reagent, heavy form (+4amu, 4H2), N-term & K	104.041151	K	Anywhere	Isotopic label
+Succinyl:13C(4) of N-term	Succinic anhydride labeling reagent, heavy form (+4amu, 4C13), N-term & K	104.029463	N-term	Any N-term	Isotopic label
+Succinyl:13C(4) of K	Succinic anhydride labeling reagent, heavy form (+4amu, 4C13), N-term & K	104.029463	K	Anywhere	Isotopic label
+Pro->pyro-Glu of P	proline oxidation to pyroglutamic acid	13.979265	P	Anywhere	Chemical derivative
+Trp->Hydroxykynurenin of W	tryptophan oxidation to hydroxykynurenin	19.989829	W	Anywhere	Chemical derivative
+Delta:H(4)C(3) of K	Propionaldehyde +40	40.0313	K	Anywhere	Other
+Delta:H(4)C(3) of H	Propionaldehyde +40	40.0313	H	Anywhere	Other
+Delta:H(4)C(3) of N-term	Propionaldehyde +40	40.0313	N-term	Protein N-term	Other
+Delta:H(4)C(2) of K	Acetaldehyde +28	28.0313	K	Anywhere	Other
+Delta:H(4)C(2) of H	Acetaldehyde +28	28.0313	H	Anywhere	Other
+Delta:H(4)C(2) of N-term	Acetaldehyde +28	28.0313	N-term	Any N-term	Other
+Cys->Dha of C	Dehydroalanine (from Cysteine)	-33.987721	C	Anywhere	Chemical derivative
+Arg->GluSA of R	Arginine oxidation to glutamic semialdehyde	-43.053433	R	Anywhere	Chemical derivative
+Trioxidation of C	cysteine oxidation to cysteic acid	47.984744	C	Anywhere	Chemical derivative
+Trioxidation of W	cysteine oxidation to cysteic acid	47.984744	W	Anywhere	Chemical derivative
+Trioxidation of Y	cysteine oxidation to cysteic acid	47.984744	Y	Anywhere	Chemical derivative
+Iminobiotin of N-term	Iminobiotinylation	225.093583	N-term	Any N-term	Chemical derivative
+Iminobiotin of K	Iminobiotinylation	225.093583	K	Anywhere	Chemical derivative
+IMID of K	IMID d0	68.037448	K	Anywhere	Isotopic label
+IMID:2H(4) of K	IMID d4	72.062555	K	Anywhere	Isotopic label
+Lysbiotinhydrazide of K	oxidized Lysine biotinylated with biotin hydrazide	241.088497	K	Anywhere	Chemical derivative
+Propionamide:2H(3) of C	Acrylamide d3	74.055944	C	Anywhere	Isotopic label
+Nitro of Y	Oxidation to nitro	44.985078	Y	Anywhere	Chemical derivative
+Nitro of W	Oxidation to nitro	44.985078	W	Anywhere	Chemical derivative
+ICAT-C of C	Applied Biosystems cleavable ICAT(TM) light	227.126991	C	Anywhere	Isotopic label
+Delta:H(2)C(2) of N-term	Acetaldehyde +26	26.01565	N-term	Protein N-term	Other
+Delta:H(2)C(2) of K	Acetaldehyde +26	26.01565	K	Anywhere	Other
+Delta:H(2)C(2) of H	Acetaldehyde +26	26.01565	H	Anywhere	Other
+Delta:H(2)C(2) of N-term	Acetaldehyde +26	26.01565	N-term	Any N-term	Other
+Trp->Kynurenin of W	tryptophan oxidation to kynurenin	3.994915	W	Anywhere	Chemical derivative
+Lys->Allysine of K	Lysine oxidation to aminoadipic semialdehyde	-1.031634	K	Anywhere	Post-translational
+ICAT-C:13C(9) of C	Applied Biosystems cleavable ICAT(TM) heavy	236.157185	C	Anywhere	Isotopic label
+FormylMet of N-term	Addition of N-formyl met	159.035399	N-term	Protein N-term	Pre-translational
+Nethylmaleimide of C	N-ethylmaleimide on cysteines	125.047679	C	Anywhere	Chemical derivative
+GG of C	ubiquitinylation residue	114.042927	C	Anywhere	Other
+GG of T	ubiquitinylation residue	114.042927	T	Anywhere	Other
+GG of S	ubiquitinylation residue	114.042927	S	Anywhere	Other
+GG of K	ubiquitinylation residue	114.042927	K	Anywhere	Other
+GG of N-term	ubiquitinylation residue	114.042927	N-term	Protein N-term	Post-translational
+Formyl of N-term	Formylation	27.994915	N-term	Protein N-term	Post-translational
+Formyl of T	Formylation	27.994915	T	Anywhere	Artefact
+Formyl of K	Formylation	27.994915	K	Anywhere	Artefact
+Formyl of N-term	Formylation	27.994915	N-term	Any N-term	Artefact
+Formyl of S	Formylation	27.994915	S	Anywhere	Artefact
+Cation:K of C-term	Replacement of proton by potassium	37.955882	C-term	Any C-term	Artefact
+Cation:K of E	Replacement of proton by potassium	37.955882	E	Anywhere	Artefact
+Cation:K of D	Replacement of proton by potassium	37.955882	D	Anywhere	Artefact
+Thioacyl of N-term	3-sulfanylpropanoyl	87.998285	N-term	Anywhere	Other
+Thioacyl of K	3-sulfanylpropanoyl	87.998285	K	Anywhere	Other
+Fluoro of Y	fluorination	17.990578	Y	Anywhere	Non-standard residue
+Fluoro of W	fluorination	17.990578	W	Anywhere	Non-standard residue
+Fluoro of F	fluorination	17.990578	F	Anywhere	Non-standard residue
+Fluoro of A	fluorination	17.990578	A	Anywhere	Chemical derivative
+Iodo of H	Iodination	125.896648	H	Anywhere	Chemical derivative
+Iodo of Y	Iodination	125.896648	Y	Anywhere	Chemical derivative
+Myristoleyl of G	(cis-delta 5)-tetradecaenoyl	208.182715	G	Protein N-term	Co-translational
+Pro->Pyrrolidinone of P	Proline oxidation to pyrrolidinone	-30.010565	P	Anywhere	Chemical derivative
+Myristoyl+Delta:H(-4) of G	(cis,cis-delta 5, delta 8)-tetradecadienoyl	206.167065	G	Protein N-term	Co-translational
+Benzoyl of N-term	labeling reagent light form (N-term & K)	104.026215	N-term	Any N-term	Isotopic label
+Benzoyl of K	labeling reagent light form (N-term & K)	104.026215	K	Anywhere	Isotopic label
+Dansyl of N-term	5-dimethylaminonaphthalene-1-sulfonyl	233.051049	N-term	Any N-term	Chemical derivative
+Dansyl of K	5-dimethylaminonaphthalene-1-sulfonyl	233.051049	K	Anywhere	Chemical derivative
+a-type-ion of C-term	ISD a-series (C-Term)	-46.005479	C-term	Any C-term	Other
+Amidine of N-term	amidination of lysines or N-terminal amines with methyl acetimidate	41.026549	N-term	Any N-term	Chemical derivative
+Amidine of K	amidination of lysines or N-terminal amines with methyl acetimidate	41.026549	K	Anywhere	Chemical derivative
+Delta:S(-1)Se(1) of M	Selenium replaces sulfur	47.944449	M	Anywhere	Non-standard residue
+Delta:S(-1)Se(1) of C	Selenium replaces sulfur	47.944449	C	Anywhere	Non-standard residue
+NBS:13C(6) of W	Shimadzu NBS-13C	159.008578	W	Anywhere	Chemical derivative
+Methyl:2H(3)13C(1) of K	monomethylation	18.037835	K	Anywhere	Isotopic label
+Methyl:2H(3)13C(1) of R	monomethylation	18.037835	R	Anywhere	Isotopic label
+Methyl:2H(3)13C(1) of N-term	monomethylation	18.037835	N-term	Any N-term	Isotopic label
+Dimethyl:2H(6)13C(2) of N-term	dimethylation	36.07567	N-term	Protein N-term	Isotopic label
+Dimethyl:2H(6)13C(2) of N-term	dimethylation	36.07567	N-term	Any N-term	Isotopic label
+Dimethyl:2H(6)13C(2) of R	dimethylation	36.07567	R	Anywhere	Isotopic label
+Dimethyl:2H(6)13C(2) of K	dimethylation	36.07567	K	Anywhere	Isotopic label
+NBS of W	Shimadzu NBS-12C	152.988449	W	Anywhere	Chemical derivative
+Delta:H(1)N(-1)18O(1) of N	glycosylated asparagine 18O labeling	2.988261	N	Anywhere	Isotopic label
+QAT of C	APTA-d0	171.149738	C	Anywhere	Chemical derivative
+BHT of H	Michael addition of BHT quinone methide to Cysteine and Lysine	218.167065	H	Anywhere	Other
+BHT of K	Michael addition of BHT quinone methide to Cysteine and Lysine	218.167065	K	Anywhere	Other
+BHT of C	Michael addition of BHT quinone methide to Cysteine and Lysine	218.167065	C	Anywhere	Other
+Delta:H(4)C(2)O(-1)S(1) of S	S-Ethylcystine from Serine	44.008456	S	Anywhere	Chemical derivative
+DAET of T	phosphorylation to amine thiol	87.050655	T	Anywhere	Chemical derivative
+DAET of S	phosphorylation to amine thiol	87.050655	S	Anywhere	Chemical derivative
+Pro->Pyrrolidone of P	Pyrrolidone from Proline	-27.994915	P	Anywhere	Chemical derivative
+Label:13C(9) of Y	13C(9) Silac label	9.030193	Y	Anywhere	Isotopic label
+Label:13C(9) of F	13C(9) Silac label	9.030193	F	Anywhere	Isotopic label
+Label:13C(9)+Phospho of Y	C13 label (Phosphotyrosine)	88.996524	Y	Anywhere	Isotopic label
+Label:13C(6) of I	13C(6) Silac label	6.020129	I	Anywhere	Isotopic label
+Label:13C(6) of L	13C(6) Silac label	6.020129	L	Anywhere	Isotopic label
+Label:13C(6) of K	13C(6) Silac label	6.020129	K	Anywhere	Isotopic label
+Label:13C(6) of R	13C(6) Silac label	6.020129	R	Anywhere	Isotopic label
+HPG of R	Hydroxyphenylglyoxal arginine	132.021129	R	Anywhere	Chemical derivative
+QAT:2H(3) of C	APTA d3	174.168569	C	Anywhere	Isotopic label
+Label:18O(2) of C-term	O18 label at both C-terminal oxygens	4.008491	C-term	Any C-term	Isotopic label
+AccQTag of N-term	6-aminoquinolyl-N-hydroxysuccinimidyl carbamate	170.048013	N-term	Any N-term	Chemical derivative
+AccQTag of K	6-aminoquinolyl-N-hydroxysuccinimidyl carbamate	170.048013	K	Anywhere	Chemical derivative
+Dimethyl:2H(4) of N-term	DiMethyl-CHD2	32.056407	N-term	Protein N-term	Isotopic label
+Dimethyl:2H(4) of N-term	DiMethyl-CHD2	32.056407	N-term	Any N-term	Isotopic label
+Dimethyl:2H(4) of K	DiMethyl-CHD2	32.056407	K	Anywhere	Isotopic label
+Dimethyl:2H(4) of R	DiMethyl-CHD2	32.056407	R	Anywhere	Isotopic label
+EQAT of C	EAPTA d0	184.157563	C	Anywhere	Chemical derivative
+EQAT:2H(5) of C	EAPTA d5	189.188947	C	Anywhere	Isotopic label
+Ethanedithiol of T	EDT	75.980527	T	Anywhere	Chemical derivative
+Ethanedithiol of S	EDT	75.980527	S	Anywhere	Chemical derivative
+NEIAA:2H(5) of Y	N-ethyl iodoacetamide-d5	90.084148	Y	Anywhere	Isotopic label
+NEIAA:2H(5) of C	N-ethyl iodoacetamide-d5	90.084148	C	Anywhere	Isotopic label
+Delta:H(6)C(6)O(1) of K	Acrolein addition +94	94.041865	K	Anywhere	Other
+Delta:H(4)C(3)O(1) of K	Acrolein addition +56	56.026215	K	Anywhere	Other
+Delta:H(4)C(3)O(1) of H	Acrolein addition +56	56.026215	H	Anywhere	Other
+Delta:H(4)C(3)O(1) of C	Acrolein addition +56	56.026215	C	Anywhere	Other
+Delta:H(2)C(3) of K	Acrolein addition +38	38.01565	K	Anywhere	Other
+Delta:H(4)C(6) of K	Acrolein addition +76	76.0313	K	Anywhere	Other
+Delta:H(8)C(6)O(2) of K	Acrolein addition +112	112.05243	K	Anywhere	Other
+NEIAA of Y	N-ethyl iodoacetamide-d0	85.052764	Y	Anywhere	Isotopic label
+NEIAA of C	N-ethyl iodoacetamide-d0	85.052764	C	Anywhere	Isotopic label
+iTRAQ4plex of T	Representative mass and accurate mass for 116 & 117	144.102063	T	Anywhere	Isotopic label
+iTRAQ4plex of H	Representative mass and accurate mass for 116 & 117	144.102063	H	Anywhere	Isotopic label
+iTRAQ4plex of S	Representative mass and accurate mass for 116 & 117	144.102063	S	Anywhere	Isotopic label
+iTRAQ4plex of Y	Representative mass and accurate mass for 116 & 117	144.102063	Y	Anywhere	Isotopic label
+iTRAQ4plex of N-term	Representative mass and accurate mass for 116 & 117	144.102063	N-term	Any N-term	Isotopic label
+iTRAQ4plex of K	Representative mass and accurate mass for 116 & 117	144.102063	K	Anywhere	Isotopic label
+iTRAQ4plex of N-term	Representative mass and accurate mass for 116 & 117	144.102063	N-term	Protein N-term	Isotopic label
+Crotonaldehyde of K	Crotonaldehyde	70.041865	K	Anywhere	Other
+Crotonaldehyde of H	Crotonaldehyde	70.041865	H	Anywhere	Other
+Crotonaldehyde of C	Crotonaldehyde	70.041865	C	Anywhere	Other
+Bromo of F	bromination	77.910511	F	Anywhere	Post-translational
+Bromo of H	bromination	77.910511	H	Anywhere	Post-translational
+Bromo of W	bromination	77.910511	W	Anywhere	Post-translational
+Bromo of Y	bromination	77.910511	Y	Anywhere	Artefact
+Amino of Y	Tyrosine oxidation to 2-aminotyrosine	15.010899	Y	Anywhere	Chemical derivative
+Argbiotinhydrazide of R	oxidized Arginine biotinylated with biotin hydrazide	199.066699	R	Anywhere	Chemical derivative
+Label:18O(1) of Y	O18 Labeling	2.004246	Y	Anywhere	Isotopic label
+Label:18O(1) of T	O18 Labeling	2.004246	T	Anywhere	Isotopic label
+Label:18O(1) of S	O18 Labeling	2.004246	S	Anywhere	Isotopic label
+Label:18O(1) of C-term	O18 Labeling	2.004246	C-term	Any C-term	Isotopic label
+Label:13C(6)15N(2) of K	13C(6) 15N(2) Silac label	8.014199	K	Anywhere	Isotopic label
+Thiophospho of Y	Thiophosphorylation	95.943487	Y	Anywhere	Other
+Thiophospho of T	Thiophosphorylation	95.943487	T	Anywhere	Other
+Thiophospho of S	Thiophosphorylation	95.943487	S	Anywhere	Other
+SPITC of K	4-sulfophenyl isothiocyanate	214.971084	K	Anywhere	Chemical derivative
+SPITC of N-term	4-sulfophenyl isothiocyanate	214.971084	N-term	Any N-term	Chemical derivative
+Label:13C(6)15N(4) of R	13C(6) 15N(4) Silac label	10.008269	R	Anywhere	Isotopic label
+Label:13C(9)15N(1) of F	13C(9) 15N(1) Silac label	10.027228	F	Anywhere	Isotopic label
+Label:2H(3) of L	Trideuteration	3.01883	L	Anywhere	Isotopic label
+Label:2H(3) of M	Trideuteration	3.01883	M	Anywhere	Isotopic label
+Label:13C(5)15N(1) of M	13C(5) 15N(1) Silac label	6.013809	M	Anywhere	Isotopic label
+Label:13C(5)15N(1) of P	13C(5) 15N(1) Silac label	6.013809	P	Anywhere	Isotopic label
+Label:13C(5)15N(1) of V	13C(5) 15N(1) Silac label	6.013809	V	Anywhere	Isotopic label
+Label:13C(5)15N(1) of E	13C(5) 15N(1) Silac label	6.013809	E	Anywhere	Isotopic label
+PET of T	phosphorylation to pyridyl thiol	121.035005	T	Anywhere	Chemical derivative
+PET of S	phosphorylation to pyridyl thiol	121.035005	S	Anywhere	Chemical derivative
+CAF of N-term	sulfonation of N-terminus	135.983029	N-term	Any N-term	Chemical derivative
+Nitrosyl of C	S-nitrosylation	28.990164	C	Anywhere	Post-translational
+AEBS of Y	Aminoethylbenzenesulfonylation	183.035399	Y	Anywhere	Artefact
+AEBS of S	Aminoethylbenzenesulfonylation	183.035399	S	Anywhere	Artefact
+AEBS of N-term	Aminoethylbenzenesulfonylation	183.035399	N-term	Protein N-term	Artefact
+AEBS of K	Aminoethylbenzenesulfonylation	183.035399	K	Anywhere	Artefact
+AEBS of H	Aminoethylbenzenesulfonylation	183.035399	H	Anywhere	Artefact
+Ethanolyl of K	Ethanolation	44.026215	K	Anywhere	Chemical derivative
+Ethanolyl of C	Ethanolation	44.026215	C	Anywhere	Chemical derivative
+Ethanolyl of R	Ethanolation	44.026215	R	Anywhere	Chemical derivative
+Label:13C(6)15N(2)+Dimethyl of K	Dimethyl 13C(6)15N(2) Silac label	36.045499	K	Anywhere	Isotopic label
+HMVK of C	Michael addition of hydroxymethylvinyl ketone to cysteine	86.036779	C	Anywhere	Chemical derivative
+Ethyl of C-term	Ethylation	28.0313	C-term	Any C-term	Chemical derivative
+Ethyl of N-term	Ethylation	28.0313	N-term	Protein N-term	Chemical derivative
+Ethyl of E	Ethylation	28.0313	E	Anywhere	Artefact
+Ethyl of N-term	Ethylation	28.0313	N-term	Any N-term	Multiple
+Ethyl of K	Ethylation	28.0313	K	Anywhere	Multiple
+Ethyl of D	Ethylation	28.0313	D	Anywhere	Chemical derivative
+Methyl+Deamidated of Q	Deamidation followed by a methylation	14.999666	Q	Anywhere	Post-translational
+Methyl+Deamidated of N	Deamidation followed by a methylation	14.999666	N	Anywhere	Chemical derivative
+Delta:H(5)C(2) of P	Dimethylation of proline residue	29.039125	P	Anywhere	Post-translational
+Methyl:2H(2) of K	Deuterium Methylation of Lysine	16.028204	K	Anywhere	Isotopic label
+Methyl:2H(2) of N-term	Deuterium Methylation of Lysine	16.028204	N-term	Any N-term	Isotopic label
+SulfanilicAcid of E	Light Sulfanilic Acid (SA) C12	155.004099	E	Anywhere	Isotopic label
+SulfanilicAcid of D	Light Sulfanilic Acid (SA) C12	155.004099	D	Anywhere	Isotopic label
+SulfanilicAcid of C-term	Light Sulfanilic Acid (SA) C12	155.004099	C-term	Any C-term	Isotopic label
+SulfanilicAcid:13C(6) of E	Heavy Sulfanilic Acid (SA) C13	161.024228	E	Anywhere	Chemical derivative
+SulfanilicAcid:13C(6) of D	Heavy Sulfanilic Acid (SA) C13	161.024228	D	Anywhere	Chemical derivative
+SulfanilicAcid:13C(6) of C-term	Heavy Sulfanilic Acid (SA) C13	161.024228	C-term	Any C-term	Chemical derivative
+Trp->Oxolactone of W	Tryptophan oxidation to oxolactone	13.979265	W	Anywhere	Chemical derivative
+Delta:Hg(1) of C	Mercury Mercaptan	201.970617	C	Anywhere	Chemical derivative
+CAMthiopropanoyl of N-term	3-(carbamidomethylthio)propanoyl	145.019749	N-term	Protein N-term	Chemical derivative
+CAMthiopropanoyl of K	3-(carbamidomethylthio)propanoyl	145.019749	K	Anywhere	Chemical derivative
+dHex of N	Fucose	146.057909	N	Anywhere	N-linked glycosylation
+dHex of T	Fucose	146.057909	T	Anywhere	O-linked glycosylation
+dHex of S	Fucose	146.057909	S	Anywhere	O-linked glycosylation
+Methyl:2H(3) of C-term	deuterated methyl ester	17.03448	C-term	Anywhere	Isotopic label
+Methyl:2H(3) of D	deuterated methyl ester	17.03448	D	Anywhere	Isotopic label
+Methyl:2H(3) of E	deuterated methyl ester	17.03448	E	Anywhere	Isotopic label
+Methyl:2H(3) of K	deuterated methyl ester	17.03448	K	Anywhere	Isotopic label
+Methyl:2H(3) of R	deuterated methyl ester	17.03448	R	Anywhere	Isotopic label
+Carboxy of E	Carboxylation	43.989829	E	Anywhere	Post-translational
+Carboxy of D	Carboxylation	43.989829	D	Anywhere	Post-translational
+Carboxy of K	Carboxylation	43.989829	K	Anywhere	Post-translational
+Carboxy of W	Carboxylation	43.989829	W	Anywhere	Chemical derivative
+Carboxy of M	Carboxylation	43.989829	M	Protein N-term	Post-translational
+Bromobimane of C	Monobromobimane derivative	190.074228	C	Anywhere	Chemical derivative
+Menadione of K	Menadione quinone derivative	170.036779	K	Anywhere	Chemical derivative
+Menadione of C	Menadione quinone derivative	170.036779	C	Anywhere	Chemical derivative
+DeStreak of C	Cysteine mercaptoethanol	75.998285	C	Anywhere	Chemical derivative
+Cysteinyl of C	Cysteinylation	119.004099	C	Anywhere	Multiple
+Lys-loss of K	Loss of C-terminal K from Heavy Chain of MAb	-128.094963	K	Protein C-term	Post-translational
+Nmethylmaleimide of K	Nmethylmaleimide	111.032028	K	Anywhere	Chemical derivative
+Nmethylmaleimide of C	Nmethylmaleimide	111.032028	C	Anywhere	Chemical derivative
+DimethylpyrroleAdduct of K	2,5-dimethypyrrole	78.04695	K	Anywhere	Chemical derivative
+Delta:H(2)C(5) of K	MDA adduct +62	62.01565	K	Anywhere	Chemical derivative
+Delta:H(2)C(3)O(1) of K	MDA adduct +54	54.010565	K	Anywhere	Chemical derivative
+Delta:H(2)C(3)O(1) of R	MDA adduct +54	54.010565	R	Anywhere	Chemical derivative
+Nethylmaleimide+water of K	Nethylmaleimidehydrolysis	143.058243	K	Anywhere	Chemical derivative
+Nethylmaleimide+water of C	Nethylmaleimidehydrolysis	143.058243	C	Anywhere	Chemical derivative
+Methyl+Acetyl:2H(3) of K	Mono-methylated lysine labelled with Acetyl_heavy	59.045045	K	Anywhere	Isotopic label
+Xlink:DTBPc of Q	dimethyl 3,3\'-dithiobispropionimidate	87.01427	Q	Anywhere	Chemical derivative
+Xlink:DTBPc of R	dimethyl 3,3\'-dithiobispropionimidate	87.01427	R	Anywhere	Chemical derivative
+Xlink:DTBPc of N-term	dimethyl 3,3\'-dithiobispropionimidate	87.01427	N-term	Protein N-term	Chemical derivative
+Xlink:DTBPc of K	dimethyl 3,3\'-dithiobispropionimidate	87.01427	K	Anywhere	Chemical derivative
+Xlink:DTBPc of N	dimethyl 3,3\'-dithiobispropionimidate	87.01427	N	Anywhere	Chemical derivative
+HNE+Delta:H(2) of K	reduced 4-Hydroxynonenal	158.13068	K	Anywhere	Chemical derivative
+HNE+Delta:H(2) of H	reduced 4-Hydroxynonenal	158.13068	H	Anywhere	Chemical derivative
+HNE+Delta:H(2) of C	reduced 4-Hydroxynonenal	158.13068	C	Anywhere	Chemical derivative
+Thrbiotinhydrazide of T	oxidized Threonine biotinylated with biotin hydrazide	240.104482	T	Anywhere	Chemical derivative
+Methylamine of T	Michael addition with methylamine	13.031634	T	Anywhere	Artefact
+Methylamine of S	Michael addition with methylamine	13.031634	S	Anywhere	Artefact
+Diisopropylphosphate of K	O-Diisopropylphosphorylation	164.060231	K	Anywhere	Chemical derivative
+Diisopropylphosphate of Y	O-Diisopropylphosphorylation	164.060231	Y	Anywhere	Chemical derivative
+Diisopropylphosphate of T	O-Diisopropylphosphorylation	164.060231	T	Anywhere	Chemical derivative
+Diisopropylphosphate of S	O-Diisopropylphosphorylation	164.060231	S	Anywhere	Chemical derivative
+Diisopropylphosphate of N-term	O-Diisopropylphosphorylation	164.060231	N-term	Any N-term	Chemical derivative
+Isopropylphospho of Y	O-Isopropylphosphorylation	122.013281	Y	Anywhere	Chemical derivative
+Isopropylphospho of T	O-Isopropylphosphorylation	122.013281	T	Anywhere	Chemical derivative
+Isopropylphospho of S	O-Isopropylphosphorylation	122.013281	S	Anywhere	Chemical derivative
+ICPL:13C(6) of N-term	Bruker Daltonics SERVA-ICPL(TM) quantification chemistry, heavy form	111.041593	N-term	Any N-term	Isotopic label
+ICPL:13C(6) of N-term	Bruker Daltonics SERVA-ICPL(TM) quantification chemistry, heavy form	111.041593	N-term	Protein N-term	Isotopic label
+ICPL:13C(6) of K	Bruker Daltonics SERVA-ICPL(TM) quantification chemistry, heavy form	111.041593	K	Anywhere	Isotopic label
+CarbamidomethylDTT of C	Carbamidomethylated DTT modification of cysteine	209.018035	C	Anywhere	Artefact
+ICPL of N-term	Bruker Daltonics SERVA-ICPL(TM) quantification chemistry, light form	105.021464	N-term	Protein N-term	Isotopic label
+ICPL of K	Bruker Daltonics SERVA-ICPL(TM) quantification chemistry, light form	105.021464	K	Anywhere	Isotopic label
+ICPL of N-term	Bruker Daltonics SERVA-ICPL(TM) quantification chemistry, light form	105.021464	N-term	Any N-term	Isotopic label
+Deamidated:18O(1) of Q	Deamidation in presence of O18	2.988261	Q	Anywhere	Isotopic label
+Deamidated:18O(1) of N	Deamidation in presence of O18	2.988261	N	Anywhere	Isotopic label
+Arg->Orn of R	Ornithine from Arginine	-42.021798	R	Anywhere	Artefact
+Cation:Cu[I] of C-term	Replacement of proton by copper	61.921774	C-term	Any C-term	Artefact
+Cation:Cu[I] of E	Replacement of proton by copper	61.921774	E	Anywhere	Artefact
+Cation:Cu[I] of D	Replacement of proton by copper	61.921774	D	Anywhere	Artefact
+Cation:Cu[I] of H	Replacement of proton by copper	61.921774	H	Anywhere	Artefact
+Dehydro of C	Half of a disulfide bridge	-1.007825	C	Anywhere	Multiple
+Diphthamide of H	Diphthamide	142.110613	H	Anywhere	Post-translational
+Hydroxyfarnesyl of C	hydroxyfarnesyl	220.182715	C	Anywhere	Post-translational
+Carboxyethyl of K	carboxyethyl	72.021129	K	Anywhere	Post-translational
+Carboxyethyl of H	carboxyethyl	72.021129	H	Anywhere	Chemical derivative
+Hypusine of K	hypusine	87.068414	K	Anywhere	Post-translational
+Lys->AminoadipicAcid of K	alpha-amino adipic acid	14.96328	K	Anywhere	Post-translational
+Cys->PyruvicAcid of C	pyruvic acid from N-term cys	-33.003705	C	Protein N-term	Post-translational
+Ammonia-loss of C	Loss of ammonia	-17.026549	C	Any N-term	Artefact
+Ammonia-loss of S	Loss of ammonia	-17.026549	S	Protein N-term	Post-translational
+Ammonia-loss of T	Loss of ammonia	-17.026549	T	Protein N-term	Post-translational
+Ammonia-loss of N	Loss of ammonia	-17.026549	N	Anywhere	Chemical derivative
+Quinone of W	quinone	29.974179	W	Anywhere	Post-translational
+Quinone of Y	quinone	29.974179	Y	Anywhere	Post-translational
+GPIanchor of C-term	glycosylphosphatidylinositol	123.00853	C-term	Protein C-term	Post-translational
+GlycerylPE of E	glycerylphosphorylethanolamine	197.04531	E	Anywhere	Post-translational
+Tyr->Dha of Y	Dehydroalanine (from Tyrosine)	-94.041865	Y	Anywhere	Post-translational
+Didehydro of S	2-amino-3-oxo-butanoic_acid	-2.01565	S	Anywhere	Post-translational
+Didehydro of Y	2-amino-3-oxo-butanoic_acid	-2.01565	Y	Anywhere	Post-translational
+Didehydro of T	2-amino-3-oxo-butanoic_acid	-2.01565	T	Anywhere	Chemical derivative
+Didehydro of K	2-amino-3-oxo-butanoic_acid	-2.01565	K	Any C-term	Artefact
+Cys->Oxoalanine of C	oxoalanine	-17.992806	C	Anywhere	Post-translational
+Ser->LacticAcid of S	lactic acid from N-term Ser	-15.010899	S	Protein N-term	Post-translational
+Glu of E	monoglutamyl	129.042593	E	Anywhere	Post-translational
+Glu of C-term	monoglutamyl	129.042593	C-term	Protein C-term	Chemical derivative
+Hydroxycinnamyl of C	hydroxycinnamyl	146.036779	C	Anywhere	Post-translational
+Glycosyl of P	glycosyl-L-hydroxyproline	148.037173	P	Anywhere	Other glycosylation
+Phenylisocyanate of N-term	phenyl isocyanate	119.037114	N-term	Any N-term	Chemical derivative
+Phenylisocyanate:2H(5) of N-term	d5-phenyl isocyanate	124.068498	N-term	Any N-term	Chemical derivative
+Hydroxymethyl of N	hydroxymethyl	30.010565	N	Anywhere	Post-translational
+Glycerophospho of S	glycerophospho	154.00311	S	Anywhere	Post-translational
+Carboxy->Thiocarboxy of G	thiocarboxylic acid	15.977156	G	Protein C-term	Post-translational
+Sulfide of D	persulfide	31.972071	D	Anywhere	Post-translational
+Sulfide of C	persulfide	31.972071	C	Anywhere	Post-translational
+Sulfide of W	persulfide	31.972071	W	Anywhere	Chemical derivative
+PyruvicAcidIminyl of K	N-pyruvic acid 2-iminyl	70.005479	K	Anywhere	Post-translational
+PyruvicAcidIminyl of V	N-pyruvic acid 2-iminyl	70.005479	V	Protein N-term	Post-translational
+PyruvicAcidIminyl of C	N-pyruvic acid 2-iminyl	70.005479	C	Protein N-term	Post-translational
+Delta:Se(1) of C	selenyl	79.91652	C	Anywhere	Post-translational
+Dioxidation of Y	dihydroxy	31.989829	Y	Anywhere	Post-translational
+Dioxidation of W	dihydroxy	31.989829	W	Anywhere	Chemical derivative
+Dioxidation of F	dihydroxy	31.989829	F	Anywhere	Chemical derivative
+Dioxidation of M	dihydroxy	31.989829	M	Anywhere	Post-translational
+Dioxidation of K	dihydroxy	31.989829	K	Anywhere	Post-translational
+Dioxidation of R	dihydroxy	31.989829	R	Anywhere	Post-translational
+Dioxidation of P	dihydroxy	31.989829	P	Anywhere	Post-translational
+Dioxidation of C	dihydroxy	31.989829	C	Anywhere	Post-translational
+Dioxidation of U	dihydroxy	31.989829	U	Anywhere	Multiple
+Octanoyl of T	octanoyl	126.104465	T	Anywhere	Post-translational
+Octanoyl of S	octanoyl	126.104465	S	Anywhere	Post-translational
+Octanoyl of C	octanoyl	126.104465	C	Anywhere	Post-translational
+PhosphoHex of T	phosphoglycosyl-D-mannose-1-phosphoryl	242.019154	T	Anywhere	O-linked glycosylation
+PhosphoHex of S	phosphoglycosyl-D-mannose-1-phosphoryl	242.019154	S	Anywhere	O-linked glycosylation
+Palmitoleyl of C	palmitoleyl	236.214016	C	Anywhere	Post-translational
+Palmitoleyl of S	palmitoleyl	236.214016	S	Anywhere	Post-translational
+Palmitoleyl of T	palmitoleyl	236.214016	T	Anywhere	Pre-translational
+Methylpyrroline of K	4-methyl-delta-1-pyrroline-5-carboxyl	109.052764	K	Anywhere	Post-translational
+Cyano of C	cyano	24.995249	C	Anywhere	Post-translational
+Amidino of C	amidino	42.021798	C	Anywhere	Post-translational
+Hydroxytrimethyl of K	5-hydroxy-N6,N6,N6-trimethyl	59.04969	K	Anywhere	Post-translational
+Deoxy of T	reduction	-15.994915	T	Anywhere	Chemical derivative
+Deoxy of D	reduction	-15.994915	D	Anywhere	Post-translational
+Deoxy of S	reduction	-15.994915	S	Anywhere	Chemical derivative
+Decanoyl of T	lipid	154.135765	T	Anywhere	Post-translational
+Decanoyl of S	lipid	154.135765	S	Anywhere	Post-translational
+HexN of W	Hexosamine	161.068808	W	Anywhere	Other glycosylation
+HexN of T	Hexosamine	161.068808	T	Anywhere	O-linked glycosylation
+HexN of S	Hexosamine	161.068808	S	Anywhere	O-linked glycosylation
+HexN of N	Hexosamine	161.068808	N	Anywhere	N-linked glycosylation
+HexN of K	Hexosamine	161.068808	K	Anywhere	Synth. pep. protect. gp.
+Xlink:DMP-s of N-term	One end of crosslink attached, one end free	154.110613	N-term	Protein N-term	Chemical derivative
+Xlink:DMP-s of K	One end of crosslink attached, one end free	154.110613	K	Anywhere	Chemical derivative
+Xlink:DMP of N-term	Both ends of crosslink attached to same peptide	122.084398	N-term	Protein N-term	Chemical derivative
+Xlink:DMP of K	Both ends of crosslink attached to same peptide	122.084398	K	Anywhere	Chemical derivative
+NDA of N-term	naphthalene-2,3-dicarboxaldehyde	175.042199	N-term	Any N-term	Chemical derivative
+NDA of K	naphthalene-2,3-dicarboxaldehyde	175.042199	K	Anywhere	Chemical derivative
+SPITC:13C(6) of N-term	4-sulfophenyl isothiocyanate (Heavy C13)	220.991213	N-term	Any N-term	Chemical derivative
+SPITC:13C(6) of K	4-sulfophenyl isothiocyanate (Heavy C13)	220.991213	K	Anywhere	Chemical derivative
+TMAB:2H(9) of N-term	d9-4-trimethyllammoniumbutyryl-	137.16403	N-term	Any N-term	Isotopic label
+TMAB:2H(9) of K	d9-4-trimethyllammoniumbutyryl-	137.16403	K	Anywhere	Isotopic label
+TMAB of N-term	4-trimethyllammoniumbutyryl-	128.107539	N-term	Any N-term	Isotopic label
+TMAB of K	4-trimethyllammoniumbutyryl-	128.107539	K	Anywhere	Isotopic label
+AEC-MAEC of T	aminoethylcysteine	59.019355	T	Anywhere	Chemical derivative
+AEC-MAEC of S	aminoethylcysteine	59.019355	S	Anywhere	Chemical derivative
+Label:2H(4) of K	4,4,5,5-D4 Lysine	4.025107	K	Anywhere	Isotopic label
+Label:2H(4) of F	4,4,5,5-D4 Lysine	4.025107	F	Anywhere	Isotopic label
+Label:2H(4) of Y	4,4,5,5-D4 Lysine	4.025107	Y	Anywhere	Isotopic label
+Hep of T	Heptose	192.063388	T	Anywhere	O-linked glycosylation
+Hep of S	Heptose	192.063388	S	Anywhere	O-linked glycosylation
+Hep of R	Heptose	192.063388	R	Anywhere	N-linked glycosylation
+Hep of Q	Heptose	192.063388	Q	Anywhere	Other glycosylation
+Hep of N	Heptose	192.063388	N	Anywhere	N-linked glycosylation
+Hep of K	Heptose	192.063388	K	Anywhere	Other glycosylation
+DHP of C	Dehydropyrrolizidine alkaloid (dehydroretronecine) on cysteines	118.065674	C	Anywhere	Chemical derivative
+BHTOH of H	Michael addition of t-butyl hydroxylated BHT (BHTOH) to C, H or K	234.16198	H	Anywhere	Other
+BHTOH of C	Michael addition of t-butyl hydroxylated BHT (BHTOH) to C, H or K	234.16198	C	Anywhere	Other
+BHTOH of K	Michael addition of t-butyl hydroxylated BHT (BHTOH) to C, H or K	234.16198	K	Anywhere	Other
+Nmethylmaleimide+water of C	Nmethylmaleimidehydrolysis	129.042593	C	Anywhere	Chemical derivative
+PyMIC of N-term	3-methyl-2-pyridyl isocyanate	134.048013	N-term	Any N-term	Chemical derivative
+Piperidine of N-term	Piperidination	68.0626	N-term	Any N-term	Chemical derivative
+Piperidine of K	Piperidination	68.0626	K	Anywhere	Chemical derivative
+Diethyl of N-term	Diethylation, analogous to Dimethylation	56.0626	N-term	Any N-term	Chemical derivative
+Diethyl of K	Diethylation, analogous to Dimethylation	56.0626	K	Anywhere	Chemical derivative
+Dimethyl:2H(4)13C(2) of N-term	DiMethyl-C13HD2	34.063117	N-term	Protein N-term	Isotopic label
+Dimethyl:2H(4)13C(2) of R	DiMethyl-C13HD2	34.063117	R	Anywhere	Isotopic label
+Dimethyl:2H(4)13C(2) of K	DiMethyl-C13HD2	34.063117	K	Anywhere	Isotopic label
+Dimethyl:2H(4)13C(2) of N-term	DiMethyl-C13HD2	34.063117	N-term	Any N-term	Isotopic label
+C8-QAT of N-term	[3-(2,5)-Dioxopyrrolidin-1-yloxycarbonyl)-propyl]dimethyloctylammonium	227.224915	N-term	Any N-term	Chemical derivative
+C8-QAT of K	[3-(2,5)-Dioxopyrrolidin-1-yloxycarbonyl)-propyl]dimethyloctylammonium	227.224915	K	Anywhere	Chemical derivative
+CLIP_TRAQ_2 of N-term	CLIP_TRAQ_2	141.098318	N-term	Any N-term	Isotopic label
+CLIP_TRAQ_2 of K	CLIP_TRAQ_2	141.098318	K	Anywhere	Isotopic label
+CLIP_TRAQ_2 of Y	CLIP_TRAQ_2	141.098318	Y	Anywhere	Isotopic label
+PropylNAGthiazoline of C	propyl-1,2-dideoxy-2\'-methyl-alpha-D-glucopyranoso-[2,1-d]-Delta2\'-thiazoline	232.064354	C	Anywhere	Chemical derivative
+Dethiomethyl of M	Prompt loss of side chain from oxidised Met	-48.003371	M	Anywhere	Artefact
+iTRAQ4plex114 of Y	Accurate mass for 114	144.105918	Y	Anywhere	Isotopic label
+iTRAQ4plex114 of N-term	Accurate mass for 114	144.105918	N-term	Any N-term	Isotopic label
+iTRAQ4plex114 of K	Accurate mass for 114	144.105918	K	Anywhere	Isotopic label
+iTRAQ4plex115 of Y	Accurate mass for 115	144.099599	Y	Anywhere	Isotopic label
+iTRAQ4plex115 of N-term	Accurate mass for 115	144.099599	N-term	Any N-term	Isotopic label
+iTRAQ4plex115 of K	Accurate mass for 115	144.099599	K	Anywhere	Isotopic label
+Dibromo of Y	Dibromo	155.821022	Y	Anywhere	Chemical derivative
+CLIP_TRAQ_4 of N-term	CLIP_TRAQ_4	244.101452	N-term	Any N-term	Isotopic label
+CLIP_TRAQ_4 of K	CLIP_TRAQ_4	244.101452	K	Anywhere	Isotopic label
+CLIP_TRAQ_4 of Y	CLIP_TRAQ_4	244.101452	Y	Anywhere	Isotopic label
+dNIC of N-term	deuterated Nicotinic Acid	109.048119	N-term	Any N-term	Isotopic label
+dNIC of K	deuterated Nicotinic Acid	109.048119	K	Anywhere	Isotopic label
+NIC of N-term	Nicotinic Acid	105.021464	N-term	Any N-term	Isotopic label
+NIC of K	Nicotinic Acid	105.021464	K	Anywhere	Isotopic label
+ICPL:2H(4) of N-term	Bruker Daltonics SERVA-ICPL(TM) quantification chemistry, medium form	109.046571	N-term	Any N-term	Isotopic label
+ICPL:2H(4) of N-term	Bruker Daltonics SERVA-ICPL(TM) quantification chemistry, medium form	109.046571	N-term	Protein N-term	Isotopic label
+ICPL:2H(4) of K	Bruker Daltonics SERVA-ICPL(TM) quantification chemistry, medium form	109.046571	K	Anywhere	Isotopic label
+CarboxymethylDTT of C	Carboxymethylated DTT modification of cysteine	210.00205	C	Anywhere	Artefact
+Label:13C(6)15N(1) of I	13C(6) 15N(1) Silac label	7.017164	I	Anywhere	Isotopic label
+Label:13C(6)15N(1) of L	13C(6) 15N(1) Silac label	7.017164	L	Anywhere	Isotopic label
+Label:2H(9)13C(6)15N(2) of K	13C(6) 15N(2) (D)9 SILAC label	17.07069	K	Anywhere	Isotopic label
+HNE-Delta:H(2)O of K	Dehydrated 4-hydroxynonenal	138.104465	K	Anywhere	Chemical derivative
+HNE-Delta:H(2)O of H	Dehydrated 4-hydroxynonenal	138.104465	H	Anywhere	Chemical derivative
+HNE-Delta:H(2)O of C	Dehydrated 4-hydroxynonenal	138.104465	C	Anywhere	Chemical derivative
+4-ONE of K	4-Oxononenal (ONE)	154.09938	K	Anywhere	Chemical derivative
+4-ONE of H	4-Oxononenal (ONE)	154.09938	H	Anywhere	Chemical derivative
+4-ONE of C	4-Oxononenal (ONE)	154.09938	C	Anywhere	Chemical derivative
+O-Dimethylphosphate of Y	O-Dimethylphosphorylation	107.997631	Y	Anywhere	Chemical derivative
+O-Dimethylphosphate of T	O-Dimethylphosphorylation	107.997631	T	Anywhere	Chemical derivative
+O-Dimethylphosphate of S	O-Dimethylphosphorylation	107.997631	S	Anywhere	Chemical derivative
+O-Methylphosphate of Y	O-Methylphosphorylation	93.981981	Y	Anywhere	Chemical derivative
+O-Methylphosphate of T	O-Methylphosphorylation	93.981981	T	Anywhere	Chemical derivative
+O-Methylphosphate of S	O-Methylphosphorylation	93.981981	S	Anywhere	Chemical derivative
+Diethylphosphate of N-term	O-Diethylphosphorylation	136.028931	N-term	Any N-term	Chemical derivative
+Diethylphosphate of H	O-Diethylphosphorylation	136.028931	H	Anywhere	Chemical derivative
+Diethylphosphate of C	O-Diethylphosphorylation	136.028931	C	Anywhere	Chemical derivative
+Diethylphosphate of K	O-Diethylphosphorylation	136.028931	K	Anywhere	Chemical derivative
+Diethylphosphate of Y	O-Diethylphosphorylation	136.028931	Y	Anywhere	Chemical derivative
+Diethylphosphate of T	O-Diethylphosphorylation	136.028931	T	Anywhere	Chemical derivative
+Diethylphosphate of S	O-Diethylphosphorylation	136.028931	S	Anywhere	Chemical derivative
+Ethylphosphate of N-term	O-Ethylphosphorylation	107.997631	N-term	Any N-term	Chemical derivative
+Ethylphosphate of K	O-Ethylphosphorylation	107.997631	K	Anywhere	Chemical derivative
+Ethylphosphate of Y	O-Ethylphosphorylation	107.997631	Y	Anywhere	Chemical derivative
+Ethylphosphate of T	O-Ethylphosphorylation	107.997631	T	Anywhere	Chemical derivative
+Ethylphosphate of S	O-Ethylphosphorylation	107.997631	S	Anywhere	Chemical derivative
+O-pinacolylmethylphosphonate of T	O-pinacolylmethylphosphonylation	162.080967	T	Anywhere	Chemical derivative
+O-pinacolylmethylphosphonate of S	O-pinacolylmethylphosphonylation	162.080967	S	Anywhere	Chemical derivative
+O-pinacolylmethylphosphonate of K	O-pinacolylmethylphosphonylation	162.080967	K	Anywhere	Chemical derivative
+O-pinacolylmethylphosphonate of Y	O-pinacolylmethylphosphonylation	162.080967	Y	Anywhere	Chemical derivative
+O-pinacolylmethylphosphonate of H	O-pinacolylmethylphosphonylation	162.080967	H	Anywhere	Chemical derivative
+Methylphosphonate of Y	Methylphosphonylation	77.987066	Y	Anywhere	Chemical derivative
+Methylphosphonate of T	Methylphosphonylation	77.987066	T	Anywhere	Chemical derivative
+Methylphosphonate of S	Methylphosphonylation	77.987066	S	Anywhere	Chemical derivative
+O-Isopropylmethylphosphonate of Y	O-Isopropylmethylphosphonylation	120.034017	Y	Anywhere	Chemical derivative
+O-Isopropylmethylphosphonate of T	O-Isopropylmethylphosphonylation	120.034017	T	Anywhere	Chemical derivative
+O-Isopropylmethylphosphonate of S	O-Isopropylmethylphosphonylation	120.034017	S	Anywhere	Chemical derivative
+DTT_ST of S	Dithiothreitol (DTT)	136.001656	S	Anywhere	Chemical derivative
+DTT_ST of T	Dithiothreitol (DTT)	136.001656	T	Anywhere	Chemical derivative
+Ethanolamine of D	Carboxyl modification with ethanolamine	43.042199	D	Anywhere	Chemical derivative
+Ethanolamine of C-term	Carboxyl modification with ethanolamine	43.042199	C-term	Any C-term	Chemical derivative
+Ethanolamine of E	Carboxyl modification with ethanolamine	43.042199	E	Anywhere	Chemical derivative
+Ethanolamine of C	Carboxyl modification with ethanolamine	43.042199	C	Anywhere	Chemical derivative
+TMT6plex of T	Sixplex Tandem Mass Tag®	229.162932	T	Anywhere	Isotopic label
+TMT6plex of S	Sixplex Tandem Mass Tag®	229.162932	S	Anywhere	Isotopic label
+TMT6plex of H	Sixplex Tandem Mass Tag®	229.162932	H	Anywhere	Isotopic label
+TMT6plex of N-term	Sixplex Tandem Mass Tag®	229.162932	N-term	Protein N-term	Isotopic label
+TMT6plex of N-term	Sixplex Tandem Mass Tag®	229.162932	N-term	Any N-term	Isotopic label
+TMT6plex of K	Sixplex Tandem Mass Tag®	229.162932	K	Anywhere	Isotopic label
+DTT_C of C	Dithiothreitol (DTT) on Cys	120.0245	C	Anywhere	Chemical derivative
+TMT2plex of H	Duplex Tandem Mass Tag®	225.155833	H	Anywhere	Isotopic label
+TMT2plex of S	Duplex Tandem Mass Tag®	225.155833	S	Anywhere	Isotopic label
+TMT2plex of T	Duplex Tandem Mass Tag®	225.155833	T	Anywhere	Isotopic label
+TMT2plex of N-term	Duplex Tandem Mass Tag®	225.155833	N-term	Protein N-term	Isotopic label
+TMT2plex of N-term	Duplex Tandem Mass Tag®	225.155833	N-term	Any N-term	Isotopic label
+TMT2plex of K	Duplex Tandem Mass Tag®	225.155833	K	Anywhere	Isotopic label
+TMT of N-term	Native Tandem Mass Tag®	224.152478	N-term	Protein N-term	Chemical derivative
+TMT of N-term	Native Tandem Mass Tag®	224.152478	N-term	Any N-term	Chemical derivative
+TMT of K	Native Tandem Mass Tag®	224.152478	K	Anywhere	Chemical derivative
+TMT of H	Native Tandem Mass Tag®	224.152478	H	Anywhere	Isotopic label
+TMT of S	Native Tandem Mass Tag®	224.152478	S	Anywhere	Isotopic label
+TMT of T	Native Tandem Mass Tag®	224.152478	T	Anywhere	Isotopic label
+4-ONE+Delta:H(-2)O(-1) of K	Dehydrated 4-Oxononenal Michael adduct	136.088815	K	Anywhere	Chemical derivative
+4-ONE+Delta:H(-2)O(-1) of H	Dehydrated 4-Oxononenal Michael adduct	136.088815	H	Anywhere	Chemical derivative
+4-ONE+Delta:H(-2)O(-1) of C	Dehydrated 4-Oxononenal Michael adduct	136.088815	C	Anywhere	Chemical derivative
+Malonyl of C	Malonylation of C and S residues	86.000394	C	Anywhere	Chemical derivative
+Malonyl of S	Malonylation of C and S residues	86.000394	S	Anywhere	Chemical derivative
+3sulfo of N-term	derivatization by N-term modification using 3-Sulfobenzoic succinimidyl ester	183.983029	N-term	Any N-term	Chemical derivative
+trifluoro of L	trifluoroleucine replacement of leucine	53.971735	L	Anywhere	Non-standard residue
+TNBS of N-term	tri nitro benzene	210.986535	N-term	Any N-term	Chemical derivative
+TNBS of K	tri nitro benzene	210.986535	K	Anywhere	Chemical derivative
+DTT_C:2H(6) of C	Isotopically labeled Dithiothreitol (DTT) modification of cysteines	126.062161	C	Anywhere	Isotopic label
+lapachenole of C	lapachenole photochemically added to cysteine	240.11503	C	Anywhere	Chemical derivative
+Label:13C(5) of P	13C(5) Silac label	5.016774	P	Anywhere	Isotopic label
+maleimide of K	maleimide	97.016378	K	Anywhere	Chemical derivative
+maleimide of C	maleimide	97.016378	C	Anywhere	Chemical derivative
+IDEnT of C	Isotope Distribution Encoded Tag	214.990469	C	Anywhere	Isotopic label
+DTT_ST:2H(6) of T	Isotopically labeled Dithiothreitol (DTT) modification of serines or threonines	142.039317	T	Anywhere	Isotopic label
+DTT_ST:2H(6) of S	Isotopically labeled Dithiothreitol (DTT) modification of serines or threonines	142.039317	S	Anywhere	Isotopic label
+Met-loss of M	Removal of initiator methionine from protein N-terminus	-131.040485	M	Protein N-term	Co-translational
+Met-loss+Acetyl of M	Removal of initiator methionine from protein N-terminus, then acetylation of the new N-terminus	-89.02992	M	Protein N-term	Co-translational
+Menadione-HQ of K	Menadione hydroquinone derivative	172.05243	K	Anywhere	Chemical derivative
+Menadione-HQ of C	Menadione hydroquinone derivative	172.05243	C	Anywhere	Chemical derivative
+Carboxymethyl:13C(2) of C	Iodoacetic acid derivative w/ 13C label	60.012189	C	Anywhere	Chemical derivative
+NEM:2H(5) of C	D5 N-ethylmaleimide on cysteines	130.079062	C	Anywhere	Chemical derivative
+Gly-loss+Amide of G	Enzymatic glycine removal leaving an amidated C-terminus	-58.005479	G	Any C-term	Post-translational
+Label:13C(6)+GG of K	13C6 labeled ubiquitinylation residue	120.063056	K	Anywhere	Isotopic label
+Arg->Npo of R	Arginine replacement by Nitropyrimidyl ornithine	80.985078	R	Anywhere	Chemical derivative
+Label:2H(4)+Acetyl of K	Acetyl 4,4,5,5-D4 Lysine	46.035672	K	Anywhere	Isotopic label
+Pentylamine of Q	Labeling transglutaminase substrate on glutamine side chain	85.089149	Q	Anywhere	Chemical derivative
+Dihydroxyimidazolidine of R	Dihydroxy methylglyoxal adduct	72.021129	R	Anywhere	Multiple
+Xlink:DFDNB of N	Addition of DFDNB crosslinker	203.998263	N	Anywhere	Chemical derivative
+Xlink:DFDNB of Q	Addition of DFDNB crosslinker	203.998263	Q	Anywhere	Chemical derivative
+Xlink:DFDNB of R	Addition of DFDNB crosslinker	203.998263	R	Anywhere	Chemical derivative
+Xlink:DFDNB of K	Addition of DFDNB crosslinker	203.998263	K	Anywhere	Chemical derivative
+AEC-MAEC:2H(4) of S	deuterium cysteamine modification to S or T	63.044462	S	Anywhere	Isotopic label
+AEC-MAEC:2H(4) of T	deuterium cysteamine modification to S or T	63.044462	T	Anywhere	Isotopic label
+Xlink:BMOE of C	Addition of BMOE crosslinker	220.048407	C	Anywhere	Chemical derivative
+Label:13C(6)+Acetyl of K	Acetyl 13C(6) Silac label	48.030694	K	Anywhere	Isotopic label
+Label:13C(6)15N(2)+Acetyl of K	Acetyl_13C(6) 15N(2) Silac label	50.024764	K	Anywhere	Isotopic label
+cGMP+RMP-loss of C	S-guanylation-2	150.041585	C	Anywhere	Post-translational
+cGMP+RMP-loss of S	S-guanylation-2	150.041585	S	Anywhere	Post-translational
+mTRAQ of Y	mTRAQ light	140.094963	Y	Anywhere	Isotopic label
+mTRAQ of N-term	mTRAQ light	140.094963	N-term	Any N-term	Isotopic label
+mTRAQ of K	mTRAQ light	140.094963	K	Anywhere	Isotopic label
+mTRAQ of H	mTRAQ light	140.094963	H	Anywhere	Isotopic label
+mTRAQ of S	mTRAQ light	140.094963	S	Anywhere	Isotopic label
+mTRAQ of T	mTRAQ light	140.094963	T	Anywhere	Isotopic label
+Label:2H(4)+GG of K	Ubiquitination 2H4 lysine	118.068034	K	Anywhere	Post-translational
+spermine of Q	spermine adduct	185.189198	Q	Anywhere	Chemical derivative
+Label:13C(1)2H(3) of M	SILAC	4.022185	M	Anywhere	Isotopic label
+MG-H1 of R	Methylglyoxal-derived hydroimidazolone	54.010565	R	Anywhere	Other
+G-H1 of R	Glyoxal-derived hydroimiadazolone	39.994915	R	Anywhere	Other
+Label:13C(6)15N(2)+GG of K	13C(6) 15N(2) Lysine glygly	122.057126	K	Anywhere	Isotopic label
+ICPL:13C(6)2H(4) of N-term	Bruker Daltonics SERVA-ICPL(TM) quantification chemistry, +10 Da form	115.0667	N-term	Any N-term	Isotopic label
+ICPL:13C(6)2H(4) of K	Bruker Daltonics SERVA-ICPL(TM) quantification chemistry, +10 Da form	115.0667	K	Anywhere	Isotopic label
+ICPL:13C(6)2H(4) of N-term	Bruker Daltonics SERVA-ICPL(TM) quantification chemistry, +10 Da form	115.0667	N-term	Protein N-term	Isotopic label
+mTRAQ:13C(3)15N(1) of S	mTRAQ medium	144.102063	S	Anywhere	Isotopic label
+mTRAQ:13C(3)15N(1) of T	mTRAQ medium	144.102063	T	Anywhere	Isotopic label
+mTRAQ:13C(3)15N(1) of H	mTRAQ medium	144.102063	H	Anywhere	Isotopic label
+mTRAQ:13C(3)15N(1) of Y	mTRAQ medium	144.102063	Y	Anywhere	Isotopic label
+mTRAQ:13C(3)15N(1) of N-term	mTRAQ medium	144.102063	N-term	Any N-term	Isotopic label
+mTRAQ:13C(3)15N(1) of K	mTRAQ medium	144.102063	K	Anywhere	Isotopic label
+HydroxymethylOP of K	2-ammonio-6-[4-(hydroxymethyl)-3-oxidopyridinium-1-yl]- hexanoate	108.021129	K	Anywhere	Other
+Label:13C(1)2H(3)+Oxidation of M	Oxidised methionine 13C(1)2H(3) SILAC label	20.0171	M	Anywhere	Multiple
+Met->Aha of M	Methionine replacement by azido homoalanine	-4.986324	M	Anywhere	Non-standard residue
+Label:15N(4) of R	SILAC 15N(4)	3.98814	R	Anywhere	Isotopic label
+pyrophospho of T	pyrophosphorylation of Ser/Thr	159.932662	T	Anywhere	Post-translational
+pyrophospho of S	pyrophosphorylation of Ser/Thr	159.932662	S	Anywhere	Post-translational
+Met->Hpg of M	methionine replacement by homopropargylglycine	-21.987721	M	Anywhere	Non-standard residue
+DimethylArsino of C	Reaction with dimethylarsinous (AsIII) acid	103.960719	C	Anywhere	Post-translational
+Lys->CamCys of K	Lys->Cys substitution and carbamidomethylation	31.935685	K	Anywhere	Pre-translational
+Phe->CamCys of F	Phe->Cys substitution and carbamidomethylation	12.962234	F	Anywhere	Pre-translational
+Leu->MetOx of L	Leu->Met substitution and sulfoxidation	33.951335	L	Anywhere	Pre-translational
+Lys->MetOx of K	Lys->Met substitution and sulfoxidation	18.940436	K	Anywhere	Pre-translational
+Galactosyl of N-term	Gluconoylation	178.047738	N-term	Any N-term	Other glycosylation
+Galactosyl of K	Gluconoylation	178.047738	K	Anywhere	Other glycosylation
+Bacillosamine of N	2,4-diacetamido-2,4,6-trideoxyglucopyranose	228.111007	N	Anywhere	N-linked glycosylation
+MTSL of C	Cys modification by (1-oxyl-2,2,5,5-tetramethyl-3-pyrroline-3-methyl)methanesulfonate (MTSL)	184.07961	C	Anywhere	Chemical derivative
+Ethoxyformyl of H	Ethoxyformylation	72.021129	H	Anywhere	Chemical derivative
+Methylmalonylation of S	Methylmalonylation on Serine	100.016044	S	Anywhere	Chemical derivative
+Cys->methylaminoAla of C	carbamidomethylated Cys that undergoes beta-elimination and Michael addition of methylamine	-2.945522	C	Anywhere	Chemical derivative
+Cys->ethylaminoAla of C	Carbamidomethylated Cys that undergoes beta-elimination and Michael addition of ethylamine	11.070128	C	Anywhere	Chemical derivative
+Label:13C(4)15N(2)+GG of K	13C(4) 15N(2) Lysine glygly	120.050417	K	Anywhere	Isotopic label
+ethylamino of S	ethyl amino	27.047285	S	Anywhere	Chemical derivative
+ethylamino of T	ethyl amino	27.047285	T	Anywhere	Chemical derivative
+MercaptoEthanol of S	2-OH-ethyl thio-Ser	60.003371	S	Anywhere	Chemical derivative
+MercaptoEthanol of T	2-OH-ethyl thio-Ser	60.003371	T	Anywhere	Chemical derivative
+Ethyl+Deamidated of Q	deamidation followed by esterification with ethanol	29.015316	Q	Anywhere	Chemical derivative
+Ethyl+Deamidated of N	deamidation followed by esterification with ethanol	29.015316	N	Anywhere	Chemical derivative
+Chlorination of Y	Chlorination of tyrosine residues	33.961028	Y	Anywhere	Artefact
+dichlorination of C	Dichlorination	67.922055	C	Anywhere	Chemical derivative
+dichlorination of Y	Dichlorination	67.922055	Y	Anywhere	Artefact
+DNPS of C	2,4-Dinitrobenzenesulfenyl	198.981352	C	Anywhere	Chemical derivative
+DNPS of W	2,4-Dinitrobenzenesulfenyl	198.981352	W	Anywhere	Chemical derivative
+Label:15N(2)2H(9) of K	SILAC label	11.050561	K	Anywhere	Isotopic label
+3-deoxyglucosone of R	Condensation product of 3-deoxyglucosone	144.042259	R	Anywhere	Multiple
+Cation:Li of D	Replacement of proton by lithium	6.008178	D	Anywhere	Artefact
+Cation:Li of E	Replacement of proton by lithium	6.008178	E	Anywhere	Artefact
+Cation:Li of C-term	Replacement of proton by lithium	6.008178	C-term	Any C-term	Artefact
+Cation:Ca[II] of C-term	Replacement of 2 protons by calcium	37.946941	C-term	Any C-term	Artefact
+Cation:Ca[II] of E	Replacement of 2 protons by calcium	37.946941	E	Anywhere	Artefact
+Cation:Ca[II] of D	Replacement of 2 protons by calcium	37.946941	D	Anywhere	Artefact
+Cation:Fe[II] of D	Replacement of 2 protons by iron	53.919289	D	Anywhere	Artefact
+Cation:Fe[II] of E	Replacement of 2 protons by iron	53.919289	E	Anywhere	Artefact
+Cation:Fe[II] of C-term	Replacement of 2 protons by iron	53.919289	C-term	Any C-term	Artefact
+Cation:Ni[II] of D	Replacement of 2 protons by nickel	55.919696	D	Anywhere	Artefact
+Cation:Ni[II] of E	Replacement of 2 protons by nickel	55.919696	E	Anywhere	Artefact
+Cation:Ni[II] of C-term	Replacement of 2 protons by nickel	55.919696	C-term	Any C-term	Artefact
+Cation:Zn[II] of C-term	Replacement of 2 protons by zinc	61.913495	C-term	Any C-term	Artefact
+Cation:Zn[II] of E	Replacement of 2 protons by zinc	61.913495	E	Anywhere	Artefact
+Cation:Zn[II] of D	Replacement of 2 protons by zinc	61.913495	D	Anywhere	Artefact
+Cation:Zn[II] of H	Replacement of 2 protons by zinc	61.913495	H	Anywhere	Artefact
+Cation:Ag of D	Replacement of proton by silver	105.897267	D	Anywhere	Artefact
+Cation:Ag of E	Replacement of proton by silver	105.897267	E	Anywhere	Artefact
+Cation:Ag of C-term	Replacement of proton by silver	105.897267	C-term	Any C-term	Artefact
+Cation:Mg[II] of D	Replacement of 2 protons by magnesium	21.969392	D	Anywhere	Artefact
+Cation:Mg[II] of E	Replacement of 2 protons by magnesium	21.969392	E	Anywhere	Artefact
+Cation:Mg[II] of C-term	Replacement of 2 protons by magnesium	21.969392	C-term	Any C-term	Artefact
+2-succinyl of C	S-(2-succinyl) cysteine	116.010959	C	Anywhere	Chemical derivative
+Propargylamine of D	propargylamine	37.031634	D	Anywhere	Chemical derivative
+Propargylamine of C-term	propargylamine	37.031634	C-term	Any C-term	Chemical derivative
+Propargylamine of E	propargylamine	37.031634	E	Anywhere	Chemical derivative
+Phosphopropargyl of T	phospho-propargylamine	116.997965	T	Anywhere	Multiple
+Phosphopropargyl of Y	phospho-propargylamine	116.997965	Y	Anywhere	Multiple
+Phosphopropargyl of S	phospho-propargylamine	116.997965	S	Anywhere	Multiple
+Chlorpyrifos of S	O,O-diethyl o-3,5,6-trichloro-2-pyridyl phosphorothioate	153.013912	S	Anywhere	Chemical derivative
+Chlorpyrifos of T	O,O-diethyl o-3,5,6-trichloro-2-pyridyl phosphorothioate	153.013912	T	Anywhere	Chemical derivative
+Chlorpyrifos of Y	O,O-diethyl o-3,5,6-trichloro-2-pyridyl phosphorothioate	153.013912	Y	Anywhere	Chemical derivative
+BITC of N-term	Benzyl isothiocyanate	149.02992	N-term	Any N-term	Chemical derivative
+BITC of K	Benzyl isothiocyanate	149.02992	K	Anywhere	Chemical derivative
+BITC of C	Benzyl isothiocyanate	149.02992	C	Anywhere	Chemical derivative
+Carbofuran of S	2,3-dihydro-2,2-dimethyl-7-benzofuranol N-methyl carbamate	58.029289	S	Anywhere	Chemical derivative
+PEITC of N-term	Phenethyl isothiocyanate	163.04557	N-term	Any N-term	Chemical derivative
+PEITC of K	Phenethyl isothiocyanate	163.04557	K	Anywhere	Chemical derivative
+PEITC of C	Phenethyl isothiocyanate	163.04557	C	Anywhere	Chemical derivative
+thioacylPA of K	membrane protein extraction	159.035399	K	Anywhere	Chemical derivative
+glucosone of R	Condensation product of glucosone	160.037173	R	Anywhere	Other
+Label:13C(6)+Dimethyl of K	Dimethyl 13C(6) Silac label	34.051429	K	Anywhere	Isotopic label
+ISD_z+2_ion of N-term	ISD (z+2)-series	-15.010899	N-term	Any N-term	Artefact
+Ammonium of E	replacement of proton with ammonium ion	17.026549	E	Anywhere	Artefact
+Ammonium of D	replacement of proton with ammonium ion	17.026549	D	Anywhere	Artefact
+Ammonium of C-term	replacement of proton with ammonium ion	17.026549	C-term	Any C-term	Artefact
+Label:15N(1) of M	15N(1)	0.997035	M	Anywhere	Isotopic label
+Label:15N(1) of E	15N(1)	0.997035	E	Anywhere	Isotopic label
+Label:15N(1) of D	15N(1)	0.997035	D	Anywhere	Isotopic label
+Label:15N(1) of L	15N(1)	0.997035	L	Anywhere	Isotopic label
+Label:15N(1) of I	15N(1)	0.997035	I	Anywhere	Isotopic label
+Label:15N(1) of C	15N(1)	0.997035	C	Anywhere	Isotopic label
+Label:15N(1) of T	15N(1)	0.997035	T	Anywhere	Isotopic label
+Label:15N(1) of V	15N(1)	0.997035	V	Anywhere	Isotopic label
+Label:15N(1) of P	15N(1)	0.997035	P	Anywhere	Isotopic label
+Label:15N(1) of S	15N(1)	0.997035	S	Anywhere	Isotopic label
+Label:15N(1) of A	15N(1)	0.997035	A	Anywhere	Isotopic label
+Label:15N(1) of G	15N(1)	0.997035	G	Anywhere	Isotopic label
+Label:15N(1) of Y	15N(1)	0.997035	Y	Anywhere	Isotopic label
+Label:15N(1) of F	15N(1)	0.997035	F	Anywhere	Isotopic label
+Label:15N(2) of W	15N(2)	1.99407	W	Anywhere	Isotopic label
+Label:15N(2) of K	15N(2)	1.99407	K	Anywhere	Isotopic label
+Label:15N(2) of Q	15N(2)	1.99407	Q	Anywhere	Isotopic label
+Label:15N(2) of N	15N(2)	1.99407	N	Anywhere	Isotopic label
+Label:15N(3) of H	15N(3)	2.991105	H	Anywhere	Isotopic label
+sulfo+amino of Y	aminotyrosine with sulfation	94.967714	Y	Anywhere	Chemical derivative
+AHA-Alkyne of M	Azidohomoalanine (AHA) bound to propargylglycine-NH2 (alkyne)	107.077339	M	Anywhere	Chemical derivative
+Label:13C(6)15N(4)+Methyl of R	Monomethylated Arg13C(6) 15N(4)	24.023919	R	Anywhere	Isotopic label
+Label:13C(6)15N(4)+Dimethyl of R	Dimethylated Arg13C(6) 15N(4)	38.039569	R	Anywhere	Isotopic label
+Label:13C(6)15N(4)+Methyl:2H(3)13C(1) of R	2H(3) 13C(1) monomethylated Arg13C(6) 15N(4)	28.046104	R	Anywhere	Isotopic label
+Label:13C(6)15N(4)+Dimethyl:2H(6)13C(2) of R	2H(6) 13C(2) Dimethylated Arg13C(6) 15N(4)	46.083939	R	Anywhere	Isotopic label
+Cys->CamSec of C	Sec Iodoacetamide derivative	104.965913	C	Anywhere	Non-standard residue
+Thiazolidine of C	Addition of Carbon to cysteine	12.0	C	Any N-term	Synth. pep. protect. gp.
+Xlink:DSS of K	Water-quenched monolink of DSS/BS3 crosslinker to Lys or N-terminus	156.078644	K	Anywhere	Chemical derivative
+Xlink:DSS of N-term	Water-quenched monolink of DSS/BS3 crosslinker to Lys or N-terminus	156.078644	N-term	Protein N-term	Chemical derivative
+DMPO of H	DMPO spin-trap nitrone adduct	111.068414	H	Anywhere	Post-translational
+DMPO of Y	DMPO spin-trap nitrone adduct	111.068414	Y	Anywhere	Post-translational
+DMPO of C	DMPO spin-trap nitrone adduct	111.068414	C	Anywhere	Post-translational
+glycidamide of K	glycidamide adduct	87.032028	K	Anywhere	Chemical derivative
+glycidamide of N-term	glycidamide adduct	87.032028	N-term	Any N-term	Chemical derivative
+ICDID of C	Isotope-Coded Dimedone light form	138.06808	C	Anywhere	Isotopic label
+ICDID:2H(6) of C	Isotope-Coded Dimedone heavy form	144.10574	C	Anywhere	Isotopic label
+Xlink:EGS244 of N-term	Water quenched monolink of EGS cross-linker	244.058303	N-term	Protein N-term	Chemical derivative
+Xlink:EGS244 of K	Water quenched monolink of EGS cross-linker	244.058303	K	Anywhere	Chemical derivative
+Xlink:DST of K	Monolink of DST crosslinker to Lys or N-terminus	132.005873	K	Anywhere	Chemical derivative
+Xlink:DST of N-term	Monolink of DST crosslinker to Lys or N-terminus	132.005873	N-term	Protein N-term	Chemical derivative
+Xlink:DTSSP of K	Monolink of DSP/DTSSP crosslinker to Lys or N-terminus	191.991486	K	Anywhere	Chemical derivative
+Xlink:DTSSP of N-term	Monolink of DSP/DTSSP crosslinker to Lys or N-terminus	191.991486	N-term	Protein N-term	Chemical derivative
+Xlink:SMCC of C	Monolink of sulfoSMCC/SMCC crosslinker to Cys	237.100108	C	Anywhere	Chemical derivative
+2-nitrobenzyl of Y	Tyrosine caged with 2-nitrobenzyl (ONB)	135.032028	Y	Anywhere	Chemical derivative
+Xlink:DMP-de of N-term	Monolink of DMP crosslinker to Lys or N-terminus	140.094963	N-term	Protein N-term	Chemical derivative
+Xlink:DMP-de of K	Monolink of DMP crosslinker to Lys or N-terminus	140.094963	K	Anywhere	Chemical derivative
+Xlink:EGS115 of N-term	Cleavage product of EGS protein crosslinks by hydroylamine treatment	115.026943	N-term	Protein N-term	Chemical derivative
+Xlink:EGS115 of K	Cleavage product of EGS protein crosslinks by hydroylamine treatment	115.026943	K	Anywhere	Chemical derivative
+Cys->SecNEM of C	N-ethylmaleimide on selenocysteines	172.992127	C	Anywhere	Non-standard residue
+Cys->SecNEM:2H(5) of C	D5 N-ethylmaleimide on selenocysteines	178.023511	C	Anywhere	Chemical derivative
+Thiadiazole of C	Thiadiazolydation of Cys	174.025169	C	Anywhere	Chemical derivative
+Biotin:Thermo-88310 of K	desthiobiotin modification of lysine	196.121178	K	Anywhere	Chemical derivative
+Deoxyhypusine of Q	Deoxyhypusine	71.073499	Q	Anywhere	Chemical derivative
+Deoxyhypusine of K	Deoxyhypusine	71.073499	K	Anywhere	Post-translational
+Acetyldeoxyhypusine of K	Acetyldeoxyhypusine	97.089149	K	Anywhere	Post-translational
+Acetylhypusine of K	Acetylhypusine	113.084064	K	Anywhere	Post-translational
+AHA-SS of M	Azidohomoalanine coupled to reductively cleaved tag	195.075625	M	Anywhere	Multiple
+2-monomethylsuccinyl of C	S-(2-monomethylsuccinyl) cysteine	130.026609	C	Anywhere	Chemical derivative
+Saligenin of H	o-toluene	106.041865	H	Anywhere	Chemical derivative
+Saligenin of K	o-toluene	106.041865	K	Anywhere	Chemical derivative
+Cresylphosphate of R	o-toluyl-phosphorylation	170.013281	R	Anywhere	Chemical derivative
+Cresylphosphate of S	o-toluyl-phosphorylation	170.013281	S	Anywhere	Chemical derivative
+Cresylphosphate of T	o-toluyl-phosphorylation	170.013281	T	Anywhere	Chemical derivative
+Cresylphosphate of Y	o-toluyl-phosphorylation	170.013281	Y	Anywhere	Chemical derivative
+Cresylphosphate of K	o-toluyl-phosphorylation	170.013281	K	Anywhere	Chemical derivative
+Cresylphosphate of H	o-toluyl-phosphorylation	170.013281	H	Anywhere	Chemical derivative
+Ub-Br2 of C	Ub Bromide probe addition	100.063663	C	Anywhere	Chemical derivative
+Ub-VME of C	Ubiquitin vinylmethylester	173.092617	C	Anywhere	Chemical derivative
+Ub-amide of C	Ub amide probe addition	196.108602	C	Anywhere	Chemical derivative
+2-dimethylsuccinyl of C	S-(2-dimethylsuccinyl) cysteine	144.042259	C	Anywhere	Chemical derivative
+Gly of T	Addition of Glycine	57.021464	T	Anywhere	Other
+Gly of S	Addition of Glycine	57.021464	S	Anywhere	Other
+Gly of K	Addition of Glycine	57.021464	K	Anywhere	Other
+pupylation of K	addition of GGE	243.085521	K	Anywhere	Post-translational
+Label:13C(4) of M	13C4 Methionine label	4.013419	M	Anywhere	Isotopic label
+HCysteinyl of C	S-homocysteinylation	133.019749	C	Anywhere	Post-translational
+Label:13C(4)+Oxidation of M	Oxidised 13C4 labelled Methionine	20.008334	M	Anywhere	Isotopic label
+HCysThiolactone of K	N-Homocysteine thiolactone	117.024835	K	Anywhere	Post-translational
+UgiJoullieProGly of D	Side reaction of PG with Side chain of aspartic or glutamic acid	154.074228	D	Anywhere	Chemical derivative
+UgiJoullieProGly of E	Side reaction of PG with Side chain of aspartic or glutamic acid	154.074228	E	Anywhere	Chemical derivative
+Dipyridyl of C	Cys modified with dipy ligand	225.090212	C	Anywhere	Chemical derivative
+Furan of Y	Chemical modification of the iodinated sites of thyroglobulin by Suzuki reaction	66.010565	Y	Anywhere	Chemical derivative
+Difuran of Y	Chemical modification of the diiodinated sites of thyroglobulin by Suzuki reaction	132.021129	Y	Anywhere	Chemical derivative
+Arg-loss of R	Loss of arginine due to transpeptidation	-156.101111	R	Any C-term	Other
+Arg of N-term	Addition of arginine due to transpeptidation	156.101111	N-term	Any N-term	Other
+Butyryl of K	Butyryl	70.041865	K	Anywhere	Post-translational
+Dicarbamidomethyl of K	Double Carbamidomethylation	114.042927	K	Anywhere	Artefact
+Dicarbamidomethyl of H	Double Carbamidomethylation	114.042927	H	Anywhere	Artefact
+Dicarbamidomethyl of C	Double Carbamidomethylation	114.042927	C	Anywhere	Artefact
+Dicarbamidomethyl of R	Double Carbamidomethylation	114.042927	R	Anywhere	Artefact
+Dicarbamidomethyl of N-term	Double Carbamidomethylation	114.042927	N-term	Any N-term	Artefact
+Dimethyl:2H(6) of K	Dimethyl-Medium	34.068961	K	Anywhere	Isotopic label
+Dimethyl:2H(6) of N-term	Dimethyl-Medium	34.068961	N-term	Any N-term	Isotopic label
+Dimethyl:2H(6) of R	Dimethyl-Medium	34.068961	R	Anywhere	Isotopic label
+GGQ of K	SUMOylation leaving GlyGlyGln	242.101505	K	Anywhere	Other
+Label:13C(3)15N(1) of A	13C3 15N1 label for SILAC	4.007099	A	Anywhere	Isotopic label
+Label:13C(3) of A	13C3 label for SILAC	3.010064	A	Anywhere	Isotopic label
+Label:13C(4)15N(1) of D	13C4 15N1 label for SILAC	5.010454	D	Anywhere	Isotopic label
+Label:2H(10) of L	2H(10) label	10.062767	L	Anywhere	Isotopic label
+Label:2H(4)13C(1) of R	Label:2H(4)13C(1)	5.028462	R	Anywhere	Isotopic label
+Lys of N-term	Addition of lysine due to transpeptidation	128.094963	N-term	Any N-term	Other
+mTRAQ:13C(6)15N(2) of K	mTRAQ heavy	148.109162	K	Anywhere	Isotopic label
+mTRAQ:13C(6)15N(2) of N-term	mTRAQ heavy	148.109162	N-term	Any N-term	Isotopic label
+mTRAQ:13C(6)15N(2) of Y	mTRAQ heavy	148.109162	Y	Anywhere	Isotopic label
+mTRAQ:13C(6)15N(2) of H	mTRAQ heavy	148.109162	H	Anywhere	Isotopic label
+mTRAQ:13C(6)15N(2) of S	mTRAQ heavy	148.109162	S	Anywhere	Isotopic label
+mTRAQ:13C(6)15N(2) of T	mTRAQ heavy	148.109162	T	Anywhere	Isotopic label
+Propyl of D	Propyl	42.04695	D	Anywhere	Chemical derivative
+Propyl of K	Propyl	42.04695	K	Anywhere	Isotopic label
+Propyl of N-term	Propyl	42.04695	N-term	Any N-term	Isotopic label
+Propyl of E	Propyl	42.04695	E	Anywhere	Chemical derivative
+Propyl of C-term	Propyl	42.04695	C-term	Any C-term	Chemical derivative
+Propyl of C-term	Propyl	42.04695	C-term	Protein C-term	Chemical derivative
+Propyl:2H(6) of N-term	Propyl:2H(6)	48.084611	N-term	Any N-term	Isotopic label
+Propyl:2H(6) of K	Propyl:2H(6)	48.084611	K	Anywhere	Isotopic label
+Propiophenone of C	Propiophenone	132.057515	C	Anywhere	Chemical derivative
+Propiophenone of W	Propiophenone	132.057515	W	Anywhere	Chemical derivative
+Propiophenone of T	Propiophenone	132.057515	T	Anywhere	Chemical derivative
+Propiophenone of S	Propiophenone	132.057515	S	Anywhere	Chemical derivative
+Propiophenone of R	Propiophenone	132.057515	R	Anywhere	Chemical derivative
+Propiophenone of K	Propiophenone	132.057515	K	Anywhere	Chemical derivative
+Propiophenone of H	Propiophenone	132.057515	H	Anywhere	Chemical derivative
+PS_Hapten of H	reaction with phenyl salicylate (PS)	120.021129	H	Anywhere	Chemical derivative
+PS_Hapten of C	reaction with phenyl salicylate (PS)	120.021129	C	Anywhere	Chemical derivative
+PS_Hapten of K	reaction with phenyl salicylate (PS)	120.021129	K	Anywhere	Chemical derivative
+Delta:H(6)C(3)O(1) of N-term	Reduced acrolein addition +58	58.041865	N-term	Protein N-term	Chemical derivative
+Delta:H(6)C(3)O(1) of K	Reduced acrolein addition +58	58.041865	K	Anywhere	Chemical derivative
+Delta:H(6)C(3)O(1) of H	Reduced acrolein addition +58	58.041865	H	Anywhere	Chemical derivative
+Delta:H(6)C(3)O(1) of C	Reduced acrolein addition +58	58.041865	C	Anywhere	Chemical derivative
+Delta:H(8)C(6)O(1) of N-term	Reduced acrolein addition +96	96.057515	N-term	Protein N-term	Chemical derivative
+Delta:H(8)C(6)O(1) of K	Reduced acrolein addition +96	96.057515	K	Anywhere	Chemical derivative
+benzylguanidine of K	modification of the lysine side chain from NH2 to guanidine with a H removed in favor of a benzyl group	132.068748	K	Anywhere	Chemical derivative
+CarboxymethylDMAP of N-term	A fixed +1 charge tag attached to the N-terminus of peptides	162.079313	N-term	Any N-term	Chemical derivative
+DiLeu4plex115 of K	Accurate mass for DiLeu 115 isobaric tag	145.12	K	Anywhere	Isotopic label
+DiLeu4plex115 of N-term	Accurate mass for DiLeu 115 isobaric tag	145.12	N-term	Any N-term	Isotopic label
+DiLeu4plex115 of Y	Accurate mass for DiLeu 115 isobaric tag	145.12	Y	Anywhere	Isotopic label
+DiLeu4plex of N-term	Accurate mass for DiLeu 116 isobaric tag	145.132163	N-term	Any N-term	Isotopic label
+DiLeu4plex of K	Accurate mass for DiLeu 116 isobaric tag	145.132163	K	Anywhere	Isotopic label
+DiLeu4plex of Y	Accurate mass for DiLeu 116 isobaric tag	145.132163	Y	Anywhere	Isotopic label
+DiLeu4plex117 of K	Accurate mass for DiLeu 117 isobaric tag	145.128307	K	Anywhere	Isotopic label
+DiLeu4plex117 of N-term	Accurate mass for DiLeu 117 isobaric tag	145.128307	N-term	Any N-term	Isotopic label
+DiLeu4plex117 of Y	Accurate mass for DiLeu 117 isobaric tag	145.128307	Y	Anywhere	Isotopic label
+DiLeu4plex118 of K	Accurate mass for DiLeu 118 isobaric tag	145.140471	K	Anywhere	Isotopic label
+DiLeu4plex118 of N-term	Accurate mass for DiLeu 118 isobaric tag	145.140471	N-term	Any N-term	Isotopic label
+DiLeu4plex118 of Y	Accurate mass for DiLeu 118 isobaric tag	145.140471	Y	Anywhere	Isotopic label
+DNCB_hapten of Y	Chemical reaction with 2,4-dinitro-1-chloro benzene (DNCB)	166.001457	Y	Anywhere	Chemical derivative
+DNCB_hapten of H	Chemical reaction with 2,4-dinitro-1-chloro benzene (DNCB)	166.001457	H	Anywhere	Chemical derivative
+DNCB_hapten of K	Chemical reaction with 2,4-dinitro-1-chloro benzene (DNCB)	166.001457	K	Anywhere	Chemical derivative
+DNCB_hapten of C	Chemical reaction with 2,4-dinitro-1-chloro benzene (DNCB)	166.001457	C	Anywhere	Chemical derivative
+NEMsulfur of C	N-ethylmaleimideSulfur	157.019749	C	Anywhere	Chemical derivative
+SulfurDioxide of C	SulfurDioxide	63.9619	C	Anywhere	Post-translational
+NEMsulfurWater of C	N-ethylmaleimideSulfurWater	175.030314	C	Anywhere	Chemical derivative
+HN3_mustard of C	Modification by hydroxylated tris-(2-chloroethyl)amine (HN-3)	131.094629	C	Anywhere	Post-translational
+HN3_mustard of H	Modification by hydroxylated tris-(2-chloroethyl)amine (HN-3)	131.094629	H	Anywhere	Post-translational
+HN3_mustard of K	Modification by hydroxylated tris-(2-chloroethyl)amine (HN-3)	131.094629	K	Anywhere	Post-translational
+3-phosphoglyceryl of K	3-phosphoglyceryl	167.982375	K	Anywhere	Post-translational
+HN2_mustard of H	Modification by hydroxylated mechloroethamine (HN-2)	101.084064	H	Anywhere	Post-translational
+HN2_mustard of K	Modification by hydroxylated mechloroethamine (HN-2)	101.084064	K	Anywhere	Post-translational
+HN2_mustard of C	Modification by hydroxylated mechloroethamine (HN-2)	101.084064	C	Anywhere	Post-translational
+NEM:2H(5)+H2O of C	D5 N-ethylmaleimide+water on cysteines	148.089627	C	Anywhere	Chemical derivative
+Crotonyl of K	Crotonylation	68.026215	K	Anywhere	Post-translational
+O-Et-N-diMePhospho of S	O-ethyl, N-dimethyl phosphate	135.044916	S	Anywhere	Chemical derivative
+N-dimethylphosphate of S	N-dimethylphosphate	107.013615	S	Anywhere	Chemical derivative
+phosphoRibosyl of E	phosphate-ribosylation	212.00859	E	Anywhere	Post-translational
+phosphoRibosyl of R	phosphate-ribosylation	212.00859	R	Anywhere	Post-translational
+phosphoRibosyl of D	phosphate-ribosylation	212.00859	D	Anywhere	Post-translational
+azole of C	Formation of five membered aromatic heterocycle	-20.026215	C	Anywhere	Post-translational
+azole of S	Formation of five membered aromatic heterocycle	-20.026215	S	Anywhere	Post-translational
+Label:13C(2)15N(2) of K	13C(2) 15N(2)	4.00078	K	Anywhere	Isotopic label
+Methyl:2H(3)+Acetyl:2H(3) of K	3-fold methylated lysine labelled with Acetyl_heavy	62.063875	K	Anywhere	Isotopic label
+methylsulfonylethyl of K	reaction with methyl vinyl sulfone	106.00885	K	Anywhere	Chemical derivative
+methylsulfonylethyl of H	reaction with methyl vinyl sulfone	106.00885	H	Anywhere	Chemical derivative
+methylsulfonylethyl of C	reaction with methyl vinyl sulfone	106.00885	C	Anywhere	Chemical derivative
+Label:2H(3)+Oxidation of M	Oxidised 2H(3) labelled Methionine	19.013745	M	Anywhere	Isotopic label
+Trimethyl:2H(9) of R	3-fold methylation with deuterated methyl groups	51.103441	R	Anywhere	Isotopic label
+Trimethyl:2H(9) of K	3-fold methylation with deuterated methyl groups	51.103441	K	Anywhere	Isotopic label
+Acetyl:13C(2) of K	heavy acetylation	44.017274	K	Anywhere	Isotopic label
+Acetyl:13C(2) of N-term	heavy acetylation	44.017274	N-term	Protein N-term	Isotopic label
+ethylsulfonylethyl of H	reaction with ethyl vinyl sulfone	120.0245	H	Anywhere	Chemical derivative
+ethylsulfonylethyl of C	reaction with ethyl vinyl sulfone	120.0245	C	Anywhere	Chemical derivative
+ethylsulfonylethyl of K	reaction with ethyl vinyl sulfone	120.0245	K	Anywhere	Chemical derivative
+phenylsulfonylethyl of C	reaction with phenyl vinyl sulfone	168.0245	C	Anywhere	Chemical derivative
+PyridoxalPhosphateH2 of K	PLP bound to lysine reduced by sodium borohydride (NaBH4) to create amine linkage	231.02966	K	Anywhere	Chemical derivative
+Homocysteic_acid of M	methionine oxidation to homocysteic acid	33.969094	M	Anywhere	Artefact
+Hydroxamic_acid of E	Conversion of carboxylic acid to hydroxamic acid	15.010899	E	Anywhere	Artefact
+Hydroxamic_acid of D	Conversion of carboxylic acid to hydroxamic acid	15.010899	D	Anywhere	Artefact
+Oxidation+NEM of C	N-ethylmaleimide on cysteine sulfenic acid	141.042593	C	Anywhere	Chemical derivative
+DiART6plex of Y	Representative mass and accurate mass for 114	217.162932	Y	Anywhere	Isotopic label
+DiART6plex of N-term	Representative mass and accurate mass for 114	217.162932	N-term	Protein N-term	Isotopic label
+DiART6plex of N-term	Representative mass and accurate mass for 114	217.162932	N-term	Any N-term	Isotopic label
+DiART6plex of K	Representative mass and accurate mass for 114	217.162932	K	Anywhere	Isotopic label
+DiART6plex115 of K	Accurate mass for DiART6plex 115	217.156612	K	Anywhere	Isotopic label
+DiART6plex115 of N-term	Accurate mass for DiART6plex 115	217.156612	N-term	Any N-term	Isotopic label
+DiART6plex115 of N-term	Accurate mass for DiART6plex 115	217.156612	N-term	Protein N-term	Isotopic label
+DiART6plex115 of Y	Accurate mass for DiART6plex 115	217.156612	Y	Anywhere	Isotopic label
+DiART6plex116/119 of Y	Accurate mass for DiART6plex 116 and 119	217.168776	Y	Anywhere	Isotopic label
+DiART6plex116/119 of N-term	Accurate mass for DiART6plex 116 and 119	217.168776	N-term	Protein N-term	Isotopic label
+DiART6plex116/119 of K	Accurate mass for DiART6plex 116 and 119	217.168776	K	Anywhere	Isotopic label
+DiART6plex116/119 of N-term	Accurate mass for DiART6plex 116 and 119	217.168776	N-term	Any N-term	Isotopic label
+DiART6plex117 of K	Accurate mass for DiART6plex 117	217.162456	K	Anywhere	Isotopic label
+DiART6plex117 of N-term	Accurate mass for DiART6plex 117	217.162456	N-term	Any N-term	Isotopic label
+DiART6plex117 of N-term	Accurate mass for DiART6plex 117	217.162456	N-term	Protein N-term	Isotopic label
+DiART6plex117 of Y	Accurate mass for DiART6plex 117	217.162456	Y	Anywhere	Isotopic label
+DiART6plex118 of K	Accurate mass for DiART6plex 118	217.175096	K	Anywhere	Isotopic label
+DiART6plex118 of N-term	Accurate mass for DiART6plex 118	217.175096	N-term	Any N-term	Isotopic label
+DiART6plex118 of N-term	Accurate mass for DiART6plex 118	217.175096	N-term	Protein N-term	Isotopic label
+DiART6plex118 of Y	Accurate mass for DiART6plex 118	217.175096	Y	Anywhere	Isotopic label
+Iodoacetanilide of K	iodoacetanilide derivative	133.052764	K	Anywhere	Artefact
+Iodoacetanilide of C	iodoacetanilide derivative	133.052764	C	Anywhere	Chemical derivative
+Iodoacetanilide of N-term	iodoacetanilide derivative	133.052764	N-term	Any N-term	Artefact
+Iodoacetanilide:13C(6) of K	13C labelled iodoacetanilide derivative	139.072893	K	Anywhere	Artefact
+Iodoacetanilide:13C(6) of C	13C labelled iodoacetanilide derivative	139.072893	C	Anywhere	Chemical derivative
+Iodoacetanilide:13C(6) of N-term	13C labelled iodoacetanilide derivative	139.072893	N-term	Any N-term	Artefact
+Label:2H(7)15N(4) of R	Label:2H(7)15N(4)	11.032077	R	Anywhere	Isotopic label
+Label:2H(6)15N(1) of P	Label:2H(6)15N(1)	7.034695	P	Anywhere	Isotopic label
+Trimethyl:13C(3)2H(9) of K	3-fold methylation with fully labelled methyl groups	54.113505	K	Anywhere	Isotopic label
+Trimethyl:13C(3)2H(9) of R	3-fold methylation with fully labelled methyl groups	54.113505	R	Anywhere	Isotopic label
+15N-oxobutanoic of S	Loss of ammonia (15N)	-18.023584	S	Protein N-term	Post-translational
+15N-oxobutanoic of C	Loss of ammonia (15N)	-18.023584	C	Any N-term	Artefact
+15N-oxobutanoic of T	Loss of ammonia (15N)	-18.023584	T	Protein N-term	Post-translational
+spermidine of Q	spermidine adduct	128.131349	Q	Anywhere	Chemical derivative
+Pentose of T	Pentose	132.042259	T	Anywhere	O-linked glycosylation
+Pentose of S	Pentose	132.042259	S	Anywhere	O-linked glycosylation
+Xlink:DSS-NH2 of N-term	Ammonium-quenched monolink of DSS/BS3 crosslinker to Lys or N-terminus	155.094629	N-term	Protein N-term	Chemical derivative
+Xlink:DSS-NH2 of K	Ammonium-quenched monolink of DSS/BS3 crosslinker to Lys or N-terminus	155.094629	K	Anywhere	Chemical derivative
+Carboxyethylpyrrole of K	Carboxyethylpyrrole	122.036779	K	Anywhere	Other
+Brij58 of N-term	Brij 58 synthetic polymer terminus	224.250401	N-term	Any N-term	Other
+Brij35 of N-term	Brij 35 synthetic polymer terminus	168.187801	N-term	Any N-term	Other
+Triton of N-term	Triton synthetic polymer terminus	188.156501	N-term	Any N-term	Other
+Triton of C-term	Triton synthetic polymer terminus	188.156501	C-term	Any C-term	Other
+Tween20 of N-term	Tween 20 synthetic polymer terminus	165.164326	N-term	Any N-term	Other
+Tris of N	tris adduct causes 104 Da addition at asparagine-succinimide intermediate	104.071154	N	Anywhere	Artefact
+GEE of Q	transamidation of glycine ethyl ester to glutamine	86.036779	Q	Anywhere	Chemical derivative
+Glu->pyro-Glu+Methyl of E	Pyro-Glu from E + Methylation	-3.994915	E	Any N-term	Artefact
+Glu->pyro-Glu+Methyl:2H(2)13C(1) of E	Pyro-Glu from E + Methylation Medium	-0.979006	E	Any N-term	Artefact
+NP40 of N-term	NP-40 synthetic polymer terminus	220.182715	N-term	Any N-term	Other
+AzidoF of F	Azidophenylalanine	41.001397	F	Anywhere	Chemical derivative
+Dimethylaminoethyl of C	Cys alkylation by dimethylaminoethyl halide	71.073499	C	Anywhere	Chemical derivative
