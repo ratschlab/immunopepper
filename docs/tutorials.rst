@@ -969,6 +969,14 @@ Running pepquery mode
 
 This mode is a wrapper tool for the PepQuery software. It allows to do proteomic validations on the output kmers from *cancerspecif*  or *mhc_bind* mode. Therefore, there are some input parameters specific to this software and some input parameters that are required in the PepQuery software tool.
 
+.. important::
+
+    For this tutorial you need to first decompress the spectra file located under **immunopepper/tests/data_simulated/data/pepquery_mode** . One can do so by running:
+
+    .. code-block:: console
+
+        tar -xzvf TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf.tar.gz
+
 Pepquery mode starting from kmers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
