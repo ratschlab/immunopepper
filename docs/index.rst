@@ -20,7 +20,7 @@ For more information on how to incorporate this data to generate the input splic
     :align: center
     :alt: Image showing splice graph generation from transcripts
 
-    Image showing the construction of a splice graph (bottom) from four transcripts (top). The *Ti* denotes the transcript number and the *Ei* denote exon numbers. **Note: In the lower image the exon numbers do not correspond to the exon numbers in the transcripts i.e. we denote E1 to T1E1, T3E1, T4E1 and E2 to T1E2.*
+    Image showing the construction of a splice graph (bottom) from four transcripts (top). The *Ti* denotes the transcript number and the *Ei* denote exon numbers. *Note: In the lower image the exon numbers do not correspond to the exon numbers in the transcripts i.e. we denote E1 to T1E1, T3E1, T4E1 and E2 to T1E2.*
 
 ImmunoPepper takes all exon-exon junctions present in the splicing graph (From RNA-Seq sample and from the annotation) and translate them into 2 or 3 exons peptides (and kmers).
 The peptide set obtained by using this software tool can **optionally be personalized by giving germline and somatic variants as an input.**
