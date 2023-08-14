@@ -244,8 +244,8 @@ def mode_cancerspecif(arg):
             logging.info("Filtering normal background")
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"],
                                              how='left_anti')
-            partitions_ = cancer_kmers.rdd.getNumPartitions()
-            logging.info(f'partitions: {partitions_}')
+            #partitions_ = cancer_kmers.rdd.getNumPartitions()
+            #logging.info(f'partitions: {partitions_}')
             save_spark(cancer_kmers, arg.output_dir, path_filter_final, outpartitions=arg.out_partitions)
             output_count(arg.output_count, cancer_kmers, report_count, report_steps,
                          'Filter_Sample_Cohort_CohortNormal')
