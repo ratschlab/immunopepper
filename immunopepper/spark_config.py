@@ -31,7 +31,8 @@ def default_spark_config(cores: int, memory_per_executor_mb: int, parallelism: i
 
     if tmp_dir:
         cfg.set("spark.local.dir", tmp_dir)
-
+    print(cfg.get("spark.local.dir"), flush=True)
+    print("local directory in spark", flush=True)
     # TODO set as parameter
     java_options = str(extra_java_options)
     java_options = java_options + " -XX:ThreadStackSize=81920"
