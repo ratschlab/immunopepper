@@ -125,7 +125,7 @@ def mode_cancerspecif(arg):
 
         # Additional kmer backgrounds filtering
         if arg.path_normal_kmer_list is not None:
-            normal_matrix = remove_external_kmer_list(spark, arg.path_normal_kmer_list, normal_matrix, index_name)
+            normal_matrix = remove_external_kmer_list(spark, arg.path_normal_kmer_list, normal_matrix, index_name, header=True)
 
         ### Apply filtering to foreground
         for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
