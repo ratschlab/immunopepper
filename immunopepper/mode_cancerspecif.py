@@ -20,7 +20,7 @@ from immunopepper.spark import remove_external_kmer_list
 from immunopepper.spark import remove_uniprot
 from immunopepper.spark import save_output_count
 from immunopepper.spark import save_spark
-
+from pyspark.sql.functions import broadcast
 
 
 
@@ -242,6 +242,7 @@ def mode_cancerspecif(arg):
 
             # Remove background from foreground
             logging.info("Filtering normal background")
+            cancer_kmers = broadcast(cancer_kmers)
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"],
                                              how='left_anti')
             #partitions_ = cancer_kmers.rdd.getNumPartitions()
