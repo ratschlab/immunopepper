@@ -20,7 +20,7 @@ from immunopepper.spark import remove_external_kmer_list
 from immunopepper.spark import remove_uniprot
 from immunopepper.spark import save_output_count
 from immunopepper.spark import save_spark
-
+from pyspark.sql.functions import broadcast
 
 
 
@@ -37,6 +37,7 @@ def mode_cancerspecif(arg):
 
         ### Some variable definitions
         index_name = 'kmer'
+        coord_name = 'coord'
         jct_col = "iscrossjunction"
         jct_annot_col = "junctionAnnotated"
         rf_annot_col = "readFrameAnnotated"
@@ -73,27 +74,27 @@ def mode_cancerspecif(arg):
             if launch_preprocess_normal: # else do not need to launch because intermediate files are present
                 logging.info("\n \n >>>>>>>> Preprocessing Normal samples")
 
-                normal_segm = process_build_outputs(spark, index_name, jct_col,
+                normal_segm = process_build_outputs(spark, index_name, coord_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
                                                   path_matrix=arg.path_normal_matrix_segm,
                                                   whitelist=arg.whitelist_normal,
                                                   cross_junction=0,
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
                                                                               or (arg.filterNeojuncCoord == 'A') else False,
-                                                  filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
-                                                                             or (arg.filterNeojuncCoord == 'A') else False,
+                                                  filterAnnotatedRF=True if (arg.filterAnnotatedRF == 'N')
+                                                                             or (arg.filterAnnotatedRF == 'A') else False,
                                                   output_dir=normal_out,
                                                   separate_back_annot=path_interm_kmers_annotOnly,
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
-                normal_junc = process_build_outputs(spark, index_name, jct_col,
+                normal_junc = process_build_outputs(spark, index_name, coord_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
                                                   path_matrix=arg.path_normal_matrix_edge,
                                                   whitelist=arg.whitelist_normal,
                                                   cross_junction=1,
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
                                                                               or (arg.filterNeojuncCoord == 'A') else False,
-                                                  filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'N')
-                                                                             or (arg.filterNeojuncCoord == 'A') else False,
+                                                  filterAnnotatedRF=True if (arg.filterAnnotatedRF == 'N')
+                                                                             or (arg.filterAnnotatedRF == 'A') else False,
                                                   output_dir=normal_out,
                                                   separate_back_annot=path_interm_kmers_annotOnly if not normal_segm else None, # The kmer only from the annotation need be extracted only once. Ideally from the segment expression matrix
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
@@ -105,7 +106,7 @@ def mode_cancerspecif(arg):
                           f'(expressed in {arg.n_samples_lim_normal} samples'
                           f' with {arg.cohort_expr_support_normal} normalized counts'))
             logging.info("expression filter")
-            inter_matrix_expr, inter_matrix_sample = filter_hard_threshold(normal_matrix, index_name, jct_annot_col,
+            inter_matrix_expr, inter_matrix_sample = filter_hard_threshold(normal_matrix, index_name, coord_name, jct_annot_col,
                                                                            rf_annot_col, libsize_n,
                                                                            arg.cohort_expr_support_normal,
                                                                            arg.n_samples_lim_normal,
@@ -117,15 +118,14 @@ def mode_cancerspecif(arg):
                                                            path_normal_for_sample_threshold,
                                                            inter_matrix_expr, inter_matrix_sample,
                                                            arg.n_samples_lim_normal, index_name)
+
             # Add back kmer annot
             normal_matrix = remove_external_kmer_list(spark, path_interm_kmers_annotOnly,
                                                       normal_matrix, index_name, header=True)
 
         # Additional kmer backgrounds filtering
         if arg.path_normal_kmer_list is not None:
-            normal_matrix = remove_external_kmer_list(spark, arg.path_normal_kmer_list, normal_matrix, index_name)
-
-
+            normal_matrix = remove_external_kmer_list(spark, arg.path_normal_kmer_list, normal_matrix, index_name, header=True)
 
         ### Apply filtering to foreground
         for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
@@ -142,7 +142,7 @@ def mode_cancerspecif(arg):
                 mutation_mode = arg.mut_cancer_samples[0]
 
                 # Preprocess cancer samples
-                cancer_segm = process_build_outputs(spark, index_name, jct_col,
+                cancer_segm = process_build_outputs(spark, index_name, coord_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
                                                   path_matrix=arg.path_cancer_matrix_segm,
                                                   whitelist=arg.whitelist_cancer,
@@ -150,11 +150,11 @@ def mode_cancerspecif(arg):
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
                                                                              or (arg.filterNeojuncCoord == 'A')
                                                                              else False,
-                                                  filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'C')
-                                                                            or (arg.filterNeojuncCoord == 'A')
+                                                  filterAnnotatedRF=True if (arg.filterAnnotatedRF == 'C')
+                                                                            or (arg.filterAnnotatedRF == 'A')
                                                                             else False,
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
-                cancer_junc = process_build_outputs(spark, index_name, jct_col,
+                cancer_junc = process_build_outputs(spark, index_name, coord_name, jct_col,
                                                   jct_annot_col, rf_annot_col,
                                                   path_matrix=arg.path_cancer_matrix_edge,
                                                   whitelist=arg.whitelist_cancer,
@@ -162,15 +162,16 @@ def mode_cancerspecif(arg):
                                                   filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
                                                                              or (arg.filterNeojuncCoord == 'A')
                                                                              else False,
-                                                  filterAnnotatedRF=True if (arg.filterNeojuncCoord == 'C')
-                                                                            or (arg.filterNeojuncCoord == 'A')
+                                                  filterAnnotatedRF=True if (arg.filterAnnotatedRF == 'C')
+                                                                            or (arg.filterAnnotatedRF == 'A')
                                                                             else False,
                                                   tot_batches=arg.tot_batches, batch_id=arg.batch_id)
                 cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
 
-
                 # cancer sample-specific filter
-                cancer_sample_filter = cancer_matrix.select([index_name, cancer_sample, jct_annot_col, rf_annot_col])
+
+                cancer_sample_filter = cancer_matrix.select([index_name, coord_name, cancer_sample, jct_annot_col, rf_annot_col])
+
                 cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0) #Keep kmers expressed
                 # Counting step: Retrieve initial number of kmers in sample
                 output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Init_cancer')
@@ -178,6 +179,7 @@ def mode_cancerspecif(arg):
                 if arg.output_count and (arg.sample_expr_support_cancer != 0):
                     cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample,
                                                             arg.sample_expr_support_cancer, libsize_c) #Keep kmers expressed >= threshold
+
                     # Counting step: Retrieve number of kmers in sample after filtering on cancer expression
                     output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
@@ -186,7 +188,7 @@ def mode_cancerspecif(arg):
 
                 # cancer cross-cohort filter
                 if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
-                    inter_matrix_expr_c, inter_matrix_sample_c = filter_hard_threshold(cancer_matrix, index_name,
+                    inter_matrix_expr_c, inter_matrix_sample_c = filter_hard_threshold(cancer_matrix, index_name,coord_name,
                                                                                        jct_annot_col, rf_annot_col,
                                                                                        libsize_c,
                                                                                        arg.cohort_expr_support_cancer,
@@ -204,7 +206,7 @@ def mode_cancerspecif(arg):
                                                                          arg.n_samples_lim_cancer,
                                                                          index_name)
 
-                    cancer_cross_filter = cancer_cross_filter.select([index_name, cancer_sample,
+                    cancer_cross_filter = cancer_cross_filter.select([index_name, coord_name, cancer_sample,
                                                                       jct_annot_col, rf_annot_col])
                     if arg.cancer_support_union:
                         logging.info("support union")
@@ -240,19 +242,21 @@ def mode_cancerspecif(arg):
 
             # Remove background from foreground
             logging.info("Filtering normal background")
+            cancer_kmers = broadcast(cancer_kmers)
             cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"],
                                              how='left_anti')
-            partitions_ = cancer_kmers.rdd.getNumPartitions()
-            logging.info(f'partitions: {partitions_}')
+            #partitions_ = cancer_kmers.rdd.getNumPartitions()
+            #logging.info(f'partitions: {partitions_}')
             save_spark(cancer_kmers, arg.output_dir, path_filter_final, outpartitions=arg.out_partitions)
             output_count(arg.output_count, cancer_kmers, report_count, report_steps,
                          'Filter_Sample_Cohort_CohortNormal')
 
             # Remove Uniprot
-            logging.info("Filtering kmers in uniprot")
-            cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
-            save_spark(cancer_kmers, arg.output_dir, path_filter_final_uniprot, outpartitions=arg.out_partitions)
-            output_count(arg.output_count, cancer_kmers, report_count, report_steps,
+            if arg.uniprot is not None:
+                logging.info("Filtering kmers in uniprot")
+                cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
+                save_spark(cancer_kmers, arg.output_dir, path_filter_final_uniprot, outpartitions=arg.out_partitions)
+                output_count(arg.output_count, cancer_kmers, report_count, report_steps,
                          'Filter_Sample_Cohort_CohortNormal_Uniprot')
 
             save_output_count(arg.output_count, report_count, report_steps, arg.tag_normals,

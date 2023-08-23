@@ -1,0 +1,19 @@
+### STAR   --runMode genomeGenerate      --runThreadN 3   --genomeDir /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx   --genomeFastaFiles /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome.fa      --genomeSAindexNbases 5   --sjdbGTFfile /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/simulated_Ipp.gtf   --sjdbOverhang 25   --sjdbInsertSave Basic
+### GstrandBit 32
+versionGenome	2.7.4a
+genomeType	Full
+genomeFastaFiles	/home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome.fa 
+genomeSAindexNbases	5
+genomeChrBinNbits	18
+genomeSAsparseD	1
+genomeTransformType	None
+genomeTransformVCF	-
+sjdbOverhang	25
+sjdbFileChrStartEnd	- 
+sjdbGTFfile	/home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/simulated_Ipp.gtf
+sjdbGTFchrPrefix	-
+sjdbGTFfeatureExon	exon
+sjdbGTFtagExonParentTranscript	transcript_id
+sjdbGTFtagExonParentGene	gene_id
+sjdbInsertSave	Basic
+genomeFileSizes	263776 95703
