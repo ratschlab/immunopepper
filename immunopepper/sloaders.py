@@ -223,5 +223,22 @@ def loader(spark, path_kmer, header=False):
         logging.error(f'Cannot determine file type of {path_kmer}. Please include .parquet .pq .tsv .csv suffix to the files or the folder (partitionned)')
         sys.exit()
 
-
     return matrix
+
+
+def inputs_to_modes(arg):
+    recurrence_cancer = False
+    recurrence_normal = False
+    cancer_files = False
+    normal_files = False
+
+    if (arg.path_normal_matrix_segm is not None) or (arg.path_normal_matrix_edge is not None):
+        recurrence_normal = True
+        normal_files = True
+    if arg.path_normal_kmer_list is not None:
+        normal_files = True
+    if arg.path_cancer_matrix_segm or arg.path_cancer_matrix_edge:
+        cancer_files = True
+    if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
+        recurrence_cancer = True
+    return recurrence_cancer, recurrence_normal, cancer_files, normal_files

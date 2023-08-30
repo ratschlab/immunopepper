@@ -7,6 +7,7 @@ from immunopepper.sdisk import redirect_interm
 from immunopepper.sdisk import save_output_count
 from immunopepper.sdisk import save_spark
 from immunopepper.sloaders import apply_preprocess
+from immunopepper.sloaders import inputs_to_modes
 from immunopepper.sloaders import process_libsize
 from immunopepper.sloaders import remove_external_kmer_list
 from immunopepper.spark import combine_hard_threshold_cancers
@@ -48,6 +49,7 @@ def mode_cancerspecif(arg):
         report_steps = []
         normal_out, cancer_out = redirect_interm(arg.interm_dir_norm,
                                                   arg.interm_dir_canc, arg.output_dir)
+        recurrence_cancer, recurrence_normal, cancer_files, normal_files = inputs_to_modes(arg)
 
         ### Preprocessing Libsize
         logging.info("\n \n >>>>>>>> Preprocessing libsizes")
@@ -66,7 +68,7 @@ def mode_cancerspecif(arg):
         path_interm_kmers_annotOnly = check_interm_files(normal_out, arg.cohort_expr_support_normal,
                                                          arg.n_samples_lim_normal, tag='normals', batch_tag=batch_tag)
         ### Preprocessing Normals
-        if (arg.path_normal_matrix_segm is not None) or (arg.path_normal_matrix_edge is not None):
+        if normal_files:
             if launch_preprocess_normal: # else do not need to launch because intermediate files are present
                 logging.info("\n \n >>>>>>>> Preprocessing Normal samples")
 
@@ -77,25 +79,26 @@ def mode_cancerspecif(arg):
 
 
             # Hard Filtering
-            logging.info((f'\n \n >>>>>>>> Normals: Perform Hard Filtering \n '
-                          f'(expressed in {arg.n_samples_lim_normal} samples'
-                          f' with {arg.cohort_expr_support_normal} normalized counts'))
-            logging.info("expression filter")
-            inter_matrix_expr, inter_matrix_sample = filter_hard_threshold(normal_matrix, index_name, coord_name, jct_annot_col,
-                                                                           rf_annot_col, libsize_n,
-                                                                           arg.cohort_expr_support_normal,
-                                                                           arg.n_samples_lim_normal,
-                                                                           path_normal_for_express_threshold,
-                                                                           path_normal_for_sample_threshold,
-                                                                           on_the_fly=arg.on_the_fly, tag='normals')
+            if recurrence_normal:
+                logging.info((f'\n \n >>>>>>>> Normals: Perform Hard Filtering \n '
+                              f'(expressed in {arg.n_samples_lim_normal} samples'
+                              f' with {arg.cohort_expr_support_normal} normalized counts'))
+                logging.info("expression filter")
+                inter_matrix_expr, inter_matrix_sample = filter_hard_threshold(normal_matrix, index_name, coord_name, jct_annot_col,
+                                                                               rf_annot_col, libsize_n,
+                                                                               arg.cohort_expr_support_normal,
+                                                                               arg.n_samples_lim_normal,
+                                                                               path_normal_for_express_threshold,
+                                                                               path_normal_for_sample_threshold,
+                                                                               on_the_fly=arg.on_the_fly, tag='normals')
 
-            normal_matrix = combine_hard_threshold_normals(spark, path_normal_for_express_threshold,
-                                                           path_normal_for_sample_threshold,
-                                                           inter_matrix_expr, inter_matrix_sample,
-                                                           arg.n_samples_lim_normal, index_name)
+                normal_matrix = combine_hard_threshold_normals(spark, path_normal_for_express_threshold,
+                                                               path_normal_for_sample_threshold,
+                                                               inter_matrix_expr, inter_matrix_sample,
+                                                               arg.n_samples_lim_normal, index_name)
 
-            # Add back kmer annot
-            normal_matrix = remove_external_kmer_list(spark, path_interm_kmers_annotOnly,
+                # Add back kmer annot
+                normal_matrix = remove_external_kmer_list(spark, path_interm_kmers_annotOnly,
                                                       normal_matrix, index_name, header=True)
 
         # Additional kmer backgrounds filtering
@@ -112,7 +115,7 @@ def mode_cancerspecif(arg):
                                      target_sample=cancer_sample, tag=f'cancer_{mutation_mode}', batch_tag=batch_tag)
 
             ## Cancer file checks
-            if arg.path_cancer_matrix_segm or arg.path_cancer_matrix_edge or arg.paths_cancer_samples:
+            if cancer_files:
                 logging.info("\n \n >>>>>>>> Preprocessing Cancer sample {}  ".format(cancer_sample_ori))
                 mutation_mode = arg.mut_cancer_samples[0]
 
@@ -139,7 +142,7 @@ def mode_cancerspecif(arg):
                     output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
                 # cancer cross-cohort filter
-                if (arg.cohort_expr_support_cancer is not None) and (arg.n_samples_lim_cancer is not None):
+                if recurrence_cancer:
                     inter_matrix_expr_c, inter_matrix_sample_c = filter_hard_threshold(cancer_matrix, index_name,coord_name,
                                                                                        jct_annot_col, rf_annot_col,
                                                                                        libsize_c,
