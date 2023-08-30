@@ -2,6 +2,7 @@ import logging
 import os
 
 from immunopepper.sdisk import check_interm_files
+from immunopepper.sdisk import filtered_path
 from immunopepper.sdisk import output_count
 from immunopepper.sdisk import redirect_interm
 from immunopepper.sdisk import save_output_count
@@ -183,17 +184,9 @@ def mode_cancerspecif(arg):
             logging.info(f'partitions: {partitions_}')
 
             # outpaths
-            base_path_final = os.path.join(arg.output_dir,
-                                           (f'{arg.tag_prefix}{cancer_sample_ori}_{mutation_mode}_'
-                                            f'SampleLim{arg.sample_expr_support_cancer}'
-                                            f'CohortLim{arg.cohort_expr_support_cancer}'
-                                            f'Across{arg.n_samples_lim_cancer}_'
-                                            f'FiltNormals{arg.tag_normals}'
-                                            f'Cohortlim{arg.cohort_expr_support_normal}'
-                                            f'Across{arg.n_samples_lim_normal}'))
+            path_filter_final, path_filter_final_uniprot = filtered_path(arg, cancer_sample_ori, mutation_mode,
+                                                                         recurrence_normal, batch_tag, extension)
 
-            path_filter_final = base_path_final + batch_tag + extension
-            path_filter_final_uniprot = base_path_final + '_FiltUniprot'+ batch_tag + extension
 
             # Remove background from foreground
             logging.info("Filtering normal background")

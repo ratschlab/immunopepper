@@ -169,3 +169,21 @@ def check_interm_files(out_dir, expr_limit, n_samples_lim, target_sample='', tag
            path_interm_matrix_for_express_threshold, \
            path_interm_matrix_for_sample_threshold, \
            path_interm_kmers_annotOnly
+
+
+
+def filtered_path(arg, cancer_sample_ori, mutation_mode, recurrence_normal, batch_tag, extension):
+    base_path_final = os.path.join(arg.output_dir,
+                                   (f'{arg.tag_prefix}{cancer_sample_ori}_{mutation_mode}_'
+                                    f'SampleLim{arg.sample_expr_support_cancer}'
+                                    f'CohortLim{arg.cohort_expr_support_cancer}'
+                                    f'Across{arg.n_samples_lim_cancer}'))
+    if recurrence_normal:
+        base_path_final += (f'_FiltNormals{arg.tag_normals}'
+                            f'Cohortlim{arg.cohort_expr_support_normal}'
+                            f'Across{arg.n_samples_lim_normal}')
+
+    path_filter_final = base_path_final + batch_tag + extension
+    path_filter_final_uniprot = base_path_final + '_FiltUniprot' + batch_tag + extension
+
+    return path_filter_final, path_filter_final_uniprot
