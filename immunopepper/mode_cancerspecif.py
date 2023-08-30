@@ -84,8 +84,8 @@ def mode_cancerspecif(arg):
                         arg.whitelist_normal, arg.path_normal_matrix_segm, arg.path_normal_matrix_edge,
                         arg.filterNeojuncCoord, arg.filterAnnotatedRF, arg.tot_batches, arg.batch_id,
                         normal_out, path_interm_kmers_annotOnly)
-
-
+                if cancer_files:
+                    normal_matrix = normal_matrix.join(cancer_matrix.select([index_name]), ["kmer"], how='inner') #lightweight background
             # Hard Filtering
             if recurrence_normal:
                 logging.info((f'\n \n >>>>>>>> Normals: Perform Hard Filtering \n '
