@@ -68,6 +68,13 @@ def mode_cancerspecif(arg):
         launch_preprocess_normal, path_normal_for_express_threshold, path_normal_for_sample_threshold, \
         path_interm_kmers_annotOnly = check_interm_files(normal_out, arg.cohort_expr_support_normal,
                                                          arg.n_samples_lim_normal, tag='normals', batch_tag=batch_tag)
+
+        ### Preprocessing Cancers
+        if cancer_files:
+            cancer_matrix = apply_preprocess(spark, 'C', index_name, coord_name, jct_col, jct_annot_col, rf_annot_col,
+                                             arg.whitelist_cancer, arg.path_cancer_matrix_segm, arg.path_cancer_matrix_edge,
+                                             arg.filterNeojuncCoord, arg.filterAnnotatedRF, arg.tot_batches, arg.batch_id)
+
         ### Preprocessing Normals
         if normal_files:
             if launch_preprocess_normal: # else do not need to launch because intermediate files are present
@@ -115,34 +122,25 @@ def mode_cancerspecif(arg):
                 = check_interm_files(cancer_out, arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer, \
                                      target_sample=cancer_sample, tag=f'cancer_{mutation_mode}', batch_tag=batch_tag)
 
-            ## Cancer file Filters
+            ## Cancer file filters
             if cancer_files:
                 logging.info("\n \n >>>>>>>> Preprocessing Cancer sample {}  ".format(cancer_sample_ori))
                 mutation_mode = arg.mut_cancer_samples[0]
 
-                cancer_matrix = apply_preprocess(spark, 'C', index_name, coord_name, jct_col, jct_annot_col, rf_annot_col,
-                        arg.whitelist_cancer, arg.path_cancer_matrix_segm, arg.path_cancer_matrix_edge,
-                        arg.filterNeojuncCoord, arg.filterAnnotatedRF, arg.tot_batches, arg.batch_id)
-
-                # cancer sample-specific filter
-
+                # Filter sample-specific kmers
                 cancer_sample_filter = cancer_matrix.select([index_name, coord_name, cancer_sample, jct_annot_col, rf_annot_col])
-
                 cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0) #Keep kmers expressed
-                # Counting step: Retrieve initial number of kmers in sample
                 output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Init_cancer')
 
+                # Filter sample-specific kmers expressed higher than threshold
                 if arg.output_count and (arg.sample_expr_support_cancer != 0):
                     cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample,
                                                             arg.sample_expr_support_cancer, libsize_c) #Keep kmers expressed >= threshold
-
-                    # Counting step: Retrieve number of kmers in sample after filtering on cancer expression
                     output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
-
                 else:
                     output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
-                # cancer cross-cohort filter
+                # Filter cross-cancer cohort
                 if recurrence_cancer:
                     inter_matrix_expr_c, inter_matrix_sample_c = filter_hard_threshold(cancer_matrix, index_name,coord_name,
                                                                                        jct_annot_col, rf_annot_col,
@@ -173,8 +171,6 @@ def mode_cancerspecif(arg):
                                                                 how='inner')
                 else:
                     cancer_kmers = cancer_sample_filter
-
-
                 output_count(arg.output_count, cancer_kmers, report_count, report_steps, 'Filter_Sample_Cohort')
 
             # Outpaths
