@@ -115,7 +115,7 @@ def mode_cancerspecif(arg):
                 = check_interm_files(cancer_out, arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer, \
                                      target_sample=cancer_sample, tag=f'cancer_{mutation_mode}', batch_tag=batch_tag)
 
-            ## Cancer file checks
+            ## Cancer file Filters
             if cancer_files:
                 logging.info("\n \n >>>>>>>> Preprocessing Cancer sample {}  ".format(cancer_sample_ori))
                 mutation_mode = arg.mut_cancer_samples[0]
@@ -177,29 +177,25 @@ def mode_cancerspecif(arg):
 
                 output_count(arg.output_count, cancer_kmers, report_count, report_steps, 'Filter_Sample_Cohort')
 
-
-        ## Cancer \ normals
-            logging.info("\n \n >>>>>>>> Cancers: Perform differential filtering")
-            partitions_ = cancer_kmers.rdd.getNumPartitions()
-            logging.info(f'partitions: {partitions_}')
-
-            # outpaths
+            # Outpaths
             path_filter_final, path_filter_final_uniprot = filtered_path(arg, cancer_sample_ori, mutation_mode,
                                                                          recurrence_normal, batch_tag, extension)
-
-
-            # Remove background from foreground
-            logging.info("Filtering normal background")
-            cancer_kmers = broadcast(cancer_kmers)
-            cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"],
+            # Remove Background
+            if normal_files:
+                logging.info("\n \n >>>>>>>> Cancers: Perform differential filtering")
+                partitions_ = cancer_kmers.rdd.getNumPartitions()
+                logging.info(f'partitions: {partitions_}')
+                logging.info("Filtering normal background")
+                cancer_kmers = broadcast(cancer_kmers)
+                cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"],
                                              how='left_anti')
-            #partitions_ = cancer_kmers.rdd.getNumPartitions()
-            #logging.info(f'partitions: {partitions_}')
+
+            # Save main output
             save_spark(cancer_kmers, arg.output_dir, path_filter_final, outpartitions=arg.out_partitions)
             output_count(arg.output_count, cancer_kmers, report_count, report_steps,
                          'Filter_Sample_Cohort_CohortNormal')
 
-            # Remove Uniprot
+            # Remove Uniprot #TODO redondant with external database
             if arg.uniprot is not None:
                 logging.info("Filtering kmers in uniprot")
                 cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
