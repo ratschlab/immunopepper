@@ -6,13 +6,11 @@ from immunopepper.sdisk import output_count
 from immunopepper.sdisk import redirect_interm
 from immunopepper.sdisk import save_output_count
 from immunopepper.sdisk import save_spark
-from immunopepper.sloaders import process_build_outputs
+from immunopepper.sloaders import apply_preprocess
 from immunopepper.sloaders import process_libsize
 from immunopepper.sloaders import remove_external_kmer_list
-from immunopepper.spark import combine_cancer
 from immunopepper.spark import combine_hard_threshold_cancers
 from immunopepper.spark import combine_hard_threshold_normals
-from immunopepper.spark import combine_normals
 from immunopepper.spark import filter_expr_kmer
 from immunopepper.spark import filter_hard_threshold
 from immunopepper.spark import remove_uniprot
@@ -72,31 +70,10 @@ def mode_cancerspecif(arg):
             if launch_preprocess_normal: # else do not need to launch because intermediate files are present
                 logging.info("\n \n >>>>>>>> Preprocessing Normal samples")
 
-                normal_segm = process_build_outputs(spark, index_name, coord_name, jct_col,
-                                                  jct_annot_col, rf_annot_col,
-                                                  path_matrix=arg.path_normal_matrix_segm,
-                                                  whitelist=arg.whitelist_normal,
-                                                  cross_junction=0,
-                                                  filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
-                                                                              or (arg.filterNeojuncCoord == 'A') else False,
-                                                  filterAnnotatedRF=True if (arg.filterAnnotatedRF == 'N')
-                                                                             or (arg.filterAnnotatedRF == 'A') else False,
-                                                  output_dir=normal_out,
-                                                  separate_back_annot=path_interm_kmers_annotOnly,
-                                                  tot_batches=arg.tot_batches, batch_id=arg.batch_id)
-                normal_junc = process_build_outputs(spark, index_name, coord_name, jct_col,
-                                                  jct_annot_col, rf_annot_col,
-                                                  path_matrix=arg.path_normal_matrix_edge,
-                                                  whitelist=arg.whitelist_normal,
-                                                  cross_junction=1,
-                                                  filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'N')
-                                                                              or (arg.filterNeojuncCoord == 'A') else False,
-                                                  filterAnnotatedRF=True if (arg.filterAnnotatedRF == 'N')
-                                                                             or (arg.filterAnnotatedRF == 'A') else False,
-                                                  output_dir=normal_out,
-                                                  separate_back_annot=path_interm_kmers_annotOnly if not normal_segm else None, # The kmer only from the annotation need be extracted only once. Ideally from the segment expression matrix
-                                                  tot_batches=arg.tot_batches, batch_id=arg.batch_id)
-                normal_matrix = combine_normals(normal_segm, normal_junc)
+                normal_matrix = apply_preprocess(spark, 'N', index_name, coord_name, jct_col, jct_annot_col, rf_annot_col,
+                        arg.whitelist_normal, arg.path_normal_matrix_segm, arg.path_normal_matrix_edge,
+                        arg.filterNeojuncCoord, arg.filterAnnotatedRF, arg.tot_batches, arg.batch_id,
+                        normal_out, path_interm_kmers_annotOnly)
 
 
             # Hard Filtering
@@ -139,32 +116,9 @@ def mode_cancerspecif(arg):
                 logging.info("\n \n >>>>>>>> Preprocessing Cancer sample {}  ".format(cancer_sample_ori))
                 mutation_mode = arg.mut_cancer_samples[0]
 
-                # Preprocess cancer samples
-                cancer_segm = process_build_outputs(spark, index_name, coord_name, jct_col,
-                                                  jct_annot_col, rf_annot_col,
-                                                  path_matrix=arg.path_cancer_matrix_segm,
-                                                  whitelist=arg.whitelist_cancer,
-                                                  cross_junction=0,
-                                                  filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
-                                                                             or (arg.filterNeojuncCoord == 'A')
-                                                                             else False,
-                                                  filterAnnotatedRF=True if (arg.filterAnnotatedRF == 'C')
-                                                                            or (arg.filterAnnotatedRF == 'A')
-                                                                            else False,
-                                                  tot_batches=arg.tot_batches, batch_id=arg.batch_id)
-                cancer_junc = process_build_outputs(spark, index_name, coord_name, jct_col,
-                                                  jct_annot_col, rf_annot_col,
-                                                  path_matrix=arg.path_cancer_matrix_edge,
-                                                  whitelist=arg.whitelist_cancer,
-                                                  cross_junction=1,
-                                                  filterNeojuncCoord=True if (arg.filterNeojuncCoord == 'C')
-                                                                             or (arg.filterNeojuncCoord == 'A')
-                                                                             else False,
-                                                  filterAnnotatedRF=True if (arg.filterAnnotatedRF == 'C')
-                                                                            or (arg.filterAnnotatedRF == 'A')
-                                                                            else False,
-                                                  tot_batches=arg.tot_batches, batch_id=arg.batch_id)
-                cancer_matrix = combine_cancer(cancer_segm, cancer_junc, index_name)
+                cancer_matrix = apply_preprocess(spark, 'C', index_name, coord_name, jct_col, jct_annot_col, rf_annot_col,
+                        arg.whitelist_cancer, arg.path_cancer_matrix_segm, arg.path_cancer_matrix_edge,
+                        arg.filterNeojuncCoord, arg.filterAnnotatedRF, arg.tot_batches, arg.batch_id)
 
                 # cancer sample-specific filter
 

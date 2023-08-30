@@ -3,8 +3,60 @@ import numpy as np
 import pandas as pd
 import sys
 from pyspark.sql import functions as sf
+from immunopepper.spark import combine_cancer
+from immunopepper.spark import combine_normals
 from immunopepper.spark import split_only_found_annotation_backbone
 from immunopepper.spark import filter_on_junction_kmer_annotated_flag
+
+
+def apply_preprocess(spark, condition, index_name, coord_name, jct_col, jct_annot_col, rf_annot_col,
+                            whitelist, path_segm, path_edge, flag_jct, flag_rf, tot_batches, batch_id,
+                            normal_out=None, path_interm_kmers_annotOnly=None):
+    # Load cancer and normal kmers and join them
+    df_segm = process_build_outputs(spark, index_name, coord_name, jct_col,
+                                        jct_annot_col, rf_annot_col,
+                                        path_matrix=path_segm,
+                                        whitelist=whitelist,
+                                        cross_junction=0,
+                                        filterNeojuncCoord=True if (flag_jct == condition)
+                                                                   or (flag_jct == 'A')
+                                        else False,
+                                        filterAnnotatedRF=True if (flag_rf == condition)
+                                                                  or (flag_rf == 'A')
+                                        else False,
+                                        tot_batches=tot_batches,
+                                        batch_id=batch_id,
+                                        output_dir=normal_out
+                                        if normal_out is not None else None,
+                                        separate_back_annot=path_interm_kmers_annotOnly
+                                        if path_interm_kmers_annotOnly is not None else None
+                                    )
+
+    df_junc = process_build_outputs(spark, index_name, coord_name, jct_col,
+                                        jct_annot_col, rf_annot_col,
+                                        path_matrix=path_edge,
+                                        whitelist=whitelist,
+                                        cross_junction=1,
+                                        filterNeojuncCoord=True if (flag_jct == condition)
+                                                                   or (flag_jct == 'A')
+                                        else False,
+                                        filterAnnotatedRF=True if (flag_rf == condition)
+                                                                  or (flag_rf == 'A')
+                                        else False,
+                                        tot_batches=tot_batches,
+                                        batch_id=batch_id,
+                                        output_dir=normal_out
+                                        if normal_out is not None else None,
+                                        separate_back_annot=path_interm_kmers_annotOnly
+                                        if (path_interm_kmers_annotOnly is not None) and (not path_segm) #not done above
+                                        else None
+                                    )
+
+    if condition == 'C':
+        kmer_matrix = combine_cancer(df_segm, df_junc, index_name)
+    elif condition == 'N':
+        kmer_matrix = combine_normals(df_segm, df_junc)
+    return kmer_matrix
 
 
 def process_libsize(path_lib, custom_normalizer):
