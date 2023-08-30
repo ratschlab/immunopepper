@@ -114,95 +114,100 @@ def mode_cancerspecif(arg):
             normal_matrix = remove_external_kmer_list(spark, arg.path_normal_kmer_list, normal_matrix, index_name, header=True)
 
         ### Apply filtering to foreground
-        for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
-            cancer_sample = cancer_sample_ori.replace('-', '').replace('.', '').replace('_', '')
-            mutation_mode = arg.mut_cancer_samples[cix]
+        if cancer_files:
+            if not arg.ids_cancer_samples:
+                arg.ids_cancer_samples = ["full_cohort"]
+            for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
+                if cancer_sample_ori is not "full_cohort":
+                    ## Cancer file filters
+                    logging.info("\n \n >>>>>>>> Preprocessing Cancer sample {}  ".format(cancer_sample_ori))
+                    mutation_mode = arg.mut_cancer_samples[0]
+                    cancer_sample = cancer_sample_ori.replace('-', '').replace('.', '').replace('_', '')
+                    mutation_mode = arg.mut_cancer_samples[cix]
 
-            launch_filter_cancer, path_cancer_for_express_threshold, path_cancer_for_sample_threshold, _ \
-                = check_interm_files(cancer_out, arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer, \
-                                     target_sample=cancer_sample, tag=f'cancer_{mutation_mode}', batch_tag=batch_tag)
+                    # Filter sample-specific kmers
+                    cancer_sample_filter = cancer_matrix.select([index_name, coord_name, cancer_sample, jct_annot_col, rf_annot_col])
+                    cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0) #Keep kmers expressed
+                    output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Init_cancer')
 
-            ## Cancer file filters
-            if cancer_files:
-                logging.info("\n \n >>>>>>>> Preprocessing Cancer sample {}  ".format(cancer_sample_ori))
-                mutation_mode = arg.mut_cancer_samples[0]
-
-                # Filter sample-specific kmers
-                cancer_sample_filter = cancer_matrix.select([index_name, coord_name, cancer_sample, jct_annot_col, rf_annot_col])
-                cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample, 0) #Keep kmers expressed
-                output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Init_cancer')
-
-                # Filter sample-specific kmers expressed higher than threshold
-                if arg.output_count and (arg.sample_expr_support_cancer != 0):
-                    cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample,
-                                                            arg.sample_expr_support_cancer, libsize_c) #Keep kmers expressed >= threshold
-                    output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
-                else:
-                    output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
-
-                # Filter cross-cancer cohort
-                if recurrence_cancer:
-                    inter_matrix_expr_c, inter_matrix_sample_c = filter_hard_threshold(cancer_matrix, index_name,coord_name,
-                                                                                       jct_annot_col, rf_annot_col,
-                                                                                       libsize_c,
-                                                                                       arg.cohort_expr_support_cancer,
-                                                                                       arg.n_samples_lim_cancer,
-                                                                                       path_cancer_for_express_threshold,
-                                                                                       path_cancer_for_sample_threshold,
-                                                                                       target_sample=cancer_sample,
-                                                                                       on_the_fly=arg.on_the_fly,
-                                                                                       tag=f'cancer_{mutation_mode}')
-                    cancer_cross_filter = combine_hard_threshold_cancers(spark, cancer_matrix,
-                                                                         path_cancer_for_express_threshold,
-                                                                         path_cancer_for_sample_threshold,
-                                                                         inter_matrix_expr_c, inter_matrix_sample_c,
-                                                                         arg.cohort_expr_support_cancer,
-                                                                         arg.n_samples_lim_cancer,
-                                                                         index_name)
-
-                    cancer_cross_filter = cancer_cross_filter.select([index_name, coord_name, cancer_sample,
-                                                                      jct_annot_col, rf_annot_col])
-                    if arg.cancer_support_union:
-                        logging.info("support union")
-                        cancer_kmers = cancer_cross_filter.union(cancer_sample_filter).distinct()
+                    # Filter sample-specific kmers expressed higher than threshold
+                    if arg.output_count and (arg.sample_expr_support_cancer != 0):
+                        cancer_sample_filter = filter_expr_kmer(cancer_sample_filter, cancer_sample,
+                                                                arg.sample_expr_support_cancer, libsize_c) #Keep kmers expressed >= threshold
+                        output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
                     else:
-                        logging.info("support intersect")
-                        cancer_kmers = cancer_cross_filter.join(cancer_sample_filter.select([index_name]), ["kmer"],
-                                                                how='inner')
-                else:
-                    cancer_kmers = cancer_sample_filter
-                output_count(arg.output_count, cancer_kmers, report_count, report_steps, 'Filter_Sample_Cohort')
+                        output_count(arg.output_count, cancer_sample_filter, report_count, report_steps, 'Filter_Sample')
 
-            # Outpaths
-            path_filter_final, path_filter_final_uniprot = filtered_path(arg, cancer_sample_ori, mutation_mode,
-                                                                         recurrence_normal, batch_tag, extension)
-            # Remove Background
-            if normal_files:
-                logging.info("\n \n >>>>>>>> Cancers: Perform differential filtering")
-                partitions_ = cancer_kmers.rdd.getNumPartitions()
-                logging.info(f'partitions: {partitions_}')
-                logging.info("Filtering normal background")
-                cancer_kmers = broadcast(cancer_kmers)
-                cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"],
-                                             how='left_anti')
+                    resave_interm_cancer, path_cancer_for_express_threshold, path_cancer_for_sample_threshold, _ \
+                        = check_interm_files(cancer_out, arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer, \
+                                             target_sample=cancer_sample, tag=f'cancer_{mutation_mode}',
+                                             batch_tag=batch_tag)
+                    # Filter cross-cancer cohort
+                    if recurrence_cancer:
+                        if resave_interm_cancer:
+                            inter_matrix_expr_c, inter_matrix_sample_c = filter_hard_threshold(cancer_matrix, index_name,
+                                                                                               coord_name, jct_annot_col,
+                                                                                               rf_annot_col, libsize_c,
+                                                                                               arg.cohort_expr_support_cancer,
+                                                                                               arg.n_samples_lim_cancer,
+                                                                                               path_cancer_for_express_threshold,
+                                                                                               path_cancer_for_sample_threshold,
+                                                                                               target_sample=cancer_sample,
+                                                                                               on_the_fly=arg.on_the_fly,
+                                                                                               tag=f'cancer_{mutation_mode}')
+                        else:
+                            inter_matrix_expr_c, inter_matrix_sample_c = None, None
+                        cancer_cross_filter = combine_hard_threshold_cancers(spark, cancer_matrix,
+                                                                             path_cancer_for_express_threshold,
+                                                                             path_cancer_for_sample_threshold,
+                                                                             inter_matrix_expr_c, inter_matrix_sample_c,
+                                                                             arg.cohort_expr_support_cancer,
+                                                                             arg.n_samples_lim_cancer,
+                                                                             index_name)
 
-            # Save main output
-            save_spark(cancer_kmers, arg.output_dir, path_filter_final, outpartitions=arg.out_partitions)
-            output_count(arg.output_count, cancer_kmers, report_count, report_steps,
-                         'Filter_Sample_Cohort_CohortNormal')
+                        cancer_cross_filter = cancer_cross_filter.select([index_name, coord_name, cancer_sample,
+                                                                          jct_annot_col, rf_annot_col])
+                        if arg.cancer_support_union:
+                            logging.info("support union")
+                            cancer_kmers = cancer_cross_filter.union(cancer_sample_filter).distinct()
+                        else:
+                            logging.info("support intersect")
+                            cancer_kmers = cancer_cross_filter.join(cancer_sample_filter.select([index_name]), ["kmer"],
+                                                                    how='inner')
+                    else:
+                        cancer_kmers = cancer_sample_filter
+                    output_count(arg.output_count, cancer_kmers, report_count, report_steps, 'Filter_Sample_Cohort')
 
-            # Remove Uniprot #TODO redondant with external database
-            if arg.uniprot is not None:
-                logging.info("Filtering kmers in uniprot")
-                cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
-                save_spark(cancer_kmers, arg.output_dir, path_filter_final_uniprot, outpartitions=arg.out_partitions)
+                # Outpaths
+                path_filter_final, path_filter_final_uniprot = filtered_path(arg, cancer_sample_ori, mutation_mode,
+                                                                             recurrence_normal, batch_tag, extension)
+                # Remove Background
+                if normal_files:
+                    logging.info("\n \n >>>>>>>> Cancers: Perform differential filtering")
+                    partitions_ = cancer_kmers.rdd.getNumPartitions()
+                    logging.info(f'partitions: {partitions_}')
+                    logging.info("Filtering normal background")
+                    cancer_kmers = broadcast(cancer_kmers)
+                    cancer_kmers = cancer_kmers.join(normal_matrix, cancer_kmers["kmer"] == normal_matrix["kmer"],
+                    how='left_anti')
+
+                # Save main output
+                save_spark(cancer_kmers, arg.output_dir, path_filter_final, outpartitions=arg.out_partitions)
                 output_count(arg.output_count, cancer_kmers, report_count, report_steps,
-                         'Filter_Sample_Cohort_CohortNormal_Uniprot')
+                             'Filter_Sample_Cohort_CohortNormal')
 
-            save_output_count(arg.output_count, report_count, report_steps, arg.tag_normals,
-                                cancer_sample_ori, mutation_mode, arg.sample_expr_support_cancer,
-                                arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
-                                arg.cohort_expr_support_normal, arg.n_samples_lim_normal, arg.tag_normals)
+                # Remove Uniprot #TODO redondant with external database
+                if arg.uniprot is not None:
+                    logging.info("Filtering kmers in uniprot")
+                    cancer_kmers = remove_uniprot(spark, cancer_kmers, arg.uniprot, index_name)
+                    save_spark(cancer_kmers, arg.output_dir, path_filter_final_uniprot, outpartitions=arg.out_partitions)
+                    output_count(arg.output_count, cancer_kmers, report_count, report_steps,
+                                 'Filter_Sample_Cohort_CohortNormal_Uniprot')
+
+                save_output_count(arg.output_count, report_count, report_steps, arg.tag_normals,
+                                  cancer_sample_ori, mutation_mode, arg.sample_expr_support_cancer,
+                                  arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
+                                  arg.cohort_expr_support_normal, arg.n_samples_lim_normal, arg.tag_normals)
 
 
 
