@@ -208,8 +208,6 @@ def mode_cancerspecif(arg):
                                 arg.cohort_expr_support_cancer, arg.n_samples_lim_cancer,
                                 arg.cohort_expr_support_normal, arg.n_samples_lim_normal, arg.tag_normals)
 
-            #if arg.paths_cancer_samples and os.path.exists(cancer_path_tmp) and rename:
-            #    os.remove(cancer_path_tmp)
 
 
 
