@@ -172,13 +172,24 @@ def check_interm_files(out_dir, expr_limit, n_samples_lim, target_sample='', tag
 
 
 
-def filtered_path(arg, cancer_sample_ori, mutation_mode, recurrence_normal, batch_tag, extension):
+def filtered_path(arg, cancer_sample_ori, mutation_mode, normal_files, batch_tag, extension):
+    '''
+    :param arg: argument class from argparse
+    :param cancer_sample_ori: str. name of the cancer sample
+    :param mutation_mode: str. mutation mode flag
+    :param normal_files: bool. whether the normal files are used as an input
+    :param batch_tag: str. tag for the batch
+    :param extension: str. saving format extension
+    :return:
+    path_filter_final
+    path_filter_final_uniprot
+    '''
     base_path_final = os.path.join(arg.output_dir,
                                    (f'{arg.tag_prefix}{cancer_sample_ori}_{mutation_mode}_'
                                     f'SampleLim{arg.sample_expr_support_cancer}'
                                     f'CohortLim{arg.cohort_expr_support_cancer}'
                                     f'Across{arg.n_samples_lim_cancer}'))
-    if recurrence_normal:
+    if normal_files:
         base_path_final += (f'_FiltNormals{arg.tag_normals}'
                             f'Cohortlim{arg.cohort_expr_support_normal}'
                             f'Across{arg.n_samples_lim_normal}')

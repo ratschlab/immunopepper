@@ -180,7 +180,7 @@ def mode_cancerspecif(arg):
 
                 # Outpaths
                 path_filter_final, path_filter_final_uniprot = filtered_path(arg, cancer_sample_ori, mutation_mode,
-                                                                             recurrence_normal, batch_tag, extension)
+                                                                             normal_files, batch_tag, extension)
                 # Remove Background
                 if normal_files:
                     logging.info("\n \n >>>>>>>> Cancers: Perform differential filtering")
