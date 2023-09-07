@@ -117,6 +117,7 @@ def mode_cancerspecif(arg):
         if cancer_files:
             if not arg.ids_cancer_samples:
                 arg.ids_cancer_samples = ["full_cohort"]
+                cancer_kmers = cancer_matrix
             for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
                 if cancer_sample_ori is not "full_cohort":
                     ## Cancer file filters
