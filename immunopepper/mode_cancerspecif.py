@@ -120,7 +120,7 @@ def mode_cancerspecif(arg):
                 if arg.mut_cancer_samples:
                     mutation_mode = arg.mut_cancer_samples[0]
                 else:
-		    mutation_mode = 'ref'
+                    mutation_mode = 'ref'
                 cancer_kmers = cancer_matrix
             for cix, cancer_sample_ori in enumerate(arg.ids_cancer_samples):
                 if cancer_sample_ori is not "full_cohort":
