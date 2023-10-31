@@ -25,7 +25,7 @@ Build mode
 ~~~~~~~~~~
 
     .. argparse::
-        :module: immunopepper.get_parsers
+        :module: immunopepper.ipp
         :func: get_build_parser
         :prog: immunopepper build
         :passparser:
@@ -45,7 +45,7 @@ Build mode
 Samplespecif mode
 ~~~~~~~~~~~~~~~~~
     .. argparse::
-        :module: immunopepper.get_parsers
+        :module: immunopepper.ipp
         :func: get_samplespecif_parser
         :prog: immunopepper samplespecif
         :passparser:
@@ -55,7 +55,7 @@ Samplespecif mode
 Cancerspecif mode
 ~~~~~~~~~~~~~~~~~
     .. argparse::
-        :module: immunopepper.get_parsers
+        :module: immunopepper.ipp
         :func: get_cancerspecif_parser
         :prog: immunopepper cancerspecif
         :passparser:
@@ -143,7 +143,7 @@ Mhcbind mode
 ~~~~~~~~~~~~~~
 
     .. argparse::
-        :module: immunopepper.get_parsers
+        :module: immunopepper.ipp
         :func: get_mhcbind_parser
         :prog: immunopepper mhcbind
         :passparser:
@@ -155,7 +155,7 @@ Pepquery mode
 ~~~~~~~~~~~~~~
 
     .. argparse::
-        :module: immunopepper.get_parsers
+        :module: immunopepper.ipp
         :func: get_pepquery_parser
         :prog: immunopepper pepquery
         :passparser:
