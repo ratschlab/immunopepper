@@ -72,7 +72,6 @@ def get_build_parser(parser):
 
     outputs = parser.add_argument_group('Output parameters',  'Commands to select output formatting and filtering.')
     outputs.add_argument("--skip-annotation", help='Set this parameter to True to skip the generation of a background kmer and peptide files.', action="store_true", default=False)
-    outputs.add_argument("--keep-tmpfiles", help='If set to True, we will keep the intermediate directories and temporal files generated in paralell mode', action="store_true", default=False)
     outputs.add_argument("--output-fasta", help="Set this parameter to True to output the foreground peptides in fasta format. If set to True output number 4 from the :ref:`build output section <build_out>` will be generated. If set to False only the kmers will be output.",  action="store_true", required=False, default=False)
     outputs.add_argument("--force-ref-peptides", help="Set this parameter to True to output mutated peptides even if they are the same as the ones in the reference. The reference in this case are the peptides without any mutations or variants application.", action="store_true", default=False)
     outputs.add_argument("--filter-redundant", help="If set to true, a redundancy filter will be applied to the exon list. If two or more exons span the same juction, their coordinates will be combined so that the longest spanning combination is kept.", action="store_true", required=False, default=False)
