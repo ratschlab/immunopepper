@@ -13,3 +13,4 @@ tblib>=1.7.0
 sphinx-argparse
 sphinx-rtd-theme
 sphinx-copybutton
+pyyaml==5.4
