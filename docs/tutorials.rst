@@ -984,7 +984,7 @@ Pepquery mode starting from kmers
 
 This tutorial is created to showcase how the kmers from *cancerspecif* mode can be provided as an input for pepQuery.
 
-.. note:: This mode requires pepQuery to be installed locally on the user's computer.
+.. note:: This mode requires pepQuery to be installed locally on the user's computer. PepQuery requires enough memory per core for the indexing step. We recommand to run the tutorial with 1 core and 4GB.
 
 Command
 ~~~~~~~~~~
@@ -995,7 +995,7 @@ The command used to run this tutorial is:
 
 .. code-block:: console
 
-    immunopepper pepquery --output-dir immunopepper_usecase/pepquery/ --partitioned-tsv immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz/ --metadata-path immunopepper_usecase/cohort_mutNone/ref_sample_peptides_meta.gz --kmer-type junctions --verbose 1 --pepquery-software-path pepQuery/pepquery-2.0.2/pepquery-2.0.2.jar --argstring "-o immunopepper_usecase/pepquery/results/ -i immunopepper_usecase/pepquery/pepquery_input.txt -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf"
+    immunopepper pepquery --output-dir immunopepper_usecase/pepquery/ --partitioned-tsv immunopepper_usecase/filter_case/simulated_Ipp_1_sample3_ref_SampleLim20.0CohortLim110.0Across2_FiltNormalsCohortlim100.0Across15.tsv.gz/ --metadata-path immunopepper_usecase/cohort_mutNone/ref_sample_peptides_meta.gz --kmer-type junctions --verbose 1 --pepquery-software-path pepQuery/pepquery-2.0.2/pepquery-2.0.2.jar --argstring "-o immunopepper_usecase/pepquery/results/ -i immunopepper_usecase/pepquery/pepquery_input.txt -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf -cpu 16"
 
 Terminal output
 ~~~~~~~~~~~~~~~~
@@ -1123,7 +1123,7 @@ The command needed to run this tutorial is:
 
 .. code-block:: console
 
-    pepquery --output-dir immunopepper_usecase/pepquery_peptides/ --verbose 1 --pepquery-software-path pepQuery/pepquery-2.0.2/pepquery-2.0.2.jar --argstring "-o immunopepper_usecase/pepquery/results_peptides/ -i immunopepper/tests/data_simulated/data/pepquery_mode/targetlist -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf"
+    pepquery --output-dir immunopepper_usecase/pepquery_peptides/ --verbose 1 --pepquery-software-path pepQuery/pepquery-2.0.2/pepquery-2.0.2.jar --argstring "-o immunopepper_usecase/pepquery/results_peptides/ -i immunopepper/tests/data_simulated/data/pepquery_mode/targetlist -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf -cpu 16"
 
 Terminal output
 ~~~~~~~~~~~~~~~
