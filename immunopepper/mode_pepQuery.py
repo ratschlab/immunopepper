@@ -129,7 +129,7 @@ def mode_pepquery(arg):
     output_peptides_file_idx = [i + 1 for i, j in enumerate(args_list) if j == '-o']
     output_peptides_file = args_list[output_peptides_file_idx[0]]
 
-    if f'{output_peptides_file}psm_rank.txt' not in glob.glob(f'{output_peptides_file}*'):
+    if f'{output_peptides_file}/psm_rank.txt' not in glob.glob(f'{output_peptides_file}/*'):
         logging.error(">>>>> PepQuery failed to generate the psm_rank.txt file. Please check the output directory. Maybe the provided spectra file does not contain any of the input peptides")
         sys.exit(1)
     else:
@@ -180,7 +180,7 @@ def mode_pepquery(arg):
         ip_out["confident"] = pd.Categorical(ip_out["confident"], categories=confident_categories)
         ip_out.sort_values(by=["confident", "score"], ascending=[True, False], inplace=True)
         ip_out.to_csv(f'{arg.output_dir}/peptides_validated.tsv.gz', sep='\t', index=False, compression='gzip')
-        logging.info(">>>>> Processed output file saved to {}peptides_validated.tsv.gz \n".format(arg.output_dir))
+        logging.info(">>>>> Processed output file saved to {}/peptides_validated.tsv.gz \n".format(arg.output_dir))
         logging.info(">>>>> Finished running immunopepper in pepquery mode  \n")
 
 
