@@ -225,7 +225,8 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
     segments = gene.segmentgraph.segments
 
     sv1_id = bisect.bisect(segments[0], vstart) - 1
-    sv2_id = bisect.bisect(segments[0], vstop) - 1
+    # looking for vstop - 1, as we need the last segment containing vstop (and vstop is half-open)
+    sv2_id = bisect.bisect(segments[0], vstop - 1) - 1
     if sv1_id == sv2_id:
         if len(seg_counts.shape) > 1:
             expr_list = np.c_[np.array([vstop - vstart]), [seg_counts[sv1_id, :]]]
@@ -303,7 +304,7 @@ def get_total_gene_expr(gene, countinfo, seg_expr):
 
 
 def get_idx(countinfo, sample, gene_idx):
-    """ Create a  aggregated Index with namedtuple idx
+    """ Create an aggregated Index with namedtuple idx
     Combine the gene_idx, sample_idx
 
     Parameters
@@ -313,15 +314,13 @@ def get_idx(countinfo, sample, gene_idx):
     gene_idx: int. Gene index, mainly for formatting the output.
 
     """
+
+    sample_idx = None
     if not countinfo is None:
-        if not sample in countinfo.sample_idx_dict:
-            sample_idx = None
-            if sample != 'cohort':
-                logging.warning("utils.py: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
-        else:
+        if sample in countinfo.sample_idx_dict:
             sample_idx = countinfo.sample_idx_dict[sample]
-    else:
-        sample_idx = None
+        elif sample != 'cohort':
+            logging.warning("utils.py: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
 
     return Idx(gene_idx, sample_idx)
 

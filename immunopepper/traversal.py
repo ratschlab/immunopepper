@@ -2,6 +2,7 @@
 from collections import defaultdict
 import numpy as np
 import logging
+import timeit
 
 from immunopepper.filter import filter_redundant_junctions
 from immunopepper.filter import junctions_annotated
@@ -215,16 +216,16 @@ def collect_vertex_triples(gene, vertex_pairs, k):
     return concat_vertex_pair_list
 
 
-def get_and_write_peptide_and_kmer(peptide_set=None,
-                         gene=None, all_vertex_pairs=None, ref_mut_seq=None, idx=None,
-                         exon_som_dict=None, countinfo=None,
-                         edge_idxs=None, edge_counts=None, seg_counts=None,
-                         mutation=None, mut_count_id=None, table=None,
-                         size_factor=None, junction_list=None, kmer_database=None,
-                         filepointer=None,
-                         force_ref_peptides=False, kmer=None,
-                        all_read_frames=None, graph_output_samples_ids=None,
-                         graph_samples=None,out_dir=None, verbose_save=None):
+def get_and_write_peptide_and_kmer(peptide_set: object = None,
+                                   gene: object = None, all_vertex_pairs: object = None, ref_mut_seq: object = None, idx: object = None,
+                                   exon_som_dict: object = None, countinfo: object = None,
+                                   edge_idxs: object = None, edge_counts: object = None, seg_counts: object = None,
+                                   mutation: object = None, mut_count_id: object = None, table: object = None,
+                                   size_factor: object = None, junction_list: object = None, kmer_database: object = None,
+                                   filepointer: object = None,
+                                   force_ref_peptides: object = False, kmer: object = None,
+                                   all_read_frames: object = None, graph_output_samples_ids: object = None,
+                                   graph_samples: object = None, out_dir: object = None, verbose_save: object = None) -> object:
     """
 
     Parameters
@@ -259,7 +260,11 @@ def get_and_write_peptide_and_kmer(peptide_set=None,
 
     ### iterate over all vertex pairs and translate
     for kmer_type, vertex_pairs in all_vertex_pairs.items():
+        time_stamp = timeit.default_timer() 
         for ii,vertex_pair in enumerate(vertex_pairs):
+            new_time = timeit.default_timer()
+            print(f'working on vertex pair {ii} out of {len(vertex_pairs)} - last took {new_time - time_stamp}') # AK
+            time_stamp = new_time
             modi_coord = vertex_pair.modified_exons_coord
             vertex_list = vertex_pair.vertex_idxs
             tran_start_pos = modi_coord.start_v1 if gene.strand == '+' else modi_coord.stop_v1

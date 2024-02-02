@@ -78,7 +78,7 @@ def genes_preprocess_batch(genes, gene_idxs, gene_cds_begin_dict, all_read_frame
         gene.to_sparse()
         gene_info.append(GeneInfo(vertex_succ_list, vertex_order, reading_frames, vertex_len_dict, gene.splicegraph.vertices.shape[1]))
 
-    return gene_info, gene_idxs, genes
+    return gene_info, gene_idxs
 
 
 def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames=False):
@@ -93,16 +93,19 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
 
     if parallel > 1:
         global genes_info
-        global genes_modif
         global cnt
+
+    if os.path.exists('reading_frames.pickle'):
+        genes_info = pickle.load(open('reading_frames.pickle', 'rb'))
+        return genes_info
+
+    if parallel > 1:
         genes_info = np.zeros((genes.shape[0],), dtype=object)
-        genes_modif = np.zeros((genes.shape[0],), dtype=object)
         cnt = 0
         def update_gene_info(result):
             global genes_info
             global cnt
-            global genes_modif
-            assert(len(result[0]) == len(result[2]))
+            assert(len(result[0]) == len(result[1]))
             for i,tmp in enumerate(result[0]):
                 if cnt > 0 and cnt % 1000 == 0:
                     sys.stdout.write('.')
@@ -111,7 +114,6 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
                     sys.stdout.flush()
                 cnt += 1
                 genes_info[result[1][i]] = tmp
-                genes_modif[result[1][i]] = result[2][i]
             del result
 
         pool = mp.Pool(processes=parallel, initializer=pool_initializer)
@@ -122,8 +124,10 @@ def genes_preprocess_all(genes, gene_cds_begin_dict, parallel=1, all_read_frames
         pool.join()
     else:
         genes_info = genes_preprocess_batch(genes, np.arange(genes.shape[0]), gene_cds_begin_dict, all_read_frames)[0]
-        genes_modif = genes
-    return genes_info, genes_modif
+
+    pickle.dump(genes_info, open('reading_frames.pickle', 'wb'), -1)
+
+    return genes_info
 
 
 def preprocess_ann(ann_path):
@@ -369,7 +373,7 @@ def parse_gene_metadata_info(h5fname, sample_list):
 
 
 # TODO(dd): move mutation parsing methods to mutations.py after review; left here to make code review easier
-def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, mutation_sample: str = None, 
+def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, mutation_sample: str = None,
                             graph_to_mutation_samples=dict[str, str], heter_code: int = 0, output_dir: str = None):
     """Extract mutation information from the given vcf or vcf.h5 file
     :param vcf_path: path to the VCF file to be read
@@ -389,7 +393,7 @@ def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, mutation_sample: 
     :rtype: dict[(str,str):dict[int, dict[str:str]]]
     """
 
-    mutation_to_graph_samples = { file_sample: target_sample for target_sample, file_sample 
+    mutation_to_graph_samples = { file_sample: target_sample for target_sample, file_sample
                                  in graph_to_mutation_samples.items()}
     if output_dir is not None:
         vcf_pkl_file = os.path.join(output_dir, f'{mutation_mode}_vcf.pickle')
@@ -413,7 +417,7 @@ def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, mutation_sample: 
         # TODO(reviewers): why no pickle created?
         logging.info(f'Read germline mutation dict from h5 file in {vcf_path}. No pickle file created')
         return mutation_dict
-    
+
     # vcf text file
     lines = open(vcf_path, 'r').readlines()
     mutation_dict = {}
@@ -445,7 +449,7 @@ def parse_mutation_from_vcf(vcf_path: str, mutation_mode: str, mutation_sample: 
         f_pkl = open(vcf_pkl_file, 'wb')
         pickle.dump(mutation_dict, f_pkl)
         logging.info(f'Cached contents of {vcf_path} to {vcf_pkl_file}')
-        
+
     return mutation_dict
 
 
@@ -462,7 +466,7 @@ def parse_mutation_from_vcf_h5(h5_vcf_path: str, mutation_sample: str, heter_cod
 
     vcf_sample_set = [decode_utf8(item) for item in a['gtid']]
     _check_mutation_sample_presence(mutation_sample, vcf_sample_set, graph_to_mutation_samples)
-    col_id = vcf_sample_set.index(mutation_sample) 
+    col_id = vcf_sample_set.index(mutation_sample)
     # the 'gt' column stores the most likely genotype for the sample
     row_id = np.where(np.logical_or(a['gt'][:, col_id] == heter_code, a['gt'][:, col_id] == 1))[0]
 
