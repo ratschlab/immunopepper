@@ -31,7 +31,8 @@ def default_spark_config(cores: int, memory_per_executor_mb: int, parallelism: i
 
     if tmp_dir:
         cfg.set("spark.local.dir", tmp_dir)
-
+    print(cfg.get("spark.local.dir"), flush=True)
+    print("local directory in spark", flush=True)
     # TODO set as parameter
     java_options = str(extra_java_options)
     java_options = java_options + " -XX:ThreadStackSize=81920"
@@ -54,7 +55,9 @@ def default_spark_config(cores: int, memory_per_executor_mb: int, parallelism: i
             # set("spark.driver.bindAddress", "192.168.0.13").
             set("spark.default.parallelism", parallelism).
             set("spark.sql.shuffle.partitions", parallelism).
-            set("spark.driver.maxResultSize", "0")  # unlimited
+            set("spark.driver.maxResultSize", "0").  # unlimited
+            set("spark.worker.cleanup.enabled",  "true").
+            set("spark.worker.cleanup.interval", "1200")
             # TODO remove the personal IP address
             )
 

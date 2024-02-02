@@ -147,6 +147,7 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
     global countinfo
     global genetable
     global kmer_database
+    mut_count_id = None
     if arg.parallel > 1:
         batch_name = int(outbase.split('/')[-1].split('_')[-1])
     else:
@@ -223,15 +224,16 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             sub_mutation = get_sub_mutations(mutation, mutation_sample, chrm)
             if (arg.mutation_sample is not None):
                 mut_count_id = [idx for idx, sample in enumerate(arg.output_samples)
-                                if arg.mutation_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') == sample][0]
-            else:
-                mut_count_id = None
+                                if arg.mutation_sample.replace('-', '').replace('_', '').replace('.', '').replace('/', '') == sample]
             junction_list = None
             if not junction_dict is None and chrm in junction_dict:
                 junction_list = junction_dict[chrm]
 
             pathlib.Path(get_save_path(filepointer.kmer_segm_expr_fp, outbase)).mkdir(exist_ok=True, parents=True)
             pathlib.Path(get_save_path(filepointer.kmer_edge_expr_fp, outbase)).mkdir(exist_ok=True, parents=True)
+            pathlib.Path(get_save_path(filepointer.junction_meta_fp, outbase)).mkdir(exist_ok=True, parents=True)
+            if arg.output_fasta:
+                pathlib.Path(get_save_path(filepointer.junction_peptide_fp, outbase)).mkdir(exist_ok=True, parents=True)
             vertex_pairs, \
             ref_mut_seq, \
             exon_som_dict = collect_vertex_pairs(gene=gene,
@@ -268,7 +270,8 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
                                             filepointer=filepointer,
                                             graph_output_samples_ids = output_samples_ids,
                                             graph_samples=arg.output_samples,
-                                            verbose_save=verbose
+                                            verbose_save=verbose,
+                                            fasta_save=arg.output_fasta
             )
 
             time_per_gene.append(timeit.default_timer() - start_time)
@@ -276,8 +279,6 @@ def process_gene_batch_foreground(output_sample, mutation_sample, output_samples
             all_gene_idxs.append(gene_idxs[i])
 
         save_gene_expr_distr(gene_expr, arg.output_samples, output_sample,  filepointer, outbase, verbose)
-        save_fg_peptide_set(set_pept_forgrd, filepointer, outbase, arg.output_fasta, verbose)
-        set_pept_forgrd.clear()
 
         pathlib.Path(os.path.join(outbase, "output_sample_IS_SUCCESS")).touch()
 
@@ -410,7 +411,7 @@ def mode_build(arg):
             # Build the background if requested
             if (not arg.skip_annotation) and not (arg.libsize_extract):
                 logging.info(">>>>>>>>> Start Background processing")
-                with ThreadPool(processes=None, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
+                with ThreadPool(processes=arg.parallel, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
                     args = [(output_sample, arg.mutation_sample,  graph_data[gene_idx], gene_idx, n_genes, mutation,
                              genetable, arg,
                              os.path.join(output_path, f'tmp_out_{mutation.mode}_batch_{i + arg.start_id}'),
@@ -420,7 +421,7 @@ def mode_build(arg):
 
             # Build the foreground
             logging.info(">>>>>>>>> Start Foreground processing")
-            with Pool(processes=None, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
+            with Pool(processes=arg.parallel, initializer=pool_initializer_glob, initargs=(countinfo, genetable, kmer_database)) as pool:
                 args = [(output_sample, arg.mutation_sample, output_samples_ids, graph_data[gene_idx],
                          graph_info[gene_idx], gene_idx, n_genes, genes_interest, disable_process_libsize,
                          arg.all_read_frames, complexity_cap, mutation, junction_dict, arg,
@@ -431,9 +432,6 @@ def mode_build(arg):
 
             logging.info("Finished traversal")
 
-            if not arg.keep_tmpfiles: #TODO update
-                logging.info("Cleaning temporary files")
-                remove_folder_list(os.path.join(output_path, f'tmp_out_{mutation.mode}_batch'))
 
         else:
             logging.info('Not Parallel')

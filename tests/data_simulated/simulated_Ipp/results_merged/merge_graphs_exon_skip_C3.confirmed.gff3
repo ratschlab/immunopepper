@@ -1,0 +1,17 @@
+##gff-version 3
+1	exon_skip	gene	51	750	.	+	.	ID=exon_skip.1;GeneName="gene1";HasNovelJunction="N"
+1	exon_skip	mRNA	51	750	.	+	.	ID=exon_skip.1_iso1;Parent=exon_skip.1;GeneName="gene1";HasNovelJunction="N"
+1	exon_skip	exon	51	200	.	+	.	Parent=exon_skip.1_iso1
+1	exon_skip	exon	601	750	.	+	.	Parent=exon_skip.1_iso1
+1	exon_skip	mRNA	51	750	.	+	.	ID=exon_skip.1_iso2;Parent=exon_skip.1;GeneName="gene1";HasNovelJunction="N"
+1	exon_skip	exon	51	200	.	+	.	Parent=exon_skip.1_iso2
+1	exon_skip	exon	301	400	.	+	.	Parent=exon_skip.1_iso2
+1	exon_skip	exon	601	750	.	+	.	Parent=exon_skip.1_iso2
+1	exon_skip	gene	9051	9450	.	+	.	ID=exon_skip.2;GeneName="gene15";HasNovelJunction="N"
+1	exon_skip	mRNA	9051	9450	.	+	.	ID=exon_skip.2_iso1;Parent=exon_skip.2;GeneName="gene15";HasNovelJunction="N"
+1	exon_skip	exon	9051	9150	.	+	.	Parent=exon_skip.2_iso1
+1	exon_skip	exon	9351	9450	.	+	.	Parent=exon_skip.2_iso1
+1	exon_skip	mRNA	9051	9450	.	+	.	ID=exon_skip.2_iso2;Parent=exon_skip.2;GeneName="gene15";HasNovelJunction="N"
+1	exon_skip	exon	9051	9150	.	+	.	Parent=exon_skip.2_iso2
+1	exon_skip	exon	9201	9301	.	+	.	Parent=exon_skip.2_iso2
+1	exon_skip	exon	9351	9450	.	+	.	Parent=exon_skip.2_iso2

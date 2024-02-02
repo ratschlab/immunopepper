@@ -167,10 +167,10 @@ def exon_to_expression(gene: Gene, mutation_pos: list[int], count_info: CountInf
     """
     Builds a dictionary mapping exon ids to expression data.
     """
-    if count_info is None:
+    if (count_info is None) or (mut_count_id is None) or (len(mut_count_id) == 0):
         return None
-    if mut_count_id is not None:
-        seg_counts = seg_counts[:, mut_count_id]
+  
+    seg_counts = seg_counts[:, mut_count_id]
     seg_mat = gene.segmentgraph.segments[0]
     som_expr_dict = {}
 

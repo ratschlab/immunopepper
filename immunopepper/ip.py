@@ -52,7 +52,6 @@ def parse_arguments(argv):
 
     outputs = parser_build.add_argument_group('OUTPUT OPTIONS: Optional choices about the output formatting and filtering')
     outputs.add_argument("--skip-annotation", help='skip the generation of the annotated peptides and kmers', action="store_true", default=False)
-    outputs.add_argument("--keep-tmpfiles", help='keep the intermediate directories in parallel mode', action="store_true", default=False)
     outputs.add_argument("--libsize-path", nargs='?', help=argparse.SUPPRESS, required=False, default=None)     #specify the absolute path to expression library sizes if we want to append to a file
     outputs.add_argument("--output-fasta", help="if True, outputs both the sample peptide metadata and the fasta, else outputs only metadata", action="store_true", required=False, default=False)
     outputs.add_argument("--force-ref-peptides", help="output mutated peptide even if it is the same as reference peptide", action="store_true", default=False)
@@ -97,9 +96,8 @@ def parse_arguments(argv):
 
     helpers = parser_cancerspecif.add_argument_group('INPUT HELPERS: Help the software understand the input files')
     helpers.add_argument("--kmer", help='kmer', required=True)
-    helpers.add_argument("--expression-fields-c", nargs='+', help="name of segment and junction expression field in cancer file, default ['segment_expr', 'junction_expr']",required=False, default=None)
-    helpers.add_argument("--ids-cancer-samples", nargs='+',help=" list of all cancer samples on which to apply the filtering. If --paths-cancer-samples provided they should be given in same order", required=True, default='')
-    helpers.add_argument("--mut-cancer-samples", nargs='+', help=" list of mutation modes corresponding to cancer samples. If --paths-cancer-samples provided they should be given in same order", required=True, default='')
+    helpers.add_argument("--ids-cancer-samples", nargs='+',help=" list of all cancer samples on which to apply the filtering. If --paths-cancer-samples provided they should be given in same order. \n If not provided the software filters the normals only.", required=False, default='')
+    helpers.add_argument("--mut-cancer-samples", nargs='+', help=" list of mutation modes corresponding to cancer samples. If --paths-cancer-samples provided they should be given in same order", required=False, default='')
 
     inputs = parser_cancerspecif.add_argument_group('GENERAL INPUT FILES: Files and parameters to be provided to the software regardless of the filtering strategy')
     inputs.add_argument("--whitelist-normal", help="file containg whitelist for normal samples", required=False, default=None)
@@ -115,12 +113,6 @@ def parse_arguments(argv):
     outputs.add_argument("--tag-normals", help="name for the normal cohort output files, use when various normal cohorts", required=False, default='')
     outputs.add_argument("--tag-prefix", help="prefix to use for the output files, use when several conditions", required=False, default='')
 
-    nsf = parser_cancerspecif.add_argument_group('NORMAL SAMPLES: "Submode Statistical Filter". Fits a NB distribution on normal kmers and use a probabilistic threshold for normal background inclusion')
-    nsf.add_argument("--statistical", help="choose between statistical filtering or hard filtering. Default hard", action="store_true", required=False, default=False)
-    nsf.add_argument("--expr-high-limit-normal", type=float, help="Normal kmers with expression >= value in >= 1 sample are truly expressed. Will not be included in statistical modelling and will be substracted from cancer set",required=False, default=None)
-    nsf.add_argument("--threshold-noise-normal", type=float, help="Probability threshold on accepted noise in normals (High thresholds lead to leaner cancer kmer filtering)",required=False, default=None)
-    nsf.add_argument("--tissue-grp-files", nargs='*', help="Allows the statistical modelling on normal samples to be performed on different tissue groups. Specify n paths of files, each containing the list of samples in the group. No header", required=False, default=None)
-
     nrf = parser_cancerspecif.add_argument_group('NORMAL SAMPLES: "Submode Recurrence hard Filter". Normal background inclusion is based on a combination of two filters (a) Number of reads to be expressed in any sample (b) Number of samples to have any read. The filters can be requested independently.')
     nrf.add_argument("--path-normal-matrix-segm", nargs='+', help="Segment expression integrated matrix of kmers * samples for background", required=False, default=None)
     nrf.add_argument("--path-normal-matrix-edge", nargs='+', help="Edge expression integrated matrix of kmers * samples for background", required=False, default=None)
@@ -131,7 +123,6 @@ def parse_arguments(argv):
     crf.add_argument("--sample-expr-support-cancer", type=float, help="Normalized expression threshold for the cancer target sample. (Can always be specified)")
     crf.add_argument("--cohort-expr-support-cancer", type=float, help="Normalized expression threshold for the cancer cohort excluding the target sample which should be met in n samples (if --expr-n-limit-cancer and path-cancer-matrix-segm resp. edge are provided)", required=False, default=None)
     crf.add_argument("--n-samples-lim-cancer", type=int, help="Number of cancer samples in which the cancer cohort expression threshold should be met (if --cohort-expr-support-cancer and path-cancer-matrix-segm resp. edge are provided)", required=False, default=None)
-    crf.add_argument("--paths-cancer-samples", nargs='+', help="List of single cancer sample files", required=False, default='')
     crf.add_argument("--path-cancer-matrix-segm", nargs='+', help="List of cohort cancer matrix files containing segment expression in [kmers x samples]", required=False, default=None)
     crf.add_argument("--path-cancer-matrix-edge", nargs='+', help="List of cohort cancer matrix files containing edge expression in [kmers x samples]", required=False, default=None)
     crf.add_argument("--cancer-support-union", help="Choose how to combine sample-expr and cohort-expr support in cancer. Request union, default intersection", action="store_true", required=False, default=False)
@@ -144,10 +135,11 @@ def parse_arguments(argv):
     more_filters.add_argument("--filterNeojuncCoord", choices=['C', 'N', 'A'], required=False, default='', help="Retain kmers generated from neojunctions i.e. whose junction coordinates are not found in the annotation. Values: 'C', 'N', 'A' to perform filtering in cancer, normal or both sets respectively")
     more_filters.add_argument("--filterAnnotatedRF", choices=['C', 'N', 'A'], required=False, default='', help="Retain kmers generated from annotated reading frames i.e. whose reading frames are taken from annotated transcript and not propagated through the graph. Values: 'C', 'N', 'A' to perform filtering in cancer, normal or both sets respectively")
 
-
     development = parser_cancerspecif.add_argument_group('DEVELOPMENT PARAMETERS')
     development.add_argument("--tot-batches", type=int, help="Filter foreground and in background kmers based on hash function. Set number of batches",required=False, default=None)
     development.add_argument("--batch-id", type=int, help="Filter foreground and in background kmers based on hash function. Set 0<= batch_id <tot_batches",required=False, default=None)
+    development.add_argument("--on-the-fly", help="computes every filtering step (cancer/normal) on the fly without saving to intermediate files", action="store_true", default=False)
+
     _add_general_args(parser_cancerspecif)
 
     ### mode_mhcbind
