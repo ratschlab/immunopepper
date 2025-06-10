@@ -93,7 +93,7 @@ def test_end_to_end_cancerspecif_mx(outdir):
               #'--on-the-fly',
               #"--interm-dir-norm", os.path.join(outdir, "test_inter_normal"),
               #"--interm-dir-canc", os.path.join(outdir, "test_inter_cancer"),
-              '--whitelist-cancer', os.path.join(basedir, 'cancer', 'whitelist_cancer.txt'),
+              #'--whitelist-cancer', os.path.join(basedir, 'cancer', 'whitelist_cancer.txt'),
               "--uniprot", os.path.join(basedir, 'uniprot.txt'),
               "--parallelism", "3",
               "--out-partitions", "2",
@@ -104,6 +104,58 @@ def test_end_to_end_cancerspecif_mx(outdir):
 
 
 
+#immunopepper cancerspecif --cores 2 --mem-per-core 2048 --parallelism 3 --kmer 9 --output-dir immunopepper_usecase/filter_case/
+# --interm-dir-norm immunopepper_usecase/filter_case --interm-dir-canc immunopepper_usecase/filter_case
+# --ids-cancer-samples simulated_Ipp_1_sample3 --mut-cancer-samples ref
+# --output-count immunopepper_usecase/filter_case/output-count.txt
+# --path-normal-matrix-edge immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_NormalExpr/normal_junctions.gz
+# --n-samples-lim-normal 15 --cohort-expr-support-normal 100 --sample-expr-support-cancer 20 --cohort-expr-support-cancer 110
+# --n-samples-lim-cancer 2
+# --path-cancer-matrix-edge immunopepper/tests/data_simulated/data/cancerspecif_mode/ref_graph_kmer_CancerExpr/cancer_junctions.gz
+#  --filterNeojuncCoord C --verbose 1
+
+def test_end_to_end_cancerspecif_small_data(outdir):
+    basedir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'immunopepper_usecase/filter_case')
+    datadir = os.path.join(os.path.dirname(__file__), 'data_simulated')
+    old_dir = os.path.join(os.path.dirname(__file__), 'filter_case')
+    if not os.path.exists(os.path.join(outdir, "test_inter_normal")):
+        os.mkdir(os.path.join(outdir, "test_inter_normal"))
+    if not os.path.exists(os.path.join(outdir, "test_inter_cancer")):
+        os.mkdir(os.path.join(outdir, "test_inter_cancer"))
+    my_args =["cancerspecif",
+              "--cores", "2",
+              "--mem-per-core", "2048",
+              "--kmer", "9",
+              "--path-normal-matrix-edge", os.path.join(datadir, 'data/cancerspecif_mode/ref_graph_kmer_NormalExpr/normal_junctions.gz'),
+              "--path-cancer-matrix-edge", os.path.join(datadir, 'data/cancerspecif_mode/ref_graph_kmer_CancerExpr/cancer_junctions.gz'),
+              #"--path-normal-kmer-list", os.path.join(old_dir, 'normal', 'simple_annotation.pq'),
+
+              '--ids-cancer-samples', "simulated_Ipp_1_sample3",
+                                      
+              "--output-dir", os.path.join(outdir, 'filter_out'),
+              "--output-count", os.path.join(outdir, 'filter_out', "collect.txt"),
+
+              '--cohort-expr-support-normal', "100",
+              "--n-samples-lim-normal", "15",
+              '--sample-expr-support-cancer', "20",
+              '--cohort-expr-support-cancer', "110",
+              "--n-samples-lim-cancer", "2",
+              "--filterNeojuncCoord", "C",
+              #"--filterAnnotatedRF", "",
+              # "--tot-batches", "4",
+              # "--batch-id", "0",
+              "--tag-prefix", 'G_',
+              #'--on-the-fly',
+              "--interm-dir-norm", os.path.join(outdir, "test_inter_normal"),
+              "--interm-dir-canc", os.path.join(outdir, "test_inter_cancer"),
+              #'--whitelist-cancer', os.path.join(basedir, 'cancer', 'whitelist_cancer.txt'),
+              #"--uniprot", os.path.join(old_dir, 'uniprot.txt'),
+              "--parallelism", "3",
+              "--out-partitions", "2",
+              "--mut-cancer-samples", "ref"]
+
+    print(my_args)
+    ip.split_mode(my_args)
 
 
 ### Mouse Test
@@ -112,13 +164,14 @@ tmpdir = '/Users/laurieprelot/Documents/Projects/tmp_kmer'
 mutation_mode ='germline'
 #pr = cProfile.Profile()
 #pr.enable()
-test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False) #TODO add back
+#test_end_to_end_build_mouse(tmpdir, mutation_mode, is_parallel=False) #TODO add back
 #test_end_to_end_samplespecif('ERR2130621', tmpdir, "9", mutation_mode) # TEST DEPRECATED
 #for mutation_mode in ['ref', 'germline', 'somatic', 'somatic_and_germline']:
 #     test_end_to_end_makebg('ERR2130621', tmpdir, "9")
 #     test_end_to_end_diff(tmpdir, 'ERR2130621', "9", mutation_mode)
 outdir_filter = os.path.join(tmpdir, "filter_test")
 #test_end_to_end_cancerspecif_mx(outdir_filter)
+test_end_to_end_cancerspecif_small_data(outdir_filter)
 #pr.disable()
 #pr.dump_stats(os.path.join(tmpdir, 'cProfile.pstats'))
 
