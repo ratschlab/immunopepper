@@ -1,8 +1,8 @@
-version: 2
+version: 2.1
 jobs:
   build:
     docker:
-      - image: circleci/python
+      - image: cimg/python
     steps:
       - checkout
       - run:

@@ -7,13 +7,11 @@ import os
 import pandas as pd
 import pickle
 import psutil
-import pyarrow as pa
 import signal as sig
 import sys
 
 from immunopepper.io_ import collect_results
 from immunopepper.namedtuples import Idx
-
 
 
 def to_adj_list(adj_matrix):
@@ -50,9 +48,9 @@ def get_successor_list(adj_matrix, vertex_map, read_strand):
         succ_list.append([])
         for jdx in range(adj_matrix.shape[0]):
             if adj_matrix[idx, jdx] == 1 and \
-               ((read_strand == "+" and vertex_map[0][idx] <= vertex_map[0][jdx]) or \
-                (read_strand == "-" and vertex_map[1][idx] >= vertex_map[1][jdx])):
-                    succ_list[idx].append(jdx)
+               ((read_strand == "+" and vertex_map[0][idx] <= vertex_map[0][jdx]) or
+               (read_strand == "-" and vertex_map[1][idx] >= vertex_map[1][jdx])):
+                succ_list[idx].append(jdx)
     return succ_list
 
 
@@ -99,7 +97,7 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
     def _get_variant_pos_offset(variant_pos, coord_pair_list, strand):
         offset = 0
         takes_effect = False
-        for p1,p2 in coord_pair_list:
+        for p1, p2 in coord_pair_list:
             if variant_pos >= p1 and variant_pos < p2:
                 if strand == '+':
                     offset += variant_pos - p1
@@ -112,7 +110,7 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
 
         return offset if takes_effect else np.nan
 
-    real_coord = list(filter(lambda x: x is not np.nan and x != None, coord))
+    real_coord = list(filter(lambda x: x is not np.nan and x is not None, coord))
     assert len(real_coord) % 2 == 0
     coord_pair_list = list(zip(real_coord[::2], real_coord[1::2]))
 
@@ -121,11 +119,11 @@ def get_sub_mut_dna(background_seq, coord, variant_comb, somatic_mutation_sub_di
     else:
         sub_dna = ''.join([background_seq[pair[0] - gene_start:pair[1] - gene_start][::-1] for pair in coord_pair_list])
 
-    if variant_comb is np.nan : # no mutation exist
+    if variant_comb is np.nan:  # no mutation exist
         return sub_dna
 
     relative_variant_pos = [_get_variant_pos_offset(variant_ipos, coord_pair_list, strand) for variant_ipos in variant_comb]
-    for i,variant_ipos in enumerate(variant_comb):
+    for i, variant_ipos in enumerate(variant_comb):
         mut_base = somatic_mutation_sub_dict[variant_ipos]['mut_base']
         ref_base = somatic_mutation_sub_dict[variant_ipos]['ref_base']
         pos = relative_variant_pos[i]
@@ -215,17 +213,17 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
 
     """
     if countinfo is None:
-        return np.zeros((0, 1), dtype='float') #[np.nan] #TODO replace with nan?
+        return np.zeros((0, 1), dtype='float')  # [np.nan] #TODO replace with nan?
 
     out_shape = (seg_counts.shape[1] + 1) if len(seg_counts.shape) > 1 else 2
     if vstart is np.nan or vstop is np.nan:  # isolated exon case
         return np.zeros((0, out_shape), dtype='float')
 
-
     segments = gene.segmentgraph.segments
 
     sv1_id = bisect.bisect(segments[0], vstart) - 1
-    sv2_id = bisect.bisect(segments[0], vstop) - 1
+    # looking for vstop - 1, as we need the last segment containing vstop (and vstop is half-open)
+    sv2_id = bisect.bisect(segments[0], vstop - 1) - 1
     if sv1_id == sv2_id:
         if len(seg_counts.shape) > 1:
             expr_list = np.c_[np.array([vstop - vstart]), [seg_counts[sv1_id, :]]]
@@ -238,9 +236,10 @@ def get_exon_expr(gene, vstart, vstop, countinfo, Idx, seg_counts):
             expr_list = np.c_[segments[1, sv1_id:sv2_id + 1] - segments[0, sv1_id:sv2_id + 1], seg_counts[sv1_id:sv2_id + 1, np.newaxis]]
         expr_list[0, 0] -= (vstart - segments[0, sv1_id])
         expr_list[-1, 0] -= (segments[1, sv2_id] - vstop)
-        if gene.strand == '-': # need to reverse expression list to match the order of translation
+        if gene.strand == '-':  # need to reverse expression list to match the order of translation
             expr_list = expr_list[::-1]
     return expr_list
+
 
 def get_segment_expr(gene, coord, countinfo, Idx, seg_counts):
     """ Get the segment expression for one exon-pair.
@@ -268,12 +267,12 @@ def get_segment_expr(gene, coord, countinfo, Idx, seg_counts):
     """
     expr_meta_file = np.nan
     if coord.start_v3 is None:
-        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts ),
-                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts )])
+        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts),
+                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts)])
     else:
-        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts ),
-                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts ),
-                               get_exon_expr(gene, coord.start_v3, coord.stop_v3, countinfo, Idx, seg_counts )])
+        expr_list = np.vstack([get_exon_expr(gene, coord.start_v1, coord.stop_v1, countinfo, Idx, seg_counts),
+                               get_exon_expr(gene, coord.start_v2, coord.stop_v2, countinfo, Idx, seg_counts),
+                               get_exon_expr(gene, coord.start_v3, coord.stop_v3, countinfo, Idx, seg_counts)])
 
     seg_len = np.sum(expr_list[:, 0])
 
@@ -303,7 +302,7 @@ def get_total_gene_expr(gene, countinfo, seg_expr):
 
 
 def get_idx(countinfo, sample, gene_idx):
-    """ Create a  aggregated Index with namedtuple idx
+    """ Create an aggregated Index with namedtuple idx
     Combine the gene_idx, sample_idx
 
     Parameters
@@ -313,15 +312,13 @@ def get_idx(countinfo, sample, gene_idx):
     gene_idx: int. Gene index, mainly for formatting the output.
 
     """
-    if not countinfo is None:
-        if not sample in countinfo.sample_idx_dict:
-            sample_idx = None
-            if sample != 'cohort':
-                logging.warning("utils.py: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
-        else:
+
+    sample_idx = None
+    if countinfo is not None:
+        if sample in countinfo.sample_idx_dict:
             sample_idx = countinfo.sample_idx_dict[sample]
-    else:
-        sample_idx = None
+        elif sample != 'cohort':
+            logging.warning("utils.py: The sample {} is not in the count file. Program proceeds without outputting expression data.".format(sample))
 
     return Idx(gene_idx, sample_idx)
 
@@ -353,12 +350,11 @@ def create_libsize(expr_distr_fp, libsize_fp, out_dir, mutation_mode, parallel=1
 
     # compute libsizes
     df_libsize = pd.DataFrame({'sample': sample_expr_distr.columns[1:],
-                                 'libsize_75percent': np.percentile(sample_expr_distr.iloc[:, 1:], 75, axis=0, interpolation='linear'),
-                                  'libsize_total_count': np.sum(sample_expr_distr.iloc[:, 1:], axis=0)}, index = None)
-
+                               'libsize_75percent': np.percentile(sample_expr_distr.iloc[:, 1:], 75, axis=0, interpolation='linear'),
+                               'libsize_total_count': np.sum(sample_expr_distr.iloc[:, 1:], axis=0)}, index=None)
 
     if os.path.isfile(libsize_fp):
-        previous_libsize = pd.read_csv(libsize_fp, sep = '\t')
+        previous_libsize = pd.read_csv(libsize_fp, sep='\t')
         df_libsize = pd.concat([previous_libsize, df_libsize], axis=0).drop_duplicates(subset=['sample'], keep='last')
         libsize_exists = ': append to existing file.'
     logging.info(f'Saved library size results to {libsize_fp}{libsize_exists}')
@@ -386,10 +382,10 @@ def get_concat_peptide(front_coord_pair, back_coord_pair, front_peptide, back_pe
     front_pep: 'MKTT', back_pep: 'TTAC', concatenated_pep: 'MKTTAC'
 
     """
-    def get_longest_match_position(front_str,back_str,L=None):
+    def get_longest_match_position(front_str, back_str, L=None):
         if L is None:
-            L = min(len(front_str),len(back_str))
-        for i in reversed(list(range(1,L+1))):
+            L = min(len(front_str), len(back_str))
+        for i in reversed(list(range(1, L+1))):
             if front_str[-i:] == back_str[:i]:
                 return i
         return None
@@ -403,7 +399,7 @@ def get_concat_peptide(front_coord_pair, back_coord_pair, front_peptide, back_pe
         if front_coord == back_coord:  # no intersection and we concatenate them directly
             new_peptide = front_peptide + back_peptide
         else:
-            pep_common_num = get_longest_match_position(front_peptide,back_peptide,L=k)
+            pep_common_num = get_longest_match_position(front_peptide, back_peptide, L=k)
             if pep_common_num is None:
                 new_peptide = ''
             else:
@@ -412,8 +408,10 @@ def get_concat_peptide(front_coord_pair, back_coord_pair, front_peptide, back_pe
     else:
         return ''
 
+
 def replace_I_with_L(kmer):
     return kmer.replace('I', 'L')
+
 
 def check_chr_consistence(ann_chr_set, mutation, graph_data):
     germline_chr_set = set()
@@ -454,6 +452,7 @@ def print_memory_diags(disable_print=False):
     if not disable_print:
         logging.info('\tMemory usage: {:.3f} GB'.format(memory))
     return memory
+
 
 def pool_initializer():
     return sig.signal(sig.SIGINT, sig.SIG_IGN)

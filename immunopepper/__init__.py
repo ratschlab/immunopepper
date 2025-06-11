@@ -1,4 +1,4 @@
-"""Top-level package for ratschlab common."""
+"""Top-level package for ImmunoPepper."""
 
 __author__ = """Ratschlab"""
 __email__ = 'andre.kahles@inf.ethz.ch'
