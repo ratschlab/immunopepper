@@ -1,5 +1,4 @@
 from collections import namedtuple
-import csv
 import glob
 import gzip
 import numpy as np
@@ -55,7 +54,7 @@ def namedtuple_to_str(named_tuple: namedtuple, field_list: list[str] = None, sep
             continue
         item = getattr(named_tuple, field)
         if isinstance(item, (list, tuple)):
-            line += _convert_list_to_str(item, sep = ';') + sep
+            line += _convert_list_to_str(item, sep=';') + sep
         else:
             line += str(item) + sep
     return line[:-1]  # remove the last separator
@@ -102,7 +101,7 @@ def get_save_path(file_info: dict, out_dir: str = None,  create_partitions: bool
 
 def save_bg_kmer_set(data: set[str], filepointer: Filepointer,
                      out_dir: str = None, verbose: bool = False):
-    """ Writes a set of strings (protein kmers)""" #TODO update docs
+    """ Writes a set of strings (protein kmers)"""  # TODO update docs
     if data:
         path = get_save_path(filepointer.background_kmer_fp, out_dir)
         save_to_gzip(path, data, filepointer.background_kmer_fp['columns'], verbose=verbose)
@@ -121,7 +120,7 @@ def save_fg_kmer_dict(data: dict, filepointer: Filepointer, kmer_length: int,
 
 
 def save_bg_peptide_set(data, filepointer: Filepointer, out_dir: str = None,
-                         verbose: bool = False):
+                        verbose: bool = False):
     """
     Writes peptide information (dict of peptide to output ids) as a fasta file.
     The keys in the fasta file are the concatenated output ids, and the value is the protein itself, e.g.::
@@ -130,16 +129,16 @@ def save_bg_peptide_set(data, filepointer: Filepointer, out_dir: str = None,
     """
 
     if data:
-        data = np.array([line.split('\t') for line in data]).T #set to array #TODO vectorize slit
-        data = np.array([make_fasta_ids(data[0]), data[1]]) # output_ids,  peptides
-        data = data.flatten(order = 'F')
+        data = np.array([line.split('\t') for line in data]).T  # set to array #TODO vectorize slit
+        data = np.array([make_fasta_ids(data[0]), data[1]])  # output_ids,  peptides
+        data = data.flatten(order='F')
         data = np.expand_dims(data, axis=0).T
         path = get_save_path(filepointer.background_peptide_fp, out_dir)
         save_to_gzip(path, data, filepointer.background_peptide_fp['columns'], verbose, is_2d=True)
 
 
 def save_fg_peptide_set(data: set, filepointer: Filepointer, out_dir: str = None,
-                         save_fasta: bool = False, verbose: bool = False, id: str = ''):
+                        save_fasta: bool = False, verbose: bool = False, id_tag: str = ''):
     """
     Save foreground peptide data.
     :param data: set containing the lines to be written sep is '\t'
@@ -148,14 +147,14 @@ def save_fg_peptide_set(data: set, filepointer: Filepointer, out_dir: str = None
     if data:
         data = np.array([line.split('\t') for line in data]).T  # set to array
         if save_fasta:
-            path_fa = get_save_path(filepointer.junction_peptide_fp, out_dir, create_partitions=True, tag=id)
-            fasta = np.array([make_fasta_ids(data[1]), data[0]]) #id, peptide
+            path_fa = get_save_path(filepointer.junction_peptide_fp, out_dir, create_partitions=True, tag=id_tag)
+            fasta = np.array([make_fasta_ids(data[1]), data[0]])  # id, peptide
             fasta = fasta.flatten(order='F')
             fasta = np.expand_dims(fasta, axis=0).T
             save_to_gzip(path_fa, fasta, filepointer.junction_peptide_fp['columns'], verbose, is_2d=True)
             del fasta
 
-        path = get_save_path(filepointer.junction_meta_fp, out_dir, create_partitions=True, tag=id)
+        path = get_save_path(filepointer.junction_meta_fp, out_dir, create_partitions=True, tag=id_tag)
         save_to_gzip(path, data.T, filepointer.junction_meta_fp['columns'], verbose, is_2d=True)  # Test keep peptide name in the metadata file
 
 
@@ -182,18 +181,16 @@ def save_gene_expr_distr(data: list[list], input_samples: list[str], process_sam
 
 def save_kmer_matrix(data_edge, data_segm, graph_samples, filepointer: Filepointer,
                      out_dir: str = None, verbose: bool = False):
-    '''
+    """
     Saves matrices of [kmers] x [metadata, samples] containing either segment expression or junction expression
-    :param data_edge: set of tuples: (kmer, is_junction, junction_is_annotated, reading_frame_is_annotated, edge_expression_sample_i ..)
-    :param data_segm: set of tuples: (kmer, is_junction, junction_is_annotated, reading_frame_is_annotated, segment_expression_sample_i ..)
-    :param kmer_len: int amino acid length of kmer
+    :param data_edge: set of tuples: (kmer, is_junction, junction_is_annotated, reading_frame_is_annotated, edge_expression_sample_i ...)
+    :param data_segm: set of tuples: (kmer, is_junction, junction_is_annotated, reading_frame_is_annotated, segment_expression_sample_i ...)
     :param graph_samples: list sample names
     :param filepointer: class object which contains the saving path,
                         columns names and writer object for each of the files to save
-    :param compression: str parquet compression format
     :param out_dir: str output directory path
     :param verbose: int verbose parameter
-    '''
+    """
     segm_path = get_save_path(filepointer.kmer_segm_expr_fp, out_dir, create_partitions=True)
     edge_path = get_save_path(filepointer.kmer_edge_expr_fp, out_dir, create_partitions=True)
     if data_edge:
@@ -206,14 +203,12 @@ def save_kmer_matrix(data_edge, data_segm, graph_samples, filepointer: Filepoint
         data_segm_columns = filepointer.kmer_segm_expr_fp['columns'] + graph_samples
         filepointer.kmer_segm_expr_fp['pqwriter'] = save_to_gzip(segm_path, data_segm, data_segm_columns,
                                                                  verbose=verbose,
-                                                                 filepointer=filepointer.kmer_segm_expr_fp[ 'pqwriter'],
+                                                                 filepointer=filepointer.kmer_segm_expr_fp['pqwriter'],
                                                                  writer_close=True, is_2d=True)
 
 
-
-
 def initialize_fp(output_path: str, mutation_mode: str, output_fasta: bool):
-    """"
+    """
     Initializes a Filepointer object for the given parameters.
     :param output_path: base directory where data is written
     :param mutation_mode: what type of mutation mode we operate in, such as 'ref', 'somatic', 'germline', etc.
@@ -276,6 +271,7 @@ def disk_writer(path, data_iterable, columns, filepointer=None, writer_close=Tru
     """Write gzip to disk"""
     delim = '\t'
     linet = '\n'
+
     # Open
     if filepointer is None:
         filepointer = gzip.open(path, 'wt')
@@ -286,13 +282,11 @@ def disk_writer(path, data_iterable, columns, filepointer=None, writer_close=Tru
         for idx, line in enumerate(data_iterable):
             filepointer.write(delim.join([str(x) for x in line]) + linet)
     else:
-        for line in data_iterable:
-            filepointer.write(line + '\n')
+        filepointer.write(delim.join(data_iterable) + linet)
 
     # Close
     if writer_close:
         filepointer.close()
-        filepointer = None
 
 
 def save_to_gzip(path, data_iterable, columns, verbose=False, filepointer=None, writer_close=True, is_2d=False):
@@ -327,6 +321,8 @@ def collect_results(filepointer_item, out_dir, mutation_mode, partitions=False):
     """
     Merges results written by each parallel process.
     """
+
+    file_path = '.'
     if filepointer_item is not None:
         file_path = filepointer_item['path']
 
@@ -340,7 +336,7 @@ def collect_results(filepointer_item, out_dir, mutation_mode, partitions=False):
 
     try:
         df = pd.concat((pd.read_csv(f, sep='\t', compression='gzip') for f in tmp_file_list), ignore_index=True)
-    except:
+    except IOError:
         logging.error(f'Unable to read one of files for {file_path} collection')
         sys.exit(1)
     return df
