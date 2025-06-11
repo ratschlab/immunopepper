@@ -7,7 +7,7 @@ jobs:
       - checkout
       - run:
           name: install hdf5
-          command: sudo apt-get install pkg-config libhdf5-dev
+          command: sudo apt-get update && sudo apt-get install pkg-config libhdf5-dev
       - run:
           name: setup environment
           command: |
