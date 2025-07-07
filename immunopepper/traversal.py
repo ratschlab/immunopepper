@@ -62,7 +62,7 @@ def collect_background_transcripts(gene=None, ref_seq_file=None, chrm=None, muta
 
 def collect_vertex_pairs(
     gene: spladder.classes.gene.Gene,
-    gene_info: Any,
+    gene_info,
     ref_seq_file=None, chrm=None, idx=None, mutation=None, all_read_frames=False, disable_concat=False, kmer_length=None, filter_redundant=False):
     """Calculate the output peptide for every exon-pair in the splice graph
 
