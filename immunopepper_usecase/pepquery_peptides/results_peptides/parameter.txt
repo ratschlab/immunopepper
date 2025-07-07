@@ -1,0 +1,23 @@
+PepQuery version: 2.0.2
+PepQuery command line: -o immunopepper_usecase/pepquery/results_peptides/ -i immunopepper/tests/data_simulated/data/pepquery_mode/targetlist -db immunopepper/tests/data_simulated/data/pepquery_mode/uniprot-proteome_UP000005640.fasta -ms immunopepper/tests/data_simulated/data/pepquery_mode/TCGA_E2-A10A_BH-A18Q_C8-A130_117C_W_BI_20130222_H-PM_fA.mgf
+Fixed modification: 1 = Carbamidomethylation of C
+Variable modification: 2 = Oxidation of M
+Max allowed variable modification: 3
+Add AA substitution: false
+Enzyme: 1 = Trypsin
+Max Missed cleavages: 2
+Precursor mass tolerance: 10.0
+Range of allowed isotope peak errors: 0
+Precursor ion mass tolerance unit: ppm
+Fragment ion mass tolerance: 0.6
+Fragment ion mass tolerance unit: Da
+Scoring algorithm: 1 = Hyperscore
+Min score: 12.0
+Min peaks: 10
+Min peptide length: 7
+Max peptide length: 45
+Min peptide mass: 500.0
+Max peptide mass: 10000.0
+Random peptide number: 10000
+Fast mode: false
+CPU: 16

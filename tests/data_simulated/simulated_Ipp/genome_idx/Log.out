@@ -1,0 +1,82 @@
+STAR version=2.7.10b
+STAR compilation time,server,dir=2022-11-01T09:53:26-04:00 :/home/dobin/data/STAR/STARcode/STAR.master/source
+STAR git: On branch master ; commit c6f8efc2c7043ef83bf8b0d9bed36bbb6b9b1133 ; diff files: CHANGES.md 
+##### Command Line:
+STAR --runThreadN 3 --runMode genomeGenerate --genomeDir /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx --genomeFastaFiles /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome.fa --sjdbGTFfile /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/simulated_Ipp.gtf --sjdbOverhang 25 --sjdbInsertSave Basic --genomeSAindexNbases 5
+##### Initial USER parameters from Command Line:
+###### All USER parameters from Command Line:
+runThreadN                    3     ~RE-DEFINED
+runMode                       genomeGenerate        ~RE-DEFINED
+genomeDir                     /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx     ~RE-DEFINED
+genomeFastaFiles              /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome.fa        ~RE-DEFINED
+sjdbGTFfile                   /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/simulated_Ipp.gtf     ~RE-DEFINED
+sjdbOverhang                  25     ~RE-DEFINED
+sjdbInsertSave                Basic     ~RE-DEFINED
+genomeSAindexNbases           5     ~RE-DEFINED
+##### Finished reading parameters from all sources
+
+##### Final user re-defined parameters-----------------:
+runMode                           genomeGenerate   
+runThreadN                        3
+genomeDir                         /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx
+genomeFastaFiles                  /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome.fa   
+genomeSAindexNbases               5
+sjdbGTFfile                       /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/simulated_Ipp.gtf
+sjdbOverhang                      25
+sjdbInsertSave                    Basic
+
+-------------------------------
+##### Final effective command line:
+STAR   --runMode genomeGenerate      --runThreadN 3   --genomeDir /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx   --genomeFastaFiles /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome.fa      --genomeSAindexNbases 5   --sjdbGTFfile /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/simulated_Ipp.gtf   --sjdbOverhang 25   --sjdbInsertSave Basic
+----------------------------------------
+
+Number of fastq files for each mate = 1
+ParametersSolo: --soloCellFilterType CellRanger2.2 filtering parameters:  3000 0.99 10
+Finished loading and checking parameters
+--genomeDir directory exists and will be overwritten: /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx/
+Jun 15 12:45:32 ... starting to generate Genome files
+/home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome.fa : chr # 0  "1" chrStart: 0
+Chromosome sequence lengths: 
+1	10000
+Genome sequence total length = 10000
+Genome size with padding = 262144
+Jun 15 12:45:32 ..... processing annotations GTF
+Processing pGe.sjdbGTFfile=/home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/simulated_Ipp.gtf, found:
+		20 transcripts
+		57 exons (non-collapsed)
+		32 collapsed junctions
+Total junctions: 32
+Jun 15 12:45:32 ..... finished GTF processing
+
+Estimated genome size with padding and SJs: total=genome+SJ=51262144 = 262144 + 51000000
+GstrandBit=32
+Number of SA indices: 20000
+Jun 15 12:45:32 ... starting to sort Suffix Array. This may take a long time...
+Number of chunks: 2;   chunks size limit: 80000 bytes
+Jun 15 12:45:32 ... sorting Suffix Array chunks and saving them to disk...
+Writing 80000 bytes into /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx//SA_0 ; empty space on disk = 216474836992 bytes ... done
+Writing 80000 bytes into /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx//SA_1 ; empty space on disk = 216474755072 bytes ... done
+Jun 15 12:45:32 ... loading chunks from disk, packing SA...
+Jun 15 12:45:32 ... finished generating suffix array
+Jun 15 12:45:32 ... generating Suffix Array index
+Jun 15 12:45:32 ... completed Suffix Array index
+Jun 15 12:45:32   Finished preparing junctions
+Jun 15 12:45:32 ..... inserting junctions into the genome indices
+Jun 15 12:45:32   Finished SA search: number of new junctions=32, old junctions=0
+Jun 15 12:45:32   Finished sorting SA indicesL nInd=3200
+Genome size with junctions=263776  262144   1632
+GstrandBit1=32   GstrandBit=32
+Jun 15 12:45:32   Finished inserting junction indices
+Jun 15 12:45:32   Finished SAi
+Jun 15 12:45:32 ..... finished inserting junctions into genome
+Jun 15 12:45:32 ... writing Genome to disk ...
+Writing 263776 bytes into /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx//Genome ; empty space on disk = 216475099136 bytes ... done
+SA size in bytes: 95703
+Jun 15 12:45:32 ... writing Suffix Array to disk ...
+Writing 95703 bytes into /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx//SA ; empty space on disk = 216474931200 bytes ... done
+Jun 15 12:45:32 ... writing SAindex to disk
+Writing 8 bytes into /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx//SAindex ; empty space on disk = 216474841088 bytes ... done
+Writing 48 bytes into /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx//SAindex ; empty space on disk = 216474841088 bytes ... done
+Writing 5971 bytes into /home/pballesteros/immunopepper/tests/data_simulated/simulated_Ipp/genome_idx//SAindex ; empty space on disk = 216474841088 bytes ... done
+Jun 15 12:45:32 ..... finished successfully
+DONE: Genome generation, EXITING

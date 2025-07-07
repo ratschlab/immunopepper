@@ -7,7 +7,7 @@ import pytest
 data_dir = os.path.join(os.path.dirname(__file__), 'data')
 groundtruth_dir = os.path.join(os.path.dirname(__file__), 'test1')
 
-from immunopepper import immunopepper
+from immunopepper import ip
 
 
 def _assert_files_equal(expected_path, actual_path):
@@ -58,7 +58,7 @@ def test_end_to_end_build(test_id, case, mutation_mode, tmpdir):
 
     my_args = my_args_build
     sample_dir = sample_dir_build
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
     _assert_files_equal(
         os.path.join(sample_dir, '{}_metadata.tsv.gz'.format(mutation_mode)),
         os.path.join(out_dir, 'test{}{}'.format(test_id, case), '{}_metadata.tsv.gz'.format(mutation_mode)))
@@ -93,7 +93,7 @@ def test_end_to_end_makebg(test_id, case,tmpdir):
     bg_file_list = [os.path.join(back_file_dir,'{}_back_kmer.txt'.format(mode)) for mode in ['ref','somatic','somatic_and_germline','germline']]
     my_args_makebg = ['make_bg','--kmer-files']+bg_file_list+['--output-file-path', output_file_name]+['--output-dir', out_dir]
 
-    immunopepper.split_mode(my_args_makebg)
+    ip.split_mode(my_args_makebg)
     _assert_files_equal(
         os.path.join(sample_dir, '{}_integrated_background_kmer.txt'.format(case)),
         os.path.join(out_dir,'{}_integrated_background_kmer.txt'.format(case)))
@@ -125,7 +125,7 @@ def test_end_to_end_diff(test_id, case, tmpdir,mutation_mode):
                    '--output-file-path', output_file_path,
                    '--output-dir', out_dir]
 
-    immunopepper.split_mode(my_args_diff)
+    ip.split_mode(my_args_diff)
     _assert_files_equal(
         os.path.join(groundtruth_diff_dir, '{}_{}_junction_kmer_with_bg.txt'.format(case,mutation_mode)),
         os.path.join(out_dir,'{}_{}_junction_kmer_with_bg.txt'.format(case,mutation_mode)))
@@ -153,7 +153,7 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
                '--output-file-path', output_file_path,
                '--output-dir', out_dir,
                '--cross-junction']
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
     _assert_files_equal(
         os.path.join(groundtruth_filter_dir, output_filtered_file_name),
         os.path.join(out_dir,output_filtered_file_name))
@@ -165,7 +165,7 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
                '--output-file-path', output_file_path,
                '--output-dir', out_dir,
                '--junc-expr']
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
     _assert_files_equal(
         os.path.join(groundtruth_filter_dir, output_filtered_file_name),
         os.path.join(out_dir, output_filtered_file_name))
@@ -178,7 +178,7 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
                '--output-dir', out_dir,
                '--seg-expr',
                '--seg-expr-thresh','1300']
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
     _assert_files_equal(
         os.path.join(groundtruth_filter_dir, output_filtered_file_name),
         os.path.join(out_dir, output_filtered_file_name))
@@ -193,7 +193,7 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
                '--seg-expr-thresh', '1300',
                '--junc-expr',
                '--junc-expr-thresh', '500']
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
     _assert_files_equal(
         os.path.join(groundtruth_filter_dir, output_filtered_file_name),
         os.path.join(out_dir, output_filtered_file_name))
@@ -217,7 +217,7 @@ def test_end_to_end_filter(test_id, case, tmpdir,mutation_mode):
                '--is-in-junction-list', str(0),
                '--is-isolated', str(0),
                '--output-dir', out_dir]
-    immunopepper.split_mode(my_args)
+    ip.split_mode(my_args)
     _assert_files_equal(
         os.path.join(groundtruth_filter_dir, output_filtered_file_name),
         os.path.join(out_dir, output_filtered_file_name))

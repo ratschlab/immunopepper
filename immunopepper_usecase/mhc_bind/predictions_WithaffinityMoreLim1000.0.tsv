@@ -1,0 +1,3 @@
+kmer	simulatedIpp1sample3	junctionAnnotated	readFrameAnnotated	source_sequence_name	offset	allele	score	affinity	percentile_rank	prediction_method_name	length
+HRESSSLVS	175.0	False	True		0	HLA-A*02:01	0.0446471281349657	30844.269454405578	49.96275000000001	mhcflurry	9
+ESSSLVSDG	175.0	False	True		0	HLA-A*02:01	0.0493709236383438	29307.415067013528	36.933125	mhcflurry	9

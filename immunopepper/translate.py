@@ -1,24 +1,21 @@
 """Countains code related to translation"""
 
+import logging
 import numpy as np
 #TODO For developement
 import pyximport; pyximport.install()
 import sys
 
-from immunopepper.cpython_functions import translate_dna_to_peptide
+from immunopepper.dna_to_peptide import dna_to_peptide
 
-from .namedtuples import Coord
-from .namedtuples import Flag
-from .namedtuples import Peptide
-from .namedtuples import ReadingFrameTuple
-from .utils import get_exon_expr,get_sub_mut_dna
+from immunopepper.namedtuples import Coord
+from immunopepper.namedtuples import Flag
+from immunopepper.namedtuples import Peptide
+from immunopepper.namedtuples import ReadingFrameTuple
+from immunopepper.utils import get_exon_expr,get_sub_mut_dna
 
-# def translate_dna_to_peptide(dna_str):
-#     """ Translate a DNA sequence encoding a peptide to amino-acid sequence via RNA.
-
-
-def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts, Idx, mode, all_read_frames):
-    """ 
+def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts=None, Idx=None, all_read_frames=False):
+    """
     Output translated peptide and segment expression list given cds_list
 
     Parameters
@@ -29,10 +26,6 @@ def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts, Idx, mode, all_
     countinfo: Namedtuple, SplAdder count information
     seg_counts: np.array, array of spladder segment counts from gene and sample of interest
     Idx: Namedtuple Idx, has attribute idx.gene and idx.sample
-    mode: [temporal argument]. Due to the different meaning of cds_tuple in gene.splicegraph.reading_frame
-        and that in gene_to_cds dict (the formal v_start and v_stop has already considered reading_frame and
-        do not need additional modified), we need to deal with them differently. So for now there are two modes
-        'full' and 'background', indicating full-kmer and background. Will remove it in the future version.
 
     Returns
     -------
@@ -41,7 +34,7 @@ def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts, Idx, mode, all_
     cds_peptide: str. Translated peptide string according to cds_list
 
     """
-    if gene.strand.strip() == "-" and mode=='back':
+    if gene.strand.strip() == "-":
         cds_list = cds_list[::-1]
     gene_start = np.min(gene.splicegraph.vertices)
 
@@ -52,7 +45,7 @@ def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts, Idx, mode, all_
     for coord_left, coord_right, frameshift in cds_list:
 
         # Apply initial frameshift on the first CDS of the transcript
-        if first_cds and mode != 'full':
+        if first_cds:
             if gene.strand.strip() == "+":
                 coord_left += frameshift
             else:
@@ -68,9 +61,9 @@ def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts, Idx, mode, all_
         elif gene.strand.strip() == "-":
             cds_string += complementary_seq(nuc_seq[::-1])
         else:
-            print("ERROR: Invalid strand. Got %s but expect + or -" % gene.strand.strip())
+            logging.error("ERROR: Invalid strand. Got %s but expect + or -" % gene.strand.strip())
             sys.exit(1)
-    cds_peptide, is_stop_flag = translate_dna_to_peptide(cds_string, all_read_frames)
+    cds_peptide, is_stop_flag = dna_to_peptide(cds_string, all_read_frames)
     return cds_expr_list, cds_string, cds_peptide
 
 
@@ -104,7 +97,9 @@ def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_
         contains the true four position of exon pairs (after considering read framee)
         that outputs the peptide.
     flag: NamedTuple Flag. has attribute ['has_stop', 'is_isolated']
-    next_reading_frame: Tuple. The reading frame to be propogated to the next vertex.
+    next_start_v1: int. start vertex in new reading frame
+    next_stop_v1: int. stop vertex in new reading frame
+    next_emitting_frame: int. Shift induced
 
     """
     cds_left_modi, cds_right_modi, emitting_frame = read_frame[0], read_frame[1], read_frame[2]
@@ -142,12 +137,11 @@ def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_
         next_start_v1 = peptide_accept_coord[0]
         next_stop_v1 = max(stop_v2 - accepting_frame, peptide_accept_coord[0])
 
-    next_reading_frame = ReadingFrameTuple(next_start_v1, next_stop_v1, next_emitting_frame)
     assert (len(peptide_dna_str_mut) == len(peptide_dna_str_ref))
     # if len(peptide_dna_str_mut) % 3 != 0:
     #     print("Applied mutations have changed the length of the DNA fragment - no longer divisible by 3")
-    peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut, all_read_frames)
-    peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref, all_read_frames)
+    peptide_mut, mut_has_stop_codon = dna_to_peptide(peptide_dna_str_mut, all_read_frames)
+    peptide_ref, ref_has_stop_codon = dna_to_peptide(peptide_dna_str_ref, all_read_frames)
 
     # if the stop codon appears before translating the second exon, mark 'single'
     is_isolated = False
@@ -159,7 +153,7 @@ def cross_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_
     peptide = Peptide(peptide_mut, peptide_ref)
     coord = Coord(start_v1, stop_v1, start_v2, stop_v2)
     flag = Flag(mut_has_stop_codon, is_isolated)
-    return peptide, coord, flag, next_reading_frame
+    return peptide, coord, flag, next_start_v1, next_stop_v1, next_emitting_frame
 
 
 def isolated_peptide_result(read_frame, strand, variant_comb, somatic_mutation_sub_dict, ref_mut_seq, gene_start, all_read_frames):
@@ -205,8 +199,8 @@ def isolated_peptide_result(read_frame, strand, variant_comb, somatic_mutation_s
         peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, coord, variant_comb, somatic_mutation_sub_dict, strand, gene_start))
         peptide_dna_str_ref = complementary_seq(ref_seq[start_v1 - gene_start:stop_v1 - gene_start][::-1])
 
-    peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut, all_read_frames)
-    peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref, all_read_frames)
+    peptide_mut, mut_has_stop_codon = dna_to_peptide(peptide_dna_str_mut, all_read_frames)
+    peptide_ref, ref_has_stop_codon = dna_to_peptide(peptide_dna_str_ref, all_read_frames)
 
     is_isolated = True
 
@@ -230,8 +224,8 @@ def get_peptide_result(simple_meta_data, strand, variant_comb, somatic_mutation_
     else:  # strand == "-"
         peptide_dna_str_mut = complementary_seq(get_sub_mut_dna(mut_seq, modi_coord, variant_comb, somatic_mutation_sub_dict, strand, gene_start))
         peptide_dna_str_ref = complementary_seq(get_sub_mut_dna(ref_seq, modi_coord, np.nan, somatic_mutation_sub_dict, strand, gene_start))
-    peptide_mut, mut_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_mut, all_read_frames)
-    peptide_ref, ref_has_stop_codon = translate_dna_to_peptide(peptide_dna_str_ref, all_read_frames)
+    peptide_mut, mut_has_stop_codon = dna_to_peptide(peptide_dna_str_mut, all_read_frames)
+    peptide_ref, ref_has_stop_codon = dna_to_peptide(peptide_dna_str_ref, all_read_frames)
 
     # if the stop codon appears before translating the second exon, mark 'single'
     if modi_coord.start_v2 is np.nan or len(peptide_mut[0])*3 <= abs(modi_coord.stop_v1 - modi_coord.start_v1) + 1:
@@ -263,5 +257,5 @@ def get_exhaustive_reading_frames(splicegraph, gene_strand, vertex_order):
                 cds_right_modi = v_stop
             n_trailing_bases = cds_right_modi - cds_left_modi
             read_phase = n_trailing_bases % 3
-            reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, read_phase))
+            reading_frames[idx].add(ReadingFrameTuple(cds_left_modi, cds_right_modi, read_phase, False )) #no reading frame annotation status recorded 
     return reading_frames
