@@ -37,8 +37,8 @@ def collect_background_transcripts(gene=None, ref_seq_file=None, chrm=None, muta
        ----------
        gene: Object, returned by SplAdder.
        ref_seq_file: Str, reference sequence of specific chromosome
-       mutation: Namedtuple Mutation, store the mutation information of specific chromosome and sample.
-           has the attribute ['mode', 'maf_dict', 'vcf_dict']
+       mutation: Namedtuple Mutation, stores the mutation information of specific chromosome and sample.
+           has the attributes ['mode', 'somatic_dict', 'germline_dict']
 
        Returns
        -------
@@ -420,7 +420,7 @@ def get_and_write_background_peptide_and_kmer(peptide_set, kmer_set, gene, ref_m
             continue
         cds_expr_list, cds_string, cds_peptide_list = get_full_peptide(gene, ref_mut_seq['background'],
                                                                        transcript_cds_table[ts], countinfo,
-                                                                       mode='back', all_read_frames=all_read_frames)
+                                                                       all_read_frames=all_read_frames)
 
         for cds_peptide in cds_peptide_list: #all_read_frames modes outputs several peptides when encountering a stop codon
             peptide = OutputPeptide(output_id=ts,

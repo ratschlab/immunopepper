@@ -14,7 +14,7 @@ from immunopepper.namedtuples import Peptide
 from immunopepper.namedtuples import ReadingFrameTuple
 from immunopepper.utils import get_exon_expr,get_sub_mut_dna
 
-def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts=None, Idx=None, mode='full', all_read_frames=False):
+def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts=None, Idx=None, all_read_frames=False):
     """
     Output translated peptide and segment expression list given cds_list
 
@@ -26,10 +26,6 @@ def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts=None, Idx=None, 
     countinfo: Namedtuple, SplAdder count information
     seg_counts: np.array, array of spladder segment counts from gene and sample of interest
     Idx: Namedtuple Idx, has attribute idx.gene and idx.sample
-    mode: [temporal argument]. Due to the different meaning of cds_tuple in gene.splicegraph.reading_frame
-        and that in gene_to_cds dict (the formal v_start and v_stop has already considered reading_frame and
-        do not need additional modified), we need to deal with them differently. So for now there are two modes
-        'full' and 'background', indicating full-kmer and background. Will remove it in the future version.
 
     Returns
     -------
@@ -38,7 +34,7 @@ def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts=None, Idx=None, 
     cds_peptide: str. Translated peptide string according to cds_list
 
     """
-    if gene.strand.strip() == "-" and mode=='back':
+    if gene.strand.strip() == "-":
         cds_list = cds_list[::-1]
     gene_start = np.min(gene.splicegraph.vertices)
 
@@ -49,7 +45,7 @@ def get_full_peptide(gene, seq, cds_list, countinfo, seg_counts=None, Idx=None, 
     for coord_left, coord_right, frameshift in cds_list:
 
         # Apply initial frameshift on the first CDS of the transcript
-        if first_cds and mode != 'full':
+        if first_cds:
             if gene.strand.strip() == "+":
                 coord_left += frameshift
             else:
